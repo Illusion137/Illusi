@@ -17,3 +17,5 @@ Credits to Musi Inc.
 - [ ] Audiobook-Mode
 - [ ] Widgets
 - [ ] Suggested Music / Quick Add
+- [ ] Offload Unavailable Songs
+- [ ] Research Unavailable Songs
