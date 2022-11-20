@@ -1,18 +1,14 @@
 # Illusi
-## Musi++
-Ad-less software re-creation of Musi with extended features
-This recreation lacks social aspects of Musi
-
 This app is made for IOS but can be easily ported to Android
 
 Any requested features please email me at the email linked on GitHub
 
-Credits to Musi Inc.
 ## Extended Features List
 
 - [ ] Downloading tracks
-- [ ] Import tracks from Spotify 
+- [x] Import tracks from Spotify 
 - [ ] Import tracks from Amazon-Music
+- [ ] Export Tracks to YouTube
 - [ ] Add tracks from local files
 - [ ] Audiobook-Mode
 - [ ] Widgets
