@@ -1,33 +1,43 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight } from 'react-native';
 import SongComponentSearch from '../components/SongComponentSearch';
 // import searchVideo from '../usetube';
-import illusiveSearchVideo from '../Illusive/IllusiveSearch';
+import SearchYouTubeVideos from '../Illusive/IllusiveSearch';
 
 const SearchScreen = (props) => {
 
 	const [data, setData] = useState('');
+	const [searchingData, setSearchingData] = useState('');
+	const [searchingMode, setSearchingMode] = useState(true);
+	const [recentData, setRecentData] = useState('');
 	const [searchQuery, setSearchQuery] = useState('');
 	
-	const renderItem = ({ item }) => (
-		// data = await AsyncStorage.getItem('Library');
+	const renderSongSearchComponents = ({ item }) => (
 		<SongComponentSearch id={item.video_id} imguri={`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`} title={item.video_name} artist={item.video_creator} duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
-		);
+	);
+	const renderQueryItems = ({ item }) => (
+		<>
+			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item); setSearchingMode(false); await Search(searchQuery)}}>
+					<Text style={styles.queryItemsText}>{item}</Text>
+			</TouchableHighlight>
+			<View style={{width: '93%', height: 1, backgroundColor: '#505050', left: 10}}/>
+		</>
+	);
 		
-		return (
-			<View style={styles.topcontainer}>
+	return (
+		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
-				<TextInput placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput} onChangeText={query => setSearchQuery(query)} onSubmitEditing={() => search(searchQuery)}/>
+				<TextInput value={searchQuery} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query);}} onSubmitEditing={async() => {await Search(searchQuery); setSearchingMode(false)}}/>
 			</View>
 			<View style={styles.searchview}>
-				<FlatList style={styles.searchlist} data={data} renderItem={renderItem}/>
+				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
+				{!searchingMode && <FlatList style={styles.searchlist} data={data} renderItem={renderSongSearchComponents}/>}
 			</View>
-
 		</View>
 	);
-	async function search(query) {
-		let search = await illusiveSearchVideo(query)
+	async function Search(query) {
+		let search = await SearchYouTubeVideos(query)
 		try {
 			let allTrackData = await AsyncStorage.getItem('Library');
 			if(allTrackData == null){
@@ -58,16 +68,22 @@ const SearchScreen = (props) => {
 				});
 				setData(search);
 			}
-		} catch (error) {
-			console.log(error);
-		  }
-		// console.log(data);
-		
+		} catch (error) {console.log(error);}
 		if(data == null){
 			console.log('Error in search');
 			return;
 		}
   	}
+	async function GetSuggestions(query){
+		try {
+			setSearchingMode(true)
+			const response = await fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${query}`);
+			const json = await response.json();
+			setSearchingData(json[1]);
+		} catch (error) {
+			console.log(error);
+		}
+	}
 }
 const styles = StyleSheet.create({
 	topcontainer:{
@@ -94,6 +110,16 @@ const styles = StyleSheet.create({
 		backgroundColor: '#000000',
 		top: 80,
 		height: '83%'
+	},
+	queryItemsText:{
+		color: '#FFFFFF',
+		fontSize: 17,
+		marginLeft: 50,
+	},
+	queryItems:{
+		height: 50,
+		width: '100%',
+		justifyContent: 'center',
 	}
 });
 export default SearchScreen;

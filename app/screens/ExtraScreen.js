@@ -1,10 +1,17 @@
 import React from 'react';
 import { Ionicons, Entypo } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MoreSectionButton from '../components/MoreSectionButton';
 
-function MoreScreen(props) {
+function ExtraScreen(props) {
+	const confirmDeleteDataAlert = () =>
+    Alert.alert(
+      "Clear All Data",
+      "Are you sure?",
+      [ { text: "Cancel"},
+        { text: "OK", onPress: () => AsyncStorage.clear() } ]
+    );
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.header}>
@@ -24,11 +31,13 @@ function MoreScreen(props) {
 				<View style={styles.line}></View>
 				
 				<MoreSectionButton text='Youtube Login' icon='logo-youtube' onPress={() => console.log('Pressed')}/>
-				<Text style={styles.descriptiontxt}>Login to YouTube to play restricted songs, add private YouTube playlists, and more.</Text>
+				<Text style={styles.descriptiontxt}>Login to YouTube to play age-restricted songs, add private YouTube playlists, export playlists to YouTube, etc...</Text>
+				<MoreSectionButton text='Import Manager' icon='download' onPress={() => console.log('Pressed')}/>
+				<Text style={styles.descriptiontxt}>Import Manager for own MP3 files</Text>
+				<MoreSectionButton showArrow={false} text='Clear All Data' icon='trash' onPress={confirmDeleteDataAlert}/>
+
 			</ScrollView>
-			<Button style={styles.b} title='Clear all Data' onPress={()=>{
-				AsyncStorage.clear();
-			}}></Button>
+
 		</View>
 	);
 }
@@ -54,7 +63,7 @@ const styles = StyleSheet.create({
 	descriptiontxt:{
 		color: '#A0A0A0',
 		marginTop: 10,
-		marginBottom: 35,
+		marginBottom: 20,
 		marginHorizontal: 12,
 		textAlign: 'left'
 	},
@@ -66,4 +75,4 @@ const styles = StyleSheet.create({
 		top: 50
 	}
 });
-export default MoreScreen;
+export default ExtraScreen;

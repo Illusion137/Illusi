@@ -9,7 +9,7 @@ import { Ionicons, Entypo } from '@expo/vector-icons';
 import LibraryScreen from './app/screens/LibraryScreen';
 import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchScreen from './app/screens/SearchScreen';
-import MoreScreen from './app/screens/MoreScreen';
+import ExtraScreen from './app/screens/ExtraScreen';
 // import AddPlaylistFrom from './app/screens/subscreens/AddPlaylistFrom';
 // import GetAddPlaylistFrom from './app/screens/subscreens/GetAddPlaylistFrom';
 
@@ -61,7 +61,7 @@ export class Tabs extends Component {
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 				}}
 				/>
-				<Tab.Screen name="More" component={MoreScreen}
+				<Tab.Screen name="Extras" component={ExtraScreen}
 				options={{
 					tabBarIcon: ({ color }) => ( <Entypo name="dots-three-horizontal" size={25} color={color}/>),
 				}}
