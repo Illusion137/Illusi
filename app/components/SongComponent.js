@@ -9,7 +9,8 @@ function SongComponent(props) {
 	const route = useRoute();
 	const navigation = useNavigation();
 
-	const id = props.id;
+	const id = props.video_id;
+	const duration = props.video_duration;
 	const imported = props.imported;
 
 	const { colors } = useTheme();
@@ -41,11 +42,11 @@ function SongComponent(props) {
 			} } >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={{uri:props.imguri}} style={styles.image}></Image>
+					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`}} style={styles.image}></Image>
 				</View>
 				<View style={styles.text}>
-					<Text style={styles.title} numberOfLines={1} >{props.title}</Text>
-					<Text style={styles.artist} numberOfLines={1} >{props.artist}</Text>
+					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
+					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 					<View style={{flexDirection: 'row'}}>
 						{!props.imported && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
 						{props.imported && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}

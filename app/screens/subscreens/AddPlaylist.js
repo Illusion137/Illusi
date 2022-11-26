@@ -1,7 +1,7 @@
 
 import React,  { useState, useRef,useImperativeHandle, forwardRef } from 'react';
 import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableHighlight, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 function AddPlaylist(props, ref) {
@@ -27,14 +27,18 @@ function AddPlaylist(props, ref) {
 				}}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
-			<TextInput ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={text => { setPlaylistName(text); console.log(playlistName); if( playlistName == '' || playlistName == null){
+			<TextInput maxLength={45} ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={(text) => { setPlaylistName(text); if( text == '' || text == null){
 				setIsEmpty(true)
 			}
 			else{
 				setIsEmpty(false)
 			}
 			}}></TextInput>
-			<View style={{height: 30}}></View>
+			<View style={{alignItems: 'flex-end'}}>
+				<TouchableOpacity style={{bottom: 57, right: 20,padding: 15}} onPress={() => {inputRef.current?.clear(); setIsEmpty(true);}}>
+					<Feather name={'x-circle'} color={'#808080'} size={25}></Feather>
+				</TouchableOpacity>
+			</View>
 			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={require('../../../assets/icon.png')}/>

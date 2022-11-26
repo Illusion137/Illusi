@@ -10,9 +10,11 @@ import LibraryScreen from './app/screens/LibraryScreen';
 import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchScreen from './app/screens/SearchScreen';
 import ExtraScreen from './app/screens/ExtraScreen';
-// import AddPlaylistFrom from './app/screens/subscreens/AddPlaylistFrom';
-// import GetAddPlaylistFrom from './app/screens/subscreens/GetAddPlaylistFrom';
+import SearchHomeScreen from './app/screens/SearchHomeScreen'
 
+import AddPlaylistFrom from './app/screens/subscreens/AddPlaylistFrom';
+import GetAddPlaylistFrom from './app/screens/subscreens/GetAddPlaylistFrom';
+import PlaylistSubScreen from './app/screens/subscreens/PlaylistSubScreen'
 
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state',
@@ -24,7 +26,7 @@ const Stack = createNativeStackNavigator();
 const Theme = {
 	dark: false,
 	colors: {
-		primary: '#3a13ff',
+		primary: '#424ed4',
 		background: '#000000',
 		card: '#131213',
 		text: '#FFFFFF',
@@ -56,7 +58,7 @@ export class Tabs extends Component {
 					tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
 				}}
 				/>
-				<Tab.Screen name="Search" component={SearchScreen}
+				<Tab.Screen name="Search" component={SearchHomeScreen}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 				}}
@@ -88,7 +90,8 @@ export default class App extends Component{
 					{/* {this.state.isPlaying && <PlayingSong ids={this.state.ids} playlist={this.state.playlistName}/>} */}
 					<Stack.Navigator>
 						<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this)}} options={{headerShown: false}}/>
-						{/* <Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+						<Stack.Screen name="PlaylistSubScreen" component={PlaylistSubScreen} options={{headerShown: false}}/>
+						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
 								headerRight: () => (
 									<Button
 										color='#808080'
@@ -120,7 +123,7 @@ export default class App extends Component{
 										title="Save"
 									/>
 									),
-								})}/> */}
+								})}/>
 					</Stack.Navigator>
 			</NavigationContainer>
 		);

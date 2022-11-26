@@ -2,7 +2,7 @@ import React from 'react';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button } from 'react-native';
 
-function MoreSectionButton({showArrow = true, ...props}) {
+function ExtrasSectionButton({showArrow = true, ...props}) {
 	return(
 		<TouchableHighlight activeOpacity={0.6} underlayColor="#808080" onPress={props.onPress}>
 			<View style={styles.sectionContainer}>
@@ -27,4 +27,4 @@ const styles = StyleSheet.create({
 		left:20
 	}
 });
-export default MoreSectionButton;
+export default ExtrasSectionButton;

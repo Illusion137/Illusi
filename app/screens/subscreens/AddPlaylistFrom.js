@@ -22,6 +22,8 @@ function AddPlaylistFrom({route}) {
 	const from = route.params.title.toString().split(' ')[1]
 	function getLinkText(){
 		switch(from){
+			case('YouTube'):
+				return 'https://www.youtube.com/playlist?list=...'
 			case('Musi'):
 				return 'https://feelthemusi.com/playlist/...'
 			case('Spotify'):
@@ -35,6 +37,8 @@ function AddPlaylistFrom({route}) {
 	const defaultlink = getLinkText()
 	function isValidInput(text){
 		switch(from){
+			case('YouTube'):
+				if( RegExp(/(https?:\/\/)youtube\.com\/playlist\?list=.+/i).test(text)){ return true; } else{return false;}
 			case('Musi'):
 				if( RegExp(/(https?:\/\/)feelthemusi\.com\/playlist\/.+/i).test(text)){ return true; } else{return false;}
 			case('Spotify'):
@@ -48,7 +52,7 @@ function AddPlaylistFrom({route}) {
 
 	return(
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>
-			<TextInput ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={text => { if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
+			<TextInput autoCorrect={false} ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={text => { if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
 								<Button
 									color='blue'
 									onPress={() => navigation.navigate('GetAddPlaylistFrom', {url: text, title: route.params.title})}
@@ -63,7 +67,7 @@ function AddPlaylistFrom({route}) {
 										/>
 										)})
 								} }}></TextInput>
-			<Text style={styles.enterittext}>Enter a link to a {from} Playlist to add it to your Illusi.</Text>
+			<Text style={styles.enterittext}>Enter a link to a {from} Playlist to add it to your {from}.</Text>
 			<Text style={styles.looksliketext}>A {from} playlist link usually looks like the following:</Text>
 			<Text style={styles.exlinktext}> - {defaultlink}</Text>
 		</View>

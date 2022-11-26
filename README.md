@@ -14,4 +14,4 @@ Any requested features please email me at the email linked on GitHub
 - [ ] Widgets
 - [ ] Suggested Music / Quick Add
 - [ ] Offload Unavailable Songs
-- [ ] Research Unavailable Songs
+- [ ] Re-search Unavailable Songs

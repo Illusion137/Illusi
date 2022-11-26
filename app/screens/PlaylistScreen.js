@@ -1,6 +1,8 @@
 import React,  { useState, useRef } from 'react';
 import { View, Animated, Text, StyleSheet, Image, TouchableOpacity, TextInput, TouchableHighlight, ActionSheetIOS, InteractionManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
 
@@ -10,18 +12,19 @@ function PlaylistScreen(props) {
 	const addPlaylistPanelRef = useRef();
 	const addPlaylistRef = useRef();
 
+	const navigation = useNavigation();
 
 	const renderItem = ({ item }) => (
 		<SongComponent imguri={item.thumbnailURI} title={item.title} artist={item.artist} />
 	);
-	function hide(){
-		addPlaylistPanelRef.current.hide();
+	function hide(){ addPlaylistPanelRef.current.hide(); }
+	async function getPlaylistInfo(toGet){
+		
 	}
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.header}>
 				<View style={{flexDirection: 'row', bottom: 20, alignItems: 'center'}}>
-
 					<TouchableOpacity>
 						<Ionicons name="swap-vertical-sharp" size={25} color='#424ed4' style={{right:110}}/>
 					</TouchableOpacity>
@@ -41,7 +44,7 @@ function PlaylistScreen(props) {
 				</View>
 			</View>
 			<View style={styles.defaultContainer}>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={() => console.log('Pressed!')}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistTitle: 'Recents', playlistInfo: `${await AsyncStorage.getItem('Recents')} Tracks • Duration`})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Added</Text>
 					<Image source={require('../../assets/notfound.png')} style={styles.notfound}/>
