@@ -3,18 +3,33 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight } from 'react-native';
 import SongComponentSearch from '../components/SongComponentSearch';
 // import searchVideo from '../usetube';
-import SearchYouTubeVideos from '../Illusive/IllusiveSearch';
+import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
+import { useNavigation } from '@react-navigation/native';
 
 const SearchScreen = (props) => {
 
 	const [data, setData] = useState('');
-	const [searchingData, setSearchingData] = useState('');
+	const [searchingData, setSearchingData] = useState();
 	const [searchingMode, setSearchingMode] = useState(true);
 	const [recentData, setRecentData] = useState('');
 	const [searchQuery, setSearchQuery] = useState('');
 	
+	const [continueData, setContinueData] = useState();
+	const navigation = useNavigation()
+
+	// useEffect(() => {
+	// 	const unsubscribe = navigation.addListener('tabPress', e => {
+	// 		// Prevent default behavior
+	// 		e.preventDefault();
+		
+	// 		// Do something manually
+	// 		// ...
+	// 	  });
+		
+	// }, [navigation]);
+
 	const renderSongSearchComponents = ({ item }) => (
-		<SongComponentSearch id={item.video_id} imguri={`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`} title={item.video_name} artist={item.video_creator} duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
+		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
@@ -32,16 +47,17 @@ const SearchScreen = (props) => {
 			</View>
 			<View style={styles.searchview}>
 				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
-				{!searchingMode && <FlatList style={styles.searchlist} data={data} renderItem={renderSongSearchComponents}/>}
+				{!searchingMode && <FlatList style={styles.searchlist} data={data} renderItem={renderSongSearchComponents} onEndReached={async() => await ContinueSearch()}/>}
 			</View>
 		</View>
 	);
 	async function Search(query) {
-		let search = await SearchYouTubeVideos(query)
+		let search = await SearchYouTube(query)
 		try {
+			setContinueData(search.continueData)
 			let allTrackData = await AsyncStorage.getItem('Library');
 			if(allTrackData == null){
-				setData(search);
+				setData(search.data);
 				return
 			}
 			else{
@@ -49,7 +65,7 @@ const SearchScreen = (props) => {
 				allTrackData.toString().split('::').forEach(d => {
 					allTracks.push(JSON.parse(d));
 				});
-				search.forEach(newVideo => {
+				search.data.forEach(newVideo => {
 					newVideo['saved'] = false;
 					newVideo['downloaded'] = false;
 					allTracks.forEach(video => {
@@ -66,7 +82,50 @@ const SearchScreen = (props) => {
 						}
 					})
 				});
-				setData(search);
+				setData(search.data);
+			}
+		} catch (error) {console.log(error);}
+		if(data == null){
+			console.log('Error in search');
+			return;
+		}
+  	}
+	async function ContinueSearch() {
+		let search = await ContinueYouTubeSearch(continueData)
+		try {
+			let tempcontinueData = continueData
+			tempcontinueData.token = search.token
+			setContinueData(tempcontinueData)
+
+			let allTrackData = await AsyncStorage.getItem('Library');
+			if(allTrackData == null){
+				let temp = data;
+				setData(temp.concat(search.data));
+				return
+			}
+			else{
+				let allTracks = [];
+				allTrackData.toString().split('::').forEach(d => {
+					allTracks.push(JSON.parse(d));
+				});
+				search.data.forEach(newVideo => {
+					newVideo['saved'] = false;
+					newVideo['downloaded'] = false;
+					allTracks.forEach(video => {
+						// console.log(video.id + ':' + newVideo.id)
+						if(video.id == newVideo.id){
+							if(video.saved){
+								newVideo['saved'] = true;
+							}
+							if(video.downloaded){
+								newVideo['downloaded'] = true;
+							} else{
+								newVideo['downloaded'] = false;
+							}
+						}
+					})
+				});
+				setData(search.data);
 			}
 		} catch (error) {console.log(error);}
 		if(data == null){
