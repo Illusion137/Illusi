@@ -18,8 +18,9 @@ function DurationToInt(durationString){
 function RemoveHexCodes(cleanupString){
 	try {
 		let newString = cleanupString
+		let temp;
 		for(let i=0; i< cleanupString.match(/\\x([A-F,0-9][A-F,0-9])/i).length; i++){
-			newString = newString.replace(/\\x([A-F,0-9][A-F,0-9])/i,
+			temp = newString.replace(/\\x([A-F,0-9][A-F,0-9])/i,
 				String.fromCharCode(
 					parseInt(
 						newString.match(/\\x([A-F,0-9][A-F,0-9])/i)[0].replace('\\x', '') , 16
@@ -27,7 +28,7 @@ function RemoveHexCodes(cleanupString){
 				)
 			)
 		}
-		return newString
+		return temp
 	} catch (error) {
 		return cleanupString
 	}
@@ -40,23 +41,23 @@ function RemoveHexCodes(cleanupString){
 function FormatVideo(toFormatString){
 	try {
 		//Regular Expressions
-		const idRegex = /(compactVideoRenderer\\x22:\\x7b\\x22videoId\\x22:\\x22)(.*?)(?=\\x22)/ ;
-		const titleRegex = /(\\x22title\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22)/
-		const artistRegex = /(\\x22longBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22)/ ;
+		const idRegex = /(https:\\\/\\\/i\.ytimg\.com\\\/vi\\\/)(.+?)(?=\\\/default\.jpg)/;
+		const titleRegex = /(\\x22text\\x22:\\x22)(.*?)(?=\\x22\\x7d\\x5d)/
+		const artistRegex = /(\\x22shortBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22,)/ ;
 		const durationRegex = /(\\x22lengthText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22)/ ;
 		
 		//All video data
-		let id = toFormatString.match(idRegex)[0].replace('compactVideoRenderer\\x22:\\x7b\\x22videoId\\x22:\\x22', '')
-		let title = RemoveHexCodes(toFormatString.match(titleRegex)[0].replace('\\x22title\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', ''))
-		let artist = RemoveHexCodes(toFormatString.match(artistRegex)[0].replace('\\x22longBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', ''))
+		let id = toFormatString.match(idRegex)[0].replace('https:\\\/\\\/i.ytimg.com\\\/vi\\\/', '')
+		let title = RemoveHexCodes(toFormatString.match(titleRegex)[0].replace('\\x22text\\x22:\\x22', '')).replaceAll(/\\\\u\d+/g, '').replaceAll(/\\/g, '')
+		let artist = RemoveHexCodes(toFormatString.match(artistRegex)[0].replace('\\x22shortBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', '')).replaceAll(/\\\\u\d+/g, '').replaceAll(/\\/g, '')
 	
 		let durationTextArray = toFormatString.match(durationRegex)[0].replace('\\x22lengthText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', '').split(':')
 		
 		return { // Returns video JSON
-			"video_duration": DurationToInt(durationTextArray),
-			"video_name": title,
-			"video_creator": artist,
-			"video_id": id,
+			"video_duration": DurationToInt(durationTextArray) || 0,
+			"video_name": title || "",
+			"video_creator": artist || "",
+			"video_id": id || "",
 		}
 	} catch (error) {
 		console.log(error)
@@ -103,11 +104,12 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 		let itemSec1Pos = body.data.indexOf('itemSectionRenderer') //Initial Starting Position Index right before the JSON
 		//Get HTML from search query
 		let itemSectionRender = body.data.slice(body.data.indexOf('itemSectionRenderer', itemSec1Pos + 1)) //The start of the JSON body
-		let formatingSectionRender = itemSectionRender.replaceAll('compactVideoRenderer', '::compactVideoRenderer') //Formats body to be ready for spliting JSON into videos
+		let formatingSectionRender = itemSectionRender.replaceAll('videoWithContextRenderer', '::videoWithContextRenderer') //Formats body to be ready for spliting JSON into videos
 		let unparsedVideos = formatingSectionRender.split('::')
 		//START AT INDEX ONE FOR UNPARSED VIDEOS===================================================================================
 		
 		let numOfVideos = unparsedVideos.length //Amount of Videos found
+		// console.log(unparsedVideos[1])
 		
 		let data = [] //To Return
 		if(limit == 0 || limit >= numOfVideos){ // Parse all Videosc
@@ -120,6 +122,7 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 				data.push(FormatVideo(unparsedVideos[i])) //push formated video to data
 			}
 		}
+		// console.log(data)
 		let continueInfo = await getYouTubeRehashInfo(body.data);
 		return {continueData: continueInfo, data: data} //Return Array of Videos
 	}
@@ -127,6 +130,7 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 		console.log(error)
 	}
 }
+/**
 
 // const clientVersion = between(body, 'INNERTUBE_CONTEXT_CLIENT_VERSION":"', '"') ||
     // between(body, 'innertube_context_client_version":"', '"');
@@ -180,10 +184,10 @@ async function ContinueYouTubeSearch(continueData){
 
 		innerJSON[0].itemSectionRenderer.contents.forEach((track) => {
 			data.push({
-				"video_duration": DurationToInt(track.compactVideoRenderer.lengthText.runs[0].text),
+				"video_duration": DurationToInt(track.compactVideoRenderer.lengthText.runs[0].text.split(':')),
 				"video_name": track.compactVideoRenderer.title.runs[0].text,
 				"video_creator": track.compactVideoRenderer.longBylineText.runs[0].text,
-				"video_id": track.compactVideoRenderer.video_id,
+				"video_id": track.compactVideoRenderer.videoId,
 			})
 		});
 		return {

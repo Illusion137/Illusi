@@ -1,22 +1,53 @@
-import React,  { useState, useRef } from 'react';
-import { View, Animated, Text, StyleSheet, Image, TouchableOpacity, TextInput, TouchableHighlight, ActionSheetIOS, InteractionManager } from 'react-native';
+import React,  { useState, useRef, useEffect } from 'react';
+import { View, Animated, Text, StyleSheet, Image, TouchableOpacity, TextInput, TouchableHighlight, FlatList, InteractionManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
+import Playlist from '../components/Playlist';
 
 
 function PlaylistScreen(props) {
 	const [data, setData] = useState('');
+	const [playlistNames, setPlaylistNames] = useState([]);
 	const addPlaylistPanelRef = useRef();
 	const addPlaylistRef = useRef();
 
 	const navigation = useNavigation();
 
+	useEffect( () => {
+		(async function() {
+			let storage = await AsyncStorage.getItem('Playlists');
+			if (storage == null){
+				setData([]);
+				return;
+			}
+			let playlists = JSON.parse(storage)
+
+			let names = []
+			try {
+				
+				for(const playlist of playlists){
+					names.push(playlist.playlistInfo.title)
+				}
+			} catch (error) {
+				console.log(error)
+			}
+			// console.log(names)
+			setPlaylistNames(names);
+			setData(playlists);
+		})();
+	}, []);
+
 	const renderItem = ({ item }) => (
-		<SongComponent imguri={item.thumbnailURI} title={item.title} artist={item.artist} />
+		<Playlist title={item.playlistInfo.title} length={item.length} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo}/>
 	);
+
+	function setDataOutside(dat){
+		setData(dat)
+	}
+
 	function hide(){ addPlaylistPanelRef.current.hide(); }
 	async function getPlaylistInfo(toGet){
 		
@@ -75,10 +106,15 @@ function PlaylistScreen(props) {
 				</TouchableHighlight>
 			</View>
 			<View style={{width: '100%', height: 1, backgroundColor: '#808080', marginLeft: 30, marginRight: 30}}/>
-			{data ==! null && <FlatList style={{height: '71%'}} data={data} renderItem={renderItem}/>}
+			<FlatList style={{height: '71%'}} data={data} renderItem={renderItem}/>
+
+			{/* <Playlist title={'Bliss'} length={67} pinned={true}/> */}
+
+			{/* <Playlist title={'Seycara'} length={80} pinned={false}/> */}
+			{/* <Playlist title={'Songs'} length={200} pinned={true}/> */}
 
 			<SlidingUpPanel draggableRange={{top:660, bottom: 0}} ref={addPlaylistPanelRef} animatedValue={new Animated.Value(0)}>
-				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()}/>
+				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={setDataOutside.bind()} allPlaylistNames={playlistNames}/>
 			</SlidingUpPanel>
 		</View>
 	);
@@ -158,7 +194,7 @@ const styles = StyleSheet.create({
 		width:110,
 		height:110,
 		borderRadius: 5
-	}
+	},
 
 });
 export default PlaylistScreen;

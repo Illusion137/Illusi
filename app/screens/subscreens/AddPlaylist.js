@@ -3,12 +3,13 @@ import React,  { useState, useRef,useImperativeHandle, forwardRef } from 'react'
 import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableHighlight, Image } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function AddPlaylist(props, ref) {
 	const inputRef = useRef();
 	const navigation = useNavigation();
 
-	const [playlistName, setPlaylistName] = useState('')
+	const [playlistName, setPlaylistName] = useState("");
 	const [isEmptyName, setIsEmpty] = useState(true)
 
 	useImperativeHandle(ref, () => ({
@@ -19,32 +20,39 @@ function AddPlaylist(props, ref) {
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1, borderRadius: 15}}>
 			<View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 55, width: '100%', backgroundColor: '#252525', borderTopLeftRadius: 15, borderTopRightRadius: 15}}>
 				<View style={{marginLeft:-50}}></View>
-				<Button title='Cancel' color={'#424ed4'} style={{left: 20}} onPress={() => props.panelref()}></Button>
+				<Button title='Cancel' color={'#424ed4'} style={{left: 20}} onPress={() => {props.panelref(); inputRef.current?.blur()}}></Button>
 				<Text style={{color: '#FFFFFF', fontWeight:'500', fontSize: 18}}>New Playlist</Text>
 				{isEmptyName && <Button title='Create' color={'#808080'} ></Button>}
-				{!isEmptyName && <Button title='Create' color={'#424ed4'} onPress={() => {
-					
+				{!isEmptyName && <Button title='Create' color={'#424ed4'} onPress={async () => {
+					setIsEmpty(true)
+					let storageCheck = await AsyncStorage.getItem('Playlists');
+					if(storageCheck == null){
+						AsyncStorage.setItem('Playlists', JSON.stringify([{length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}]))
+						props.refreshData([{length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}])
+						return
+					}
+					let parsedStorage = JSON.parse(storageCheck);
+					parsedStorage.push({length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}})
+					AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
+					props.refreshData(parsedStorage)
+					props.allPlaylistNames.push(playlistName)
 				}}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
-			<TextInput maxLength={45} ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={(text) => { setPlaylistName(text); if( text == '' || text == null){
+			<TextInput maxLength={45} ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={async (text) => { setPlaylistName(text); if(text == '' || text == null || text == 'Playlist' || text == 'Library' || props.allPlaylistNames.includes(text) ){
 				setIsEmpty(true)
 			}
 			else{
 				setIsEmpty(false)
 			}
 			}}></TextInput>
-			<View style={{alignItems: 'flex-end'}}>
-				<TouchableOpacity style={{bottom: 57, right: 20,padding: 15}} onPress={() => {inputRef.current?.clear(); setIsEmpty(true);}}>
-					<Feather name={'x-circle'} color={'#808080'} size={25}></Feather>
-				</TouchableOpacity>
-			</View>
-			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
+			<View style={{height:40}}></View>
+			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={require('../../../assets/icon.png')}/>
 					<Text style={styles.importfromtext}>Import Playlist From Illusi</Text>
 				</View>
-			</TouchableHighlight>
+			</TouchableHighlight> */}
 			<View style={styles.line}/>
 			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Musi Playlist'})}>
 				<View style={styles.importfrom}>

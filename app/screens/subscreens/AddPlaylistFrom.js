@@ -52,7 +52,7 @@ function AddPlaylistFrom({route}) {
 
 	return(
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>
-			<TextInput autoCorrect={false} ref={inputRef} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={text => { if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
+			<TextInput autoCorrect={false} ref={inputRef} placeholder='Playlist Link' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={text => { if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
 								<Button
 									color='blue'
 									onPress={() => navigation.navigate('GetAddPlaylistFrom', {url: text, title: route.params.title})}
@@ -70,6 +70,7 @@ function AddPlaylistFrom({route}) {
 			<Text style={styles.enterittext}>Enter a link to a {from} Playlist to add it to your {from}.</Text>
 			<Text style={styles.looksliketext}>A {from} playlist link usually looks like the following:</Text>
 			<Text style={styles.exlinktext}> - {defaultlink}</Text>
+
 		</View>
 	);
 }

@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 function SongComponent(props) {
 	const route = useRoute();
 	const navigation = useNavigation();
-
+	
 	const id = props.video_id;
 	const duration = props.video_duration;
 	const imported = props.imported;

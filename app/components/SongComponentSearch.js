@@ -19,35 +19,25 @@ function SongComponentSearch(props) {
 				</View>
 				<TouchableOpacity disabled={(saved && downloaded)} style={{justifyContent: 'center'}} onPress={async()=>{
 						if(!saved){
-							class Vid {
-								constructor(video_name, video_creator, video_id, video_duration, saved) {
-									this.video_name = video_name;
-									this.video_creator = video_creator;
-									this.video_id = video_id;
-									this.video_duration = video_duration;
-									this.saved = true;
-								}
-							};
 							try{
-								let songs = await AsyncStorage.getItem('Library');
-								if(songs == null){
-									AsyncStorage.setItem('Library', JSON.stringify(new Vid(
-										props.video_name,
-										props.video_creator,
-										props.video_id,
-										props.video_duration,
-										true,
-										false
-									)));
+								let storage = await AsyncStorage.getItem('Library');
+								let data = {
+									video_name: props.video_name || "",
+									video_creator: props.video_creator || "",
+									video_id: props.video_id || 0,
+									video_duration: props.video_duration || 0,
+									saved: true,
+									downloaded: false,
+									imported: false
+								}
+								if(storage == null){
+									AsyncStorage.setItem('Library', JSON.stringify([data]));
 								}else{
-									AsyncStorage.setItem('Library', songs.concat('::'+JSON.stringify(new Vid(
-										props.video_name,
-										props.video_creator,
-										props.video_id,
-										props.video_duration,
-										true,
-										false
-									))));
+									let parsedStorage = JSON.parse(storage)
+									if(parsedStorage === undefined){return;}
+									parsedStorage.push(data)
+
+									AsyncStorage.setItem('Library', JSON.stringify(parsedStorage));
 								}
 							}catch(e){
 								console.log(e);

@@ -5,92 +5,95 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponentSearch from '../../components/SongComponentSearch';
+import ProgressBar from '../../components/ProgressBar';
+
 
 function GetAddPlaylistFrom({route}) {
 
 	const inputRef = useRef()
 	const navigation = useNavigation();
 
-	const [isDoneSearching, setSearch] = useState(false)
+	const [progress, setProgress] = useState(0);
+	const [isDoneSearching, setDoneSearching] = useState(false)
 	const [data, setData] = useState('')
+	const [title, setTitle] = useState('')
+	const [badRequest, setBadRequest] = useState(false);
 	
-	const sendURL = encodeURIComponent(route.params.url)
+	const url = route.params.url;
 	const service = route.params.title.toString().split(' ')[1]
-	function getAPI(){
-		switch(service){
-			case('Spotify'):
-				return 'spotify-to-youtube'
-			case('Amazon'):
-				return 'amazonmusic-to-youtube'
-			default:
-				console.log('noAPI')
-				return null
-		}
-	}
-	const api = getAPI();
-
-	// console.log(sendURL)
 
 	useEffect(() => {
 		function setHeader() {
 			navigation.setOptions({title: route.params.title})
 		}
 		setHeader();
-		const search = async() => { 
+		const fetchPlaylist = async() => { 
 			setData('');
 				try {
-					const response = await fetch(`http://illusion.wiki:8080/api/illusi/fetch/${api}/${sendURL}`);
-					const json = await response.json();
-					let libdata = await AsyncStorage.getItem('Library');
-					let datas = [];
-					let dat = libdata.toString().split('::').forEach(d => {
-						datas.push(JSON.parse(d));
-					});
-					if(datas != null || datas != '' || datas != undefined){
-						json.forEach(newVideo => {
-							newVideo['saved'] = false;
-							newVideo['downloaded'] = false;
-							datas.forEach(video => {
-								// console.log(video.id + ':' + newVideo.id)
-								if(video.id == newVideo.id){
-									if(video.saved){
-										newVideo['saved'] = true;
-									}
-									if(video.downloaded){
-										newVideo['downloaded'] = true;
-									} else{
-										newVideo['downloaded'] = false;
-									}
-								}
-							})
-						});
+					switch(service){
+						case('Musi'):
+							const playlistParam = url.replace('https://feelthemusi.com/playlist/','')
+							const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
+							setProgress(30);
+							if (!response.ok) {
+								setBadRequest(true);
+							}
+							
+							const json = await response.json();
+							setProgress(60);
+							let parsed = JSON.parse(json.success.data)
+
+							setTitle(parsed.title);
+
+							let allTrackData = await AsyncStorage.getItem('Library');
+							if(allTrackData == null){
+								setData(parsed.data);
+								return
+							}
+							else{
+								let allTracks = JSON.parse(allTrackData)
+								parsed.data.forEach(newVideo => {
+									newVideo['saved'] = false;
+									newVideo['downloaded'] = false;
+									allTracks.forEach(video => {
+										// console.log(video.id + ':' + newVideo.id)
+										if(video.id == newVideo.id){
+											if(video.saved){
+												newVideo['saved'] = true;
+											}
+											if(video.downloaded){
+												newVideo['downloaded'] = true;
+											} else{
+												newVideo['downloaded'] = false;
+											}
+										}
+									})
+								});
+							}
+
+							setData(parsed);
+							setProgress(100);
 					}
-					setData(json);
-				} catch (error) {
-					console.log(error);
-				  }
-				// console.log(data);
-				
-				if(data == null){
-					console.log('Error in search');
-					return;
+					setDoneSearching(true);
 				}
-				setSearch(true)
+				catch(error){
+					console.log(error);
+				}
 		}
-		search().catch(console.error)
+		fetchPlaylist().catch(console.error);
 	}, []);
 
 	const renderItem = ({ item }) => (
-		// data = await AsyncStorage.getItem('Library');
-		<SongComponentSearch id={item.id} imguri={`https://img.youtube.com/vi/${item.id}/mqdefault.jpg`} title={item.title} artist={item.artist} saved={item.saved} downloaded={item.downloaded}/>
+		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
 	);
 
 	return(
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>
-			{ !isDoneSearching && <Text style={{color: 'white', fontSize: 25, top: 250, textAlign: 'center'}} >Play Ad Here While Fetching Data</Text>}
-			{ isDoneSearching && <View style={styles.searchview}>
+			{badRequest && <Text style={styles.badRequestText}>Bad Request check the url again</Text>}
+			{ !isDoneSearching && <ProgressBar progressPercent={progress}/>}
+			{/* { isDoneSearching && <View style={styles.searchview}> */}
 				<FlatList data={data} renderItem={renderItem}/>
-			</View>}
+			{/* </View>} */}
 		</View>
 	);
 }
@@ -120,6 +123,13 @@ const styles = StyleSheet.create({
 		backgroundColor: '#000000',
 		top: 0,
 		height: '100%'
+	},
+	badRequestText:{
+		position: 'absolute',
+		left: '50%',
+		top: '50%',
+		color: 'white',
+		fontSize: 40
 	}
 });
 export default GetAddPlaylistFrom;

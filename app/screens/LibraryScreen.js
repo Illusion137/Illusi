@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import SongComponent from '../components/SongComponent';
-import { StyleSheet, Text, View, TextInput, PanResponder, SectionList, TouchableOpacity, Pressable } from 'react-native';
+import { StyleSheet, Text, View, TextInput, SectionList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@react-navigation/native';
@@ -17,23 +17,22 @@ const LibraryScreen = ({ navigation, route }) => {
 
 	const listRef = useRef();
 
-	useEffect(() => {
-		async function getData() {
+	useEffect( () => {
+		(async function() {
 			let storage = await AsyncStorage.getItem('Library');
 			if (storage == null){
 				setDataMask([]);
 				return;
 			}
-			let tracks = [];
-			storage.toString().split('::').forEach(d => {
-				tracks.push(JSON.parse(d));
-			});
+			let tracks = JSON.parse(storage);
+
 			setBaseData(tracks)
 			setNumOfTracks(tracks.length)
 			
 			let sectionsMap = new Map();
 			tracks.forEach(track => {
 				let char = track.video_name[0].toUpperCase()
+				if(!(/[A-Z]/).test(char)){ char = '#' }
 				if( !sectionsMap.has(char) ){
 					sectionsMap.set(char, [track])
 				}
@@ -53,11 +52,9 @@ const LibraryScreen = ({ navigation, route }) => {
 				})
 				sectionChars.push(value[0])
 			})
-			setCharData(sectionChars)
+			setCharData(sectionChars);
 			setDataMask(sections);
-		}
-		
-		getData();
+		})();
 	}, []);
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
@@ -103,34 +100,26 @@ const LibraryScreen = ({ navigation, route }) => {
 				</View>
 			</View>
 			<SectionList style={{height: '71%'}} sections={dataMask} 
-				renderItem={({ item }) => <SongComponent video_id={item.video_id} downloaded={item.downloaded} video_name={item.video_name} video_creator={item.video_creator} setPlaying={route.params.setPlaying} from={"My Library"}/>}
-				renderSectionHeader={({ section: { key } }) => (<View style={styles.sectionHeader}><Text style={styles.sectionText}>{key}</Text></View>)}
+				renderItem={({ item }) => <SongComponent key={item.video_id} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} setPlaying={route.params.setPlaying} from={"My Library"}/>}
+				renderSectionHeader={({ section: { title  } }) => (<View style={styles.sectionHeader}><Text style={styles.sectionText}>{title }</Text></View>)}
 				ListFooterComponent={<View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: '#808080', fontSize: 25}}>{numofTracks} Tracks</Text></View>}
 				ref={listRef}
-				keyExtractor={(item, index) => index.toString()}
+				getItemLayout={(data, index) => ({length: 60, offset: 60 * index, index })}
 			/>
-			<View style={{		backgroundColor: '#202020',
-				position: 'absolute',
-				left: '94%',
-				top: 310+(numofTracks*10),
-				width: 23,
-				borderRadius: 10,
-				paddingVertical: 5,
+			<View onStartShouldSetResponder={(ev) => true} onResponderMove={(e) => console.log(e.nativeEvent, "onResponderMove")} style={{backgroundColor: '#121212',
+					position: 'absolute',
+					left: '93%',
+					top: 600-(17*numofTracks),
+					justifyContent: 'center',
+					alignItems: 'center',
+					borderRadius: 10
 				}}
 				>
-				{/* {charData.map((prop) => {
-					return (
-						<TouchableOpacity style={{justifyContent: 'center', alignItems: 'center'}} onPressIn={() => listRef.current?.scrollToLocation({itemIndex: 10})}>
-					<Text style={{color: colors.primary, fontSize: 12}}>{prop}</Text></TouchableOpacity>
-					);
-				})} */}
-				{charData.map((prop, index) => {
-					return (
-					<View style={{justifyContent: 'center', alignItems: 'center'}} onTouchStart={() => {listRef.current?.scrollToLocation({ animated: false, itemIndex: index * 2}); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}}>
-						<Text style={{color: colors.primary, fontSize: 12}}>{prop}</Text>
+				{charData.map((element, i) => (
+					<View key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5, height:17}}  onTouchStart={e => { console.log('touchMove',e.nativeEvent); listRef.current?.scrollToLocation({ animated: false, itemIndex: Array.from(charData).indexOf(element) === 0 ? 0 : -1, sectionIndex: Array.from(charData).indexOf(element) }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)}}>
+						<Text style={{color: colors.primary, fontSize: 14}}>{element}</Text>
 					</View>
-					);
-				})}
+				))}
 			</View>
 		</View> 
 	);

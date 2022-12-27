@@ -15,6 +15,10 @@ import SearchHomeScreen from './app/screens/SearchHomeScreen'
 import AddPlaylistFrom from './app/screens/subscreens/AddPlaylistFrom';
 import GetAddPlaylistFrom from './app/screens/subscreens/GetAddPlaylistFrom';
 import PlaylistSubScreen from './app/screens/subscreens/PlaylistSubScreen'
+import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
+import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
+import ExtraSleepScreen from './app/screens/subscreens/ExtraSleepScreen';
+import ExtraImportScreen from './app/screens/subscreens/ExtraImportScreen';
 
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state',
@@ -91,7 +95,11 @@ export default class App extends Component{
 					<Stack.Navigator>
 						<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this)}} options={{headerShown: false}}/>
 						<Stack.Screen name="PlaylistSubScreen" component={PlaylistSubScreen} options={{headerShown: false}}/>
-						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+						<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
+						<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
+						<Stack.Screen name="Sleep Timer" component={ExtraSleepScreen}/>
+						<Stack.Screen name="Import Manager" component={ExtraImportScreen}/>
+						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
 								headerRight: () => (
 									<Button
 										color='#808080'

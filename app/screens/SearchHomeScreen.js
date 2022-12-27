@@ -13,7 +13,7 @@ let choiceArtists = [ {
 },{
     artistName: 'Kansta',
     genre: 'Rap',
-    backgroundImage: 'https://yt3.ggpht.com/Zz0xV9OLKLilSFPARWTkO83ZXqPZuXvBAoNkZsx25WvZM452nRTkCC7UZszD-A7WRb37i7Bs=w1060-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj',
+    backgroundImage: 'https://yt3.googleusercontent.com/9tKWe6_M-_Hq_2kJhPsG6yS8sBg8ECYPhO8GuoJLzvO5aY9fvSE35RDE611bmkK4zD2xs601=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj',
     profilePicture: 'https://yt3.ggpht.com/ZTvlR15z-6de-EiKUxCRQQXPVemfKUZA_TazZ2Mug_DJCPqkXgTMyBS9N9255HYs2PQzxb3VQMM=s176-c-k-c0x00ffffff-no-rj-mo'
 }]
 let choiceAlbums = [{
@@ -68,7 +68,7 @@ function SearchHomeScreen(props){
             {!searchScreenState && <SearchScreen></SearchScreen>}
             {searchScreenState && <View style={styles.topContainer}>
                 <View style={styles.wrapper}>
-                    <TextInput autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
+                    <TextInput onPressIn={() => {toggle = !toggle; setSearchScreenState(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
                 </View>
                 <View style={{top: 100, marginHorizontal: 10}}>
                     <ScrollView style={{height: '79%'}}>

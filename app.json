@@ -9,7 +9,14 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "plugins": [
+        [
+          "expo-document-picker",
+          {
+            "iCloudContainerEnvironment": "Production"
+          }
+        ]]
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -18,7 +25,9 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.illusion137.Illusi",
+      "usesIcloudStorage": true
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +37,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
+      }
     }
   }
 }

@@ -9,6 +9,8 @@ function PlaylistSubScreen({route}){
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
+    const playlistInfo = route.params.playlistInfo;
+
     const actions = () =>
     ActionSheetIOS.showActionSheetWithOptions(
       {
@@ -45,8 +47,8 @@ function PlaylistSubScreen({route}){
                 <View style={styles.playlistListHeader}>
                     <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>
                     <View style={{top: 15, alignItems: 'center'}}>
-                        <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{route.params.playlistTitle}</Text>
-                        <Text style={{color: '#808080', fontSize: 12}}>{route.params.playlistInfo}</Text>
+                        <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlistInfo.title}</Text>
+                        <Text style={{color: '#808080', fontSize: 12}}>{playlistInfo.trackLength} tracks • {playlistInfo.trackDuration} Mins</Text>
                     </View>
                     <View style={styles.playlistButtonsContainer}>
                         <TouchableOpacity style={styles.playlistButton}>
@@ -69,7 +71,7 @@ function PlaylistSubScreen({route}){
 const themeStyles = (colors) => StyleSheet.create({
     topContainer:{
         flex: 1,
-        backgroundColor: '#000000'
+        backgroundColor: '#121212'
     },
     header:{
         top: 60,
