@@ -2,11 +2,13 @@ import React, {useState} from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ytdl from "react-native-ytdl"
+import * as FileSystem from 'expo-file-system';
 
 function SongComponentSearch(props) {
 		
 	const [saved, isSaved] = useState(props.saved);
-	const [downloaded, isDownloaded] = useState(props.downloaded);
+	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
 		<TouchableOpacity>
 			<View style={styles.songbox}>
@@ -17,7 +19,7 @@ function SongComponentSearch(props) {
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 				</View>
-				<TouchableOpacity disabled={(saved && downloaded)} style={{justifyContent: 'center'}} onPress={async()=>{
+				<TouchableOpacity disabled={saved} style={{justifyContent: 'center'}} onPress={async()=>{
 						if(!saved){
 							try{
 								let storage = await AsyncStorage.getItem('Library');
@@ -28,7 +30,9 @@ function SongComponentSearch(props) {
 									video_duration: props.video_duration || 0,
 									saved: true,
 									downloaded: false,
-									imported: false
+									imported: false,
+									uuid: props.uuid,
+									uri: ""
 								}
 								if(storage == null){
 									AsyncStorage.setItem('Library', JSON.stringify([data]));
@@ -39,20 +43,43 @@ function SongComponentSearch(props) {
 
 									AsyncStorage.setItem('Library', JSON.stringify(parsedStorage));
 								}
+								isSaved(true)
 							}catch(e){
 								console.log(e);
 								return;
 							}
 						}
-						else if(!downloaded){
-							//downloadFile(`https://api.vevioz.com/api/button/mp3/${id}`)
-							// isDownloaded(true);
-						}
+						// else if(!downloaded){
+						// 	let storage = await AsyncStorage.getItem('Library');
+
+						// 	let allTracks = JSON.parse(storage);
+						// 	let arraySearchNewTracks = allTracks.map(({video_id}) => video_id)
+						// 	allTracks[arraySearchNewTracks.indexOf(props.video_id)]['downloaded'] = true;
+							
+						// 	AsyncStorage.setItem('Library', JSON.stringify(allTracks));
+
+						// 	const youtubeURL = 'http://www.youtube.com/watch?v=' + props.video_id;
+						// 	const urls = await ytdl(youtubeURL, { quality: 'lowestaudio' });
+						// 	console.log(urls[0].url)
+
+						// 	await FileSystem.downloadAsync(
+						// 		urls[0].url,
+						// 		FileSystem.documentDirectory + 'small.mp3'
+						// 	  )
+						// 		.then(({ uri }) => {
+						// 		  console.log('Finished downloading to ', uri);
+						// 		})
+						// 		.catch(error => {
+						// 		  console.error(error);
+						// 		});
+
+						// 	isDownloaded(true);
+						// }
 						else{
 							return;
 						}
 					}}>
-					<Ionicons name={!saved ? "add" : (!downloaded ? "download-outline" : "checkmark")} size={30} color='#AA00FF' style={styles.icon}/>
+					<Ionicons name={!saved ? "add" : "checkmark"} size={30} color='#AA00FF' style={styles.icon}/>
 				</TouchableOpacity>
 			</View>
 			<View style={styles.line}/>

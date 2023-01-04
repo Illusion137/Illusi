@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LogBox, Button ,ActionSheetIOS } from 'react-native';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 
-// import PlayingSong from './app/components/PlayingSong';
+import PlayingSong from './app/components/PlayingSong';
 import LibraryScreen from './app/screens/LibraryScreen';
 import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchScreen from './app/screens/SearchScreen';
@@ -17,13 +17,12 @@ import GetAddPlaylistFrom from './app/screens/subscreens/GetAddPlaylistFrom';
 import PlaylistSubScreen from './app/screens/subscreens/PlaylistSubScreen'
 import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
-import ExtraSleepScreen from './app/screens/subscreens/ExtraSleepScreen';
-import ExtraImportScreen from './app/screens/subscreens/ExtraImportScreen';
+import PlaylistAddSearch from './app/screens/subscreens/PlaylistAddSearch';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 LogBox.ignoreLogs([
-	'Non-serializable values were found in the navigation state',
-  ]);
-
+	'Non-serializable values were found in the navigation state','Error evaluating injectedJavaScript:','react-native-ytdl is out of date!'
+]);
 const Tab  = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -40,15 +39,15 @@ const Theme = {
 };
 
 export class Tabs extends Component {
-	constructor(props){
+	constructor (props){
 		super(props);
 	}
 	render(){
 		return (
-		  	<Tab.Navigator initialRouteName={'Library'} 
-			  screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Theme.colors.primary, tabBarInactiveTintColor: '#808080', 
-			  tabBarActiveBackgroundColor:'#202020', tabBarInactiveBackgroundColor: '#202020', tabBarStyle:{backgroundColor:'#202020', height: 90, zIndex:1}}} 
-			  unmountInactiveScreens={true} detachInactiveScreens={true}>
+			<Tab.Navigator initialRouteName={'Library'} 
+			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Theme.colors.primary, tabBarInactiveTintColor: '#808080', 
+			tabBarActiveBackgroundColor:'#202020', tabBarInactiveBackgroundColor: '#202020', tabBarStyle:{backgroundColor:'#202020', height: 90, zIndex:1}}} 
+			unmountInactiveScreens={true} detachInactiveScreens={true}>
 				<Tab.Screen name="My Library" component={LibraryScreen}
 				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
@@ -79,26 +78,28 @@ export class Tabs extends Component {
 export default class App extends Component{
 	state = {
 		isPlaying: false,
-		ids: [],
-		playlistName: ''
+		data: [],
+		playlistName: '',
 	}
-	playVideo(ids, playlistName){
+	async componentDidMount() {
+		await AsyncStorage.removeItem('DownloadQueue')
+	}
+	playVideo(data, playlistName){
+		this.setState({data: data})
+		this.setState({playlistName: playlistName})
 		this.setState({isPlaying: false});
 		this.setState({isPlaying: true});
-		this.setState({ids: ids})
-		this.setState({playlistName: playlistName})
 	}
 	render(){
 		return (
 			<NavigationContainer theme={Theme}>
-					{/* {this.state.isPlaying && <PlayingSong ids={this.state.ids} playlist={this.state.playlistName}/>} */}
+					{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
 					<Stack.Navigator>
 						<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this)}} options={{headerShown: false}}/>
 						<Stack.Screen name="PlaylistSubScreen" component={PlaylistSubScreen} options={{headerShown: false}}/>
+						<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 						<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 						<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-						<Stack.Screen name="Sleep Timer" component={ExtraSleepScreen}/>
-						<Stack.Screen name="Import Manager" component={ExtraImportScreen}/>
 						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
 								headerRight: () => (
 									<Button
@@ -115,12 +116,11 @@ export default class App extends Component{
 										onPress={() => ActionSheetIOS.showActionSheetWithOptions(
 											{
 											  options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
-											  destructiveButtonIndex: 2,
 											  cancelButtonIndex: 0,
 											  userInterfaceStyle: 'dark',
 											  
 											},
-											buttonIndex => {
+											(buttonIndex) => {
 											  if (buttonIndex === 0) {
 											  } else if (buttonIndex === 1) {
 											  } else if (buttonIndex === 2) {

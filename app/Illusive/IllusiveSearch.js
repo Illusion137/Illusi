@@ -1,4 +1,32 @@
 import axios from "axios"; //HTTP Request Library
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+function GenerateNewUUID() {
+	return new Date().getTime().toString(36).substring(2, 15) +
+	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
+	Math.random().toString(36).substring(2, 15);
+
+	// if(storage == null){
+	// 	return fUUID
+	// }
+
+	// let parsedStorage = JSON.parse(storage)
+
+	// let allUUIDSet = new Set( parsedStorage.map( ({uuid}) => uuid ) )
+
+	// if(!allUUIDSet.has(fUUID)){
+	// 	return fUUID;
+	// }
+
+	// while(1){
+	// 	let newUUID = new Date().getTime().toString(36).substring(2, 15) +
+	// 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
+	// 	Math.random().toString(36).substring(2, 15);
+	// 	if(!allUUIDSet.has(newUUID)){
+	// 		return newUUID;
+	// 	}
+	// }
+}
 
 function DurationToInt(durationString){
 	let duration = 0;
@@ -53,11 +81,16 @@ function FormatVideo(toFormatString){
 	
 		let durationTextArray = toFormatString.match(durationRegex)[0].replace('\\x22lengthText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', '').split(':')
 		
+		let uuid = GenerateNewUUID()
+
 		return { // Returns video JSON
 			"video_duration": DurationToInt(durationTextArray) || 0,
 			"video_name": title || "",
 			"video_creator": artist || "",
 			"video_id": id || "",
+			"saved": false,
+			"downloaded": false,
+			"uuid": uuid
 		}
 	} catch (error) {
 		console.log(error)
@@ -99,6 +132,9 @@ async function getYouTubeRehashInfo(body){
  * @param {int} limit - The max amount of videos to return. If zero returns all
  */
 async function SearchYouTube(searchTerms, limit = 0){ //returns first video
+	if(searchTerms.trim === ''){
+		return 0
+	}
 	try{
 		let body = await axios.get(`https://www.youtube.com/results?search_query=${searchTerms.replace(' ', '+')}`)
 		let itemSec1Pos = body.data.indexOf('itemSectionRenderer') //Initial Starting Position Index right before the JSON
@@ -198,7 +234,7 @@ async function ContinueYouTubeSearch(continueData){
 		console.log(error)
 	}
 }
-export {ContinueYouTubeSearch};
+export {ContinueYouTubeSearch, GenerateNewUUID};
 export default SearchYouTube;
 
 /* Hex => ASCII

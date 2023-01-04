@@ -25,7 +25,7 @@ const SearchScreen = (props) => {
 	}, []);
 
 	const renderSongSearchComponents = ({ item }) => (
-		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
+		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uuid={item.uuid}/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
@@ -49,35 +49,31 @@ const SearchScreen = (props) => {
 	);
 	async function Search(query) {
 		let search = await SearchYouTube(query)
+		if(search === 0){return;}
 		// console.log(search)
 		try {
 			setContinueData(search.continueData)
-			let allTrackData = await AsyncStorage.getItem('Library');
-			if(allTrackData == null){
+			let storage = await AsyncStorage.getItem('Library');
+			if(storage == null){
 				setData(search.data);
 				return
 			}
 			else{
-				let allTracks = [];
-				allTrackData.toString().split('::').forEach(d => {
-					allTracks.push(JSON.parse(d));
-				});
-				search.data.forEach(newVideo => {
-					newVideo['saved'] = false;
-					newVideo['downloaded'] = false;
-					allTracks.forEach(video => {
-						// console.log(video.id + ':' + newVideo.id)
-						if(video.id == newVideo.video_id){
-							if(video.saved){
-								newVideo['saved'] = true;
-							}
+				let allTracks = JSON.parse(storage);
+
+				let arraySearchNewTracks = search.data.map(({video_id}) => video_id)
+				let setSearchNewTracks = new Set(arraySearchNewTracks)
+
+				allTracks.forEach(video => {
+					if(setSearchNewTracks.has(video.video_id)){
+						if(video.saved){
+							search.data[arraySearchNewTracks.indexOf(video.video_id)]['saved'] = true;
+							
 							if(video.downloaded){
-								newVideo['downloaded'] = true;
-							} else{
-								newVideo['downloaded'] = false;
+								search.data[arraySearchNewTracks.indexOf(video.video_id)]['downloaded'] = true;
 							}
 						}
-					})
+					}
 				});
 				setData(search.data);
 			}

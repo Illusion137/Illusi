@@ -1,8 +1,12 @@
-import { AntDesign, Ionicons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
-import React from "react";
+import React,  { useState, useRef, useEffect } from 'react';
+import { View, StyleSheet, Animated, Image, FlatList, ActionSheetIOS, Text, TouchableOpacity } from "react-native";
+import { AntDesign, Ionicons, MaterialCommunityIcons, FontAwesome, createIconSetFromFontello } from "@expo/vector-icons";
 import { useTheme } from '@react-navigation/native';
-import { View, StyleSheet, Image, FlatList, ActionSheetIOS, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import SlidingUpPanel from 'rn-sliding-up-panel';
+import PlaylistAddSearch from './PlaylistAddSearch'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import SongComponent from '../../components/SongComponent';
 
 function PlaylistSubScreen({route}){
     const navigation = useNavigation();
@@ -10,6 +14,9 @@ function PlaylistSubScreen({route}){
 	const styles = themeStyles(colors);
 
     const playlistInfo = route.params.playlistInfo;
+
+    const [data, setData] = useState([]);
+    const [editMode, seteditMode] = useState(0);
 
     const actions = () =>
     ActionSheetIOS.showActionSheetWithOptions(
@@ -31,7 +38,17 @@ function PlaylistSubScreen({route}){
         }
       }
     );
-
+    useEffect( () => {
+		(async function() {
+            let storage = await AsyncStorage.getItem('Playlists')
+            let parsedStorage = JSON.parse(storage)
+            let pIndex = parsedStorage.findIndex((item, i) => {return item.playlistInfo.title == playlistInfo.title})
+            setData(parsedStorage[pIndex].playlistInfo.tracks)
+		})();
+	}, []);
+	const renderTracks = ({ item }) => (
+		<SongComponent key={item.video_id} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route?.params?.setPlaying} from={"My Library"} editMode={editMode}/>
+	);
     return(
         <View style={styles.topContainer}>
             <View style={styles.header}>
@@ -51,18 +68,20 @@ function PlaylistSubScreen({route}){
                         <Text style={{color: '#808080', fontSize: 12}}>{playlistInfo.trackLength} tracks • {playlistInfo.trackDuration} Mins</Text>
                     </View>
                     <View style={styles.playlistButtonsContainer}>
-                        <TouchableOpacity style={styles.playlistButton}>
+                        <TouchableOpacity style={styles.playlistButton} onPress={() => {
+                            navigation.navigate('Add To Playlist', {writePlaylist: playlistInfo.title })
+                        }}>
                             <Ionicons name="add" size={35} color={colors.primary}/>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.playlistButton}>
+                        {/* <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                             <MaterialCommunityIcons name="pencil" size={25} color={colors.primary}/>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.playlistButton}>
+                        </TouchableOpacity> */}
+                        {/* <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                             <FontAwesome name="share" size={25} color={colors.primary}/>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
                 </View>
-            )}>
+            )} data={data} renderItem={renderTracks}>
             </FlatList>
         </View>
     );
@@ -91,7 +110,8 @@ const themeStyles = (colors) => StyleSheet.create({
     },
     playlistButtonsContainer:{
         flexDirection: 'row',
-        top: 30
+        top: 30,
+        marginBottom: 100
     },
     playlistButton:{
         borderRadius: 20, 

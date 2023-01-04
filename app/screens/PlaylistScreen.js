@@ -24,7 +24,7 @@ function PlaylistScreen(props) {
 				return;
 			}
 			let playlists = JSON.parse(storage)
-
+			console.log(playlists)
 			let names = []
 			try {
 				
@@ -41,7 +41,7 @@ function PlaylistScreen(props) {
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<Playlist title={item.playlistInfo.title} length={item.length} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo}/>
+		<Playlist title={item.playlistInfo.title} length={item.playlistInfo.trackLength} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo}/>
 	);
 
 	function setDataOutside(dat){
@@ -113,7 +113,7 @@ function PlaylistScreen(props) {
 			{/* <Playlist title={'Seycara'} length={80} pinned={false}/> */}
 			{/* <Playlist title={'Songs'} length={200} pinned={true}/> */}
 
-			<SlidingUpPanel draggableRange={{top:660, bottom: 0}} ref={addPlaylistPanelRef} animatedValue={new Animated.Value(0)}>
+			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={addPlaylistPanelRef} animatedValue={new Animated.Value(0)}>
 				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={setDataOutside.bind()} allPlaylistNames={playlistNames}/>
 			</SlidingUpPanel>
 		</View>

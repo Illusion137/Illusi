@@ -27,15 +27,18 @@ function AddPlaylist(props, ref) {
 					setIsEmpty(true)
 					let storageCheck = await AsyncStorage.getItem('Playlists');
 					if(storageCheck == null){
-						AsyncStorage.setItem('Playlists', JSON.stringify([{length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}]))
-						props.refreshData([{length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}])
+						AsyncStorage.setItem('Playlists', JSON.stringify([{pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}]))
+						props.refreshData([{pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}])
 						return
 					}
 					let parsedStorage = JSON.parse(storageCheck);
-					parsedStorage.push({length: 0, pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}})
+					parsedStorage.push({ pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}})
 					AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
 					props.refreshData(parsedStorage)
 					props.allPlaylistNames.push(playlistName)
+					inputRef.current?.clear()
+					inputRef.current?.blur()
+					props.panelref();
 				}}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>

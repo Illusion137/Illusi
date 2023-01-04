@@ -1,92 +1,134 @@
 import React, { useState, useCallback, useRef,useImperativeHandle, forwardRef, useEffect } from "react";
 import { Share, Button, View, Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
-import YoutubePlayer, {getYoutubeMeta, YoutubeIframeRef} from "react-native-youtube-iframe";
+import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
-import { Row } from "native-base";
 import {useNavigation, route } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 // import MusicControl from 'react-native-music-control'
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // MusicControl.enableControl('play', true)
 // MusicControl.enableControl('pause', true)
-function PlayVideoScreen(props, ref) {
-	const ids = props.ids;
-	const playlist = props.playlist;
-	const [title, setTitle] = useState("");
-	const [artist, setArtist] = useState("");
 
+function PlayVideoScreen(props, ref) {
+	const data = props.data;
+	const ids = data.map(({video_id}) => video_id)
+	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	
-	const [curIndex, setcurIndex] = useState(0);
-	const [curID, setCurID] = useState(ids[0]);
+	const [curIndex, setCurIndex] = useState(0);
+	const [curID, setCurID] = useState(ids[curIndex]);
 	const [playing, setPlaying] = useState(false);
 	const [timeValue, setTimeValue] = useState(0.0);
 	const [audioValue, setAudioValue] = useState(100);
 	const [elapsed, setElapsed] = useState('00:00');
 	const [durationleft, setDurationLeft] = useState('00:00');
 	
-	const [maxDuration, setMaxDuration] = useState(0);
+	const [title, setTitle] = useState(data[curIndex].video_name);
+	const [artist, setArtist] = useState(data[curIndex].video_creator);
+	const [maxDuration, setMaxDuration] = useState(data[curIndex].video_duration);
+	
+	const [DIAudio, setDIAudio] = useState(new Audio.Sound())
 	
 	const playerRef = useRef();
-	
+
+	useEffect(() => {
+		(async function() {
+			setTitle(data[curIndex].video_name);
+			setArtist(data[curIndex].video_creator);
+			setMaxDuration(data[curIndex].video_duration)
+			try {
+				await DIAudio.stopAsync()
+				await DIAudio.unloadAsync()
+			} catch (error) {
+				
+			}
+			
+			if(!(data[curIndex].saved && !data[curIndex].downloaded)){
+				await DIAudio.loadAsync({uri: data[curIndex].uri}, undefined, )
+				await DIAudio.playAsync();
+
+				setPlaying(true)
+			}
+		})();
+	}, [curIndex]);
+
 	useImperativeHandle(ref, () => ({
 		title: title,
 		artist: artist,
 		isPlaying: playing,
 		setPlaying: (play) => {setPlaying(play)}
 	}))
-
 	useEffect(() => {
-		const interval = setInterval(async () => {
-		  const elapsed_sec = await playerRef.current.getCurrentTime(); // this is a promise. dont forget to await
-	
-		  // calculations
-		  const elapsed_ms = Math.floor(elapsed_sec * 1000);
-		  const min = Math.floor(elapsed_ms / 60000);
-		  const seconds = Math.floor((elapsed_ms - min * 60000) / 1000);
-	
-		  setElapsed(
-			min.toString().padStart(2, '0') +
-			  ':' +
-			  seconds.toString().padStart(2, '0')
-		  );
-		  const elapsed_ms_maxdur = Math.floor((maxDuration-elapsed_sec) * 1000);
-		  const min_maxdur = Math.floor(elapsed_ms_maxdur / 60000);
-		  const seconds_maxdur = Math.floor((elapsed_ms_maxdur - min_maxdur * 60000) / 1000);
-		  setDurationLeft(
-			'-' + min_maxdur.toString().padStart(2, '0') +
-			':' +
-			seconds_maxdur.toString().padStart(2,'0')
-		  );
-		  setTimeValue(elapsed_sec)
-		}, 1000); // 1000 ms refresh. increase it if you don't require millisecond precision
-	
-		return () => {
-		  clearInterval(interval);
-		};
-	  }, []);
-	  let waiting = false;
-	const onStateChange = useCallback((state) => {
-		if(state === "unstarted"){
-			waiting = true;
 
-		}
-		if(state === "playing" && waiting){
-			playerRef.current?.getDuration().then( getDuration =>{
-				setMaxDuration( {getDuration}.getDuration);
-			})
+		  const interval = setInterval(async () => {
+			let elapsed_sec = 0;
+			if(data[curIndex].saved && !data[curIndex].downloaded){
+				try {
+					elapsed_sec = Math.round(await playerRef.current.getCurrentTime()); // this is a promise. dont forget to await
+				} catch (error) {
+					console.log(error)
+					return	
+				}
+			} else{
+				try {
+					let meta = await DIAudio.getStatusAsync()
+					// console.log(meta)
+					elapsed_sec = Math.round(meta.positionMillis/1000)
+					if(elapsed_sec >= maxDuration){
+						if(curIndex + 1 < ids.length){ //4    =/5
+							let temp = curIndex + 1
+							setCurIndex(temp);
+							setCurID(ids[temp]);
+						}
+						else{
+							setPlaying(false);
+							Alert.alert("playlist ended has finished playing!");
+						}
+					}
+				} catch (error) {
+					console.log(error)
+					return	
+				}
+			}
+			setTimeValue(elapsed_sec)
+			const elapsed_ms = Math.floor(elapsed_sec * 1000);
+			const min = Math.floor(elapsed_ms / 60000);
+			const seconds = Math.floor((elapsed_ms - min * 60000) / 1000);
+			
+			setElapsed(
+				min.toString().padStart(2, '0') +
+				':' +
+				seconds.toString().padStart(2, '0')
+			);
+			const elapsed_ms_maxdur = Math.floor((maxDuration-elapsed_sec) * 1000);
+			const min_maxdur = Math.floor(elapsed_ms_maxdur / 60000);
+			const seconds_maxdur = Math.floor((elapsed_ms_maxdur - min_maxdur * 60000) / 1000);
+	
+				setDurationLeft(
+				'-' + min_maxdur.toString().padStart(2, '0') +
+				':' +
+				seconds_maxdur.toString().padStart(2,'0')
+				);
+		  }, 1000);
+		return () => {
+			clearInterval(interval);
+		};
+	}, );
+
+
+	const onStateChange = useCallback((state) => {
+
+		if(state === "playing"){
 			setPlaying(true);
-			getYoutubeMeta(curID).then(meta => {
-				setTitle(meta.title);
-				setArtist(meta.author_name);
-			})
-			waiting = false;
 		}
 		if (state === "ended") {
-			if(curIndex+1 < ids.length){
-				setcurIndex(curIndex+1);
-				setCurID(ids[curIndex]);
+			if(curIndex < ids.length){
+				console.log('end')
+				let temp = curIndex + 1
+				setCurIndex(temp);
+				setCurID(ids[temp]);
 			}
 			else{
 				setPlaying(false);
@@ -94,8 +136,19 @@ function PlayVideoScreen(props, ref) {
 			}
 		}
 	}, []);
-	const togglePlaying = useCallback(() => {
+	const togglePlaying = useCallback(async() => {
 		setPlaying((prev) => !prev);
+		try {
+			let meta = await DIAudio.getStatusAsync()
+			if(meta.isPlaying){
+				await DIAudio.pauseAsync()
+			}
+			else{
+				await DIAudio.playAsync()
+			}
+		} catch (error) {
+			
+		}
 	}, []);
 	
 	async function onShare(){
@@ -124,7 +177,7 @@ function PlayVideoScreen(props, ref) {
 				</TouchableOpacity>
 			</View>
 			{/* YOUTUBE ----------------------------------------------------*/}
-			<View pointerEvents="none">
+			{ data[curIndex].saved && !data[curIndex].downloaded && <View pointerEvents="none">
 				<YoutubePlayer
 					ref={playerRef}
 					height={220}
@@ -133,29 +186,43 @@ function PlayVideoScreen(props, ref) {
 					onChangeState={onStateChange}		
 					volume={0.2} 
 					initialPlayerParams={{preventFullScreen: true, controls: false}}
+					onError={(error) => {						if(curIndex + 1 < ids.length){ //4    =/5
+						let temp = curIndex + 1
+						setCurIndex(temp);
+						setCurID(ids[temp]);
+					}}}
 					onReady={() => {
-						playerRef.current?.getDuration().then( getDuration =>{
-							setMaxDuration( {getDuration}.getDuration);
 							setPlaying(true);
-							getYoutubeMeta(curID).then(meta => {
-								setTitle(meta.title);
-								setArtist(meta.author_name);
-							})
-						} 
-						)} }
+						} }
+					
 				/>
-			</View>
+			</View>}
+			{!(data[curIndex].saved && !data[curIndex].downloaded) && <View style={{height: 220, backgroundColor: '#121212'}}/>}
 			{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 			<View style={styles.timestampslidercontainer}>
 				<Slider value={timeValue}
-						onValueChange={val => {setTimeValue(val); playerRef.current?.seekTo(timeValue, true);}}
+						onValueChange={val => {setTimeValue(val); 
+							if(data[curIndex].saved && !data[curIndex].downloaded){
+								playerRef.current?.seekTo(timeValue, true);
+							}
+
+						}}
 						thumbTintColor='#424ed4'
 						minimumTrackTintColor='#424ed4'
 						maximumTrackTintColor='#DADADAA0'
 						thumbStyle={{width: 8, height: 8}}
 						thumbTouchSize={{width: 40, height: 40}}
 						minimumValue={0}
-						maximumValue={maxDuration}
+						maximumValue={data[curIndex].video_duration}
+						onSlidingComplete={async(val) => {
+							if(!(data[curIndex].saved && !data[curIndex].downloaded)){
+								try {
+									await DIAudio.setPositionAsync(Math.round(timeValue*1000))
+								} catch (error) {
+									return
+								}
+							}
+						}}
 				/>
 			</View>
 			<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
@@ -164,8 +231,8 @@ function PlayVideoScreen(props, ref) {
 			</View>
 			{/* TITLE & ARTIST ----------------------------------------------------*/}
 			<View style={styles.textcontainer}>
-				<Text style={styles.title} numberOfLines={1}>{title}</Text>
-				<Text style={styles.artist} numberOfLines={1}>{artist}</Text>
+				<Text style={styles.title} numberOfLines={1}>{data[curIndex].video_name}</Text>
+				<Text style={styles.artist} numberOfLines={1}>{data[curIndex].video_creator}</Text>
 			</View>
 			<View style={styles.container}>
 			{/* PLAY CONTROLS ----------------------------------------------------*/}
@@ -174,13 +241,11 @@ function PlayVideoScreen(props, ref) {
 						<Ionicons name="shuffle-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => {
-						if(curIndex-1 >= 0){
-							setcurIndex(curIndex-1); 
-							setCurID(ids[curIndex]); 
-							console.log(curID)
+						if(curIndex > 0){
+							let temp = curIndex - 1
+							setCurIndex(temp);
+							setCurID(ids[temp]); 
 						}
-						// console.log(curID)
-						// console.log(curIndex)
 						}}>
 						<Ionicons name="play-back-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
@@ -188,13 +253,11 @@ function PlayVideoScreen(props, ref) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color='#424ed4'/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => {
-						if(curIndex+1 <= ids.length){ //4    =/5
-							setcurIndex(curIndex+1); 
-							setCurID(ids[curIndex]); 
-							// console.log(curID)
+						if(curIndex + 1 < ids.length){ //4    =/5
+							let temp = curIndex + 1
+							setCurIndex(temp);
+							setCurID(ids[temp]);
 						}
-						// console.log(curID)
-						// console.log(curIndex)
 					}}>
 						<Ionicons name="play-forward-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
@@ -223,7 +286,7 @@ function PlayVideoScreen(props, ref) {
 					
 				</View>
 			{/* EXTRA CONTROLS ----------------------------------------------------*/}
-				<View style={{flexDirection:'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15}}>
+				{/* <View style={{flexDirection:'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15}}>
 					<TouchableOpacity>
 						<View style={{backgroundColor:'#424ed4', height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center'}}>
 							<Text>+ Add</Text>
@@ -238,7 +301,7 @@ function PlayVideoScreen(props, ref) {
 					<TouchableOpacity onPress={onShare}>
 						<Ionicons name="share-outline" size={28} color='#424ed4'/>
 					</TouchableOpacity>
-				</View>
+				</View> */}
 			</View>
 		</View>
 	)

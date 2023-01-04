@@ -27,7 +27,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.illusion137.Illusi",
-      "usesIcloudStorage": true
+      "usesIcloudStorage": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {

@@ -71,15 +71,10 @@ function SearchHomeScreen(props){
                     <TextInput onPressIn={() => {toggle = !toggle; setSearchScreenState(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
                 </View>
                 <View style={{top: 100, marginHorizontal: 10}}>
-                    <ScrollView style={{height: '79%'}}>
+                    <Text style={{color: 'white'}}>This still under construction move along</Text>
+                    {/* <ScrollView style={{height: '79%'}}>
                         <Text style={styles.headerText}>Developer's Choice Artists</Text>
                         <View style={{backgroundColor: '#808080', width: '85%', height: 1, marginVertical: 5}}/> 
-
-                        <ChoiceArtist {...choiceArtists[0]}/>
-                        <ChoiceArtist {...choiceArtists[1]}/>
-
-                        {/* <FlatList data={choiceArtists} style={{height: 290, width: '100%'}} horizontal={true}
-                            renderItem={renderItem}/> */}
 
                         <Text style={styles.headerText}>Developer's Choice Albums</Text>
                         <View style={{backgroundColor: '#808080', width: '88%', height: 1, marginVertical: 5}}/>
@@ -87,11 +82,11 @@ function SearchHomeScreen(props){
                         <FlatList data={choiceAlbums} horizontal={true}
                             renderItem={({ item, index }) => ( <ChoiceAlbums {...choiceAlbums[index]}></ChoiceAlbums> )}/>
 
-                        {/* <View style={{flexDirection: 'row'}}>
+                        <View style={{flexDirection: 'row'}}>
                             <ChoiceAlbums profilePicture={'https://yt3.ggpht.com/ZTvlR15z-6de-EiKUxCRQQXPVemfKUZA_TazZ2Mug_DJCPqkXgTMyBS9N9255HYs2PQzxb3VQMM=s176-c-k-c0x00ffffff-no-rj-mo'} artistName={'Kanesta'} albumName={'The Rookie'}/>
                             <ChoiceAlbums profilePicture={'https://f4.bcbits.com/img/a1035349507_16.jpg'} artistName={'Seycara'} albumName={'Illusions of the Heart'}/>
                             <ChoiceAlbums profilePicture={'https://f4.bcbits.com/img/a1906988218_16.jpg'} artistName={'Seycara'} albumName={'Everlasting Summer'}/>
-                        </View> */}
+                        </View>
 
                         <Text style={styles.headerText}>Top Songs</Text>
                         <View style={{backgroundColor: '#808080', width: '35%', height: 1, marginVertical: 5}}/>
@@ -102,7 +97,7 @@ function SearchHomeScreen(props){
                         <TouchableOpacity style={styles.genres}>
                                 <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold', marginHorizontal: 15}}>Rap</Text>
                         </TouchableOpacity>
-                    </ScrollView>
+                    </ScrollView> */}
                 </View>
                 
             </View>}
