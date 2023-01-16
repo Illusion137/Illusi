@@ -10,38 +10,38 @@ import { GenerateNewUUID } from '../../Illusive/IllusiveSearch';
 
 
 function GetAddPlaylistFrom({route}) {
-
 	const inputRef = useRef()
 	const navigation = useNavigation();
-
+	
 	const [progress, setProgress] = useState(0);
 	const [isDoneSearching, setDoneSearching] = useState(false)
 	const [data, setData] = useState([])
+	let copyData = []
 	const [title, setTitle] = useState('')
 	const [badRequest, setBadRequest] = useState(false);
 	
 	const url = route.params.url;
 	const service = route.params.title.toString().split(' ')[1]
 
-	useEffect(() => {
-		function setHeader() {
-			navigation.setOptions({title: route.params.title})
-			navigation.setOptions({ headerRight: () => (
-				<Button
-				color='#1313ff'
-				onPress={() => ActionSheetIOS.showActionSheetWithOptions(
-					{
-					  options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
-					  cancelButtonIndex: 0,
-					  userInterfaceStyle: 'dark',
-					  
-					},
-					async(buttonIndex) => {
-					  if (buttonIndex === 0) {
-					  } else if (buttonIndex === 1) {
-							let storage = await AsyncStorage.getItem('Playlist')
-							let pushData = []
-							data.forEach((track) => {
+	function setHeader(data, title) {
+		navigation.setOptions({title: route.params.title})
+		navigation.setOptions({ headerRight: () => (
+			<Button
+			color='#1313ff'
+			onPress={() => ActionSheetIOS.showActionSheetWithOptions(
+				{
+				  options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
+				  cancelButtonIndex: 0,
+				  userInterfaceStyle: 'dark',
+				  
+				},
+				async(buttonIndex) => {
+				  if (buttonIndex === 0) {
+				  } else if (buttonIndex === 1) {
+						let storage = await AsyncStorage.getItem('Library')
+						if(storage == null){
+							const pushData = []
+							for(const track of data){
 								let uuid = GenerateNewUUID()
 								let dat = {
 									"video_duration": track.video_duration,
@@ -55,65 +55,94 @@ function GetAddPlaylistFrom({route}) {
 									"uri": ""
 								}
 								pushData.push(dat)
-							})
-							if(storage == null){
-								await AsyncStorage.setItem('Library', JSON.stringify(pushData))
-								let duration = pushData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
-									return prev + cur;
-								})
-								let addPlay = (await AsyncStorage.getItem('Playlists') || [] )
-								addPlay.push({ pinned: false, playlistInfo:{title: title, trackLength: pushData.length, trackDuration: duration, tracks: pushData}})
-								await AsyncStorage.setItem('Playlists',JSON.stringify(addPlay))
 							}
-							else{
-								let parsedStorage = JSON.parse(storage)
-								let pSet = new Set (parsedStorage.map(({video_id}) => video_id) )
-								pushData.filter(item => !pSet.has(item.video_id))
-								await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage.concat(pushData)))
-								let duration = pushData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
-									return prev + cur;
-								})
-								let addPlay = (await AsyncStorage.getItem('Playlists') || [] )
-								addPlay.push({ pinned: false, playlistInfo:{title: title, trackLength: pushData.length, trackDuration: duration, tracks: pushData}})
-								await AsyncStorage.setItem('Playlists', JSON.stringify(addPlay))
-							}
-							
-					  } else if (buttonIndex === 2) {
-						let storage = await AsyncStorage.getItem('Playlist')
-						let pushData = []
-						data.forEach((track) => {
-							let uuid = GenerateNewUUID()
-							let dat = {
-								"video_duration": track.video_duration,
-								"video_name": track.video_name,
-								"video_creator": track.video_creator,
-								"video_id": track.video_id,
-								"saved": true,
-								"downloaded": false,
-								"imported": false,
-								"uuid": uuid,
-								"uri": ""
-							}
-							pushData.push(dat)
-						})
-						if(storage == null){
+
+							// if(pushData.length == 0){navigation.navigate('Tabs'); return}
+							let playlistStorage = await AsyncStorage.getItem('Playlists')
+							let addPlay = ( playlistStorage != null ? JSON.parse(playlistStorage) : undefined || [] )
+							const playlistNewPush = pushData.map(({uuid}) => uuid)
+							addPlay.push({ pinned: false, playlistInfo:{title: title, tracks: playlistNewPush}})
 							await AsyncStorage.setItem('Library', JSON.stringify(pushData))
+							await AsyncStorage.setItem('Playlists',JSON.stringify(addPlay))
 						}
 						else{
-							let parsedStorage = JSON.parse(storage)
+							let libStorage = await AsyncStorage.getItem('Library')
+							const pushData = new Array()
+							for(const track of data){
+								let uuid = GenerateNewUUID()
+								let dat = {
+									"video_duration": track.video_duration,
+									"video_name": track.video_name,
+									"video_creator": track.video_creator,
+									"video_id": track.video_id,
+									"saved": true,
+									"downloaded": false,
+									"imported": false,
+									"uuid": uuid,
+									"uri": ""
+								}
+								pushData.push(dat)
+							}
+							if(pushData.length == 0){navigation.navigate('Tabs');return}
+							let parsedStorage = JSON.parse(libStorage)
+							let pMap = new Map(parsedStorage.map((s) => [s.video_id, s.uuid]) )
 							let pSet = new Set (parsedStorage.map(({video_id}) => video_id) )
-							pushData.filter(item => !pSet.has(item.video_id))
-							await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage.concat(pushData)))
+							const newPush = pushData.filter(item => !pSet.has(item.video_id))
+							let playlistNewPush = [];
+							for(const dat of pushData){
+								if(pMap.has(dat.video_id)){
+									playlistNewPush.push(pMap.get(dat.video_id))
+								}
+								else{
+									playlistNewPush.push(dat.uuid)
+								}
+							}
+							let playlistStorage = await AsyncStorage.getItem('Playlists')
+							let addPlay = ( playlistStorage != null ? JSON.parse(playlistStorage) : undefined || [] )
+							addPlay.push({ pinned: false, playlistInfo:{title: title, tracks: playlistNewPush}})
+							await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage.concat(newPush)))
+							await AsyncStorage.setItem('Playlists', JSON.stringify(addPlay))
 						}
-					  }
+						navigation.navigate('Tabs')
+						
+				  } else if (buttonIndex === 2) {
+					let storage = await AsyncStorage.getItem('Library')
+					let pushData = []
+					for(const track of data){
+						let uuid = GenerateNewUUID()
+						let dat = {
+							"video_duration": track.video_duration,
+							"video_name": track.video_name,
+							"video_creator": track.video_creator,
+							"video_id": track.video_id,
+							"saved": true,
+							"downloaded": false,
+							"imported": false,
+							"uuid": uuid,
+							"uri": ""
+						}
+						pushData.push(dat)
 					}
-				  )
-			  }
-				title="Save"
-			/>
-			)})
+					if(storage == null){
+						await AsyncStorage.setItem('Library', JSON.stringify(pushData))
+					}
+					else{
+						let parsedStorage = JSON.parse(storage)
+						let pSet = new Set (parsedStorage.map(({video_id}) => video_id) )
+						pushData = pushData.filter(item => !pSet.has(item.video_id))
+						await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage.concat(pushData)))
+					}
+					navigation.navigate('Tabs')
+				}
+			}
+			)
 		}
-		const fetchPlaylist = async() => { 
+		title="Save"
+		/>
+		)})
+	}
+	useEffect(() => {
+		(async function() {
 				try {
 					switch(service){
 						case('Musi'):
@@ -125,21 +154,16 @@ function GetAddPlaylistFrom({route}) {
 							
 							const json = await response.json();
 							let parsed = JSON.parse(json.success.data)
-
 							setTitle(parsed.title);
 							
 							let storage = await AsyncStorage.getItem('Library');
-							if(storage == null){
-								setData(parsed.data);
-								return
-							}
-							else{
+							if(storage != null){
 								let allTracks = JSON.parse(storage);
 				
 								let arraySearchNewTracks = parsed.data.map(({video_id}) => video_id)
 								let setSearchNewTracks = new Set(arraySearchNewTracks)
 				
-								allTracks.forEach(video => {
+								for(const video of allTracks){
 									if(setSearchNewTracks.has(video.video_id)){
 										if(video.saved){
 											parsed.data[arraySearchNewTracks.indexOf(video.video_id)]['saved'] = true;
@@ -149,19 +173,18 @@ function GetAddPlaylistFrom({route}) {
 											}
 										}
 									}
-								});
+								}
 							}
 
 							setData(parsed.data);
+							setDoneSearching(true);
+							setHeader(parsed.data, parsed.title)
 					}
-					setDoneSearching(true);
-					setHeader();
 				}
 				catch(error){
 					console.log(error);
 				}
-		}
-		fetchPlaylist().catch(console.error);
+			})();
 	}, []);
 
 	const renderItem = ({ item }) => (
@@ -172,9 +195,9 @@ function GetAddPlaylistFrom({route}) {
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>
 			{badRequest && <Text style={styles.badRequestText}>Bad Request check the url again</Text>}
 			{/* { !isDoneSearching && <ProgressBar progressPercent={progress}/>} */}
-			{/* { isDoneSearching && <View style={styles.searchview}> */}
-				<FlatList data={data} renderItem={renderItem}/>
-			{/* </View>} */}
+			{ isDoneSearching && <View style={styles.searchview}>
+				<FlatList data={data} renderItem={renderItem} removeClippedSubviews={true} initialNumToRender={1}/>
+			</View>}
 		</View>
 	);
 }

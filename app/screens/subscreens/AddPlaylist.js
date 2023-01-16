@@ -27,14 +27,14 @@ function AddPlaylist(props, ref) {
 					setIsEmpty(true)
 					let storageCheck = await AsyncStorage.getItem('Playlists');
 					if(storageCheck == null){
-						AsyncStorage.setItem('Playlists', JSON.stringify([{pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}]))
-						props.refreshData([{pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}}])
+						AsyncStorage.setItem('Playlists', JSON.stringify([{pinned: false, playlistInfo:{title: playlistName, tracks: []}}]))
+						// props.refreshData([{pinned: false, playlistInfo:{title: playlistName, tracks: []}}])
 						return
 					}
 					let parsedStorage = JSON.parse(storageCheck);
-					parsedStorage.push({ pinned: false, playlistInfo:{title: playlistName, trackLength: 0, trackDuration: 0, tracks: []}})
+					parsedStorage.push({ pinned: false, playlistInfo:{title: playlistName, tracks: []}})
 					AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
-					props.refreshData(parsedStorage)
+					// props.refreshData(parsedStorage)
 					props.allPlaylistNames.push(playlistName)
 					inputRef.current?.clear()
 					inputRef.current?.blur()
@@ -64,14 +64,14 @@ function AddPlaylist(props, ref) {
 				</View>
 			</TouchableHighlight>
 			<View style={styles.line}/>
-			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import YouTube Playlist'})}>
+			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import YouTube Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is5-ssl.mzstatic.com/image/thumb/Purple122/v4/fc/c7/18/fcc718a6-bd55-b1aa-93e4-4073a2ad3b13/logo_youtube_color-1x_U007emarketing-0-6-0-85-220.png/350x350.png?'}}/>
 					<Text style={styles.importfromtext}>Import Playlist From YouTube</Text>
 				</View>
 			</TouchableHighlight>
-			<View style={styles.line}/>
-			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Spotify Playlist'})}>
+			<View style={styles.line}/> */}
+			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Spotify Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is2-ssl.mzstatic.com/image/thumb/Purple122/v4/63/64/fa/6364fa97-398a-46da-32ac-765e8f328548/AppIcon-0-1x_U007emarketing-0-6-0-0-0-85-220-0.png/350x350.png?'}}/>
 					<Text style={styles.importfromtext}>Import Playlist From Spotify</Text>
@@ -83,7 +83,7 @@ function AddPlaylist(props, ref) {
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is4-ssl.mzstatic.com/image/thumb/Purple122/v4/fc/b8/aa/fcb8aae7-180e-7b29-7c83-255f1c86eba8/AppIcon-1x_U007emarketing-0-10-0-85-220.png/350x350.png?'}}/>
 					<Text style={styles.importfromtext}>Import Playlist From Amazon Music</Text>
 				</View>
-			</TouchableHighlight>
+			</TouchableHighlight> */}
 		</View>
 	);
 }

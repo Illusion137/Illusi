@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
 import { useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
+import appConfig from '../../app.config';
+import { SelectList } from 'react-native-dropdown-select-list';
+import GLOBALS from '../../globals';
 
-function ExtraScreen(props) {
+function ExtraScreen({route}) {
 	const navigation = useNavigation();
 
+	function setTrackDataFrom(title, position){
+		setTrackData({position: position+1, title: title})
+	}
 	const confirmDeleteDataAlert = () =>
     Alert.alert(
       "Clear All Data",
@@ -20,24 +26,91 @@ function ExtraScreen(props) {
 			
 			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
 				try {
-					await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
+					if(file != 'RCTAsyncLocalStorage'){
+						await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
+					}
 				} catch (error) {
 					
 				}
 			}
-			for(const file of await FileSystem.readDirectoryAsync('file:///var/mobile/Containers/Data/Application/2ECF71AE-2E45-4A4E-A445-BB53A4489429/Library/Caches/ExponentExperienceData/%2540illusion137%252FIllusi/DocumentPicker/')){
-				try {
-					await FileSystem.deleteAsync('file:///var/mobile/Containers/Data/Application/2ECF71AE-2E45-4A4E-A445-BB53A4489429/Library/Caches/ExponentExperienceData/%2540illusion137%252FIllusi/DocumentPicker/' + file, {idempotent:true});
-				} catch (error) {
-					
-				}
-			}
-			// FileSystem.deleteAsync();
 			BackHandler.exitApp() 
 
 		} } ]
     );
+	const confirmDeletePlaylistDataAlert = () =>
+    Alert.alert(
+      "Clear Playlist Data",
+      "Are you sure?",
+      [ { text: "Cancel"},
+        { text: "OK", onPress: async() => {
+			await AsyncStorage.removeItem('Playlists')
 
+		} } ]
+    );
+	const confirmDownloadPlaylistAlert = () =>
+    Alert.alert(
+      "Download All Tracks in Playlist",
+      "Are you sure?",
+      [ { text: "Cancel"},
+        { text: "OK", onPress: async() => {
+			if(selected === ""){return}
+			if(selected === "Library"){
+				let storage = await AsyncStorage.getItem('Library')
+				if(storage == null){return}
+				let filteredData = JSON.parse(storage).filter(item=>!(item.downloaded || item.imported))
+				setEndProgress(filteredData.length)
+				for (let i = 0; i < filteredData.length; i++) {
+					setTimeout(async() => {
+						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+					},1000)
+				}
+			}
+			else{
+				let storage = await AsyncStorage.getItem('Library')
+				if(storage == null){return}
+				let libraryMap = new Map(JSON.parse(storage).map((track) => [track.uuid, track]))
+				let pstorage = await AsyncStorage.getItem('Playlists')
+				let parsedPStorage = JSON.parse(pstorage)
+				let pindex = parsedPStorage.findIndex((item,i) => {return item.playlistInfo.title == selected})
+				if(pindex === -1) { return }
+				let pushData = []
+				for(let i = 0; i < parsedPStorage[pindex].playlistInfo.tracks.length; i++){
+					pushData.push( libraryMap.get(parsedPStorage[pindex].playlistInfo.tracks[i]) )
+				}
+				let filteredData = pushData.filter(item=>!(item.downloaded || item.imported))
+				setEndProgress(filteredData.length)
+				for (let i = 0; i < filteredData.length; i++) {
+					setTimeout(async() => {
+						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+					},1000)
+				}
+			}
+		} } ]
+    );
+
+	useEffect(() => {
+		(async function() {
+			let pstorage = await AsyncStorage.getItem('Playlists')
+			let pushData = []
+			pushData.push({key: '0', value: 'Library'})
+			if(pstorage != null){
+				let parsedPStorage = JSON.parse(pstorage)
+				for (let i = 0; i < parsedPStorage.length; i++) {
+					pushData.push({key: (i+1).toString(), value: parsedPStorage[i].playlistInfo.title})
+				}
+			} 
+			setPlaylistDownloadData(pushData)
+		})()
+	}, []);
+
+	const [selected, setSelected] = React.useState("");
+	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
+	
+	const [isDownloading, setIsDownloading] = React.useState(false);
+	const [dProgress, setDProgress] = React.useState(0);
+	const [endProgress, setEndProgress] = React.useState(0);
+
+	const [trackData, setTrackData] = React.useState({position: 0, title: "title"});
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.header}>
@@ -46,22 +119,26 @@ function ExtraScreen(props) {
 				</View>
 			</View>
 			<ScrollView>
-				{/* <ExtrasSectionButton text='Backup, Recover, & Transfer' icon='cloud-outline' onPress={() => navigation.navigate('Backup & Recovery')}/>
-				<Text style={styles.descriptiontxt}>Backup your music, transfer your library to other devices, recover deleted music and more.</Text>
-				
+				<SelectList 
+					setSelected={(val) => setSelected(val)}
+					data={playlistDownloadData} 
+					save="value"
+					inputStyles={{backgroundColor: 'white'}}
+					boxStyles={{backgroundColor: 'white'}}
+					dropdownStyles={{backgroundColor: 'white'}}
+				/>
+				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-sharp' onPress={confirmDownloadPlaylistAlert}/>
 
-				<ExtrasSectionButton text='Settings' icon='settings-outline' onPress={() => navigation.navigate('Settings')}/>
-				<View style={styles.line}></View>
-								
-				<ExtrasSectionButton text='Youtube Login' icon='logo-youtube' onPress={() => console.log('yt')}/>
-				<Text style={styles.descriptiontxt}>Login to YouTube to play age-restricted songs, add private YouTube playlists, export playlists to YouTube, etc...</Text> */}
+				{isDownloading && <Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>{trackData.title}: {dProgress}% {trackData.position}/{endProgress} Tracks Completed</Text>}
 
-				<View style={styles.line}></View>
-				{/* <ExtrasSectionButton text='Import Manager' icon='cloud-upload-outline' onPress={() => navigation.navigate('Import Manager')}/> */}
-				{/* <Text style={styles.descriptiontxt}>Import Manager for own MP3 files</Text> */}
+				<Text style={styles.descriptiontxt}>Note that this screen doesn't reload so you may need to reload app to refresh data on this page</Text>
+				<Text style={styles.descriptiontxt}>Note 2: When using the playlist downloader don't use the download method from the Library</Text>
+
+				<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash' onPress={confirmDeletePlaylistDataAlert}/>
 				<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash' onPress={confirmDeleteDataAlert}/>
+				
+				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version}</Text>
 
-				<Text style={styles.descriptiontxt}>Illusi Version: 1.0.0</Text>
 			</ScrollView>
 
 		</View>

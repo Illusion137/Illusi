@@ -3,8 +3,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight } from 'react-native';
 import SongComponentSearch from '../components/SongComponentSearch';
 // import searchVideo from '../usetube';
-import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
+// import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
 import { useNavigation } from '@react-navigation/native';
+import SearchYouTube from '../Illusive/IllusiveSearch';
 
 const SearchScreen = (props) => {
 
@@ -48,11 +49,11 @@ const SearchScreen = (props) => {
 		</View>
 	);
 	async function Search(query) {
-		let search = await SearchYouTube(query)
+		const search = await SearchYouTube(query)
+
 		if(search === 0){return;}
-		// console.log(search)
 		try {
-			setContinueData(search.continueData)
+			// setContinueData(search.continueData)
 			let storage = await AsyncStorage.getItem('Library');
 			if(storage == null){
 				setData(search.data);
@@ -64,7 +65,7 @@ const SearchScreen = (props) => {
 				let arraySearchNewTracks = search.data.map(({video_id}) => video_id)
 				let setSearchNewTracks = new Set(arraySearchNewTracks)
 
-				allTracks.forEach(video => {
+				for(const video of allTracks){
 					if(setSearchNewTracks.has(video.video_id)){
 						if(video.saved){
 							search.data[arraySearchNewTracks.indexOf(video.video_id)]['saved'] = true;
@@ -74,7 +75,7 @@ const SearchScreen = (props) => {
 							}
 						}
 					}
-				});
+				}
 				setData(search.data);
 			}
 		} catch (error) {console.log(error);}
@@ -98,13 +99,13 @@ const SearchScreen = (props) => {
 			}
 			else{
 				let allTracks = [];
-				allTrackData.toString().split('::').forEach(d => {
+				for(const d of allTrackData.toString().split('::')){
 					allTracks.push(JSON.parse(d));
-				});
-				search.data.forEach(newVideo => {
+				}
+				for(const newVideo of search.data){
 					newVideo['saved'] = false;
 					newVideo['downloaded'] = false;
-					allTracks.forEach(video => {
+					for(const video of allTracks){
 						// console.log(video.id + ':' + newVideo.id)
 						if(video.id == newVideo.id){
 							if(video.saved){
@@ -116,8 +117,8 @@ const SearchScreen = (props) => {
 								newVideo['downloaded'] = false;
 							}
 						}
-					})
-				});
+					}
+				}
 				let temp = data;
 				setData(temp.concat(search.data));
 			}

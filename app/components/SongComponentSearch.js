@@ -49,32 +49,6 @@ function SongComponentSearch(props) {
 								return;
 							}
 						}
-						// else if(!downloaded){
-						// 	let storage = await AsyncStorage.getItem('Library');
-
-						// 	let allTracks = JSON.parse(storage);
-						// 	let arraySearchNewTracks = allTracks.map(({video_id}) => video_id)
-						// 	allTracks[arraySearchNewTracks.indexOf(props.video_id)]['downloaded'] = true;
-							
-						// 	AsyncStorage.setItem('Library', JSON.stringify(allTracks));
-
-						// 	const youtubeURL = 'http://www.youtube.com/watch?v=' + props.video_id;
-						// 	const urls = await ytdl(youtubeURL, { quality: 'lowestaudio' });
-						// 	console.log(urls[0].url)
-
-						// 	await FileSystem.downloadAsync(
-						// 		urls[0].url,
-						// 		FileSystem.documentDirectory + 'small.mp3'
-						// 	  )
-						// 		.then(({ uri }) => {
-						// 		  console.log('Finished downloading to ', uri);
-						// 		})
-						// 		.catch(error => {
-						// 		  console.error(error);
-						// 		});
-
-						// 	isDownloaded(true);
-						// }
 						else{
 							return;
 						}

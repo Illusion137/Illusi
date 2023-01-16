@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import PlayVideoScreen from '../screens/subscreens/PlayVideoScreen';
 
+
 function PlayingSong (props) {
 	const playVideoPanelRef = useRef()
 	const playVideoRef = useRef()
@@ -27,6 +28,7 @@ function PlayingSong (props) {
 		onEffect();
 		
 	}, []);
+
 	// console.log(playVideoRef.current?.artist)
 	// console.log(playVideoRef.current?.title)
 	// console.log(playVideoRef.current?.isPlaying)

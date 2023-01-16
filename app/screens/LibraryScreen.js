@@ -8,41 +8,39 @@ import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 import {GenerateNewUUID} from '../Illusive/IllusiveSearch'
-import * as DocumentPicker from 'expo-document-picker';
+import * as DocumentPicker from 'react-native-document-picker'
+import BigList from 'react-native-big-list';
 
 const LibraryScreen = ({ navigation, route }) => {	
-	
-	const [charData, setCharData] = useState([])
-	const [numofTracks, setNumOfTracks] = useState(0);
-	const [dataMask, setDataMask] = useState([]);
-	const [baseData, setBaseData] = useState([]);
+	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
+
 	const [editMode, setEditMode] = useState(0)
-
-	let writePlaylist = route?.params?.writePlaylist;
-
 	let allAlphabetFastScrollLocations = [];
 	let currentPosition = 0;
-
+	let topScroll = 0;
+	
 	const listRef = useRef();
-
+	const handleError = (err) => {
+		if (DocumentPicker.isCancel(err)) {
+		  console.log('cancelled')
+		  // User cancelled the picker, exit any dialogs or menus and move on
+		} else if (DocumentPicker.isInProgress(err)) {
+		  console.log('multiple pickers were opened, only the last will be considered')
+		} else {
+		  throw err
+		}
+	  }
 	useEffect( () => {
 		(async function() {
-			// AsyncStorage.removeItem('DownloadQueue').then(() => {console.log('f')})
-			// console.log(await AsyncStorage.getItem('DownloadQueue'))
-
 			let storage = await AsyncStorage.getItem('Library');
 			if (storage == null){
-				setDataMask([]);
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
 				return;
 			}
 			let tracks = JSON.parse(storage);
 
-
-			setBaseData(tracks)
-			setNumOfTracks(tracks.length)
-			
 			let sectionsMap = new Map();
-			tracks.forEach(track => {
+			for(const track of tracks){
 				let char = track.video_name[0].toUpperCase()
 				if(!(/[A-Z]/).test(char)){ char = '#' }
 				if( !sectionsMap.has(char) ){
@@ -53,29 +51,25 @@ const LibraryScreen = ({ navigation, route }) => {
 					newTracks.push(track)
 					sectionsMap.set(char, newTracks)
 				}
-			})
+			}
 			let sections = []
 			let sectionChars = []
 			let sortedSectionsMap = [...sectionsMap].sort()
-			sortedSectionsMap.forEach((value) => { 
-				sections.push({
-					title: value[0],
-					data: value[1]
-				})
+			for(const value of sortedSectionsMap){ 
+				sections.push(
+					value[1]
+				)
 				sectionChars.push(value[0])
-			})
-			setCharData(sectionChars);
-			setDataMask(sections);
+			}
+			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
 		})();
 	}, []);
 
 	async function refreshData(dat){
 		if(dat == undefined){return}
-		setBaseData(dat)
-		setNumOfTracks(dat.length)
 		
 		let sectionsMap = new Map();
-		dat.forEach(track => {
+		for(const track of dat){
 			let char = track.video_name[0].toUpperCase()
 			if(!(/[A-Z]/).test(char)){ char = '#' }
 			if( !sectionsMap.has(char) ){
@@ -86,25 +80,51 @@ const LibraryScreen = ({ navigation, route }) => {
 				newTracks.push(track)
 				sectionsMap.set(char, newTracks)
 			}
-		})
+		}
 		let sections = []
 		let sectionChars = []
 		let sortedSectionsMap = [...sectionsMap].sort()
-		sortedSectionsMap.forEach((value) => { 
-			sections.push({
-				title: value[0],
-				data: value[1]
-			})
+		for(const value of sortedSectionsMap){ 
+			sections.push(
+				value[1]
+			)
 			sectionChars.push(value[0])
-		})
-		setCharData(sectionChars);
-		setDataMask(sections);
+		}
+		setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
 	}
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({ item }) => (<SongComponent key={item.video_id} uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uuid={item.uuid} setPlaying={route?.params?.setPlaying} from={"My Library"} editMode={editMode} 
-	refreshData={refreshData.bind(this)}/>);
+	const renderItem = ({item}) => <SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uuid={item.uuid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
+	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
+
+	const headerComponent = () => <TouchableOpacity onPress={async() => {
+		if(route.params.setPlaying == undefined){
+			return
+		}
+		let storage = await AsyncStorage.getItem('Library');
+		if (storage == null){
+			return;
+		}
+		let data = JSON.parse(storage);
+		let currentIndex = data.length, randomIndex;
+
+		while (currentIndex != 0) {
+
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+
+			[data[currentIndex], data[randomIndex]] = [
+			data[randomIndex], data[currentIndex]];
+		}
+		route.params.setPlaying(data, 'Library');
+
+	}} style={{backgroundColor: '#424ed4', width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
+	<Text style={{fontWeight: '500', fontSize: 18}}>Shuffle Play</Text></TouchableOpacity>;
+
+	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
+
+	const sectionFooter = () => <View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: '#808080', fontSize: 25}}>{allData.numTracks} Tracks</Text></View>
 
 	return (
 		<View style={styles.topcontainer}>
@@ -124,15 +144,16 @@ const LibraryScreen = ({ navigation, route }) => {
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color='#808080' style={styles.icon}/>
 					<TextInput placeholder='Search My Library' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={query => {
-						let newTracks = baseData;
+						let newTracks = allData.baseData;
 						
 						let filteredTracks = newTracks.filter(track => 
 							(track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase()))
 						)
 						
 						let sectionsMap = new Map();
-						filteredTracks.forEach(track => {
+						for(const track of filteredTracks){
 							let char = track.video_name[0].toUpperCase()
+							if(!(/[A-Z]/).test(char)){ char = '#' }
 							if( !sectionsMap.has(char) ){
 								sectionsMap.set(char, [track])
 							}
@@ -141,60 +162,69 @@ const LibraryScreen = ({ navigation, route }) => {
 								newNewTracks.push(track)
 								sectionsMap.set(char, newNewTracks)
 							}
-						})
-						setNumOfTracks(filteredTracks.length)
+						}
 						let sections = []
 						let sectionChars = []
 						let sortedSectionsMap = [...sectionsMap].sort()
-						sortedSectionsMap.forEach((value) => {
-							sections.push({
-								title: value[0],
-								data: value[1]
-							})
+						for(const value of sortedSectionsMap){
+							sections.push(
+								value[1]
+							)
 							sectionChars.push(value[0])
-						})
-						setCharData(sectionChars)
-						setDataMask(sections);
+						}
+						setAllData({charData: sectionChars, dataMask: sections, baseData: allData.baseData, numTracks: filteredTracks.length})
 					}}></TextInput>
 					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => {
-						let audioFile = await DocumentPicker.getDocumentAsync({type: 'audio/*', multiple: true, copyToCacheDirectory: true});
-						if(audioFile.type == 'cancel'){
-							return
-						}
-						let uuid = GenerateNewUUID()
+						try {
+							const audioFiles = await DocumentPicker.pickMultiple({type: DocumentPicker.types.audio, copyTo: 'documentDirectory'})
 
-						let newURI = FileSystem.documentDirectory + uuid + '.mp3'
+							const audioDataFile = []
 
-						await FileSystem.moveAsync({from: audioFile.uri, to: newURI})
+							for(const audioFile of audioFiles){								
+								let uuid = GenerateNewUUID()
+		
+								let soundTemp = new Audio.Sound();
+								await soundTemp.loadAsync({uri: audioFile.fileCopyUri});
+								let metaData = await soundTemp.getStatusAsync();
+								let newFileURI = uuid + audioFile.fileCopyUri.match(/\..+/)[0]
+								await FileSystem.moveAsync({from: audioFile.fileCopyUri, to: FileSystem.documentDirectory + newFileURI })
 
-						let soundTemp = new Audio.Sound();
-						await soundTemp.loadAsync({uri: newURI});
-						let metaData = await soundTemp.getStatusAsync();
+								await soundTemp.unloadAsync()
 
-						await soundTemp.unloadAsync()
-
-						let dat = {
-							"video_duration": Math.round(metaData.durationMillis/1000) || 0,
-							"video_name": audioFile.name.replace('.mp3', '') || "",
-							"video_creator": "Illusion",
-							"video_id": "0",
-							"saved": false,
-							"downloaded": false,
-							"imported": true,
-							"uuid": uuid,
-							"uri": newURI
-						}
-
-						let storage = await AsyncStorage.getItem('Library')
-						if(storage == null){
-							await AsyncStorage.setItem('Library', JSON.stringify([dat]))
-							await refreshData([dat])
-						}
-						else{
-							let parsedStorage = JSON.parse(storage);
-							parsedStorage.push(dat)
-							await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage))
-							await refreshData(parsedStorage)
+								audioDataFile.push({
+									"video_duration": Math.round(metaData.durationMillis/1000) || 0,
+									"video_name": audioFile.name.replace(/\..+/, '') || "",
+									"video_creator": "Illusion",
+									"video_id": "0",
+									"saved": false,
+									"downloaded": false,
+									"imported": true,
+									"uuid": uuid,
+									"uri": newFileURI
+								})
+							}
+							for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
+								try {
+									if(file != 'RCTAsyncLocalStorage' && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
+										await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
+									}
+								} catch (error) {
+									
+								}
+							}
+							let storage = await AsyncStorage.getItem('Library')
+							if(storage == null){
+								await AsyncStorage.setItem('Library', JSON.stringify(audioDataFile))
+								await refreshData(audioDataFile)
+							}
+							else{
+								let parsedStorage = JSON.parse(storage);
+								parsedStorage = parsedStorage.concat(audioDataFile)
+								await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage))
+								await refreshData(parsedStorage)
+							}
+						} catch (e) {
+							handleError(e)
 						}
 					}
 					}>
@@ -202,46 +232,24 @@ const LibraryScreen = ({ navigation, route }) => {
 					</TouchableOpacity>
 				</View>
 			</View>
-			<SectionList style={{height: '71%'}} sections={dataMask}
-				disableVirtualization={true}
-				initialNumToRender={10}
-				windowSize={1}
 
-				removeClippedSubviews={true}
-				renderItem={renderItem }
-				keyExtractor={item => item.uuid}
-				renderSectionHeader={({ section: { title } }) => (<View style={styles.sectionHeader}><Text style={styles.sectionText}>{title}</Text></View>)}
-				ListFooterComponent={<View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: '#808080', fontSize: 25}}>{numofTracks} Tracks</Text></View>}
-				ListHeaderComponent={<TouchableOpacity onPress={async() => {
-					if(route.params.setPlaying == undefined){
-						return
-					}
-					let storage = await AsyncStorage.getItem('Library');
-					if (storage == null){
-						return;
-					}
-					let data = JSON.parse(storage);
-					let currentIndex = data.length, randomIndex;
-
-					while (currentIndex != 0) {
-
-						randomIndex = Math.floor(Math.random() * currentIndex);
-						currentIndex--;
-
-						[data[currentIndex], data[randomIndex]] = [
-						data[randomIndex], data[currentIndex]];
-					}
-					route.params.setPlaying(data, 'Library');
-
-				}} style={{backgroundColor: colors.primary, width: '100%', height: 50, marginTop: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row'}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
-				<Text style={{fontWeight: '450', fontSize: 18}}>Shuffle Play</Text></TouchableOpacity>}
+			<BigList style={{height: '71%'}} sections={allData.dataMask}
+				renderItem={renderItem}
+				keyExtractor={(item, index) => index}
+				renderFooter={sectionFooter}
+				renderHeader={headerComponent}
+				renderSectionHeader={sectionHeader}
+				sectionHeaderHeight={30}
+				headerHeight={90}
+				footerHeight={100}
 				ref={listRef}
-				getItemLayout={(data, index) => ({length: 60, offset: 60 * index, index })}
+				itemHeight={61}
+				onScrollToIndexFailed={() => {}}
 			/>
 			<View style={{backgroundColor: '#121212',
 					position: 'absolute',
 					left: '93%',
-					top: 380-(7*charData.length),
+					top: 380-(7*allData.charData.length),
 					justifyContent: 'center',
 					alignItems: 'center',
 					borderRadius: 10,
@@ -249,38 +257,18 @@ const LibraryScreen = ({ navigation, route }) => {
 				}}
 				hitSlop={{left: editMode === 0 ? 30 : 0, right: 20}}
 				onStartShouldSetResponder={(ev) => true}
-				// onTouchStart={(e) => {
-				// 	allAlphabetFastScrollLocations = [];
-				// 	for(let i = 0; i < charData.length; i++){
-				// 		allAlphabetFastScrollLocations.push(17*i)
-				// 	}
-				// 	// allAlphabetFastScrollLocations.sort(function(a, b) {
-				// 		// 	return a - b;
-				// 		// });
-				// 		let target = Math.floor(e.nativeEvent.locationY);
-				// 		var closest = allAlphabetFastScrollLocations.reduce(function(prev, curr) {
-				// 		return (Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev);
-				// 	});
-				// 	// console.log(closest)
-				// 	if(currentPosition == closest){
-				// 		return
-				// 	}
-				// 	currentPosition = closest;
-				// 	listRef.current?.scrollToLocation({ animated: false, itemIndex: 0, sectionIndex: allAlphabetFastScrollLocations.indexOf(closest) }); 
-				// 	Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-				// }}
+				onTouchStart={(e) => {
+					topScroll = 380-(7*allData.charData.length);
+				}}
 				onResponderMove={(e) => {
-					if(charData.length === 0){return}
-					if(!(charData.length === allAlphabetFastScrollLocations.length)){						
+					if(allData.charData.length === 0){return}
+					if(!(allData.charData.length === allAlphabetFastScrollLocations.length)){						
 						allAlphabetFastScrollLocations = [];
-						for(let i = 0; i < charData.length; i++){
-							allAlphabetFastScrollLocations.push(17*i)
+						for(let i = 0; i < allData.charData.length; i++){
+							allAlphabetFastScrollLocations.push((17*i) + topScroll)
 						}
 					}
-					// allAlphabetFastScrollLocations.sort(function(a, b) {
-						// 	return a - b;
-						// });
-						let target = Math.floor(e.nativeEvent.locationY);
+					let target = Math.floor(e.nativeEvent.pageY);
 					var closest = allAlphabetFastScrollLocations.reduce(function(prev, curr) {
 						return (Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev);
 					});
@@ -292,8 +280,8 @@ const LibraryScreen = ({ navigation, route }) => {
 					Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
 				} }
 				>
-				{charData.map((element, i) => (
-					<View a={charData.length} key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
+				{allData.charData.map((element, i) => (
+					<View a={allData.charData.length} key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
 						<Text style={{color: colors.primary, fontSize: 14}}>{element}</Text>
 					</View>
 				))}

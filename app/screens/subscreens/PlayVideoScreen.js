@@ -4,7 +4,11 @@ import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 import {useNavigation, route } from '@react-navigation/native';
-import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+
+import TrackPlayer, { State } from 'react-native-track-player';
+import { setupPlayer, addTracks } from '../../../trackPlayerServices';
+import ytdl from "react-native-ytdl";
 // import MusicControl from 'react-native-music-control'
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,143 +16,104 @@ import { Audio } from 'expo-av';
 // MusicControl.enableControl('pause', true)
 
 function PlayVideoScreen(props, ref) {
-	const data = props.data;
-	const ids = data.map(({video_id}) => video_id)
+	const data = props.data.filter(item=>item.downloaded || item.imported);
 	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	
 	const [curIndex, setCurIndex] = useState(0);
-	const [curID, setCurID] = useState(ids[curIndex]);
 	const [playing, setPlaying] = useState(false);
 	const [timeValue, setTimeValue] = useState(0.0);
 	const [audioValue, setAudioValue] = useState(100);
 	const [elapsed, setElapsed] = useState('00:00');
 	const [durationleft, setDurationLeft] = useState('00:00');
 	
-	const [title, setTitle] = useState(data[curIndex].video_name);
-	const [artist, setArtist] = useState(data[curIndex].video_creator);
-	const [maxDuration, setMaxDuration] = useState(data[curIndex].video_duration);
+	const [title, setTitle] = useState(data[0].video_name);
+	const [artist, setArtist] = useState(data[0].video_creator);
+	const [maxDuration, setMaxDuration] = useState(data[0].video_duration);
 	
-	const [DIAudio, setDIAudio] = useState(new Audio.Sound())
-	
-	const playerRef = useRef();
+	// const playerRef = useRef();
+
+	const [isPlayerReady, setIsPlayerReady] = useState(false);
 
 	useEffect(() => {
-		(async function() {
-			setTitle(data[curIndex].video_name);
-			setArtist(data[curIndex].video_creator);
-			setMaxDuration(data[curIndex].video_duration)
-			try {
-				await DIAudio.stopAsync()
-				await DIAudio.unloadAsync()
-			} catch (error) {
-				
+	  async function setup() {
+		let isSetup = await setupPlayer();
+		await TrackPlayer.reset();
+		const queue = await TrackPlayer.getQueue();
+		if(isSetup && queue.length <= 0) {
+			const tracks = []
+			for(const track of data){
+				tracks.push({url: FileSystem.documentDirectory + track.uri, title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uuid});
 			}
-			
-			if(!(data[curIndex].saved && !data[curIndex].downloaded)){
-				await DIAudio.loadAsync({uri: data[curIndex].uri}, undefined, )
-				await DIAudio.playAsync();
-
-				setPlaying(true)
-			}
-		})();
-	}, [curIndex]);
+			await TrackPlayer.add(tracks)
+		}
+  
+		setIsPlayerReady(isSetup);
+		TrackPlayer.play()
+	  }
+  
+	  setup();
+	}, []);
 
 	useImperativeHandle(ref, () => ({
 		title: title,
 		artist: artist,
 		isPlaying: playing,
-		setPlaying: (play) => {setPlaying(play)}
+		setPlaying: togglePlaying
 	}))
 	useEffect(() => {
 
 		  const interval = setInterval(async () => {
-			let elapsed_sec = 0;
-			if(data[curIndex].saved && !data[curIndex].downloaded){
-				try {
-					elapsed_sec = Math.round(await playerRef.current.getCurrentTime()); // this is a promise. dont forget to await
-				} catch (error) {
-					console.log(error)
-					return	
-				}
-			} else{
-				try {
-					let meta = await DIAudio.getStatusAsync()
-					// console.log(meta)
-					elapsed_sec = Math.round(meta.positionMillis/1000)
-					if(elapsed_sec >= maxDuration){
-						if(curIndex + 1 < ids.length){ //4    =/5
-							let temp = curIndex + 1
-							setCurIndex(temp);
-							setCurID(ids[temp]);
-						}
-						else{
-							setPlaying(false);
-							Alert.alert("playlist ended has finished playing!");
-						}
-					}
-				} catch (error) {
-					console.log(error)
-					return	
-				}
-			}
-			setTimeValue(elapsed_sec)
-			const elapsed_ms = Math.floor(elapsed_sec * 1000);
-			const min = Math.floor(elapsed_ms / 60000);
-			const seconds = Math.floor((elapsed_ms - min * 60000) / 1000);
-			
-			setElapsed(
-				min.toString().padStart(2, '0') +
-				':' +
-				seconds.toString().padStart(2, '0')
-			);
-			const elapsed_ms_maxdur = Math.floor((maxDuration-elapsed_sec) * 1000);
-			const min_maxdur = Math.floor(elapsed_ms_maxdur / 60000);
-			const seconds_maxdur = Math.floor((elapsed_ms_maxdur - min_maxdur * 60000) / 1000);
+			if(isPlayerReady){
+				let curTrack = await TrackPlayer.getCurrentTrack()
+				setPlaying(await TrackPlayer.getState() == State.Playing ? true : false)
+				// if(curTrack != curIndex){
+					setCurIndex(curTrack)
+					let trackData = await TrackPlayer.getTrack(curTrack)
+					setTitle(trackData.title)
+					setArtist(trackData.artist)
+					setMaxDuration(trackData.duration)
+				// }
+				let elapsed_sec = 0;
 	
-				setDurationLeft(
-				'-' + min_maxdur.toString().padStart(2, '0') +
-				':' +
-				seconds_maxdur.toString().padStart(2,'0')
+				elapsed_sec = await TrackPlayer.getPosition()
+	
+				setTimeValue(elapsed_sec)
+				const elapsed_ms = Math.floor(elapsed_sec * 1000);
+				const min = Math.floor(elapsed_ms / 60000);
+				const seconds = Math.floor((elapsed_ms - min * 60000) / 1000);
+				
+				setElapsed(
+					min.toString().padStart(2, '0') +
+					':' +
+					seconds.toString().padStart(2, '0')
 				);
-		  }, 1000);
+				const elapsed_ms_maxdur = Math.floor((maxDuration-elapsed_sec) * 1000);
+				const min_maxdur = Math.floor(elapsed_ms_maxdur / 60000);
+				const seconds_maxdur = Math.floor((elapsed_ms_maxdur - min_maxdur * 60000) / 1000);
+		
+					setDurationLeft(
+					'-' + min_maxdur.toString().padStart(2, '0') +
+					':' +
+					seconds_maxdur.toString().padStart(2,'0')
+					);
+			}
+			}, 1000);
+
 		return () => {
 			clearInterval(interval);
 		};
 	}, );
 
-
-	const onStateChange = useCallback((state) => {
-
-		if(state === "playing"){
-			setPlaying(true);
-		}
-		if (state === "ended") {
-			if(curIndex < ids.length){
-				console.log('end')
-				let temp = curIndex + 1
-				setCurIndex(temp);
-				setCurID(ids[temp]);
-			}
-			else{
-				setPlaying(false);
-				Alert.alert("playlist ended has finished playing!");
-			}
-		}
-	}, []);
 	const togglePlaying = useCallback(async() => {
+		let meta = await TrackPlayer.getState()
 		setPlaying((prev) => !prev);
-		try {
-			let meta = await DIAudio.getStatusAsync()
-			if(meta.isPlaying){
-				await DIAudio.pauseAsync()
+			if(meta == State.Playing){
+				TrackPlayer.pause()
 			}
 			else{
-				await DIAudio.playAsync()
+				TrackPlayer.play()
 			}
-		} catch (error) {
-			
-		}
 	}, []);
 	
 	async function onShare(){
@@ -176,36 +141,13 @@ function PlayVideoScreen(props, ref) {
 					<Fontisto name="play-list" size={15} color='#424ed4'/>
 				</TouchableOpacity>
 			</View>
-			{/* YOUTUBE ----------------------------------------------------*/}
-			{ data[curIndex].saved && !data[curIndex].downloaded && <View pointerEvents="none">
-				<YoutubePlayer
-					ref={playerRef}
-					height={220}
-					play={playing}
-					videoId={curID}
-					onChangeState={onStateChange}		
-					volume={0.2} 
-					initialPlayerParams={{preventFullScreen: true, controls: false}}
-					onError={(error) => {						if(curIndex + 1 < ids.length){ //4    =/5
-						let temp = curIndex + 1
-						setCurIndex(temp);
-						setCurID(ids[temp]);
-					}}}
-					onReady={() => {
-							setPlaying(true);
-						} }
-					
-				/>
-			</View>}
-			{!(data[curIndex].saved && !data[curIndex].downloaded) && <View style={{height: 220, backgroundColor: '#121212'}}/>}
+			
+			<View style={{height: 220, backgroundColor: '#121212'}}/>
 			{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 			<View style={styles.timestampslidercontainer}>
 				<Slider value={timeValue}
-						onValueChange={val => {setTimeValue(val); 
-							if(data[curIndex].saved && !data[curIndex].downloaded){
-								playerRef.current?.seekTo(timeValue, true);
-							}
-
+						onValueChange={async(val) => {setTimeValue(val);
+							await TrackPlayer.seekTo(val[0]);
 						}}
 						thumbTintColor='#424ed4'
 						minimumTrackTintColor='#424ed4'
@@ -213,16 +155,7 @@ function PlayVideoScreen(props, ref) {
 						thumbStyle={{width: 8, height: 8}}
 						thumbTouchSize={{width: 40, height: 40}}
 						minimumValue={0}
-						maximumValue={data[curIndex].video_duration}
-						onSlidingComplete={async(val) => {
-							if(!(data[curIndex].saved && !data[curIndex].downloaded)){
-								try {
-									await DIAudio.setPositionAsync(Math.round(timeValue*1000))
-								} catch (error) {
-									return
-								}
-							}
-						}}
+						maximumValue={maxDuration}
 				/>
 			</View>
 			<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
@@ -231,8 +164,8 @@ function PlayVideoScreen(props, ref) {
 			</View>
 			{/* TITLE & ARTIST ----------------------------------------------------*/}
 			<View style={styles.textcontainer}>
-				<Text style={styles.title} numberOfLines={1}>{data[curIndex].video_name}</Text>
-				<Text style={styles.artist} numberOfLines={1}>{data[curIndex].video_creator}</Text>
+				<Text style={styles.title} numberOfLines={1}>{title}</Text>
+				<Text style={styles.artist} numberOfLines={1}>{artist}</Text>
 			</View>
 			<View style={styles.container}>
 			{/* PLAY CONTROLS ----------------------------------------------------*/}
@@ -241,11 +174,7 @@ function PlayVideoScreen(props, ref) {
 						<Ionicons name="shuffle-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => {
-						if(curIndex > 0){
-							let temp = curIndex - 1
-							setCurIndex(temp);
-							setCurID(ids[temp]); 
-						}
+      						TrackPlayer.skipToPrevious();
 						}}>
 						<Ionicons name="play-back-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
@@ -253,11 +182,7 @@ function PlayVideoScreen(props, ref) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color='#424ed4'/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => {
-						if(curIndex + 1 < ids.length){ //4    =/5
-							let temp = curIndex + 1
-							setCurIndex(temp);
-							setCurID(ids[temp]);
-						}
+      						TrackPlayer.skipToNext();
 					}}>
 						<Ionicons name="play-forward-sharp" size={35} color='#424ed4'/>
 					</TouchableOpacity>
@@ -270,7 +195,7 @@ function PlayVideoScreen(props, ref) {
 					<Ionicons name="volume-off-sharp" size={20} color='#656565' style={{top:30, left:15}}/>
 					<View style={styles.volumeslidercontainer}>
 						<Slider value={audioValue}
-								onValueChange={value => {setAudioValue(value[0].toFixed()); }}
+								onValueChange={value => {setAudioValue(value[0].toFixed()); TrackPlayer.setVolume(value[0]/100) }}
 								thumbTintColor='#424ed4'
 								thumbStyle={{width: 15, height: 15}}
 								thumbTouchSize={{width: 40, height: 40}}

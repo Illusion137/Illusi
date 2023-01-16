@@ -1,8 +1,9 @@
-import React, {useEffect} from 'react';
+import React, {useEffect,useState} from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 
 function Playlist(props) {
 	const navigation = useNavigation();
@@ -22,15 +23,79 @@ function Playlist(props) {
 	// 	})();
 	// }, []);
 
+	const [pinned, setPinned] =  useState(props.pinned);
+
 	return(
         <>
-			<TouchableOpacity style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {playlistInfo: props.playlistInfo }) } }>
+			<TouchableOpacity style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {playlistInfo: props.playlistInfo, setPlaying: props.setPlaying }) } } onLongPress={async() => {Alert.alert(
+				"Playlist Edit",
+				"Pin or Delete a Playlist",
+				[
+					{
+					text: props.pinned ? "Unpin" : "Pin",
+					onPress: async() => {
+							if(!props.pinned){
+								let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
+								let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
+								parsedstorage[index].pinned = true;
+								setPinned(true)
+								await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
+								return
+							}
+							else{
+								let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
+								let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
+								parsedstorage[index].pinned = false;
+								setPinned(false)
+								await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
+								return
+							}
+						}
+					},
+					{ text: "Delete", onPress: () => Alert.alert("Confirm?","Confirm Delete this playlist?",
+								[
+									{
+										text: "Confirm Delete",
+										onPress: async() => {
+											let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
+											let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
+											parsedstorage.splice(index, 1)
+											await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
+										}
+										},
+									{
+										text: "Cancel",
+										// onPress: () => console.log("Cancel Pressed"),
+										style: "cancel"
+									}
+
+									
+								]) 
+					},
+					{
+					text: "Cancel",
+					// onPress: () => console.log("Cancel Pressed"),
+					style: "cancel"
+					}
+				]
+				);
+				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}}>
                 <>
-                    <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>
+					{props.playlistInfo.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						<View>
+                            <View style={{flexDirection: 'row'}}>
+                                {props.playlistInfo.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
+                                {props.playlistInfo.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
+                            </View>
+                            <View style={{flexDirection: 'row'}}>
+                                {props.playlistInfo.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
+                                {props.playlistInfo.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
+                            </View>
+                        </View>
                     <View style={{flexDirection: 'column', left: 25}}>
                         <Text style={{color: '#FFFFFF', fontSize:15}}>{props.title}</Text>
                         <View style={{flexDirection: 'row', top: 5}}>
-                            {props.pinned && <MaterialIcons name="push-pin" size={22} color='#424ed4' style={styles.icon}/>}
+                            {pinned && <MaterialIcons name="push-pin" size={22} color='#424ed4' style={styles.icon}/>}
                             <Text style={{color: '#AAAAAA'}}>{props.length} Tracks</Text>
                         </View>
                     </View>

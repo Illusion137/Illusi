@@ -1,131 +1,33 @@
 import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as usetube from 'usetube'
 
 function GenerateNewUUID() {
 	return new Date().getTime().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15);
-
-	// if(storage == null){
-	// 	return fUUID
-	// }
-
-	// let parsedStorage = JSON.parse(storage)
-
-	// let allUUIDSet = new Set( parsedStorage.map( ({uuid}) => uuid ) )
-
-	// if(!allUUIDSet.has(fUUID)){
-	// 	return fUUID;
-	// }
-
-	// while(1){
-	// 	let newUUID = new Date().getTime().toString(36).substring(2, 15) +
-	// 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
-	// 	Math.random().toString(36).substring(2, 15);
-	// 	if(!allUUIDSet.has(newUUID)){
-	// 		return newUUID;
-	// 	}
-	// }
 }
-
+function decodeHex(hex) {
+	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
+  }
 function DurationToInt(durationString){
 	let duration = 0;
+	let splitDuration = durationString.split(',')
 	
-	for(let i = durationString.length-1; i >= 0; i--){
-		if(i == durationString.length-1){
-			duration += parseInt(durationString[i])
+	for(let i = 0; i < splitDuration.length; i++){
+		if(splitDuration[i].includes('hour') || splitDuration[i].includes('hours')){
+			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] ) * 3600
 		}
-		else{
-			duration += parseInt(durationString[i]) * (6 * ((durationString.length - 1 - i) * 10))
+		else if(splitDuration[i].includes('minute') || splitDuration[i].includes('minutes')){
+			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] ) * 60
+		}
+		else if(splitDuration[i].includes('second') || splitDuration[i].includes('seconds')){
+			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] )
 		}
 	}
 
 	return duration
 }
-
-function RemoveHexCodes(cleanupString){
-	try {
-		let newString = cleanupString
-		let temp;
-		for(let i=0; i< cleanupString.match(/\\x([A-F,0-9][A-F,0-9])/i).length; i++){
-			temp = newString.replace(/\\x([A-F,0-9][A-F,0-9])/i,
-				String.fromCharCode(
-					parseInt(
-						newString.match(/\\x([A-F,0-9][A-F,0-9])/i)[0].replace('\\x', '') , 16
-					) 
-				)
-			)
-		}
-		return temp
-	} catch (error) {
-		return cleanupString
-	}
-}
-
-/**
- * Parses and formats YouTube video 
- * @param {string} toFormatString - The string of 'JSON' to format
- */
-function FormatVideo(toFormatString){
-	try {
-		//Regular Expressions
-		const idRegex = /(https:\\\/\\\/i\.ytimg\.com\\\/vi\\\/)(.+?)(?=\\\/default\.jpg)/;
-		const titleRegex = /(\\x22text\\x22:\\x22)(.*?)(?=\\x22\\x7d\\x5d)/
-		const artistRegex = /(\\x22shortBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22,)/ ;
-		const durationRegex = /(\\x22lengthText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22)(.*?)(?=\\x22)/ ;
-		
-		//All video data
-		let id = toFormatString.match(idRegex)[0].replace('https:\\\/\\\/i.ytimg.com\\\/vi\\\/', '')
-		let title = RemoveHexCodes(toFormatString.match(titleRegex)[0].replace('\\x22text\\x22:\\x22', '')).replaceAll(/\\\\u\d+/g, '').replaceAll(/\\/g, '')
-		let artist = RemoveHexCodes(toFormatString.match(artistRegex)[0].replace('\\x22shortBylineText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', '')).replaceAll(/\\\\u\d+/g, '').replaceAll(/\\/g, '')
-	
-		let durationTextArray = toFormatString.match(durationRegex)[0].replace('\\x22lengthText\\x22:\\x7b\\x22runs\\x22:\\x5b\\x7b\\x22text\\x22:\\x22', '').split(':')
-		
-		let uuid = GenerateNewUUID()
-
-		return { // Returns video JSON
-			"video_duration": DurationToInt(durationTextArray) || 0,
-			"video_name": title || "",
-			"video_creator": artist || "",
-			"video_id": id || "",
-			"saved": false,
-			"downloaded": false,
-			"uuid": uuid
-		}
-	} catch (error) {
-		console.log(error)
-		return
-	}
-}
-//channelRenderer
-//playlistRenderer
-
-async function getYouTubeRehashInfo(body){
-	try{
-		const apiKeyRegex = /(INNERTUBE_API_KEY":")(.*?)(?=")/;
-		const tokenRegex = /(token\\x22:\\x22)(.*?)(?=\\x22)/;
-		const clientVersionRegex = /(INNERTUBE_CONTEXT_CLIENT_VERSION":")(.*?)(?=")/;
-		const locationRegex = /(INNERTUBE_CONTEXT_GL":")(.*?)(?=")/;
-		const languageRegex = /(INNERTUBE_CONTEXT_HL":")(.*?)(?=")/;
-		const clientNameRegex = /(INNERTUBE_CLIENT_NAME":")(.*?)(?=")/;
-		
-		let shortenedBody = body.slice(body.indexOf('INNERTUBE_API_KEY'))
-		return {
-			apiKey: shortenedBody.match(apiKeyRegex)[0].replace('INNERTUBE_API_KEY":"',''),
-			token: shortenedBody.match(tokenRegex)[0].replace('token\\x22:\\x22',''),
-			clientVersion: shortenedBody.match(clientVersionRegex)[0].replace('INNERTUBE_CONTEXT_CLIENT_VERSION":"',''),
-			options:{
-				gl: shortenedBody.match(locationRegex)[0].replace('INNERTUBE_CONTEXT_GL":"',''),
-				hl: shortenedBody.match(languageRegex)[0].replace('INNERTUBE_CONTEXT_HL":"',''),
-				clientName: shortenedBody.match(clientNameRegex)[0].replace('INNERTUBE_CLIENT_NAME":"','')
-			}
-		}
-	}catch(error){
-		console.log(error)
-		return {}
-	}
-}
-
 /**
  * Returns an array of videos from YouTube
  * @param {string} searchTerms - What to search YouTube for
@@ -135,37 +37,82 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 	if(searchTerms.trim === ''){
 		return 0
 	}
+	let body;
 	try{
-		let body = await axios.get(`https://www.youtube.com/results?search_query=${searchTerms.replace(' ', '+')}`)
-		let itemSec1Pos = body.data.indexOf('itemSectionRenderer') //Initial Starting Position Index right before the JSON
-		//Get HTML from search query
-		let itemSectionRender = body.data.slice(body.data.indexOf('itemSectionRenderer', itemSec1Pos + 1)) //The start of the JSON body
-		let formatingSectionRender = itemSectionRender.replaceAll('videoWithContextRenderer', '::videoWithContextRenderer') //Formats body to be ready for spliting JSON into videos
-		let unparsedVideos = formatingSectionRender.split('::')
-		//START AT INDEX ONE FOR UNPARSED VIDEOS===================================================================================
+		// let body = await axios.get(`https://www.youtube.com/results?search_query=${searchTerms.replace(' ', '+')}`)
+		let urlstring = 'https://m.youtube.com/results?videoEmbeddable=true&search_query=' + encodeURI(searchTerms)
+		let url = new URL(urlstring)
+
+		const videos = []
 		
-		let numOfVideos = unparsedVideos.length //Amount of Videos found
-		// console.log(unparsedVideos[1])
-		
-		let data = [] //To Return
-		if(limit == 0 || limit >= numOfVideos){ // Parse all Videosc
-			for(let i = 1; i < numOfVideos-1; i++){
-				data.push(FormatVideo(unparsedVideos[i])) //push formated video to data
+		headers = {
+			headers: {
+				'Access-Control-Allow-Origin' : '*',
+				'x-youtube-client-name': 1,
+				'x-youtube-client-version': '2.20200911.04.00',
+				'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
 			}
 		}
-		else{ // Parse videos specified in limit
-			for(let i = 1; i < limit+1; i++){
-				data.push(FormatVideo(unparsedVideos[i])) //push formated video to data
-			}
+		const dataRegex  = /var\ ytInitialData\ \=\ \'(.*)\'\;<\/script>/
+		const apiRegex  = /"innertubeApiKey":"(.*?)"/
+
+		body = (await axios(urlstring, headers)).data
+		const raw = dataRegex.exec(body)?.[1] || '{}'
+		const apikey = apiRegex.exec(body)[1] || ''
+
+		let data = JSON.parse(decodeHex(raw))
+		data.apikey = apikey
+		let apiKey = data.apiKey
+
+		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( \d+ (year|month|day|hour|minute|second|years|months|days|hours|minutes|seconds) ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+(\d+ (hour|minute|second|hours|minutes|seconds)))) (.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
+		// console.log(searchData)
+		// searchData = searchData.slice(1)
+		// console.log(searchData.length)
+		const pushData = []
+
+		const idRegex = /(:{"videoId":")(.+?)(?=")/
+		const titleRegex = /(label":")(.+)(?= by)/
+		const artistRegex = /(\/@)(.+?)(?=")/
+		const durationRegex = /(\d+:)+(\d+)/
+		
+		for (const id of searchData) {
+			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
+			let uuid = GenerateNewUUID()
+			pushData.push({
+					'video_id': id[11] || '',
+					'video_name': id[1].replaceAll('\\', '') || '',
+					'video_creator': id[2].replaceAll('\\', '') || '',
+					'video_duration': DurationToInt(id[5]) || '',
+					'uuid': uuid
+				})
 		}
-		// console.log(data)
-		let continueInfo = await getYouTubeRehashInfo(body.data);
-		return {continueData: continueInfo, data: data} //Return Array of Videos
+			return {data: pushData}
 	}
 	catch(error){
 		console.log(error)
 	}
+	// let data = await usetube.searchVideo(searchTerms)
+	// const reData = []
+	// for(const video of data.videos){
+	// 	let uuid = GenerateNewUUID()
+	// 	reData.push(
+	// 		{ // Returns video JSON
+	// 			"video_duration": video.duration || 0,
+	// 			"video_name": video.title || "",
+	// 			"video_creator": video.artist || "",
+	// 			"video_id": video.id || "",
+	// 			"saved": false,
+	// 			"downloaded": false,
+	// 			"uuid": uuid
+	// 		}
+	// 	)
+	// }
+	// return {continueData: {	
+	// 		apiKey: data.apikey,
+	// 		token: data.token, 
+	// 	},data: reData}
 }
+
 /**
 
 // const clientVersion = between(body, 'INNERTUBE_CONTEXT_CLIENT_VERSION":"', '"') ||
@@ -218,14 +165,14 @@ async function ContinueYouTubeSearch(continueData){
 
 		let data = []
 
-		innerJSON[0].itemSectionRenderer.contents.forEach((track) => {
+		for(const track of innerJSON[0].itemSectionRenderer.contents){
 			data.push({
 				"video_duration": DurationToInt(track.compactVideoRenderer.lengthText.runs[0].text.split(':')),
 				"video_name": track.compactVideoRenderer.title.runs[0].text,
 				"video_creator": track.compactVideoRenderer.longBylineText.runs[0].text,
 				"video_id": track.compactVideoRenderer.videoId,
 			})
-		});
+		};
 		return {
 			token: newToken,
 			data: data
@@ -234,7 +181,7 @@ async function ContinueYouTubeSearch(continueData){
 		console.log(error)
 	}
 }
-export {ContinueYouTubeSearch, GenerateNewUUID};
+export {GenerateNewUUID};
 export default SearchYouTube;
 
 /* Hex => ASCII

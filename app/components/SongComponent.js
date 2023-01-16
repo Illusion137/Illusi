@@ -1,11 +1,13 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation, useRoute, useTheme } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
-import { GenerateNewUUID } from '../Illusive/IllusiveSearch';
+import GLOBALS from '../../globals';
+import * as Haptics from 'expo-haptics';
+import TrackPlayer from 'react-native-track-player';
 
 function SongComponent(props) {
 	const id = props.video_id;
@@ -17,17 +19,93 @@ function SongComponent(props) {
 	
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	function callback(downloadProgress){
-		const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-		// console.log(' : ', progress)
-		
-		if(dProgress < progress * 100 + 1){
-			setDProgress(Math.floor(progress*100))
-		}
+	function playShuffle(data){
+		let currentIndex = data.length, randomIndex;
+
+				while (currentIndex != 0) {
+
+					randomIndex = Math.floor(Math.random() * currentIndex);
+					currentIndex--;
+
+					[data[currentIndex], data[randomIndex]] = [
+					data[randomIndex], data[currentIndex]];
+				}
+				
+				Array.prototype.swapItems = function(a, b){
+					this[a] = this.splice(b, 1, this[a])[0];
+					return this;
+				}
+				let dataIndex = data.findIndex((item, i) => {
+					return item.uuid == props.uuid
+				});
+				if(dataIndex != 0){
+					data.swapItems(0, dataIndex);
+				}
+				props.setPlaying(data, props.from);
+				return
 	}
+	useEffect(() => {
+		let interval;
+		if(GLOBALS?.DOWNLOADING[0]?.uuid === props.uuid){
+			setDownloaded(true)
+			setIsDownloading(true)
+			setDProgress(GLOBALS?.DOWNLOADING[0]?.progress)
+			interval = setInterval(() => {
+				if(GLOBALS?.DOWNLOADING[0]?.uuid !== props.uuid){
+					return
+				}
+				setDProgress(GLOBALS.DOWNLOADING[0]?.progress)
+			},2000)
+		}
+		return () => clearInterval(interval);
+	}, []);
 	return (
-		<TouchableOpacity style={{backgroundColor: 'black'}} onPress={ async ()=>{
+		<TouchableOpacity style={{backgroundColor: 'black'}} onLongPress={async() => {
+			if(GLOBALS.IsPlaying){
+				TrackPlayer.add({url: FileSystem.documentDirectory + props.uri, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uuid}, (await TrackPlayer.getCurrentTrack())+1)
+				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+			}
+		}} 
+		onPress={ async ()=>{
 			if(props.setPlaying == undefined){
+				return
+			}
+			if(props.from == 'Downloaded'){
+				let libStorage = await AsyncStorage.getItem('Library')
+				let parsedStorage = JSON.parse(libStorage)
+
+				let data = parsedStorage.filter(item=>item.downloaded || item.imported)
+				playShuffle(data)
+				return
+			}
+			if(props.from == 'Recently Added'){
+				let libStorage = await AsyncStorage.getItem('Library')
+				if(libStorage != null){
+					let parsedStorage = JSON.parse(libStorage)
+					
+					parsedStorage.reverse()
+					let data = parsedStorage.slice(0,200)
+					playShuffle(data)
+					return
+				}
+			}
+			if(props.from != 'My Library'){
+				let parsedStorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
+				let index = parsedStorage.findIndex((item, i) => {
+					return item.playlistInfo.title == props.from
+				})
+				if(index == -1){return}
+				let libStorage = await AsyncStorage.getItem('Library')
+				let libMap; 
+				if(libStorage != null){
+					libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
+				}
+				let newMappedTracks = []
+				for(const trackUUID of parsedStorage[index].playlistInfo.tracks){
+					newMappedTracks.push(libMap.get(trackUUID))
+				}
+				let data = newMappedTracks
+				playShuffle(data)
 				return
 			}
 			let storage = await AsyncStorage.getItem('Library');
@@ -35,32 +113,11 @@ function SongComponent(props) {
 				return;
 			}
 			let data = JSON.parse(storage);
-			let currentIndex = data.length, randomIndex;
-
-			while (currentIndex != 0) {
-
-				randomIndex = Math.floor(Math.random() * currentIndex);
-				currentIndex--;
-
-				[data[currentIndex], data[randomIndex]] = [
-				data[randomIndex], data[currentIndex]];
-			}
-			
-			Array.prototype.swapItems = function(a, b){
-				this[a] = this.splice(b, 1, this[a])[0];
-				return this;
-			}
-			let dataIndex = data.findIndex((item, i) => {
-				return item.uuid == props.uuid
-			});
-			if(dataIndex != 0){
-				data.swapItems(0, dataIndex);
-			}
-			props.setPlaying(data, props.from);
+			playShuffle(data)
 		} } >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`}} style={styles.image}></Image>
+					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>
 				</View>
 				<View style={styles.text}>
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
@@ -71,97 +128,35 @@ function SongComponent(props) {
 						{downloaded && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
 					</View>
 				</View>
-				{props.writePlaylist != undefined && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
+				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center'}} onPress={ async() => {
 					let storage = await AsyncStorage.getItem('Playlists')
-					let dat = {
-						video_name: props.video_name || "",
-						video_creator: props.video_creator || "",
-							video_id: props.video_id || 0,
-							video_duration: props.video_duration || 0,
-							saved: props.saved,
-							downloaded: props.downloaded,
-							imported: props.imported,
-							uuid: props.uuid,
-							uri: props.uri
-						}
-						let parsedStorage = JSON.parse(storage)
-						let pIndex = parsedStorage.findIndex((item, i) => {return props.writePlaylist == item.playlistInfo.title})
-						
-						parsedStorage[pIndex].playlistInfo.tracks.push(dat)
-						parsedStorage[pIndex].playlistInfo.trackLength = parsedStorage[pIndex].playlistInfo.tracks.length
-						parsedStorage[pIndex].playlistInfo.trackDuration += parsedStorage[pIndex].playlistInfo.trackDuration
-						
-						await AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
+					let parsedStorage = JSON.parse(storage)
+					let pIndex = parsedStorage.findIndex((item, i) => {return props.writePlaylist == item.playlistInfo.title})
+					
+					parsedStorage[pIndex].playlistInfo.tracks.push(props.uuid)
+					
+					await AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
+					setPSaved(true)
 						
 					}}>
-				<Ionicons name={!pSaved ? "add" : "checkmark"} size={30} color={colors.primary} style={styles.elseIcon}/>
+				<Ionicons name={!pSaved ? "add" : "checkmark"} size={30} color={colors.primary} style={{left: 0}}/>
 				</TouchableOpacity>}
 				{props.editMode == 1 && !downloaded && !props.imported && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
-					setDownloaded(true)
-					
-					let storage = await AsyncStorage.getItem('Library');
-					
-					let allTracks = JSON.parse(storage);
-					let arraySearchNewTracks = allTracks.map(({video_id}) => video_id)
-					
-					let returnuri;
-					let dstorage = await AsyncStorage.getItem('DownloadQueue');
-					
-					if(dstorage == null || JSON.parse(dstorage) == []){
-						const youtubeURL = 'http://www.youtube.com/watch?v=' + props.video_id;
-						
-						let downloadURI;
-						//140
-						try {
-							downloadURI = await ytdl(youtubeURL, { quality: '140' });
-									// console.log(downloadURI[0].url)
-								} catch (error) {
-									Alert.alert("This file doesn't exist in a m4a format you may try again but idk man")
-									return
-								}
-								
-
-								await AsyncStorage.setItem('DownloadQueue', JSON.stringify([props.uuid]))
-								const downloadResumable = FileSystem.createDownloadResumable(downloadURI[0].url, FileSystem.documentDirectory + props.uuid + '.mp4', {}, callback);
-								try {
-									setIsDownloading(true)
-
-									const { uri } = await downloadResumable.downloadAsync();
-									console.log('Finished downloading to ', uri);
-									let parsedStorage = JSON.parse(await AsyncStorage.getItem('DownloadQueue'))
-									parsedStorage.shift()
-									await AsyncStorage.setItem('DownloadQueue', JSON.stringify(parsedStorage))
-									returnuri = uri
-								} catch (e) {
-									setIsDownloading(false)
-									console.error(e);
-									returnuri = 0;
-								}
-							}else{
-								let parsedStorage = JSON.parse(dstorage);
-								parsedStorage.push(props.uuid)
-								await AsyncStorage.setItem('DownloadQueue', JSON.stringify(parsedStorage))
-								returnuri = 0;
+							setDownloaded(true)
+							let result = await props.downloadVideo(props.uuid,props.video_id, setDProgress, setIsDownloading)
+							if(result === 0){
+								setDownloaded(false)
 							}
-							setIsDownloading(false)
-
-							if(returnuri == 0){
-								return
-							}
-							allTracks[arraySearchNewTracks.indexOf(props.video_id)]['downloaded'] = true;
-							allTracks[arraySearchNewTracks.indexOf(props.video_id)]['uri'] = returnuri;
-							await AsyncStorage.setItem('Library',JSON.stringify(allTracks))
-							
 						}}>
-					<Ionicons name="download-outline" size={30} color={colors.primary} style={styles.elseIcon}/>
+					<Ionicons name="download-outline" size={30} color={colors.primary} style={{left: 10}}/>
 				</TouchableOpacity>}
 				{isDownloading && <Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{dProgress}%</Text>}
-				{props.editMode == 2 && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
+				{props.editMode == 2 && !isDownloading && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
 						let storage = await AsyncStorage.getItem('Library')
 						let parsedStorage = JSON.parse(storage)
 
 						if(props.uri != ""){
-							await FileSystem.deleteAsync(props.uri)
+							await FileSystem.deleteAsync(FileSystem.documentDirectory + props.uri)
 						}
 
 						parsedStorage = parsedStorage.filter(item => item.uuid !== props.uuid)
@@ -173,17 +168,15 @@ function SongComponent(props) {
 							let parsedPStorage = JSON.parse(playlistStorage)
 							
 							let newPlaylists = []
-							parsedPStorage.forEach((playlist) => {
+							for(const playlist of parsedPStorage){
 								let pIndex = playlist.playlistInfo.tracks.findIndex((item, i) => {
-									return props.uuid == item.uuid
+									return props.uuid == item
 								})
 								if(pIndex != -1){
-									playlist.playlistInfo.trackLength -= 1 
-									playlist.playlistInfo.trackDuration -= playlist.playlistInfo.tracks[pIndex].video_duration
 									playlist.playlistInfo.tracks.splice(pIndex, 1)
 									newPlaylists.push(playlist)
 								}
-							});
+							}
 							await AsyncStorage.setItem('Playlists', JSON.stringify(newPlaylists))
 						}
 					}}>

@@ -5,11 +5,11 @@ Any requested features please email me at the email linked on GitHub
 
 ## Extended Features List
 
-- [ ] Downloading tracks
+- [x] Downloading tracks
 - [x] Import tracks from Spotify 
 - [ ] Import tracks from Amazon-Music
 - [ ] Export Tracks to YouTube
-- [ ] Add tracks from local files
+- [x] Add tracks from local files
 - [ ] Audiobook-Mode
 - [ ] Widgets
 - [ ] Suggested Music / Quick Add

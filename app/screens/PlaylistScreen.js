@@ -8,8 +8,11 @@ import AddPlaylist from './subscreens/AddPlaylist';
 import Playlist from '../components/Playlist';
 
 
-function PlaylistScreen(props) {
-	const [data, setData] = useState('');
+function PlaylistScreen({ route }) {
+	const [data, setData] = useState([]);
+	const [recentAddData, setRecentAddData] = useState({title:'Recently Added', tracks: [], block: true});
+	const [downloadData, setDownloadData] = useState({title:'Downloaded', tracks: [], block: true});
+	const [recentPlayedData, setRecentPlayedData] = useState({title:'Recently Played', tracks: [], block: true});
 	const [playlistNames, setPlaylistNames] = useState([]);
 	const addPlaylistPanelRef = useRef();
 	const addPlaylistRef = useRef();
@@ -19,29 +22,65 @@ function PlaylistScreen(props) {
 	useEffect( () => {
 		(async function() {
 			let storage = await AsyncStorage.getItem('Playlists');
+			let libStorage = await AsyncStorage.getItem('Library')
+			let libMap; 
+			if(libStorage != null){
+				libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
+			}
 			if (storage == null){
 				setData([]);
-				return;
-			}
-			let playlists = JSON.parse(storage)
-			console.log(playlists)
-			let names = []
-			try {
+			}else{
+				let playlists = JSON.parse(storage)
+				let orderedPlaylists = [];
+				let unorderedPlaylists = [];
 				
 				for(const playlist of playlists){
-					names.push(playlist.playlistInfo.title)
+					let newPlaylist = playlist
+					let newMappedTracks = []
+					for(const trackUUID of playlist.playlistInfo.tracks){
+						newMappedTracks.push(libMap.get(trackUUID))
+					}
+					newPlaylist.playlistInfo.tracks = newMappedTracks
+					if(playlist.pinned){orderedPlaylists.push(newPlaylist)}
+					else{unorderedPlaylists.push(newPlaylist)}
 				}
-			} catch (error) {
-				console.log(error)
+				let names = []
+				try {
+					
+					for(const playlist of playlists){
+						names.push(playlist.playlistInfo.title)
+					}
+				} catch (error) {
+					console.log(error)
+				}
+				// console.log(names)
+				setPlaylistNames(names);
+				setData(orderedPlaylists.concat(unorderedPlaylists));
 			}
-			// console.log(names)
-			setPlaylistNames(names);
-			setData(playlists);
+						
+			if(libStorage != null){
+				let parsedStorage = JSON.parse(libStorage)
+				
+				setDownloadData({title:'Downloaded', tracks: parsedStorage.filter(item=>item.downloaded || item.imported), block: true})
+				
+				parsedStorage.reverse()
+				setRecentAddData({title:'Recently Added', tracks: parsedStorage.slice(0,200), block: true})
+				
+				let recentPlayed = await AsyncStorage.getItem('RecentPlayed')
+				if(recentPlayed != null){
+					let parsedPlayed = JSON.parse(recentPlayed)
+					let newMappedTracks = []
+					for(const trackUUID of parsedPlayed){
+						newMappedTracks.push(libMap.get(trackUUID))
+					}
+					setRecentPlayedData({title:'Recently Played', tracks: newMappedTracks.slice(0,200), block: true});
+				}
+			}
 		})();
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<Playlist title={item.playlistInfo.title} length={item.playlistInfo.trackLength} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo}/>
+		<Playlist title={item.playlistInfo.title} length={item.playlistInfo.tracks.length} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo} setPlaying={route.params?.setPlaying}/>
 	);
 
 	function setDataOutside(dat){
@@ -71,36 +110,56 @@ function PlaylistScreen(props) {
 				</View>
 				<View style={styles.searchcontainer}>
 					<Ionicons name="search" size={22} color='#808080' style={styles.icon}/>
-					<TextInput placeholder='Search Playlists' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={() => Search()}></TextInput>
+					<TextInput placeholder='Search Playlists' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={() => {}}></TextInput>
 				</View>
 			</View>
 			<View style={styles.defaultContainer}>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistTitle: 'Recents', playlistInfo: `${await AsyncStorage.getItem('Recents')} Tracks • Duration`})}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: recentAddData, setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Added</Text>
-					<Image source={require('../../assets/notfound.png')} style={styles.notfound}/>
+						{recentAddData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						<View>
+                            <View style={{flexDirection: 'row'}}>
+                                {recentAddData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                            <View style={{flexDirection: 'row'}}>
+                                {recentAddData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                        </View>
 					</View>
 				</TouchableHighlight>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={() => console.log('Pressed!')}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: downloadData, setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Downloads</Text>
-					<Image source={require('../../assets/notfound.png')} style={styles.notfound}/>
+						{downloadData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						<View>
+                            <View style={{flexDirection: 'row'}}>
+                                {downloadData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                            <View style={{flexDirection: 'row'}}>
+                                {downloadData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                        </View>
 					</View>
 				</TouchableHighlight>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={() => console.log('Pressed!')}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: recentPlayedData, setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Played</Text>
-						{/* <View>
-							<View style={{flexDirection: 'row'}}>
-								<Image source={{uri: 'https://img.youtube.com/vi/pujfWflGk8k/mqdefault.jpg'}} style={styles.images}/>
-								<Image source={{uri: 'https://img.youtube.com/vi/pujfWflGk8k/mqdefault.jpg'}} style={styles.images}/>
-							</View>
-							<View style={{flexDirection: 'row'}}>
-								<Image source={{uri: 'https://img.youtube.com/vi/pujfWflGk8k/mqdefault.jpg'}} style={styles.images}/>
-								<Image source={{uri: 'https://img.youtube.com/vi/pujfWflGk8k/mqdefault.jpg'}} style={styles.images}/>
-							</View>
-						</View> */}
-					<Image source={require('../../assets/notfound.png')} style={styles.notfound}/>
+						{recentPlayedData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						<View>
+                            <View style={{flexDirection: 'row'}}>
+                                {recentPlayedData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                            <View style={{flexDirection: 'row'}}>
+                                {recentPlayedData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                            </View>
+                        </View>
 
 					</View>
 				</TouchableHighlight>

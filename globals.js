@@ -1,3 +1,4 @@
 module.exports = {
-    DOWNLOADING: [],
-  };
+  DOWNLOADING: [],
+  IsPlaying: false
+};
