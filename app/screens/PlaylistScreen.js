@@ -14,6 +14,7 @@ function PlaylistScreen({ route }) {
 	const [downloadData, setDownloadData] = useState({title:'Downloaded', tracks: [], block: true});
 	const [recentPlayedData, setRecentPlayedData] = useState({title:'Recently Played', tracks: [], block: true});
 	const [playlistNames, setPlaylistNames] = useState([]);
+
 	const addPlaylistPanelRef = useRef();
 	const addPlaylistRef = useRef();
 

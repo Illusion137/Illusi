@@ -24,6 +24,7 @@ import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 import GLOBALS from './globals';
 import { activateKeepAwake } from 'expo-keep-awake';
+import { Audio } from 'expo-av';
 
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state','Error evaluating injectedJavaScript:','react-native-ytdl is out of date!'
@@ -108,10 +109,9 @@ export default class App extends Component{
 		
 		return new Promise(poll);
 	}
-	async downloadVideo(uuid, video_id, progressUpdater, startDownloadState, setTrackData = undefined, length = undefined, title = undefined){
+	async downloadVideo(uuid, video_id, duration, progressUpdater, startDownloadState, setTrackData = undefined, length = undefined, title = undefined){
 		function callback(downloadProgress){
 			const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-			// console.log(' : ', progress)
 			
 			if(GLOBALS.DOWNLOADING[0].progress < progress * 100 + 1){
 				GLOBALS.DOWNLOADING[0].progress = Math.floor(progress*100)
@@ -129,7 +129,7 @@ export default class App extends Component{
 			  let downloadURI;
 			  //140
 			  try {
-				  downloadURI = await ytdl(youtubeURL, { quality: '140' });
+				  downloadURI = await ytdl(youtubeURL, { quality: '140'  });
 				//   console.log(downloadURI[0].url)
 			  } catch (error) {
 				  GLOBALS.DOWNLOADING.shift()
@@ -142,6 +142,19 @@ export default class App extends Component{
 				//   setIsDownloading(true)
 				startDownloadState(true)
 				  const { uri } = await downloadResumable.downloadAsync();
+
+				  let soundTemp = new Audio.Sound();
+				  await soundTemp.loadAsync({uri: uri});
+				  let metaData = await soundTemp.getStatusAsync();
+				//   console.log(metaData)
+				  if(!metaData.isLoaded){
+					await soundTemp.unloadAsync();
+					throw new Error('No load');
+				  }
+				  else{
+					  await soundTemp.unloadAsync();
+				  }
+
 				//   console.log('Finished downloading to ', uri);
 
 				  let storage = await AsyncStorage.getItem('Library');
@@ -157,11 +170,11 @@ export default class App extends Component{
 				  }
 			  } catch (e) {
 				//   setIsDownloading(false)
-				  console.error(e);
-				  GLOBALS.DOWNLOADING.shift()
-				  if(GLOBALS.DOWNLOADING.length === 0){
-					Alert.alert("Finished Download Playlist")
-				  }
+					Alert.alert("Failed To Download: "+JSON.stringify(GLOBALS.DOWNLOADING[0]));
+					GLOBALS.DOWNLOADING.shift()
+					if(GLOBALS.DOWNLOADING.length === 0){
+						Alert.alert("Finished Download Playlist")
+					}
 			  }
 				startDownloadState(false)
 	  

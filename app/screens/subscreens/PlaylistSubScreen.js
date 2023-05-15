@@ -1,5 +1,5 @@
 import React,  { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, Image, FlatList, ActionSheetIOS, Text, TouchableOpacity, Linking } from "react-native";
+import { View, StyleSheet, Animated, Image, FlatList, ActionSheetIOS, Text, TouchableOpacity, Linking, Alert } from "react-native";
 import { AntDesign, Ionicons, MaterialCommunityIcons,FontAwesome } from "@expo/vector-icons";
 import { useTheme } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
@@ -29,7 +29,7 @@ function PlaylistSubScreen({route}){
         if (buttonIndex === 0) {
             // cancel action
         }else if (buttonIndex === 1) {
-            console.log('Export Playlist To YouTube')
+            // console.log('Export Playlist To YouTube')
             let base = 'http://www.youtube.com/watch_videos?video_ids='
             let allIds = playlistInfo.tracks.map(({video_id}) => video_id).filter(item=> item != '0').slice(0,50)
             for(let i = 0; i < allIds.length; i++){
@@ -60,16 +60,20 @@ function PlaylistSubScreen({route}){
     );
     useEffect( () => {
 		(async function() {
-            if(playlistInfo.tracks.length == 0){setDuration("> 1m"); return}
-            let duration = playlistInfo.tracks.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
-                return prev + cur;
-            })
-            if(duration/3600 >= 1){
-                setDuration(Math.floor(duration/3600).toString() + 'h ' + Math.floor((duration % 3600) / 60).toString() + 'm');
-            }else if(duration/60 >= 1){
-                setDuration(Math.floor(duration/60).toString() + 'm');
-            }else{
-                setDuration("> 1m")
+            try {
+                if(playlistInfo.tracks.length == 0){setDuration("> 1m"); return}
+                let duration = playlistInfo.tracks.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
+                    return prev + cur;
+                })
+                if(duration/3600 >= 1){
+                    setDuration(Math.floor(duration/3600).toString() + 'h ' + Math.floor((duration % 3600) / 60).toString() + 'm');
+                }else if(duration/60 >= 1){
+                    setDuration(Math.floor(duration/60).toString() + 'm');
+                }else{
+                    setDuration("> 1m")
+                }
+            } catch (error) {
+                console.log(error)
             }
             // console.log(parsedStorage[pIndex].playlistInfo.tracks)
 		})();
@@ -78,22 +82,29 @@ function PlaylistSubScreen({route}){
 		<SongComponent video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={playlistInfo.title} editMode={editMode}/>
 	);
     function playShuffle(){
-		if(route.params.setPlaying == undefined){
-			return
-		}
-		let newData = [...data]
-		let currentIndex = newData.length, randomIndex;
-        
-		while (currentIndex != 0) {
-            
-            randomIndex = Math.floor(Math.random() * currentIndex);
-			currentIndex--;
-            
-			[newData[currentIndex], newData[randomIndex]] = [
-                newData[randomIndex], newData[currentIndex]];
+        try {
+            if(route.params.setPlaying == undefined){
+                return
             }
-            // console.log(newData[0])
-		route.params.setPlaying(newData, playlistInfo.title);
+            let newData = [...data]
+            let currentIndex = newData.length, randomIndex;
+            
+            while (currentIndex != 0) {
+                
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                
+                [newData[currentIndex], newData[randomIndex]] = [
+                    newData[randomIndex], newData[currentIndex]];
+                if(currentIndex > 2000)
+                    break;
+            }
+                // console.log(newData[0])
+            route.params.setPlaying(newData, playlistInfo.title);
+            
+        } catch (error) {
+            Alert.alert(error)
+        }
         // console.log('end')
 	}
     return(

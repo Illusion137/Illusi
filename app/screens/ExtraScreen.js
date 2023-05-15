@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Ionicons, Entypo } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler} from 'react-native';
+import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +8,10 @@ import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
 import { SelectList } from 'react-native-dropdown-select-list';
 import GLOBALS from '../../globals';
+import * as Sharing from 'expo-sharing';
+import WebView from 'react-native-webview';
+import * as Battery from 'expo-battery';
+
 
 function ExtraScreen({route}) {
 	const navigation = useNavigation();
@@ -44,7 +48,7 @@ function ExtraScreen({route}) {
       [ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			await AsyncStorage.removeItem('Playlists')
-
+			await AsyncStorage.removeItem('RecentPlayed')
 		} } ]
     );
 	const confirmDownloadPlaylistAlert = () =>
@@ -61,7 +65,7 @@ function ExtraScreen({route}) {
 				setEndProgress(filteredData.length)
 				for (let i = 0; i < filteredData.length; i++) {
 					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, filteredData[i].duration, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
 					},1000)
 				}
 			}
@@ -81,12 +85,19 @@ function ExtraScreen({route}) {
 				setEndProgress(filteredData.length)
 				for (let i = 0; i < filteredData.length; i++) {
 					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+						await route.params?.downloadVideo(filteredData[i].uuid, filteredData[i].video_id, filteredData[i].duration, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
 					},1000)
 				}
 			}
 		} } ]
     );
+
+	async function zipData(){
+		// console.log(FileSystem.documentDirectory)
+		// console.log(await FileSystem.readDirectoryAsync("file:///var/mobile/"))
+		const UTI = 'public.item';
+		await Sharing.shareAsync(FileSystem.documentDirectory, {UTI});
+	}
 
 	useEffect(() => {
 		(async function() {
@@ -103,6 +114,17 @@ function ExtraScreen({route}) {
 		})()
 	}, []);
 
+	const [battery, setBattery] = React.useState(0.0);
+
+	useEffect(() => {
+		const intervalId = setInterval(async() => {  //assign interval to a variable to clear it.
+			setBattery(await Battery.getBatteryLevelAsync())
+		}, 1000)
+	  
+		return () => clearInterval(intervalId); //This is important
+	   
+	}, [])
+	  
 	const [selected, setSelected] = React.useState("");
 	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
 	
@@ -111,6 +133,7 @@ function ExtraScreen({route}) {
 	const [endProgress, setEndProgress] = React.useState(0);
 
 	const [trackData, setTrackData] = React.useState({position: 0, title: "title"});
+
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.header}>
@@ -118,6 +141,12 @@ function ExtraScreen({route}) {
 					<Text style={styles.toptext}>More</Text>
 				</View>
 			</View>
+			{/* <WebView
+        style={{ marginTop: 20, width: 320, height: 230 }}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        source={{ uri: "https://www.youtube.com/embed/-ZZPOXn6_9w" }}
+      /> */}
 			<ScrollView>
 				<SelectList 
 					setSelected={(val) => setSelected(val)}
@@ -134,13 +163,14 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Note that this screen doesn't reload so you may need to reload app to refresh data on this page</Text>
 				<Text style={styles.descriptiontxt}>Note 2: When using the playlist downloader don't use the download method from the Library</Text>
 
+				<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full' onPress={async () => await zipData()}/>
+
 				<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash' onPress={confirmDeletePlaylistDataAlert}/>
 				<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash' onPress={confirmDeleteDataAlert}/>
 				
 				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version}</Text>
-
+				<Text style={styles.descriptiontxt}>Battery Level: {battery}</Text>
 			</ScrollView>
-
 		</View>
 	);
 }

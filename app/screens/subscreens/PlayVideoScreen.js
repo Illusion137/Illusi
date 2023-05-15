@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef,useImperativeHandle, forwardRef, useEffect } from "react";
-import { Share, Button, View, Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Animated , View, Button, StyleSheet, Text, TouchableOpacity } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
@@ -9,6 +9,14 @@ import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { State } from 'react-native-track-player';
 import { setupPlayer, addTracks } from '../../../trackPlayerServices';
 import ytdl from "react-native-ytdl";
+import * as Sharing from 'expo-sharing';
+
+import SongComponentQueue from '../../components/SongComponentQueue'
+import SlidingUpPanel from 'rn-sliding-up-panel';
+import BigList from 'react-native-big-list';
+import globals from "../../../globals";
+
+
 // import MusicControl from 'react-native-music-control'
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -20,6 +28,9 @@ function PlayVideoScreen(props, ref) {
 	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	
+	const [queueData, setQueueData] = useState([]);
+	const queuePanelRef = useRef()
+
 	const [curIndex, setCurIndex] = useState(0);
 	const [playing, setPlaying] = useState(false);
 	const [timeValue, setTimeValue] = useState(0.0);
@@ -33,7 +44,9 @@ function PlayVideoScreen(props, ref) {
 	
 	// const playerRef = useRef();
 
-	const [isPlayerReady, setIsPlayerReady] = useState(false);
+	const [isPlayerReady, setIsPlayerReady] = useState(false)
+
+	const renderItem = ({item, index}) => <SongComponentQueue video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator}/>;
 
 	useEffect(() => {
 	  async function setup() {
@@ -43,7 +56,13 @@ function PlayVideoScreen(props, ref) {
 		if(isSetup && queue.length <= 0) {
 			const tracks = []
 			for(const track of data){
-				tracks.push({url: FileSystem.documentDirectory + track.uri, title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uuid});
+				try {
+					tracks.push({url: FileSystem.documentDirectory + track.uri,
+						 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uuid, 
+						artwork: (track.video_id == "" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
+				} catch (error) {
+					
+				}
 			}
 			await TrackPlayer.add(tracks)
 		}
@@ -55,11 +74,14 @@ function PlayVideoScreen(props, ref) {
 	  setup();
 	}, []);
 
+	const [draggable, setDraggable] = useState(true);
+
 	useImperativeHandle(ref, () => ({
 		title: title,
 		artist: artist,
 		isPlaying: playing,
-		setPlaying: togglePlaying
+		setPlaying: togglePlaying,
+		draggable: draggable,
 	}))
 	useEffect(() => {
 
@@ -69,10 +91,14 @@ function PlayVideoScreen(props, ref) {
 				setPlaying(await TrackPlayer.getState() == State.Playing ? true : false)
 				// if(curTrack != curIndex){
 					setCurIndex(curTrack)
-					let trackData = await TrackPlayer.getTrack(curTrack)
-					setTitle(trackData.title)
-					setArtist(trackData.artist)
-					setMaxDuration(trackData.duration)
+					try {
+						let trackData = await TrackPlayer.getTrack(curTrack)
+						setTitle(trackData.title)
+						setArtist(trackData.artist)
+						setMaxDuration(trackData.duration)
+					} catch (error) {
+						
+					}
 				// }
 				let elapsed_sec = 0;
 	
@@ -118,117 +144,151 @@ function PlayVideoScreen(props, ref) {
 	
 	async function onShare(){
 		try {
-		const result = await Share.share({
-			message: `https://youtube.com/watch?v=${curID}`,
-		});
+			const UTI = 'public.item';
+			await Sharing.shareAsync(FileSystem.documentDirectory + (await TrackPlayer.getTrack( await TrackPlayer.getCurrentTrack() )).id + '.m4a', {UTI});
 		} catch (error) {
 			alert(error.message);
 		} 
 	}
-
 	return (
-		<View style={styles.topcontainer} >
-			{/* HEADER ---------------------------------------------------- */}
-			<View style={styles.header}>
-				<TouchableOpacity style={{top:28}} onPress={()=>props.panelref()}>
-					<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
-				</TouchableOpacity>
-				<View style={{alignItems: 'center'}}>
-					<Text style={styles.topfrom}>PLAYING FROM</Text>
-					<Text style={styles.toptitle}>{playlist}</Text>
-				</View>
-				<TouchableOpacity style={{top:28}}>
-					<Fontisto name="play-list" size={15} color='#424ed4'/>
-				</TouchableOpacity>
-			</View>
-			
-			<View style={{height: 220, backgroundColor: '#121212'}}/>
-			{/* TIMESTAMPS & TIME----------------------------------------------------*/}
-			<View style={styles.timestampslidercontainer}>
-				<Slider value={timeValue}
-						onValueChange={async(val) => {setTimeValue(val);
-							await TrackPlayer.seekTo(val[0]);
-						}}
-						thumbTintColor='#424ed4'
-						minimumTrackTintColor='#424ed4'
-						maximumTrackTintColor='#DADADAA0'
-						thumbStyle={{width: 8, height: 8}}
-						thumbTouchSize={{width: 40, height: 40}}
-						minimumValue={0}
-						maximumValue={maxDuration}
-				/>
-			</View>
-			<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
-				<Text style={{color: '#808080', fontSize: 12}}>{elapsed}</Text>
-				<Text style={{color: '#808080', fontSize: 12}}>{durationleft}</Text>
-			</View>
-			{/* TITLE & ARTIST ----------------------------------------------------*/}
-			<View style={styles.textcontainer}>
-				<Text style={styles.title} numberOfLines={1}>{title}</Text>
-				<Text style={styles.artist} numberOfLines={1}>{artist}</Text>
-			</View>
-			<View style={styles.container}>
-			{/* PLAY CONTROLS ----------------------------------------------------*/}
-				<View style={styles.playbackcontainer}>
-					<TouchableOpacity >
-						<Ionicons name="shuffle-sharp" size={35} color='#424ed4'/>
+		<>
+			<View style={styles.topcontainer} pointerEvents={draggable ? "auto" : "none"} >
+				{/* HEADER ---------------------------------------------------- */}
+				<View style={styles.header}>
+					<TouchableOpacity style={{top:28}} onPress={()=>props.panelref()}>
+						<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
 					</TouchableOpacity>
-					<TouchableOpacity onPress={() => {
-      						TrackPlayer.skipToPrevious();
-						}}>
-						<Ionicons name="play-back-sharp" size={35} color='#424ed4'/>
-					</TouchableOpacity>
-					<TouchableOpacity onPress={togglePlaying}>
-						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color='#424ed4'/>
-					</TouchableOpacity>
-					<TouchableOpacity onPress={() => {
-      						TrackPlayer.skipToNext();
-					}}>
-						<Ionicons name="play-forward-sharp" size={35} color='#424ed4'/>
-					</TouchableOpacity>
-					<TouchableOpacity>
-						<Ionicons name="repeat-sharp" size={35} color='#424ed4'/>
-					</TouchableOpacity>
-				</View>
-			{/* VOLUME CONTROLS ----------------------------------------------------*/}
-				<View>
-					<Ionicons name="volume-off-sharp" size={20} color='#656565' style={{top:30, left:15}}/>
-					<View style={styles.volumeslidercontainer}>
-						<Slider value={audioValue}
-								onValueChange={value => {setAudioValue(value[0].toFixed()); TrackPlayer.setVolume(value[0]/100) }}
-								thumbTintColor='#424ed4'
-								thumbStyle={{width: 15, height: 15}}
-								thumbTouchSize={{width: 40, height: 40}}
-								minimumTrackTintColor='#424ed4'
-								maximumTrackTintColor='#DADADA40'
-								maximumValue={100}
-						/>
+					<View style={{alignItems: 'center'}}>
+						<Text style={styles.topfrom}>PLAYING FROM</Text>
+						<Text style={styles.toptitle}>{playlist}</Text>
 					</View>
-					<Ionicons name="volume-high-sharp" size={20} color='#656565'style={{bottom:30, alignSelf:'flex-end', right: 50}}/>
-					<TouchableOpacity>
-						<MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565'style={{bottom:50, alignSelf:'flex-end', right: 15}}/>
+					<TouchableOpacity style={{top:28}} onPress={async() => {
+											if(globals.IsPlaying){
+												setDraggable(false)
+												let queue = await TrackPlayer.getQueue();
+												let mainQueue = []
+												try {
+													for(let i = 0; i < queue.length; i++ ){
+														mainQueue.push(
+															{video_id: queue[i].artwork.replace("https://img.youtube.com/vi/",'').replace("/mqdefault.jpg",''), 
+															video_creator: queue[i].artist,
+															video_name: queue[i].title
+														})
+													}
+													let index = await TrackPlayer.getCurrentTrack();
+													mainQueue = mainQueue.slice(index)
+													setQueueData(mainQueue);
+												} catch (error) {
+													console.log(error)
+												}
+											} 
+											queuePanelRef.current?.show()
+					}}>
+						<Fontisto name="play-list" size={15} color='#424ed4'/>
 					</TouchableOpacity>
-					
 				</View>
-			{/* EXTRA CONTROLS ----------------------------------------------------*/}
-				{/* <View style={{flexDirection:'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15}}>
-					<TouchableOpacity>
-						<View style={{backgroundColor:'#424ed4', height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center'}}>
-							<Text>+ Add</Text>
+				
+				<View style={{height: 220, backgroundColor: '#121212'}}/>
+				{/* TIMESTAMPS & TIME----------------------------------------------------*/}
+				<View style={styles.timestampslidercontainer}>
+					<Slider value={timeValue}
+							onValueChange={async(val) => {setTimeValue(val);
+								await TrackPlayer.seekTo(val[0]);
+							}}
+							thumbTintColor='#424ed4'
+							minimumTrackTintColor='#424ed4'
+							maximumTrackTintColor='#DADADAA0'
+							thumbStyle={{width: 8, height: 8}}
+							thumbTouchSize={{width: 40, height: 40}}
+							minimumValue={0}
+							maximumValue={maxDuration}
+					/>
+				</View>
+				<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
+					<Text style={{color: '#808080', fontSize: 12}}>{elapsed}</Text>
+					<Text style={{color: '#808080', fontSize: 12}}>{durationleft}</Text>
+				</View>
+				{/* TITLE & ARTIST ----------------------------------------------------*/}
+				<View style={styles.textcontainer}>
+					<Text style={styles.title} numberOfLines={1}>{title}</Text>
+					<Text style={styles.artist} numberOfLines={1}>{artist}</Text>
+				</View>
+				<View style={styles.container}>
+				{/* PLAY CONTROLS ----------------------------------------------------*/}
+					<View style={styles.playbackcontainer}>
+						<TouchableOpacity >
+							<Ionicons name="shuffle-sharp" size={35} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity onPress={() => {
+								TrackPlayer.skipToPrevious();
+							}}>
+							<Ionicons name="play-back-sharp" size={35} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity onPress={togglePlaying}>
+							<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity onPress={() => {
+								TrackPlayer.skipToNext();
+						}}>
+							<Ionicons name="play-forward-sharp" size={35} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity>
+							<Ionicons name="repeat-sharp" size={35} color='#424ed4'/>
+						</TouchableOpacity>
+					</View>
+				{/* VOLUME CONTROLS ----------------------------------------------------*/}
+					<View>
+						<Ionicons name="volume-off-sharp" size={20} color='#656565' style={{top:30, left:15}}/>
+						<View style={styles.volumeslidercontainer}>
+							<Slider value={audioValue}
+									onValueChange={value => {setAudioValue(value[0].toFixed()); TrackPlayer.setVolume(value[0]/100) }}
+									thumbTintColor='#424ed4'
+									thumbStyle={{width: 15, height: 15}}
+									thumbTouchSize={{width: 40, height: 40}}
+									minimumTrackTintColor='#424ed4'
+									maximumTrackTintColor='#DADADA40'
+									maximumValue={100}
+							/>
 						</View>
-					</TouchableOpacity>
-					<TouchableOpacity>
-						<SimpleLineIcons name="equalizer" size={28} color='#424ed4'/>
-					</TouchableOpacity>
-					<TouchableOpacity>
-						<Ionicons name="mic-outline" size={28} color='#424ed4'/>
-					</TouchableOpacity>
-					<TouchableOpacity onPress={onShare}>
-						<Ionicons name="share-outline" size={28} color='#424ed4'/>
-					</TouchableOpacity>
-				</View> */}
+						<Ionicons name="volume-high-sharp" size={20} color='#656565'style={{bottom:30, alignSelf:'flex-end', right: 50}}/>
+						<TouchableOpacity>
+							<MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565'style={{bottom:50, alignSelf:'flex-end', right: 15}}/>
+						</TouchableOpacity>
+						
+					</View>
+				{/* EXTRA CONTROLS ----------------------------------------------------*/}
+					<View style={{flexDirection:'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15}}>
+						<TouchableOpacity>
+							<View style={{backgroundColor:'#424ed4', height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center'}}>
+								<Text>+ Add</Text>
+							</View>
+						</TouchableOpacity>
+						<TouchableOpacity>
+							<SimpleLineIcons name="equalizer" size={28} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity>
+							<Ionicons name="mic-outline" size={28} color='#424ed4'/>
+						</TouchableOpacity>
+						<TouchableOpacity onPress={onShare}>
+							<Ionicons name="share-outline" size={28} color='#424ed4'/>
+						</TouchableOpacity>
+					</View>
+				</View>
 			</View>
-		</View>
+			<SlidingUpPanel ref={queuePanelRef} allowDragging={false} draggableRange={{top:700, bottom: 0}} animatedValue={new Animated.Value(0)}>
+				<>
+					<View style={{width: "100%", height: 60, backgroundColor: "#303030"}} >
+						<Button title='close' onPress={() => {setDraggable(true); queuePanelRef.current?.hide()}}/>
+					</View>
+					<BigList style={{height: '71%'}} data={queueData}
+						renderItem={renderItem}
+						keyExtractor={(item, index) => index}
+						itemHeight={61}
+						onScrollToIndexFailed={() => {}}
+					/>
+				</>
+			</SlidingUpPanel>
+		</>
 	)
 }
 

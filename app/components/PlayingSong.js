@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import SlidingUpPanel from 'rn-sliding-up-panel';
@@ -46,7 +46,7 @@ function PlayingSong (props) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={38} color='#424ed4'/>
 					</TouchableOpacity>
 			</View>
-			<SlidingUpPanel ref={playVideoPanelRef} onBottomReached={()=>{setTitle(playVideoRef.current?.title);setArtist(playVideoRef.current?.artist);setPlaying(playVideoRef.current?.isPlaying); }}>
+			<SlidingUpPanel animatedValue={new Animated.Value(0)} ref={playVideoPanelRef} allowDragging={playVideoRef.current.isDraggable()} onBottomReached={()=>{setTitle(playVideoRef.current?.title);setArtist(playVideoRef.current?.artist);setPlaying(playVideoRef.current?.isPlaying); }}>
 					<PlayVideoScreen data={props.data} playlist={props.playlist} ref={playVideoRef} style={styles.video} panelref={hide.bind()}/>
 			</SlidingUpPanel>
 		</View>
