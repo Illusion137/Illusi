@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight } from 'react-native';
 import SongComponentSearch from '../components/SongComponentSearch';
+import { useTheme } from '@react-navigation/native';
 // import searchVideo from '../usetube';
 // import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,8 @@ const SearchScreen = (props) => {
 
 	const inputRef = useRef();
 
+	const { colors } = useTheme();
+	const styles = themeStyles(colors);
 
 	useEffect( () => {
 		inputRef.current?.focus();
@@ -30,17 +33,18 @@ const SearchScreen = (props) => {
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
-			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item); setSearchingMode(false); await Search(searchQuery)}}>
+			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item); setSearchingMode(false); await Search(item)}}>
 					<Text style={styles.queryItemsText}>{item}</Text>
 			</TouchableHighlight>
-			<View style={{width: '93%', height: 1, backgroundColor: '#505050', left: 10}}/>
+			<View style={{width: '93%', height: 1, backgroundColor: colors.line, left: 10}}/>
 		</>
 	);
 		
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
-				<TextInput ref={inputRef} value={searchQuery} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query);}} onSubmitEditing={async() => {await Search(searchQuery); setSearchingMode(false)}}/>
+				<TextInput ref={inputRef} value={searchQuery} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
+					onFocus={GetPreviousSearches} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query);}} onSubmitEditing={async() => {await Search(searchQuery); setSearchingMode(false)}}/>
 			</View>
 			<View style={styles.searchview}>
 				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
@@ -48,6 +52,16 @@ const SearchScreen = (props) => {
 			</View>
 		</View>
 	);
+	async function GetPreviousSearches(){
+		try {
+			// setSearchingMode(true)
+			// const previousSearches = AsyncStorage.getItem();
+			// const json = await response.json();
+			// setSearchingData(json[1]);
+		} catch (error) {
+			console.log(error);
+		}
+	}
 	async function Search(query) {
 		const search = await SearchYouTube(query)
 
@@ -139,10 +153,9 @@ const SearchScreen = (props) => {
 		}
 	}
 }
-const styles = StyleSheet.create({
+const themeStyles = (colors) => StyleSheet.create({
 	topcontainer:{
-		// backgroundColor: '#FF6000',
-		backgroundColor: '#000000',
+		backgroundColor: colors.background,
 		flex: 1,
 		justifyContent: 'flex-start'
 	},
@@ -152,7 +165,7 @@ const styles = StyleSheet.create({
 	},
 	searchinput:{
 		color: '#F0F0F0',
-		backgroundColor: '#313131',
+		backgroundColor: colors.searchInput,
 		padding: 15,
 		top: 70,
 		borderRadius: 30,
@@ -161,12 +174,12 @@ const styles = StyleSheet.create({
 	searchlist:{
 
 	},searchview:{
-		backgroundColor: '#000000',
+		backgroundColor: colors.background,
 		top: 80,
 		height: '83%'
 	},
 	queryItemsText:{
-		color: '#FFFFFF',
+		color: colors.text,
 		fontSize: 17,
 		marginLeft: 50,
 	},

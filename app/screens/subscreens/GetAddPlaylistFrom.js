@@ -42,7 +42,7 @@ function GetAddPlaylistFrom({route}) {
 						if(storage == null){
 							const pushData = []
 							for(const track of data){
-								let uuid = GenerateNewUUID()
+								let uuid = GenerateNewUUID(track.video_name)
 								let dat = {
 									"video_duration": track.video_duration,
 									"video_name": track.video_name,
@@ -69,7 +69,7 @@ function GetAddPlaylistFrom({route}) {
 							let libStorage = await AsyncStorage.getItem('Library')
 							const pushData = new Array()
 							for(const track of data){
-								let uuid = GenerateNewUUID()
+								let uuid = GenerateNewUUID(track.video_name)
 								let dat = {
 									"video_duration": track.video_duration,
 									"video_name": track.video_name,
@@ -109,7 +109,7 @@ function GetAddPlaylistFrom({route}) {
 					let storage = await AsyncStorage.getItem('Library')
 					let pushData = []
 					for(const track of data){
-						let uuid = GenerateNewUUID()
+						let uuid = GenerateNewUUID(track.video_name)
 						let dat = {
 							"video_duration": track.video_duration,
 							"video_name": track.video_name,

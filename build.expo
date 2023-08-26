@@ -5,3 +5,4 @@ BUILD APP FOR TESTING: eas build --profile development --platform ios
 BUILD APP FOR APP STORE: eas build
 
 SUMBIT TO APP STORE: eas submit -p ios
+

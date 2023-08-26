@@ -3,24 +3,27 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default{
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "5.13.23",
+    "version": "8.22.24",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "entryPoint": "./index.js",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "updates": {
-      "fallbackToCacheTimeout": 0
+      // "fallbackToCacheTimeout": 0, 
+      "url": "https://u.expo.dev/e19a915b-3ff0-4591-80a6-6872abb71919"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": IS_DEV ? 'com.illusion137.Illusi.dev' : 'com.illusion137.Illusi',
       "usesIcloudStorage": false,
       "infoPlist": {

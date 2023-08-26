@@ -3,7 +3,7 @@ import { Ionicons, Entypo } from '@expo/vector-icons';
 import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
 import { SelectList } from 'react-native-dropdown-select-list';
@@ -12,9 +12,11 @@ import * as Sharing from 'expo-sharing';
 import WebView from 'react-native-webview';
 import * as Battery from 'expo-battery';
 
-
 function ExtraScreen({route}) {
 	const navigation = useNavigation();
+
+    const { colors } = useTheme();
+	const styles = themeStyles(colors);
 
 	function setTrackDataFrom(title, position){
 		setTrackData({position: position+1, title: title})
@@ -156,17 +158,31 @@ function ExtraScreen({route}) {
 					boxStyles={{backgroundColor: 'white'}}
 					dropdownStyles={{backgroundColor: 'white'}}
 				/>
-				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-sharp' onPress={confirmDownloadPlaylistAlert}/>
+				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
 
 				{isDownloading && <Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>{trackData.title}: {dProgress}% {trackData.position}/{endProgress} Tracks Completed</Text>}
 
 				<Text style={styles.descriptiontxt}>Note that this screen doesn't reload so you may need to reload app to refresh data on this page</Text>
 				<Text style={styles.descriptiontxt}>Note 2: When using the playlist downloader don't use the download method from the Library</Text>
 
-				<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full' onPress={async () => await zipData()}/>
+				<ExtrasSectionButton showArrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => {}}/>
+				
+				<ExtrasSectionButton showArrow={true} text='Settings' icon='settings-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => {}}/>
 
-				<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash' onPress={confirmDeletePlaylistDataAlert}/>
-				<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash' onPress={confirmDeleteDataAlert}/>
+				<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='Dark Mode' icon='moon-outline' onPress={async () => {}}/>
+				<ExtrasSectionButton showArrow={true} text='Themes' icon='brush-outline' onPress={async () => {}}/>
+
+				<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+				
+				<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
+
+				<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={confirmDeletePlaylistDataAlert}/>
+				<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash-outline' onPress={confirmDeleteDataAlert}/>
 				
 				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version}</Text>
 				<Text style={styles.descriptiontxt}>Battery Level: {battery}</Text>
@@ -174,13 +190,13 @@ function ExtraScreen({route}) {
 		</View>
 	);
 }
-const styles = StyleSheet.create({
+const themeStyles = (colors) => StyleSheet.create({
 	topcontainer:{
-		backgroundColor: '#101010',
+		backgroundColor: colors.background,
 		flex: 1,
 	},
 	header:{
-		backgroundColor: '#121212',
+		backgroundColor: colors.shelf,
 		width: '100%',
 		height: '13%',
 		top: 0,

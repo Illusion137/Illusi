@@ -2,8 +2,8 @@ import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
 
-function GenerateNewUUID() {
-	return new Date().getTime().toString(36).substring(2, 15) +
+function GenerateNewUUID(prefixName) {
+	return prefixName + ' - ' + new Date().getTime().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15);
 }
@@ -39,9 +39,7 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 	}
 	let body;
 	try{
-		// let body = await axios.get(`https://www.youtube.com/results?search_query=${searchTerms.replace(' ', '+')}`)
 		let urlstring = 'https://m.youtube.com/results?videoEmbeddable=true&search_query=' + encodeURI(searchTerms)
-		let url = new URL(urlstring)
 
 		const videos = []
 		
@@ -65,19 +63,11 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 		let apiKey = data.apiKey
 
 		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( \d+ (year|month|day|hour|minute|second|years|months|days|hours|minutes|seconds) ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+(\d+ (hour|minute|second|hours|minutes|seconds)))) (.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
-		// console.log(searchData)
-		// searchData = searchData.slice(1)
-		// console.log(searchData.length)
 		const pushData = []
-
-		const idRegex = /(:{"videoId":")(.+?)(?=")/
-		const titleRegex = /(label":")(.+)(?= by)/
-		const artistRegex = /(\/@)(.+?)(?=")/
-		const durationRegex = /(\d+:)+(\d+)/
 		
 		for (const id of searchData) {
 			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
-			let uuid = GenerateNewUUID()
+			let uuid = GenerateNewUUID(id[1].replaceAll('\\', ''))
 			pushData.push({
 					'video_id': id[11] || '',
 					'video_name': id[1].replaceAll('\\', '') || '',

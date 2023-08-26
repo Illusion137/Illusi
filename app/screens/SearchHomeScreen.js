@@ -71,8 +71,7 @@ function SearchHomeScreen(props){
                     <TextInput onPressIn={() => {toggle = !toggle; setSearchScreenState(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
                 </View>
                 <View style={{top: 100, marginHorizontal: 10}}>
-                    <Text style={{color: 'white'}}>This still under construction move along</Text>
-                    {/* <ScrollView style={{height: '79%'}}>
+                     <ScrollView style={{height: '79%'}}>
                         <Text style={styles.headerText}>Developer's Choice Artists</Text>
                         <View style={{backgroundColor: '#808080', width: '85%', height: 1, marginVertical: 5}}/> 
 
@@ -97,7 +96,7 @@ function SearchHomeScreen(props){
                         <TouchableOpacity style={styles.genres}>
                                 <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold', marginHorizontal: 15}}>Rap</Text>
                         </TouchableOpacity>
-                    </ScrollView> */}
+                    </ScrollView> 
                 </View>
                 
             </View>}
@@ -107,7 +106,7 @@ function SearchHomeScreen(props){
 const themeStyles = (colors) => StyleSheet.create({
 	topContainer:{
         flex: 1,
-        backgroundColor: '#000000'
+        backgroundColor: colors.background
     },
     wrapper:{
         alignItems: 'center'

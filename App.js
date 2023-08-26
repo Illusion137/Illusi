@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LogBox, Button ,ActionSheetIOS, Alert } from 'react-native';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 
-import PlayingSong from './app/components/PlayingSong';
 import LibraryScreen from './app/screens/LibraryScreen';
 import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchScreen from './app/screens/SearchScreen';
@@ -18,29 +17,45 @@ import PlaylistSubScreen from './app/screens/subscreens/PlaylistSubScreen'
 import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
 import PlaylistAddSearch from './app/screens/subscreens/PlaylistAddSearch';
+import YTDL from "./app/Illusive/IllusiveYTDL";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 import GLOBALS from './globals';
-import { activateKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
+import PlayVideoScreen from './app/screens/subscreens/PlayVideoScreen';
+import RNFetchBlob from "rn-fetch-blob";
 
-LogBox.ignoreLogs([
-	'Non-serializable values were found in the navigation state','Error evaluating injectedJavaScript:','react-native-ytdl is out of date!'
-]);
+import * as SQLite from 'expo-sqlite'
+
+
+// LogBox.ignoreLogs([
+// 	'Non-serializable values',
+// ]);
+LogBox.ignoreAllLogs();
 const Tab  = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const Theme = {
 	dark: false,
 	colors: {
-		primary: '#424ed4',
-		background: '#000000',
+		primary: '#462cc9',
+		background: '#0d1016',
 		card: '#131213',
-		text: '#FFFFFF',
+		text: '#ffffff',
+		subtext: '#8c939d',
 		border: '#222222',
 		notification: '#1313ff',
+		shelf: '#171a21',
+		tabInactive: '#cad1d8',
+		line: '#303040',
+		searchInput: '#404254',
+		searchPlaceholder: '#8080a0',
+		inactive: '#8080a0',
+		red: '#FF0000',
+		playingSong: '#141722',
 	},
 };
   
@@ -51,8 +66,8 @@ export class Tabs extends Component {
 	render(){
 		return (
 			<Tab.Navigator initialRouteName={'Library'} 
-			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Theme.colors.primary, tabBarInactiveTintColor: '#808080', 
-			tabBarActiveBackgroundColor:'#202020', tabBarInactiveBackgroundColor: '#202020', tabBarStyle:{backgroundColor:'#202020', height: 90, zIndex:1}}} 
+			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Theme.colors.primary, tabBarInactiveTintColor: Theme.colors.tabInactive, 
+			tabBarActiveBackgroundColor:Theme.colors.background, tabBarInactiveBackgroundColor: Theme.colors.background, tabBarStyle:{backgroundColor:Theme.colors.background, height: 90, zIndex:1}}} 
 			unmountInactiveScreens={true} detachInactiveScreens={true}>
 				<Tab.Screen name="My Library" component={LibraryScreen}
 				initialParams={{setPlaying: this.props.route.params.setPlaying, downloadVideo: this.props.route.params.downloadVideo}}
@@ -90,10 +105,11 @@ export default class App extends Component{
 		data: [],
 		playlistName: '',
 	}
-	componentDidMount() {
-		activateKeepAwake()
+	async componentDidMount() {
+		await activateKeepAwakeAsync();
 	}
 	playVideo(data, playlistName){
+		console.log(data)
 		this.setState({isPlaying: false});
 		this.setState({data: data})
 		this.setState({playlistName: playlistName})
@@ -118,26 +134,29 @@ export default class App extends Component{
 				progressUpdater(GLOBALS.DOWNLOADING[0].progress)
 			}
 		}
+		if(setTrackData != undefined){
+			setTrackData(title, length - GLOBALS.DOWNLOADING.length)
+		}
+		  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
+		  
+		  let downloadURI;
+		  //140
+		  try {
+				
+			  downloadURI = await ytdl(youtubeURL); // Low:18 - Med:22 - High:37
+			  downloadURI = downloadURI[0].url;
+			  console.log(downloadURI)
+		  } catch (error) {
+			  GLOBALS.DOWNLOADING.shift()
+			  Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
+			  return
+		  }
+
 		GLOBALS.DOWNLOADING.push({uuid: uuid, progress: 0})
 		this.waitFor(() => GLOBALS.DOWNLOADING[0].uuid === uuid)
   		.then(async() => {
-			if(setTrackData != undefined){
-				setTrackData(title, length - GLOBALS.DOWNLOADING.length)
-			}
-			  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
-			  
-			  let downloadURI;
-			  //140
-			  try {
-				  downloadURI = await ytdl(youtubeURL, { quality: '140'  });
-				//   console.log(downloadURI[0].url)
-			  } catch (error) {
-				  GLOBALS.DOWNLOADING.shift()
-				  Alert.alert("This file doesn't exist in a m4a format you may try again but idk man")
-				  return
-			  }
-	  
-			  const downloadResumable = FileSystem.createDownloadResumable(downloadURI[0].url, FileSystem.documentDirectory + uuid + '.m4a', {}, callback);
+
+			  const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uuid + '.mp4', {}, callback);
 			  try {
 				//   setIsDownloading(true)
 				startDownloadState(true)
@@ -162,28 +181,27 @@ export default class App extends Component{
 				  let allTracks = JSON.parse(storage);
 				  let arraySearchNewTracks = allTracks.map(({video_id}) => video_id)
 				  allTracks[arraySearchNewTracks.indexOf(video_id)]['downloaded'] = true;
-				  allTracks[arraySearchNewTracks.indexOf(video_id)]['uri'] = uuid + '.m4a';
+				  allTracks[arraySearchNewTracks.indexOf(video_id)]['uri'] = uuid + '.mp4';
 				  await AsyncStorage.setItem('Library',JSON.stringify(allTracks))
 				  GLOBALS.DOWNLOADING.shift()
 				  if(GLOBALS.DOWNLOADING.length === 0){
-					Alert.alert("Finished Download Playlist")
+					Alert.alert("Finished Download Enqueued Tracks")
 				  }
 			  } catch (e) {
 				//   setIsDownloading(false)
-					Alert.alert("Failed To Download: "+JSON.stringify(GLOBALS.DOWNLOADING[0]));
+					Alert.alert("Downloading Error","Failed To Download: "+JSON.stringify(GLOBALS.DOWNLOADING[0]) + ":\n"+ e);
 					GLOBALS.DOWNLOADING.shift()
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}
 			  }
 				startDownloadState(false)
-	  
 		});
 	}
 	render(){
 		return (
 			<NavigationContainer theme={Theme}>
-					{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
+					{this.state.isPlaying && <PlayVideoScreen data={this.state.data} playlist={this.state.playlistName}/>}
 					<Stack.Navigator>
 						<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
 						<Stack.Screen name="PlaylistSubScreen" component={PlaylistSubScreen} options={{headerShown: false}}/>

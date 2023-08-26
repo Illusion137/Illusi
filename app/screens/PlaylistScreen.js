@@ -2,7 +2,7 @@ import React,  { useState, useRef, useEffect } from 'react';
 import { View, Animated, Text, StyleSheet, Image, TouchableOpacity, TextInput, TouchableHighlight, FlatList, InteractionManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
 import Playlist from '../components/Playlist';
@@ -19,6 +19,9 @@ function PlaylistScreen({ route }) {
 	const addPlaylistRef = useRef();
 
 	const navigation = useNavigation();
+
+	const { colors } = useTheme();
+	const styles = themeStyles(colors);
 
 	useEffect( () => {
 		(async function() {
@@ -179,13 +182,13 @@ function PlaylistScreen({ route }) {
 		</View>
 	);
 }
-const styles = StyleSheet.create({
+const themeStyles = (colors) => StyleSheet.create({
 	topcontainer:{
-		backgroundColor: '#000000',
+		backgroundColor: colors.backgroundColor,
 		flex: 1,
 	},
 	header:{
-		backgroundColor: '#121212',
+		backgroundColor: colors.shelf,
 		width: '100%',
 		height: '18%',
 		top: 0,
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
 		fontWeight: '500'
 	},
 	searchinput:{
-		backgroundColor: '#303030',
+		backgroundColor: colors.searchInput,
 		color: 'white',
 		width: '90%',
 		bottom: 10,
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
 	},
 	icon:{
 		overflow: 'hidden',
-		backgroundColor: '#303030',
+		backgroundColor: colors.searchInput,
 		paddingTop: 5,
 		paddingLeft: 5,
 		paddingRight: 5,

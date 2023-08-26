@@ -35,7 +35,7 @@ import globals from './globals';
           Capability.SkipToNext,
           Capability.PlayFromSearch,
         ],
-        progressUpdateEventInterval: 5,
+        progressUpdateEventInterval: 2,
       });
   
       isSetup = true;

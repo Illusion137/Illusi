@@ -22,7 +22,7 @@ const LibraryScreen = ({ navigation, route }) => {
 	const listRef = useRef();
 	const handleError = (err) => {
 		if (DocumentPicker.isCancel(err)) {
-		  console.log('cancelled')
+		//   console.log('cancelled')
 		  // User cancelled the picker, exit any dialogs or menus and move on
 		} else if (DocumentPicker.isInProgress(err)) {
 		  console.log('multiple pickers were opened, only the last will be considered')
@@ -108,7 +108,7 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		let data = JSON.parse(storage);
 		let currentIndex = data.length, randomIndex;
-
+		console.log(data)
 		while (currentIndex != 0) {
 
 			randomIndex = Math.floor(Math.random() * currentIndex);
@@ -119,12 +119,12 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		route.params.setPlaying(data, 'Library');
 
-	}} style={{backgroundColor: '#424ed4', width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
+	}} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
 	<Text style={{fontWeight: '500', fontSize: 18}}>Shuffle Play</Text></TouchableOpacity>;
 
 	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
 
-	const sectionFooter = () => <View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: '#808080', fontSize: 25}}>{allData.numTracks} Tracks</Text></View>
+	const sectionFooter = () => <View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: colors.subtext, fontSize: 25}}>{allData.numTracks} Tracks</Text></View>
 
 	return (
 		<View style={styles.topcontainer}>
@@ -140,10 +140,10 @@ const LibraryScreen = ({ navigation, route }) => {
 						}
 					}
 					}>
-						<MaterialCommunityIcons name="pencil" size={25} color={editMode == 0 ? '#808080' : (editMode == 1 ? colors.primary : '#FF0000') }/>
+						<MaterialCommunityIcons name="pencil" size={25} color={editMode == 0 ? colors.inactive : (editMode == 1 ? colors.primary : colors.red) }/>
 					</TouchableOpacity>
-					<Ionicons name="search" size={22} color='#808080' style={styles.icon}/>
-					<TextInput placeholder='Search My Library' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={query => {
+					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
+					<TextInput placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={query => {
 						let newTracks = allData.baseData;
 						
 						let filteredTracks = newTracks.filter(track => 
@@ -181,19 +181,21 @@ const LibraryScreen = ({ navigation, route }) => {
 							const audioDataFile = []
 
 							for(const audioFile of audioFiles){								
-								let uuid = GenerateNewUUID()
-		
+								
 								let soundTemp = new Audio.Sound();
 								await soundTemp.loadAsync({uri: audioFile.fileCopyUri});
 								let metaData = await soundTemp.getStatusAsync();
 								let newFileURI = uuid + audioFile.fileCopyUri.match(/\..+/)[0]
 								await FileSystem.moveAsync({from: audioFile.fileCopyUri, to: FileSystem.documentDirectory + newFileURI })
+								
+								let fileName = audioFile.name.replace(/\..+/, '') || "";
+								let uuid = GenerateNewUUID(fileName)
 
 								await soundTemp.unloadAsync()
 
 								audioDataFile.push({
 									"video_duration": Math.round(metaData.durationMillis/1000) || 0,
-									"video_name": audioFile.name.replace(/\..+/, '') || "",
+									"video_name": fileName,
 									"video_creator": "Illusion",
 									"video_id": "0",
 									"saved": false,
@@ -228,7 +230,7 @@ const LibraryScreen = ({ navigation, route }) => {
 						}
 					}
 					}>
-						<Ionicons name="cloud-upload" size={25} color={editMode == 0 ? '#808080' : (editMode == 1 ? colors.primary : '#FF0000') }/>
+						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>
 			</View>
@@ -297,7 +299,7 @@ const themeStyles = (colors) => StyleSheet.create({
 		justifyContent: 'flex-start'
 	},
 	header:{
-		backgroundColor: colors.card,
+		backgroundColor: colors.shelf,
 		width: '100%',
 		height: '18%',
 		// position: 'absolute',
@@ -312,7 +314,7 @@ const themeStyles = (colors) => StyleSheet.create({
 		fontWeight: '500'
 	},
 	searchinput:{
-		backgroundColor: '#303030',
+		backgroundColor: colors.searchInput,
 		color: 'white',
 		width: '75%',
 		bottom: 10,
@@ -329,7 +331,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	},
 	icon:{
 		overflow: 'hidden',
-		backgroundColor: '#303030',
+		backgroundColor: colors.searchInput,
 		paddingTop: 5,
 		paddingLeft: 5,
 		paddingRight: 5,
@@ -341,7 +343,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	sectionHeader:{
 		width: '100%',
 		height: 30,
-		backgroundColor: '#121212',
+		backgroundColor: colors.background,
 		justifyContent: 'center'
 	},
 	sectionText:{

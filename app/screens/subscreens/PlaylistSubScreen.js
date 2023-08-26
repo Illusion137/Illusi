@@ -31,16 +31,12 @@ function PlaylistSubScreen({route}){
         }else if (buttonIndex === 1) {
             // console.log('Export Playlist To YouTube')
             let base = 'http://www.youtube.com/watch_videos?video_ids='
-            let allIds = playlistInfo.tracks.map(({video_id}) => video_id).filter(item=> item != '0').slice(0,50)
-            for(let i = 0; i < allIds.length; i++){
-                if(i == allIds.length-1){
-                    base += allIds[0]
-                }
-                else{
-                    base += (allIds[0] + ',')
-                }
+            let allIds = playlistInfo.tracks.map(({video_id}) => video_id).slice(0,50)
+            for(let i = 0; i < allIds.length-1; i++){
+                base += (allIds[i] + ',')
             }
-            base+='&disable_polymer=true'
+            base += allIds[allIds.length-2]
+            // base+='&disable_polymer=true'
             // console.log(base)
             Linking
             .openURL( base  )
@@ -73,39 +69,27 @@ function PlaylistSubScreen({route}){
                     setDuration("> 1m")
                 }
             } catch (error) {
-                console.log(error)
+                Alert.alert("Error",error)
             }
             // console.log(parsedStorage[pIndex].playlistInfo.tracks)
 		})();
 	}, []);
 	const renderTracks = ({ item }) => (
-		<SongComponent video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={playlistInfo.title} editMode={editMode}/>
+		<SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={playlistInfo.title} editMode={editMode}/>
 	);
-    function playShuffle(){
-        try {
-            if(route.params.setPlaying == undefined){
-                return
-            }
-            let newData = [...data]
-            let currentIndex = newData.length, randomIndex;
-            
-            while (currentIndex != 0) {
-                
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex--;
-                
-                [newData[currentIndex], newData[randomIndex]] = [
-                    newData[randomIndex], newData[currentIndex]];
-                if(currentIndex > 2000)
-                    break;
-            }
-                // console.log(newData[0])
-            route.params.setPlaying(newData, playlistInfo.title);
-            
-        } catch (error) {
-            Alert.alert(error)
+    function playShuffle(dat){
+		let currentIndex = dat.length, randomIndex;
+
+        while (currentIndex != 0) {
+
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            [dat[currentIndex], dat[randomIndex]] = [
+                dat[randomIndex], dat[currentIndex]];
         }
-        // console.log('end')
+        
+        route.params.setPlaying(dat, playlistInfo.title);
 	}
     return(
         <View style={styles.topContainer}>
@@ -157,7 +141,7 @@ function PlaylistSubScreen({route}){
                 )} data={data} renderItem={renderTracks} itemHeight={61}>
                 </BigList>
             </View>
-            <View style={{backgroundColor: '#202020', width: '100%', height: 110}}></View>
+            <View style={{backgroundColor: '#141722', width: '100%', height: 110}}></View>
         </View>
     );
 }

@@ -9,6 +9,7 @@ import GLOBALS from '../../globals';
 import * as Haptics from 'expo-haptics';
 import TrackPlayer from 'react-native-track-player';
 import { Queue } from '../Illusive/Queue';
+import YTDL from '../Illusive/IllusiveYTDL';
 
 function SongComponent(props) {
 	const id = props.video_id;
@@ -109,7 +110,6 @@ function SongComponent(props) {
 						newMappedTracks.push(libMap.get(trackUUID))
 					}
 					let data = newMappedTracks
-					console.log(data)
 					playShuffle(data)
 				} catch (error) {
 					Alert.alert(error)
