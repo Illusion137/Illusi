@@ -171,7 +171,7 @@ async function ContinueYouTubeSearch(continueData){
 		console.log(error)
 	}
 }
-export {GenerateNewUUID};
+export { GenerateNewUUID };
 export default SearchYouTube;
 
 /* Hex => ASCII

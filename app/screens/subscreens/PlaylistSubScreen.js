@@ -7,6 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponent from '../../components/SongComponent';
 import BigList from "react-native-big-list";
 
+import * as SQLActions from '../../../SQLActions';
+
 function PlaylistSubScreen({route}){
     const navigation = useNavigation();
     const { colors } = useTheme();
@@ -14,7 +16,7 @@ function PlaylistSubScreen({route}){
 
     const playlistInfo = route.params.playlistInfo;
 
-    const [data, setData] = useState(playlistInfo.tracks);
+    const [data, setData] = useState([]);
     const [editMode, seteditMode] = useState(0);
     const [duration, setDuration] = useState("");
     const actions = () =>
@@ -56,9 +58,12 @@ function PlaylistSubScreen({route}){
     );
     useEffect( () => {
 		(async function() {
+            let trackData = await SQLActions.getPlaylistTracks(route.params.title);
+            setData(trackData);
+
             try {
-                if(playlistInfo.tracks.length == 0){setDuration("> 1m"); return}
-                let duration = playlistInfo.tracks.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
+                if(trackData.length == 0){setDuration("> 1m"); return}
+                let duration = trackData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
                     return prev + cur;
                 })
                 if(duration/3600 >= 1){
@@ -71,25 +76,25 @@ function PlaylistSubScreen({route}){
             } catch (error) {
                 Alert.alert("Error",error)
             }
-            // console.log(parsedStorage[pIndex].playlistInfo.tracks)
 		})();
 	}, []);
 	const renderTracks = ({ item }) => (
-		<SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={playlistInfo.title} editMode={editMode}/>
+		<SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode}/>
 	);
     function playShuffle(dat){
-		let currentIndex = dat.length, randomIndex;
+        let newData = [...dat]
+		let currentIndex = newData.length, randomIndex;
 
         while (currentIndex != 0) {
 
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex--;
 
-            [dat[currentIndex], dat[randomIndex]] = [
-                dat[randomIndex], dat[currentIndex]];
+            [newData[currentIndex], newData[randomIndex]] = [
+                newData[randomIndex], newData[currentIndex]];
         }
         
-        route.params.setPlaying(dat, playlistInfo.title);
+        route.params.setPlaying(newData, route.params.title);
 	}
     return(
         <View style={styles.topContainer}>
@@ -102,30 +107,30 @@ function PlaylistSubScreen({route}){
                 </TouchableOpacity>
                 {/* <Ionicons name="search" size={22} color='#808080' style={styles.icon}/> */}
             </View>
-            <View style={{height: '83%'}}>                
-                <BigList style={{backgroundColor: '#121212'}} headerHeight={400} ListHeaderComponent={(
+            <View style={{height: '94%'}}>                
+                <BigList style={{backgroundColor: colors.background}} headerHeight={400} ListHeaderComponent={(
                     <View style={styles.playlistListHeader}>
-                        {playlistInfo.tracks.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
+                        {data.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
                         <View>
                             <View style={{flexDirection: 'row'}}>
-                                {playlistInfo.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${playlistInfo.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {playlistInfo.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${playlistInfo.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {playlistInfo.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${playlistInfo.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {playlistInfo.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${playlistInfo.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
                         </View>
                         <View style={{top: 15, alignItems: 'center'}}>
-                            <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlistInfo.title}</Text>
-                            <Text style={{color: '#808080', fontSize: 12}}>{playlistInfo.tracks.length} tracks • {duration}</Text>
+                            <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{route.params.title}</Text>
+                            <Text style={{color: '#808080', fontSize: 12}}>{data.length} tracks • {duration}</Text>
                         </View>
                         <View style={styles.playlistButtonsContainer}>
-                            {playlistInfo.block == undefined && <TouchableOpacity style={styles.playlistButton} onPress={() => {
+                            {/* {playlistInfo.block == undefined && <TouchableOpacity style={styles.playlistButton} onPress={() => {
                                 navigation.navigate('Add To Playlist', {writePlaylist: playlistInfo.title })
                             }}>
                                 <Ionicons name="add" size={35} color={colors.primary}/>
-                            </TouchableOpacity>}
+                            </TouchableOpacity>} */}
                             {/* {playlistInfo.block == undefined && <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                                 <MaterialCommunityIcons name="pencil" size={25} color={colors.primary}/>
                             </TouchableOpacity>}
@@ -134,14 +139,13 @@ function PlaylistSubScreen({route}){
                             </TouchableOpacity> */}
                         </View>
                         <TouchableOpacity onPress={async() => {
-                            playShuffle(playlistInfo.tracks)
-                        }} style={{backgroundColor: '#424ed4', width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
+                            playShuffle(data)
+                        }} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
                         <Text style={{fontWeight: '500', fontSize: 15}}>Shuffle Play</Text></TouchableOpacity>
                     </View>
                 )} data={data} renderItem={renderTracks} itemHeight={61}>
                 </BigList>
             </View>
-            <View style={{backgroundColor: '#141722', width: '100%', height: 110}}></View>
         </View>
     );
 }
@@ -149,7 +153,7 @@ function PlaylistSubScreen({route}){
 const themeStyles = (colors) => StyleSheet.create({
     topContainer:{
         flex: 1,
-        backgroundColor: '#121212'
+        backgroundColor: colors.background
     },
     header:{
         top: 60,

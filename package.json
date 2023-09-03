@@ -36,6 +36,7 @@
     "expo-linear-gradient": "~12.3.0",
     "expo-sharing": "~11.5.0",
     "expo-splash-screen": "~0.20.5",
+    "expo-sqlite": "~11.3.2",
     "expo-status-bar": "~1.6.0",
     "expo-updates": "~0.18.12",
     "https": "^1.0.0",
@@ -59,11 +60,11 @@
     "react-native-webview": "13.2.2",
     "react-native-youtube-iframe": "^2.2.2",
     "react-native-ytdl": "^4.8.3",
+    "react-redux": "^8.1.2",
     "redux": "^4.2.1",
     "rn-fetch-blob": "^0.12.0",
     "rn-sliding-up-panel": "^2.4.6",
-    "usetube": "^2.2.2",
-    "expo-sqlite": "~11.3.2"
+    "usetube": "^2.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.19.3"

@@ -7,6 +7,7 @@ import { useTheme } from '@react-navigation/native';
 // import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
 import { useNavigation } from '@react-navigation/native';
 import SearchYouTube from '../Illusive/IllusiveSearch';
+import * as SQLActions from '../../SQLActions'
 
 const SearchScreen = (props) => {
 
@@ -68,30 +69,15 @@ const SearchScreen = (props) => {
 		if(search === 0){return;}
 		try {
 			// setContinueData(search.continueData)
-			let storage = await AsyncStorage.getItem('Library');
-			if(storage == null){
-				setData(search.data);
-				return
-			}
-			else{
-				let allTracks = JSON.parse(storage);
-
-				let arraySearchNewTracks = search.data.map(({video_id}) => video_id)
-				let setSearchNewTracks = new Set(arraySearchNewTracks)
-
-				for(const video of allTracks){
-					if(setSearchNewTracks.has(video.video_id)){
-						if(video.saved){
-							search.data[arraySearchNewTracks.indexOf(video.video_id)]['saved'] = true;
-							
-							if(video.downloaded){
-								search.data[arraySearchNewTracks.indexOf(video.video_id)]['downloaded'] = true;
-							}
-						}
-					}
+			for(let i = 0; i < search.data.length; i++){
+				if(await SQLActions.checkIfVideoIdExists(search.data[i].video_id)){
+					search.data[i]['saved'] = true;
 				}
-				setData(search.data);
+				else{
+					search.data[i]['saved'] = false;
+				}
 			}
+			setData(search.data);
 		} catch (error) {console.log(error);}
 		if(data == null){
 			console.log('Error in search');

@@ -10,13 +10,14 @@ import * as Haptics from 'expo-haptics';
 import TrackPlayer from 'react-native-track-player';
 import { Queue } from '../Illusive/Queue';
 import YTDL from '../Illusive/IllusiveYTDL';
+import * as SQLActions from '../../SQLActions';
 
 function SongComponent(props) {
 	const id = props.video_id;
 	
-	const [downloaded, setDownloaded] = useState(props.downloaded)
+	const [downloaded, setDownloaded] = useState(props.downloaded || false)
 	const [isDownloading, setIsDownloading] = useState(false)
-	const [pSaved, setPSaved] = useState(props.saved)
+	const [pSaved, setPSaved] = useState(props.saved || false)
 	const [dProgress, setDProgress] = useState(0)
 	
 	const { colors } = useTheme();
@@ -62,9 +63,9 @@ function SongComponent(props) {
 		return () => clearInterval(interval);
 	}, []);
 	return (
-		<TouchableOpacity style={{backgroundColor: 'black'}} onLongPress={async() => {
+		<TouchableOpacity style={{backgroundColor: colors.track}} onLongPress={async() => {
 			if(GLOBALS.IsPlaying){
-				let track= {url: FileSystem.documentDirectory + props.uri, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uuid, artwork: (id == "" ? null : `https://img.youtube.com/vi/${id}/mqdefault.jpg`)};
+				let track= {url: FileSystem.documentDirectory + props.media_URI, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uuid, artwork: (id == "" ? null : `https://img.youtube.com/vi/${id}/mqdefault.jpg`)};
 				TrackPlayer.add(track, (await TrackPlayer.getCurrentTrack())+1 + GLOBALS.pQueue.length);
 				GLOBALS.pQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
@@ -72,26 +73,24 @@ function SongComponent(props) {
 		}} 
 		onPress={ async ()=>{
 			if(props.setPlaying == undefined){
+				console.log("shit went south")
 				return
 			}
 			if(props.from == 'Downloaded'){
-				let libStorage = await AsyncStorage.getItem('Library')
-				let data = JSON.parse(libStorage)
+				let tracks = GLOBALS.SQLTracks;
 
-				// let data = parsedStorage.filter(item=>item.downloaded || item.imported)
-				playShuffle(data)
+				tracks = tracks.filter(item=>item.downloaded || item.imported)
+				if(tracks != []) 
+					playShuffle(data)
 				return
 			}
 			if(props.from == 'Recently Added'){
-				let libStorage = await AsyncStorage.getItem('Library')
-				if(libStorage != null){
-					let parsedStorage = JSON.parse(libStorage)
-					
-					parsedStorage.reverse()
-					let data = parsedStorage.slice(0,200)
+				let tracks = GLOBALS.SQLTracks;
+				tracks.reverse()
+				tracks.slice(0,200)
+				if(trackData != [])
 					playShuffle(data)
-					return
-				}
+				return
 			}
 			if(props.from != 'My Library'){ //From Playlist
 				try {					
@@ -100,7 +99,7 @@ function SongComponent(props) {
 						return item.playlistInfo.title == props.from
 					})
 					if(index == -1){return}
-					let libStorage = await AsyncStorage.getItem('Library')
+					let libStorage = GLOBALS.SQLTracks;
 					let libMap; 
 					if(libStorage != null){
 						libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
@@ -116,24 +115,22 @@ function SongComponent(props) {
 				}
 				return
 			}
-			let storage = await AsyncStorage.getItem('Library');
-			if (storage == null){
-				return;
-			}
-			let data = JSON.parse(storage);
-			playShuffle(data)
+			let tracks = GLOBALS.SQLTracks;
+
+			playShuffle(tracks)
 		} } >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>
+					{(!props.imported || false) && <Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>}
+					{(props.imported || false) && <Image source={require("../../assets/notfound.png")} style={styles.image}></Image>}
 				</View>
 				<View style={styles.text}>
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 					<View style={{flexDirection: 'row'}}>
-						{!props.imported && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
-						{props.imported && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}
-						{downloaded && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
+						{(!props.imported || false) && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
+						{(props.imported || false) && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}
+						{(downloaded || false) && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
 					</View>
 				</View>
 				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center'}} onPress={ async() => {
@@ -150,13 +147,12 @@ function SongComponent(props) {
 				<Ionicons name={!pSaved ? "add" : "checkmark"} size={30} color={colors.primary} style={{left: 0}}/>
 				</TouchableOpacity>}
 				{props.editMode == 1 && !downloaded && !props.imported && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
-							let libStorage = await AsyncStorage.getItem('Library')
-							let parsedStorage = JSON.parse(libStorage)
+							let track = GLOBALS.SQLTracks
 			
 							let index = parsedStorage.findIndex((item, i) => {
 								return props.uuid == item.uuid
 							})
-							if(!parsedStorage[index].downloaded && GLOBALS.DOWNLOADING.findIndex((item,i) => {return item.uuid == props.uuid}) == -1){
+							if(!track[index].downloaded && GLOBALS.DOWNLOADING.findIndex((item,i) => {return item.uuid == props.uuid}) == -1){
 								setDownloaded(true)
 								let result = await props.downloadVideo(props.uuid,props.video_id, props.duration, setDProgress, setIsDownloading)
 								if(result === 0){
@@ -171,8 +167,8 @@ function SongComponent(props) {
 						let storage = await AsyncStorage.getItem('Library')
 						let parsedStorage = JSON.parse(storage)
 
-						if(props.uri != ""){
-							await FileSystem.deleteAsync(FileSystem.documentDirectory + props.uri)
+						if(props.media_URI != ""){
+							await FileSystem.deleteAsync(FileSystem.documentDirectory + props.media_URI)
 						}
 
 						parsedStorage = parsedStorage.filter(item => item.uuid !== props.uuid)

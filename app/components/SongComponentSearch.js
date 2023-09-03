@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
+import GLOBALS from '../../globals';
+import * as SQLActions from '../../SQLActions'
 
 function SongComponentSearch(props) {
 		
@@ -22,27 +24,14 @@ function SongComponentSearch(props) {
 				<TouchableOpacity disabled={saved} style={{justifyContent: 'center'}} onPress={async()=>{
 						if(!saved){
 							try{
-								let storage = await AsyncStorage.getItem('Library');
-								let data = {
-									video_name: props.video_name || "",
-									video_creator: props.video_creator || "",
-									video_id: props.video_id || 0,
+								await SQLActions.insertTrackData(new SQLActions.Track({
+									video_name: props.video_name || "-",
+									video_creator: props.video_creator || "-",
+									video_id: props.video_id || "0",
 									video_duration: props.video_duration || 0,
 									saved: true,
-									downloaded: false,
-									imported: false,
 									uuid: props.uuid,
-									uri: ""
-								}
-								if(storage == null){
-									AsyncStorage.setItem('Library', JSON.stringify([data]));
-								}else{
-									let parsedStorage = JSON.parse(storage)
-									if(parsedStorage === undefined){return;}
-									parsedStorage.push(data)
-
-									AsyncStorage.setItem('Library', JSON.stringify(parsedStorage));
-								}
+								}));
 								isSaved(true)
 							}catch(e){
 								console.log(e);

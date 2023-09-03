@@ -5,6 +5,9 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, Te
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
+import * as SQLActions from '../../SQLActions';
+
+
 function Playlist(props) {
 	const navigation = useNavigation();
 
@@ -27,28 +30,20 @@ function Playlist(props) {
 
 	return(
         <>
-			<TouchableOpacity style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {playlistInfo: props.playlistInfo, setPlaying: props.setPlaying }) } } onLongPress={async() => {Alert.alert(
+			<TouchableOpacity style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {title: props.title, setPlaying: props.setPlaying }) } } onLongPress={async() => {Alert.alert(
 				"Playlist Edit",
 				"Pin or Delete a Playlist",
 				[
 					{
 					text: props.pinned ? "Unpin" : "Pin",
 					onPress: async() => {
-							if(!props.pinned){
-								let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
-								let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
-								parsedstorage[index].pinned = true;
+							if(!await SQLActions.getIsPlaylistsPinned(props.title)){
+								await SQLActions.pinUnpinPlaylist(props.title, true)
 								setPinned(true)
-								await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
-								return
 							}
 							else{
-								let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
-								let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
-								parsedstorage[index].pinned = false;
+								await SQLActions.pinUnpinPlaylist(props.title, false)
 								setPinned(false)
-								await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
-								return
 							}
 						}
 					},
@@ -57,10 +52,7 @@ function Playlist(props) {
 									{
 										text: "Confirm Delete",
 										onPress: async() => {
-											let parsedstorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
-											let index = parsedstorage.findIndex((item,i) => {return item.playlistInfo.title == props.playlistInfo.title})
-											parsedstorage.splice(index, 1)
-											await AsyncStorage.setItem('Playlists', JSON.stringify(parsedstorage))
+											SQLActions.deletePlaylist(props.title)
 										}
 										},
 									{
@@ -81,25 +73,25 @@ function Playlist(props) {
 				);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}}>
                 <>
-					{props.playlistInfo.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+					{props.four_track.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {props.playlistInfo.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
-                                {props.playlistInfo.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
+                                {props.four_track[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[2].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
+                                {props.four_track[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[3].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {props.playlistInfo.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
-                                {props.playlistInfo.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.playlistInfo.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
+                                {props.four_track[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[0].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
+                                {props.four_track[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[1].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
                             </View>
                         </View>
                     <View style={{flexDirection: 'column', left: 25}}>
                         <Text style={{color: '#FFFFFF', fontSize:15}}>{props.title}</Text>
                         <View style={{flexDirection: 'row', top: 5}}>
                             {pinned && <MaterialIcons name="push-pin" size={22} color='#424ed4' style={styles.icon}/>}
-                            <Text style={{color: '#AAAAAA'}}>{props.length} Tracks</Text>
+                            <Text style={{color: '#AAAAAA'}}>{props.track_count} Tracks</Text>
                         </View>
                     </View>
-                </>
+                </> 
             </TouchableOpacity>
             <View style={{width:'100%', height: 1, marginLeft:90, backgroundColor: '#303030'}}/>
         </>

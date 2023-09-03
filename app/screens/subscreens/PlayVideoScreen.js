@@ -28,7 +28,8 @@ function PlayVideoScreen(props) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const data = props.data.filter(item=>item.downloaded || item.imported);
+	// const data = props.data.filter(item=>item.downloaded || item.imported);
+	const data = props.data;
 	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	const [queueData, setQueueData] = useState([]);
@@ -55,7 +56,32 @@ function PlayVideoScreen(props) {
 	const renderItem = ({item, index}) => <SongComponentQueue video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator}/>;
 
 	useEffect(() => {
-	  async function setup() {
+	//   async function setup() {
+	// 	playVideoPanelRef.current.show()
+
+	// 	let isSetup = await setupPlayer();
+	// 	await TrackPlayer.reset();
+	// 	const queue = await TrackPlayer.getQueue();
+	// 	if(isSetup && queue.length <= 0) {
+	// 		const tracks = []
+	// 		for(const track of data){
+	// 			try {
+	// 				tracks.push({url: FileSystem.documentDirectory + track.media_URI,
+	// 					 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uuid, 
+	// 					artwork: (track.video_id == "0" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
+	// 			} catch (error) {
+					
+	// 			}
+	// 		}
+	// 		await TrackPlayer.add(tracks)
+	// 	}
+  
+	// 	setIsPlayerReady(isSetup);
+	// 	TrackPlayer.play()
+	//   }
+  
+	//   setup();
+	async function setup() {
 		playVideoPanelRef.current.show()
 
 		let isSetup = await setupPlayer();
@@ -65,9 +91,9 @@ function PlayVideoScreen(props) {
 			const tracks = []
 			for(const track of data){
 				try {
-					tracks.push({url: FileSystem.documentDirectory + track.uri,
+					tracks.push({url: "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_100KB_MP3.mp3",
 						 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uuid, 
-						artwork: (track.video_id == "" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
+						artwork: (track.video_id == "0" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
 				} catch (error) {
 					
 				}

@@ -10,6 +10,8 @@ import { Audio } from 'expo-av';
 import {GenerateNewUUID} from '../Illusive/IllusiveSearch'
 import * as DocumentPicker from 'react-native-document-picker'
 import BigList from 'react-native-big-list';
+import * as SQLActions from '../../SQLActions';
+import GLOBALS from '../../globals';
 
 const LibraryScreen = ({ navigation, route }) => {	
 	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
@@ -22,7 +24,6 @@ const LibraryScreen = ({ navigation, route }) => {
 	const listRef = useRef();
 	const handleError = (err) => {
 		if (DocumentPicker.isCancel(err)) {
-		//   console.log('cancelled')
 		  // User cancelled the picker, exit any dialogs or menus and move on
 		} else if (DocumentPicker.isInProgress(err)) {
 		  console.log('multiple pickers were opened, only the last will be considered')
@@ -30,14 +31,15 @@ const LibraryScreen = ({ navigation, route }) => {
 		  throw err
 		}
 	  }
-	useEffect( () => {
+	  
+	  useEffect( () => {
 		(async function() {
-			let storage = await AsyncStorage.getItem('Library');
-			if (storage == null){
+			await SQLActions.fetchTrackData();
+			let tracks = GLOBALS.SQLTracks;
+			if (tracks == null || tracks == []){
 				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
 				return;
 			}
-			let tracks = JSON.parse(storage);
 
 			let sectionsMap = new Map();
 			for(const track of tracks){
@@ -58,66 +60,66 @@ const LibraryScreen = ({ navigation, route }) => {
 			for(const value of sortedSectionsMap){ 
 				sections.push(
 					value[1]
+					)
+					sectionChars.push(value[0])
+				}
+				setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
+			})();
+		}, []);
+		
+		async function refreshData(dat){
+			if(dat == undefined){return}
+			
+			let sectionsMap = new Map();
+			for(const track of dat){
+				let char = track.video_name[0].toUpperCase()
+				if(!(/[A-Z]/).test(char)){ char = '#' }
+				if( !sectionsMap.has(char) ){
+					sectionsMap.set(char, [track])
+				}
+				else{
+					let newTracks = sectionsMap.get(char)
+					newTracks.push(track)
+					sectionsMap.set(char, newTracks)
+				}
+			}
+			let sections = []
+			let sectionChars = []
+			let sortedSectionsMap = [...sectionsMap].sort()
+			for(const value of sortedSectionsMap){ 
+				sections.push(
+					value[1]
 				)
 				sectionChars.push(value[0])
 			}
-			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
-		})();
-	}, []);
-
-	async function refreshData(dat){
-		if(dat == undefined){return}
-		
-		let sectionsMap = new Map();
-		for(const track of dat){
-			let char = track.video_name[0].toUpperCase()
-			if(!(/[A-Z]/).test(char)){ char = '#' }
-			if( !sectionsMap.has(char) ){
-				sectionsMap.set(char, [track])
-			}
-			else{
-				let newTracks = sectionsMap.get(char)
-				newTracks.push(track)
-				sectionsMap.set(char, newTracks)
-			}
+			setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
 		}
-		let sections = []
-		let sectionChars = []
-		let sortedSectionsMap = [...sectionsMap].sort()
-		for(const value of sortedSectionsMap){ 
-			sections.push(
-				value[1]
-			)
-			sectionChars.push(value[0])
-		}
-		setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
-	}
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uuid={item.uuid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
+	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uuid={item.uuid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
+	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 
 	const headerComponent = () => <TouchableOpacity onPress={async() => {
 		if(route.params.setPlaying == undefined){
 			return
 		}
-		let storage = await AsyncStorage.getItem('Library');
-		if (storage == null){
+		await fetchTrackData();
+		let tracks = GLOBALS.SQLTracks
+		if (tracks == []){
 			return;
 		}
-		let data = JSON.parse(storage);
-		let currentIndex = data.length, randomIndex;
-		console.log(data)
+		let currentIndex = tracks.length, randomIndex;
 		while (currentIndex != 0) {
 
 			randomIndex = Math.floor(Math.random() * currentIndex);
 			currentIndex--;
 
-			[data[currentIndex], data[randomIndex]] = [
-			data[randomIndex], data[currentIndex]];
+			[tracks[currentIndex], tracks[randomIndex]] = [
+				tracks[randomIndex], tracks[currentIndex]];
 		}
-		route.params.setPlaying(data, 'Library');
+		route.params.setPlaying(tracks, 'Library');
 
 	}} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
 	<Text style={{fontWeight: '500', fontSize: 18}}>Shuffle Play</Text></TouchableOpacity>;
@@ -178,52 +180,38 @@ const LibraryScreen = ({ navigation, route }) => {
 						try {
 							const audioFiles = await DocumentPicker.pickMultiple({type: DocumentPicker.types.audio, copyTo: 'documentDirectory'})
 
-							const audioDataFile = []
-
-							for(const audioFile of audioFiles){								
-								
-								let soundTemp = new Audio.Sound();
-								await soundTemp.loadAsync({uri: audioFile.fileCopyUri});
-								let metaData = await soundTemp.getStatusAsync();
-								let newFileURI = uuid + audioFile.fileCopyUri.match(/\..+/)[0]
-								await FileSystem.moveAsync({from: audioFile.fileCopyUri, to: FileSystem.documentDirectory + newFileURI })
-								
-								let fileName = audioFile.name.replace(/\..+/, '') || "";
+							for(const audioFile of audioFiles){	
+								let fileName = audioFile.name.replace(/\..+/, '') || ""						
 								let uuid = GenerateNewUUID(fileName)
+								let newFileURI = encodeURI(uuid + audioFile.fileCopyUri.match(/\..+/)[0])
+								await FileSystem.moveAsync({from: audioFile.fileCopyUri, to: FileSystem.documentDirectory + newFileURI})
 
+								let soundTemp = new Audio.Sound();
+								await soundTemp.loadAsync({uri: FileSystem.documentDirectory + newFileURI});
+								let metaData = await soundTemp.getStatusAsync();
 								await soundTemp.unloadAsync()
 
-								audioDataFile.push({
-									"video_duration": Math.round(metaData.durationMillis/1000) || 0,
-									"video_name": fileName,
-									"video_creator": "Illusion",
-									"video_id": "0",
-									"saved": false,
-									"downloaded": false,
-									"imported": true,
+								await SQLActions.insertTrackData(new SQLActions.Track({
 									"uuid": uuid,
-									"uri": newFileURI
-								})
+									"video_id": "0",
+									"video_name": fileName,
+									"video_creator": "Sudo",
+									"video_duration": Math.round(metaData.durationMillis/1000) || 0,
+									"media_URI": newFileURI,
+									"imported": true,
+								}));
 							}
+							
+							await refreshData(GLOBALS.SQLTracks)
+							
 							for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
 								try {
-									if(file != 'RCTAsyncLocalStorage' && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
+									if(file != 'RCTAsyncLocalStorage' && file != 'SQLite' && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
 										await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
 									}
 								} catch (error) {
 									
 								}
-							}
-							let storage = await AsyncStorage.getItem('Library')
-							if(storage == null){
-								await AsyncStorage.setItem('Library', JSON.stringify(audioDataFile))
-								await refreshData(audioDataFile)
-							}
-							else{
-								let parsedStorage = JSON.parse(storage);
-								parsedStorage = parsedStorage.concat(audioDataFile)
-								await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage))
-								await refreshData(parsedStorage)
 							}
 						} catch (e) {
 							handleError(e)
@@ -246,9 +234,9 @@ const LibraryScreen = ({ navigation, route }) => {
 				footerHeight={100}
 				ref={listRef}
 				itemHeight={61}
-				onScrollToIndexFailed={() => {}}
+				onScrollToIndexFailed={() => {console.log('err')}}
 			/>
-			<View style={{backgroundColor: '#121212',
+			<View style={{backgroundColor: colors.background,
 					position: 'absolute',
 					left: '93%',
 					top: 380-(7*allData.charData.length),

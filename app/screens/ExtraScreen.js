@@ -11,6 +11,8 @@ import GLOBALS from '../../globals';
 import * as Sharing from 'expo-sharing';
 import WebView from 'react-native-webview';
 import * as Battery from 'expo-battery';
+import { recreateAllTables, deleteAllTables } from '../../SQLActions';
+import * as SQLite from 'expo-sqlite'
 
 function ExtraScreen({route}) {
 	const navigation = useNavigation();
@@ -28,19 +30,26 @@ function ExtraScreen({route}) {
       [ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			
+			await GLOBALS.db.closeAsync();
+			await GLOBALS.db.deleteAsync();
+			GLOBALS.db = SQLite.openDatabase('illusi-db.sqlite3')
+			deleteAllTables();
+			
 			AsyncStorage.clear(); 
 			
 			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
 				try {
-					if(file != 'RCTAsyncLocalStorage'){
+					// 
+					if(!file.includes(RCTAsyncLocalStorage) && file != 'SQLite'){
 						await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
 					}
 				} catch (error) {
 					
 				}
 			}
+			recreateAllTables();
+			
 			BackHandler.exitApp() 
-
 		} } ]
     );
 	const confirmDeletePlaylistDataAlert = () =>

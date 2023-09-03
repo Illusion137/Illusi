@@ -17,24 +17,28 @@ import PlaylistSubScreen from './app/screens/subscreens/PlaylistSubScreen'
 import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
 import PlaylistAddSearch from './app/screens/subscreens/PlaylistAddSearch';
-import YTDL from "./app/Illusive/IllusiveYTDL";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Capability } from 'react-native-track-player';
+
 import GLOBALS from './globals';
+import * as SQLActions from './SQLActions';
+
 import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
 import PlayVideoScreen from './app/screens/subscreens/PlayVideoScreen';
-import RNFetchBlob from "rn-fetch-blob";
+// import RNFetchBlob from "rn-fetch-blob";
 
-import * as SQLite from 'expo-sqlite'
-
+// import { Provider } from 'react-redux';
+// import { store } from './redux/store';
+// import tracksReducer from './redux/tracksReducer'
 
 // LogBox.ignoreLogs([
 // 	'Non-serializable values',
 // ]);
 LogBox.ignoreAllLogs();
+
 const Tab  = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -48,7 +52,8 @@ const Theme = {
 		subtext: '#8c939d',
 		border: '#222222',
 		notification: '#1313ff',
-		shelf: '#171a21',
+		shelf: '#161B22',
+		// shelf: '#171a21',
 		tabInactive: '#cad1d8',
 		line: '#303040',
 		searchInput: '#404254',
@@ -56,9 +61,54 @@ const Theme = {
 		inactive: '#8080a0',
 		red: '#FF0000',
 		playingSong: '#141722',
+		track: '#141722',
 	},
 };
-  
+
+const LTheme = {
+	dark: false,
+	colors: {
+		primary: '#462cc9',
+		background: '#0d1016',
+		card: '#131213',
+		text: '#ffffff',
+		subtext: '#8c939d',
+		border: '#222222',
+		notification: '#1313ff',
+		shelf: '#161B22',
+		// shelf: '#171a21',
+		tabInactive: '#cad1d8',
+		line: '#303040',
+		searchInput: '#404254',
+		searchPlaceholder: '#8080a0',
+		inactive: '#8080a0',
+		red: '#FF0000',
+		playingSong: '#141722',
+		track: '#141722',
+	},
+};
+
+const ExtrasStack = createNativeStackNavigator();
+
+function ExtrasStackScreen() {
+  return (
+	<ExtrasStack.Navigator options={{headerShown: false}}>
+	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} />
+	  {/* <ExtrasStack.Screen name="Backup" component={DetailsScreen} /> */}
+	</ExtrasStack.Navigator>
+  );
+}
+
+const PlaylistsStack = createNativeStackNavigator();
+
+function PlaylistsStackScreen(props) {
+  return (
+	<PlaylistsStack.Navigator options={{headerShown: false}}>
+	  <PlaylistsStack.Screen initialParams={{setPlaying: props.route.params.setPlaying}} options={{headerShown: false}} name="Playlist" component={PlaylistScreen} />
+	  <PlaylistsStack.Screen options={{headerShown: false}} name="PlaylistSubScreen" component={PlaylistSubScreen} />
+	</PlaylistsStack.Navigator>
+  );
+}
 export class Tabs extends Component {
 	constructor (props){
 		super(props);
@@ -77,7 +127,7 @@ export class Tabs extends Component {
 				}}
 				
 				/>
-				<Tab.Screen name="Playlists" component={PlaylistScreen}
+				<Tab.Screen name="Playlists" component={PlaylistsStackScreen}
 				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
@@ -89,7 +139,7 @@ export class Tabs extends Component {
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 				}}
 				/>
-				<Tab.Screen name="Extras" component={ExtraScreen}
+				<Tab.Screen name="Extras" component={ExtrasStackScreen}
 				initialParams={{downloadVideo: this.props.route.params.downloadVideo}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Entypo name="dots-three-horizontal" size={25} color={color}/>),
@@ -99,6 +149,8 @@ export class Tabs extends Component {
 		);
 	}
 }
+
+
 export default class App extends Component{
 	state = {
 		isPlaying: false,
@@ -107,9 +159,9 @@ export default class App extends Component{
 	}
 	async componentDidMount() {
 		await activateKeepAwakeAsync();
+		await SQLActions.recreateAllTables();
 	}
 	playVideo(data, playlistName){
-		console.log(data)
 		this.setState({isPlaying: false});
 		this.setState({data: data})
 		this.setState({playlistName: playlistName})
@@ -143,7 +195,7 @@ export default class App extends Component{
 		  //140
 		  try {
 				
-			  downloadURI = await ytdl(youtubeURL); // Low:18 - Med:22 - High:37
+			  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 			  downloadURI = downloadURI[0].url;
 			  console.log(downloadURI)
 		  } catch (error) {
@@ -176,6 +228,8 @@ export default class App extends Component{
 
 				//   console.log('Finished downloading to ', uri);
 
+				//   GLOBALS.db.
+
 				  let storage = await AsyncStorage.getItem('Library');
 		
 				  let allTracks = JSON.parse(storage);
@@ -200,48 +254,49 @@ export default class App extends Component{
 	}
 	render(){
 		return (
-			<NavigationContainer theme={Theme}>
-					{this.state.isPlaying && <PlayVideoScreen data={this.state.data} playlist={this.state.playlistName}/>}
-					<Stack.Navigator>
-						<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
-						<Stack.Screen name="PlaylistSubScreen" component={PlaylistSubScreen} options={{headerShown: false}}/>
-						<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
-						<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
-						<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
-								headerRight: () => (
-									<Button
-										color='#808080'
-										onPress={() => {}}
-										title="Next"
-									/>
-									),
-								})} />
-						<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
-								headerRight: () => (
-									<Button
-										color='#1313ff'
-										onPress={() => ActionSheetIOS.showActionSheetWithOptions(
-											{
-											  options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
-											  cancelButtonIndex: 0,
-											  userInterfaceStyle: 'dark',
-											  
-											},
-											(buttonIndex) => {
-											  if (buttonIndex === 0) {
-											  } else if (buttonIndex === 1) {
-											  } else if (buttonIndex === 2) {
-											  }
-											}
-										  )
-									  }
-										title="Save"
-									/>
-									),
-								})}/>
-					</Stack.Navigator>
-			</NavigationContainer>
+			// <Provider store={store}>
+				<NavigationContainer theme={Theme}>
+						{this.state.isPlaying && <PlayVideoScreen data={this.state.data} playlist={this.state.playlistName}/>}
+						<Stack.Navigator>
+							<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
+							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
+							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
+							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
+							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
+									headerRight: () => (
+										<Button
+											color='#808080'
+											onPress={() => {}}
+											title="Next"
+										/>
+										),
+									})} />
+							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+									headerRight: () => (
+										<Button
+											color='#1313ff'
+											onPress={() => ActionSheetIOS.showActionSheetWithOptions(
+												{
+												options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
+												cancelButtonIndex: 0,
+												userInterfaceStyle: 'dark',
+												
+												},
+												(buttonIndex) => {
+												if (buttonIndex === 0) {
+												} else if (buttonIndex === 1) {
+												} else if (buttonIndex === 2) {
+												}
+												}
+											)
+										}
+											title="Save"
+										/>
+										),
+									})}/>
+						</Stack.Navigator>
+				</NavigationContainer>
+			// </Provider>
 		);
 	}
 }

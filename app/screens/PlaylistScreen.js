@@ -6,7 +6,7 @@ import { useNavigation, useTheme } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
 import Playlist from '../components/Playlist';
-
+import * as SQLActions from '../../SQLActions';
 
 function PlaylistScreen({ route }) {
 	const [data, setData] = useState([]);
@@ -25,66 +25,75 @@ function PlaylistScreen({ route }) {
 
 	useEffect( () => {
 		(async function() {
-			let storage = await AsyncStorage.getItem('Playlists');
-			let libStorage = await AsyncStorage.getItem('Library')
-			let libMap; 
-			if(libStorage != null){
-				libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
+			let playlists = await SQLActions.getAllPlaylists();
+
+			for(let i = 0; i < playlists.length; i++){
+				let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name);
+				playlists[i]['track_count'] = playlistTracks.length;
+				playlists[i]['four_track'] = playlistTracks.slice(0,4);
+				playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name) == 0 ? false : true
 			}
-			if (storage == null){
-				setData([]);
-			}else{
-				let playlists = JSON.parse(storage)
-				let orderedPlaylists = [];
-				let unorderedPlaylists = [];
+			setData(playlists)
+			// let storage = await AsyncStorage.getItem('Playlists');
+			// let libStorage = await AsyncStorage.getItem('Library')
+			// let libMap; 
+			// if(libStorage != null){
+			// 	libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
+			// }
+			// if (storage == null){
+			// 	setData([]);
+			// }else{
+			// 	let playlists = JSON.parse(storage)
+			// 	let orderedPlaylists = [];
+			// 	let unorderedPlaylists = [];
 				
-				for(const playlist of playlists){
-					let newPlaylist = playlist
-					let newMappedTracks = []
-					for(const trackUUID of playlist.playlistInfo.tracks){
-						newMappedTracks.push(libMap.get(trackUUID))
-					}
-					newPlaylist.playlistInfo.tracks = newMappedTracks
-					if(playlist.pinned){orderedPlaylists.push(newPlaylist)}
-					else{unorderedPlaylists.push(newPlaylist)}
-				}
-				let names = []
-				try {
+			// 	for(const playlist of playlists){
+			// 		let newPlaylist = playlist
+			// 		let newMappedTracks = []
+			// 		for(const trackUUID of playlist.playlistInfo.tracks){
+			// 			newMappedTracks.push(libMap.get(trackUUID))
+			// 		}
+			// 		newPlaylist.playlistInfo.tracks = newMappedTracks
+			// 		if(playlist.pinned){orderedPlaylists.push(newPlaylist)}
+			// 		else{unorderedPlaylists.push(newPlaylist)}
+			// 	}
+			// 	let names = []
+			// 	try {
 					
-					for(const playlist of playlists){
-						names.push(playlist.playlistInfo.title)
-					}
-				} catch (error) {
-					console.log(error)
-				}
-				// console.log(names)
-				setPlaylistNames(names);
-				setData(orderedPlaylists.concat(unorderedPlaylists));
-			}
+			// 		for(const playlist of playlists){
+			// 			names.push(playlist.playlistInfo.title)
+			// 		}
+			// 	} catch (error) {
+			// 		console.log(error)
+			// 	}
+			// 	// console.log(names)
+			// 	setPlaylistNames(names);
+			// 	setData(orderedPlaylists.concat(unorderedPlaylists));
+			// }
 						
-			if(libStorage != null){
-				let parsedStorage = JSON.parse(libStorage)
+			// if(libStorage != null){
+			// 	let parsedStorage = JSON.parse(libStorage)
 				
-				setDownloadData({title:'Downloaded', tracks: parsedStorage.filter(item=>item.downloaded || item.imported), block: true})
+			// 	setDownloadData({title:'Downloaded', tracks: parsedStorage.filter(item=>item.downloaded || item.imported), block: true})
 				
-				parsedStorage.reverse()
-				setRecentAddData({title:'Recently Added', tracks: parsedStorage.slice(0,200), block: true})
+			// 	parsedStorage.reverse()
+			// 	setRecentAddData({title:'Recently Added', tracks: parsedStorage.slice(0,200), block: true})
 				
-				let recentPlayed = await AsyncStorage.getItem('RecentPlayed')
-				if(recentPlayed != null){
-					let parsedPlayed = JSON.parse(recentPlayed)
-					let newMappedTracks = []
-					for(const trackUUID of parsedPlayed){
-						newMappedTracks.push(libMap.get(trackUUID))
-					}
-					setRecentPlayedData({title:'Recently Played', tracks: newMappedTracks.slice(0,200), block: true});
-				}
-			}
+			// 	let recentPlayed = await AsyncStorage.getItem('RecentPlayed')
+			// 	if(recentPlayed != null){
+			// 		let parsedPlayed = JSON.parse(recentPlayed)
+			// 		let newMappedTracks = []
+			// 		for(const trackUUID of parsedPlayed){
+			// 			newMappedTracks.push(libMap.get(trackUUID))
+			// 		}
+			// 		setRecentPlayedData({title:'Recently Played', tracks: newMappedTracks.slice(0,200), block: true});
+			// 	}
+			// }
 		})();
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<Playlist title={item.playlistInfo.title} length={item.playlistInfo.tracks.length} pinned={item.pinned} image={item.image} playlistInfo={item.playlistInfo} setPlaying={route.params?.setPlaying}/>
+		<Playlist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} setPlaying={route.params?.setPlaying}/>
 	);
 
 	function setDataOutside(dat){
