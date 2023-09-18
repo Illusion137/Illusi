@@ -15,7 +15,7 @@ import * as SQLActions from '../../SQLActions';
 function SongComponent(props) {
 	const id = props.video_id;
 	
-	const [downloaded, setDownloaded] = useState(props.downloaded || false)
+	const [downloaded, setDownloaded] = useState(props.downloaded)
 	const [isDownloading, setIsDownloading] = useState(false)
 	const [pSaved, setPSaved] = useState(props.saved || false)
 	const [dProgress, setDProgress] = useState(0)
@@ -39,7 +39,7 @@ function SongComponent(props) {
 					return this;
 				}
 				let dataIndex = data.findIndex((item, i) => {
-					return item.uuid == props.uuid
+					return item.uid == props.uid
 				});
 				if(dataIndex != 0){
 					data.swapItems(0, dataIndex);
@@ -48,16 +48,29 @@ function SongComponent(props) {
 				return
 	}
 	useEffect(() => {
+		const depth = 3;
+		let index = -1;
+		for(let i = 0; i < depth; i++){
+			if(GLOBALS?.DOWNLOADING[i]?.uid === props.uid)
+				index = i;
+		}
 		let interval;
-		if(GLOBALS?.DOWNLOADING[0]?.uuid === props.uuid){
+		if(index !== -1){
+			// console.log(GLOBALS?.DOWNLOADING)
 			setDownloaded(true)
 			setIsDownloading(true)
-			setDProgress(GLOBALS?.DOWNLOADING[0]?.progress)
+			setDProgress(GLOBALS?.DOWNLOADING[index]?.progress)
 			interval = setInterval(() => {
-				if(GLOBALS?.DOWNLOADING[0]?.uuid !== props.uuid){
+				const depth = 3;
+				let index = -1;
+				for(let i = 0; i < depth; i++){
+					if(GLOBALS?.DOWNLOADING[i]?.uid === props.uid)
+						index = i;
+				}
+				if(index === -1){
 					return
 				}
-				setDProgress(GLOBALS.DOWNLOADING[0]?.progress)
+				setDProgress(GLOBALS?.DOWNLOADING[index]?.progress)
 			},2000)
 		}
 		return () => clearInterval(interval);
@@ -65,7 +78,7 @@ function SongComponent(props) {
 	return (
 		<TouchableOpacity style={{backgroundColor: colors.track}} onLongPress={async() => {
 			if(GLOBALS.IsPlaying){
-				let track= {url: FileSystem.documentDirectory + props.media_URI, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uuid, artwork: (id == "" ? null : `https://img.youtube.com/vi/${id}/mqdefault.jpg`)};
+				let track= {url: FileSystem.documentDirectory + props.media_URI, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uid, artwork: (id == "" ? null : `https://img.youtube.com/vi/${id}/mqdefault.jpg`)};
 				TrackPlayer.add(track, (await TrackPlayer.getCurrentTrack())+1 + GLOBALS.pQueue.length);
 				GLOBALS.pQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
@@ -73,7 +86,7 @@ function SongComponent(props) {
 		}} 
 		onPress={ async ()=>{
 			if(props.setPlaying == undefined){
-				console.log("shit went south")
+				// console.log("shit went south")
 				return
 			}
 			if(props.from == 'Downloaded'){
@@ -93,23 +106,10 @@ function SongComponent(props) {
 				return
 			}
 			if(props.from != 'My Library'){ //From Playlist
-				try {					
-					let parsedStorage = JSON.parse(await AsyncStorage.getItem('Playlists'));
-					let index = parsedStorage.findIndex((item, i) => {
-						return item.playlistInfo.title == props.from
-					})
-					if(index == -1){return}
-					let libStorage = GLOBALS.SQLTracks;
-					let libMap; 
-					if(libStorage != null){
-						libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
-					}
-					let newMappedTracks = []
-					for(const trackUUID of parsedStorage[index].playlistInfo.tracks){
-						newMappedTracks.push(libMap.get(trackUUID))
-					}
-					let data = newMappedTracks
-					playShuffle(data)
+				try {
+					let playlistTracks = await SQLActions.getPlaylistTracks(props.from.replaceAll(' ', '_'));
+					playlistTracks = playlistTracks.filter(item=>item.downloaded || item.imported)
+					playShuffle(playlistTracks)
 				} catch (error) {
 					Alert.alert(error)
 				}
@@ -134,27 +134,17 @@ function SongComponent(props) {
 					</View>
 				</View>
 				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center'}} onPress={ async() => {
-					let storage = await AsyncStorage.getItem('Playlists')
-					let parsedStorage = JSON.parse(storage)
-					let pIndex = parsedStorage.findIndex((item, i) => {return props.writePlaylist == item.playlistInfo.title})
-					
-					parsedStorage[pIndex].playlistInfo.tracks.push(props.uuid)
-					
-					await AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
+					await SQLActions.insertTrackIntoPlaylist({'uid': props.uid}, props.writePlaylist);
 					setPSaved(true)
-						
 					}}>
-				<Ionicons name={!pSaved ? "add" : "checkmark"} size={30} color={colors.primary} style={{left: 0}}/>
+				<Ionicons name={!pSaved ? "add" : "checkmark"} size={30} color={colors.primary} style={{left: 10}}/>
 				</TouchableOpacity>}
 				{props.editMode == 1 && !downloaded && !props.imported && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
-							let track = GLOBALS.SQLTracks
+							let track = await SQLActions.fetchTrackDataFromUID(props.uid);
 			
-							let index = parsedStorage.findIndex((item, i) => {
-								return props.uuid == item.uuid
-							})
-							if(!track[index].downloaded && GLOBALS.DOWNLOADING.findIndex((item,i) => {return item.uuid == props.uuid}) == -1){
+							if(!track.downloaded && GLOBALS.DOWNLOADING.findIndex((item,i) => {return item.uid == props.uid}) == -1){
 								setDownloaded(true)
-								let result = await props.downloadVideo(props.uuid,props.video_id, props.duration, setDProgress, setIsDownloading)
+								let result = await props.downloadVideo(props.uid,props.video_id, props.duration, setDProgress, setIsDownloading)
 								if(result === 0){
 									setDownloaded(false)
 								}
@@ -164,35 +154,23 @@ function SongComponent(props) {
 				</TouchableOpacity>}
 				{isDownloading && <Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{dProgress}%</Text>}
 				{props.editMode == 2 && !isDownloading && <TouchableOpacity style={{justifyContent: 'center'}} onPress={ async() => {
-						let storage = await AsyncStorage.getItem('Library')
-						let parsedStorage = JSON.parse(storage)
-
-						if(props.media_URI != ""){
-							await FileSystem.deleteAsync(FileSystem.documentDirectory + props.media_URI)
-						}
-
-						parsedStorage = parsedStorage.filter(item => item.uuid !== props.uuid)
-						await AsyncStorage.setItem('Library', JSON.stringify(parsedStorage))
-						props.refreshData(parsedStorage)
-
-						let playlistStorage = await AsyncStorage.getItem('Playlists')
-						if(playlistStorage != null){
-							let parsedPStorage = JSON.parse(playlistStorage)
-							
-							let newPlaylists = []
-							for(const playlist of parsedPStorage){
-								let pIndex = playlist.playlistInfo.tracks.findIndex((item, i) => {
-									return props.uuid == item
-								})
-								if(pIndex != -1){
-									playlist.playlistInfo.tracks.splice(pIndex, 1)
-								}
-								newPlaylists.push(playlist)
+						if(props.playlistFrom === undefined){
+							if(props.media_URI != ""){
+								await FileSystem.deleteAsync(FileSystem.documentDirectory + props.media_URI)
 							}
-							await AsyncStorage.setItem('Playlists', JSON.stringify(newPlaylists))
+							let playlists = await SQLActions.getAllPlaylists();
+							for(let i = 0; i < playlists; i++){
+								await SQLActions.deleteTrackInPlaylist(playlists[i].replaceAll(' ', '_'), props.uid)
+							}
+							await SQLActions.deleteTrack(props.uid);
+							await SQLActions.fetchTrackData(); 
+							await props.refreshData(GLOBALS.SQLTracks);
+						} else{
+							await SQLActions.deleteTrackInPlaylist(props.playlistFrom.replaceAll(' ', '_'), props.uid)
+							await props.refreshData();
 						}
 					}}>
-					<Ionicons name="trash-outline" size={30} color={'#FF0000'} style={styles.elseIcon}/>
+					<Ionicons name="trash-outline" size={30} color={colors.red} style={styles.elseIcon}/>
 				</TouchableOpacity>}
 			</View>
 			<View style={styles.line}/>

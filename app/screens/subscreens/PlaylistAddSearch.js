@@ -6,7 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRoute, useTheme } from '@react-navigation/native';
 import BigList from 'react-native-big-list';
 import * as Haptics from 'expo-haptics';
-
+import * as SQLActions from '../../../SQLActions';
+import GLOBALS from '../../../globals';
 
 function PlaylistAddSearch(){
 
@@ -23,16 +24,14 @@ function PlaylistAddSearch(){
 	const route = useRoute();
     useEffect( () => {
 		(async function() {
-			
-			let storage = await AsyncStorage.getItem('Library');
-			if (storage == null){
+			await SQLActions.fetchTrackData();
+			let tracks = GLOBALS.SQLTracks;
+			if (tracks == null || tracks == []){
 				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
 				return;
 			}
-			let tracks = JSON.parse(storage);
 			
-			let pStorage = JSON.parse(await AsyncStorage.getItem('Playlists'))
-			let pStorageSet = new Set(pStorage[pStorage.findIndex((item, i) => {return route.params.writePlaylist == item.playlistInfo.title})].playlistInfo.tracks)
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.writePlaylist.replaceAll(' ', '_'));
 			
 			let sectionsMap = new Map();
 			for(const track of tracks){
@@ -56,14 +55,19 @@ function PlaylistAddSearch(){
 				sectionChars.push(value[0])
 			}
 
-			for(let i = 0; i < sections.length; i++){
-				for(let j = 0; j < sections[i].length; j++){
-					sections[i][j].saved = pStorageSet.has(sections[i][j].uuid) }
+			if(playlistTracks != []){
+				for(let i = 0; i < sections.length; i++){
+					for(let j = 0; j < sections[i].length; j++){
+						sections[i][j].saved = playlistTracks.findIndex((item) => {
+							return item.uid == sections[i][j].uid
+						}) == -1 ? false : true;
+					}
+				}
 			}
 			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
 		})();
 	}, []);
-	const renderItem = ({item}) =><SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_duration={item.video_duration} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} saved={item.saved} writePlaylist={route.params.writePlaylist}/>;
+	const renderItem = ({item}) =><SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_duration={item.video_duration} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} saved={item.saved} writePlaylist={route.params.writePlaylist}/>;
 
 	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
 
@@ -82,7 +86,7 @@ function PlaylistAddSearch(){
 			<View style={{backgroundColor: '#121212',
 					position: 'absolute',
 					left: '93%',
-					top: 380-(7*allData.charData.length),
+					top: 280-(7*allData.charData.length),
 					justifyContent: 'center',
 					alignItems: 'center',
 					borderRadius: 10,
@@ -91,7 +95,7 @@ function PlaylistAddSearch(){
 				hitSlop={{left: 20}}
 				onStartShouldSetResponder={(ev) => true}
 				onTouchStart={(e) => {
-					topScroll = 500-(7*allData.charData.length);
+					topScroll = 400-(7*allData.charData.length);
 				}}
 				onResponderMove={(e) => {
 					if(allData.charData.length === 0){return}

@@ -7,11 +7,14 @@ import { useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
-import {GenerateNewUUID} from '../Illusive/IllusiveSearch'
+import {GenerateNewUID} from '../Illusive/IllusiveSearch'
 import * as DocumentPicker from 'react-native-document-picker'
 import BigList from 'react-native-big-list';
 import * as SQLActions from '../../SQLActions';
 import GLOBALS from '../../globals';
+
+import * as Illusive from '../Illusive/IllusivePlaylistResolver';
+
 
 const LibraryScreen = ({ navigation, route }) => {	
 	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
@@ -30,10 +33,16 @@ const LibraryScreen = ({ navigation, route }) => {
 		} else {
 		  throw err
 		}
-	  }
+	}
 	  
-	  useEffect( () => {
+	useEffect( () => {
 		(async function() {
+			// console.log(await SQLActions.getExistingVideoIdUID('myAhekAfwr0'))
+			// await Illusive.getSpotifyPlaylist("https://open.spotify.com/album/2etKCuXtTG2sBdNZxp3Qca");
+			// console.log(await Illusive.getSpotifyPlaylist("https://open.spotify.com/playlist/3nFbVGLRbBouJ2c9lApDF8"));
+			// console.log(await Illusive.getSpotifyPlaylist("https://open.spotify.com/playlist/7dRabwP32H3bBtPxr98uDg"));
+			// console.log(await Illusive.getAmazonMusicPlaylist("https://music.amazon.com/user-playlists/36c596e56c044997ac6a8aebdf9ff57csune"));
+
 			await SQLActions.fetchTrackData();
 			let tracks = GLOBALS.SQLTracks;
 			if (tracks == null || tracks == []){
@@ -65,39 +74,39 @@ const LibraryScreen = ({ navigation, route }) => {
 				}
 				setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
 			})();
-		}, []);
+	}, []);
 		
-		async function refreshData(dat){
-			if(dat == undefined){return}
-			
-			let sectionsMap = new Map();
-			for(const track of dat){
-				let char = track.video_name[0].toUpperCase()
-				if(!(/[A-Z]/).test(char)){ char = '#' }
-				if( !sectionsMap.has(char) ){
-					sectionsMap.set(char, [track])
-				}
-				else{
-					let newTracks = sectionsMap.get(char)
-					newTracks.push(track)
-					sectionsMap.set(char, newTracks)
-				}
+	async function refreshData(dat){
+		if(dat == undefined){return}
+		
+		let sectionsMap = new Map();
+		for(const track of dat){
+			let char = track.video_name[0].toUpperCase()
+			if(!(/[A-Z]/).test(char)){ char = '#' }
+			if( !sectionsMap.has(char) ){
+				sectionsMap.set(char, [track])
 			}
-			let sections = []
-			let sectionChars = []
-			let sortedSectionsMap = [...sectionsMap].sort()
-			for(const value of sortedSectionsMap){ 
-				sections.push(
-					value[1]
-				)
-				sectionChars.push(value[0])
+			else{
+				let newTracks = sectionsMap.get(char)
+				newTracks.push(track)
+				sectionsMap.set(char, newTracks)
 			}
-			setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
 		}
+		let sections = []
+		let sectionChars = []
+		let sortedSectionsMap = [...sectionsMap].sort()
+		for(const value of sortedSectionsMap){ 
+			sections.push(
+				value[1]
+			)
+			sectionChars.push(value[0])
+		}
+		setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
+	}
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uuid={item.uuid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
+	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
 	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 
@@ -182,8 +191,8 @@ const LibraryScreen = ({ navigation, route }) => {
 
 							for(const audioFile of audioFiles){	
 								let fileName = audioFile.name.replace(/\..+/, '') || ""						
-								let uuid = GenerateNewUUID(fileName)
-								let newFileURI = encodeURI(uuid + audioFile.fileCopyUri.match(/\..+/)[0])
+								let uid = GenerateNewUID(fileName)
+								let newFileURI = encodeURI(uid + audioFile.fileCopyUri.match(/\..+/)[0])
 								await FileSystem.moveAsync({from: audioFile.fileCopyUri, to: FileSystem.documentDirectory + newFileURI})
 
 								let soundTemp = new Audio.Sound();
@@ -192,7 +201,7 @@ const LibraryScreen = ({ navigation, route }) => {
 								await soundTemp.unloadAsync()
 
 								await SQLActions.insertTrackData(new SQLActions.Track({
-									"uuid": uuid,
+									"uid": uid,
 									"video_id": "0",
 									"video_name": fileName,
 									"video_creator": "Sudo",

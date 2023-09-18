@@ -30,7 +30,7 @@ const SearchScreen = (props) => {
 	}, []);
 
 	const renderSongSearchComponents = ({ item }) => (
-		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uuid={item.uuid}/>
+		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>

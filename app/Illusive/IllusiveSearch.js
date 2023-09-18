@@ -2,15 +2,15 @@ import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
 
-function GenerateNewUUID(prefixName) {
-	return prefixName + ' - ' + new Date().getTime().toString(36).substring(2, 15) +
+function GenerateNewUID(prefixName) {
+	return prefixName.replaceAll(/[^a-zA-Z]/g,'') + ' - ' + new Date().getTime().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15);
 }
 function decodeHex(hex) {
 	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
   }
-function DurationToInt(durationString){
+function durationToInt(durationString){
 	let duration = 0;
 	let splitDuration = durationString.split(',')
 	
@@ -28,12 +28,9 @@ function DurationToInt(durationString){
 
 	return duration
 }
-/**
- * Returns an array of videos from YouTube
- * @param {string} searchTerms - What to search YouTube for
- * @param {int} limit - The max amount of videos to return. If zero returns all
- */
-async function SearchYouTube(searchTerms, limit = 0){ //returns first video
+
+
+async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns first video
 	if(searchTerms.trim === ''){
 		return 0
 	}
@@ -53,30 +50,41 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 		}
 		const dataRegex  = /var\ ytInitialData\ \=\ \'(.*)\'\;<\/script>/
 		const apiRegex  = /"innertubeApiKey":"(.*?)"/
-
-		body = (await axios(urlstring, headers)).data
+		if(proxy == null){
+			body = (await axios({'url':urlstring, 'headers':headers })).data
+		}
+		else{
+			body = (await axios({'url':urlstring, 'headers':headers, 'proxy': {
+				protocol: 'http',
+				host: proxy.ip,
+				port: proxy.port,
+			}})).data
+		}
 		const raw = dataRegex.exec(body)?.[1] || '{}'
 		const apikey = apiRegex.exec(body)[1] || ''
-
+		
 		let data = JSON.parse(decodeHex(raw))
 		data.apikey = apikey
 		let apiKey = data.apiKey
 
-		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( \d+ (year|month|day|hour|minute|second|years|months|days|hours|minutes|seconds) ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+(\d+ (hour|minute|second|hours|minutes|seconds)))) (.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
+		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( [0-9,]+ views?.+?ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+)(\d+ (hour|minute|second|hours|minutes|seconds)))(.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
+
 		const pushData = []
 		
 		for (const id of searchData) {
 			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
-			let uuid = GenerateNewUUID(id[1].replaceAll('\\', ''))
+			let uid = GenerateNewUID(id[1].replaceAll('\\', ''))
+			// console.log(id)
 			pushData.push({
-					'video_id': id[11] || '',
+					'video_id': id[10] || '',
 					'video_name': id[1].replaceAll('\\', '') || '',
 					'video_creator': id[2].replaceAll('\\', '') || '',
-					'video_duration': DurationToInt(id[5]) || '',
-					'uuid': uuid
+					'video_duration': durationToInt(id[5]) || '',
+					'uid': uid
 				})
 		}
-			return {data: pushData}
+
+		return {data: pushData}
 	}
 	catch(error){
 		console.log(error)
@@ -84,7 +92,7 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 	// let data = await usetube.searchVideo(searchTerms)
 	// const reData = []
 	// for(const video of data.videos){
-	// 	let uuid = GenerateNewUUID()
+	// 	let uid = GenerateNewUID()
 	// 	reData.push(
 	// 		{ // Returns video JSON
 	// 			"video_duration": video.duration || 0,
@@ -93,7 +101,7 @@ async function SearchYouTube(searchTerms, limit = 0){ //returns first video
 	// 			"video_id": video.id || "",
 	// 			"saved": false,
 	// 			"downloaded": false,
-	// 			"uuid": uuid
+	// 			"uid": uid
 	// 		}
 	// 	)
 	// }
@@ -157,7 +165,7 @@ async function ContinueYouTubeSearch(continueData){
 
 		for(const track of innerJSON[0].itemSectionRenderer.contents){
 			data.push({
-				"video_duration": DurationToInt(track.compactVideoRenderer.lengthText.runs[0].text.split(':')),
+				"video_duration": durationToInt(track.compactVideoRenderer.lengthText.runs[0].text.split(':')),
 				"video_name": track.compactVideoRenderer.title.runs[0].text,
 				"video_creator": track.compactVideoRenderer.longBylineText.runs[0].text,
 				"video_id": track.compactVideoRenderer.videoId,
@@ -171,7 +179,7 @@ async function ContinueYouTubeSearch(continueData){
 		console.log(error)
 	}
 }
-export { GenerateNewUUID };
+export { GenerateNewUID, decodeHex, durationToInt };
 export default SearchYouTube;
 
 /* Hex => ASCII

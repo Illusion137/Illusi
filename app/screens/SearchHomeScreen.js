@@ -4,6 +4,7 @@ import { useNavigation, useTheme } from '@react-navigation/native';
 import ChoiceArtist from "../components/ChoiceArtist";
 import ChoiceAlbums from "../components/ChoiceAlbums";
 import SearchScreen from "./SearchScreen";
+import axios from "axios";
 
 function SearchHomeScreen(props){
     const { colors } = useTheme();
@@ -13,6 +14,10 @@ function SearchHomeScreen(props){
 
     let toggle = true;
     const [searchScreenState, setSearchScreenState] = useState(true)
+
+    React.useEffect(() => {
+        // await axios
+    },[])
 
     React.useEffect(() => {
         const onTabPress = navigation.addListener('tabPress', (e) => {

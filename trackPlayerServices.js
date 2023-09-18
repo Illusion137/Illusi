@@ -117,14 +117,14 @@ import globals from './globals';
     TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async(data) => {
       try {
         let index = await TrackPlayer.getCurrentTrack();
-        if(data.position > (await TrackPlayer.getTrack(index)).duration && !globals.mutex){
-          globals.mutex = true;
-          await TrackPlayer.seekTo(0);
-          await TrackPlayer.skipToNext();
-          await TrackPlayer.seekTo(0);
-          await TrackPlayer.play();
-          globals.mutex = false;
-        }
+        // if(data.position > (await TrackPlayer.getTrack(index)).duration && !globals.mutex){
+        //   globals.mutex = true;
+        //   await TrackPlayer.seekTo(0);
+        //   await TrackPlayer.skipToNext();
+        //   await TrackPlayer.seekTo(0);
+        //   await TrackPlayer.play();
+        //   globals.mutex = false;
+        // }
       } catch (error) {
         
       }

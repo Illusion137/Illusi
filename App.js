@@ -24,10 +24,14 @@ import TrackPlayer, { Capability } from 'react-native-track-player';
 
 import GLOBALS from './globals';
 import * as SQLActions from './SQLActions';
+import * as Prefs from './Preferences'
 
 import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
-import PlayVideoScreen from './app/screens/subscreens/PlayVideoScreen';
+import PlayingSong from './app/screens/subscreens/PlayingSong';
+import ExternalServicesScreen from './app/screens/subscreens/ExtraExternalServicesScreen';
+import ExtraLinkerScreen from './app/screens/subscreens/ExtraLinkerScreen';
+import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownloaderScreen';
 // import RNFetchBlob from "rn-fetch-blob";
 
 // import { Provider } from 'react-redux';
@@ -53,7 +57,6 @@ const Theme = {
 		border: '#222222',
 		notification: '#1313ff',
 		shelf: '#161B22',
-		// shelf: '#171a21',
 		tabInactive: '#cad1d8',
 		line: '#303040',
 		searchInput: '#404254',
@@ -61,29 +64,7 @@ const Theme = {
 		inactive: '#8080a0',
 		red: '#FF0000',
 		playingSong: '#141722',
-		track: '#141722',
-	},
-};
-
-const LTheme = {
-	dark: false,
-	colors: {
-		primary: '#462cc9',
-		background: '#0d1016',
-		card: '#131213',
-		text: '#ffffff',
-		subtext: '#8c939d',
-		border: '#222222',
-		notification: '#1313ff',
-		shelf: '#161B22',
-		// shelf: '#171a21',
-		tabInactive: '#cad1d8',
-		line: '#303040',
-		searchInput: '#404254',
-		searchPlaceholder: '#8080a0',
-		inactive: '#8080a0',
-		red: '#FF0000',
-		playingSong: '#141722',
+		playScreen: '#141722',
 		track: '#141722',
 	},
 };
@@ -94,7 +75,12 @@ function ExtrasStackScreen() {
   return (
 	<ExtrasStack.Navigator options={{headerShown: false}}>
 	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} />
-	  {/* <ExtrasStack.Screen name="Backup" component={DetailsScreen} /> */}
+	  <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
+	  <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
+	  <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
+	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} />
+	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
+	  {/* <ExtrasStack.Screen name="Backup, Recover & Transfer" component={} /> */}
 	</ExtrasStack.Navigator>
   );
 }
@@ -154,19 +140,25 @@ export class Tabs extends Component {
 export default class App extends Component{
 	state = {
 		isPlaying: false,
+		isPlayingRestart: false,
 		data: [],
 		playlistName: '',
 	}
 	async componentDidMount() {
 		await activateKeepAwakeAsync();
 		await SQLActions.recreateAllTables();
+		if(await Prefs.isPrefsEmpty())
+			await Prefs.resetPrefs();
+		await Prefs.fetchAutoLinkedPlaylists();
 	}
 	playVideo(data, playlistName){
-		this.setState({isPlaying: false});
-		this.setState({data: data})
-		this.setState({playlistName: playlistName})
-		this.setState({isPlaying: true});
-		GLOBALS.IsPlaying = true
+		this.setState({isPlaying: false}, () => {
+			this.setState({data: data})
+			this.setState({playlistName: playlistName})
+			this.setState({isPlaying: false})
+			this.setState({isPlaying: true})
+			GLOBALS.IsPlaying = true}
+		)
 	}
 	waitFor(conditionFunction) {
 		
@@ -177,14 +169,17 @@ export default class App extends Component{
 		
 		return new Promise(poll);
 	}
-	async downloadVideo(uuid, video_id, duration, progressUpdater, startDownloadState, setTrackData = undefined, length = undefined, title = undefined){
+	async downloadVideo(uid, video_id, duration, progressUpdater, startDownloadState, setTrackData = undefined, length = undefined, title = undefined){
 		function callback(downloadProgress){
 			const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-			
-			if(GLOBALS.DOWNLOADING[0].progress < progress * 100 + 1){
-				GLOBALS.DOWNLOADING[0].progress = Math.floor(progress*100)
-				progressUpdater(GLOBALS.DOWNLOADING[0].progress)
-			}
+			let index = GLOBALS.DOWNLOADING.findIndex((item, i) => {
+				return item.uid == uid
+			})
+			if(index !== -1)
+				if(GLOBALS.DOWNLOADING[index].progress < progress * 100 + 1){
+					GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
+					progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+				}
 		}
 		if(setTrackData != undefined){
 			setTrackData(title, length - GLOBALS.DOWNLOADING.length)
@@ -197,18 +192,18 @@ export default class App extends Component{
 				
 			  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 			  downloadURI = downloadURI[0].url;
-			  console.log(downloadURI)
+			//   console.log(downloadURI)
 		  } catch (error) {
 			  GLOBALS.DOWNLOADING.shift()
 			  Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
 			  return
 		  }
 
-		GLOBALS.DOWNLOADING.push({uuid: uuid, progress: 0})
-		this.waitFor(() => GLOBALS.DOWNLOADING[0].uuid === uuid)
+		GLOBALS.DOWNLOADING.push({uid: uid, progress: 0})
+		this.waitFor(() => GLOBALS.DOWNLOADING[0].uid === uid || GLOBALS.DOWNLOADING[1]?.uid === uid || GLOBALS.DOWNLOADING[2]?.uid === uid)
   		.then(async() => {
 
-			  const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uuid + '.mp4', {}, callback);
+			  const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
 			  try {
 				//   setIsDownloading(true)
 				startDownloadState(true)
@@ -227,23 +222,16 @@ export default class App extends Component{
 				  }
 
 				//   console.log('Finished downloading to ', uri);
-
-				//   GLOBALS.db.
-
-				  let storage = await AsyncStorage.getItem('Library');
 		
-				  let allTracks = JSON.parse(storage);
-				  let arraySearchNewTracks = allTracks.map(({video_id}) => video_id)
-				  allTracks[arraySearchNewTracks.indexOf(video_id)]['downloaded'] = true;
-				  allTracks[arraySearchNewTracks.indexOf(video_id)]['uri'] = uuid + '.mp4';
-				  await AsyncStorage.setItem('Library',JSON.stringify(allTracks))
+				  await SQLActions.setTrackAsDownloaded(uid, uid + '.mp4');
+
 				  GLOBALS.DOWNLOADING.shift()
 				  if(GLOBALS.DOWNLOADING.length === 0){
 					Alert.alert("Finished Download Enqueued Tracks")
 				  }
 			  } catch (e) {
 				//   setIsDownloading(false)
-					Alert.alert("Downloading Error","Failed To Download: "+JSON.stringify(GLOBALS.DOWNLOADING[0]) + ":\n"+ e);
+					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
 					GLOBALS.DOWNLOADING.shift()
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
@@ -256,7 +244,7 @@ export default class App extends Component{
 		return (
 			// <Provider store={store}>
 				<NavigationContainer theme={Theme}>
-						{this.state.isPlaying && <PlayVideoScreen data={this.state.data} playlist={this.state.playlistName}/>}
+						{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
 						<Stack.Navigator>
 							<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />

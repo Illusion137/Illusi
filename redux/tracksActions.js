@@ -1,4 +1,4 @@
-export const addTrack = (uuid) => (
+export const addTrack = (uid) => (
     {
       type: 'ADD_TRACK',
       payload: track,

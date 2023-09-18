@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 
 import { useNavigation, useTheme } from '@react-navigation/native';
 
-function ExtraRecoveryScreen(props) {
+function ExtraLinkerScreen(props) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	return(
@@ -15,4 +15,4 @@ function ExtraRecoveryScreen(props) {
 const themeStyles = (colors) => StyleSheet.create({
     
 });
-export default ExtraRecoveryScreen;
+export default ExtraLinkerScreen;

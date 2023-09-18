@@ -6,7 +6,9 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponent from '../../components/SongComponent';
 import BigList from "react-native-big-list";
+import { useIsFocused } from '@react-navigation/native';
 
+import GLOBALS from '../../../globals';
 import * as SQLActions from '../../../SQLActions';
 
 function PlaylistSubScreen({route}){
@@ -17,6 +19,7 @@ function PlaylistSubScreen({route}){
     const playlistInfo = route.params.playlistInfo;
 
     const [data, setData] = useState([]);
+    const [block, setBlock] = useState(false);
     const [editMode, seteditMode] = useState(0);
     const [duration, setDuration] = useState("");
     const actions = () =>
@@ -56,30 +59,72 @@ function PlaylistSubScreen({route}){
         }
       }
     );
+    const isFocused = useIsFocused();
+
     useEffect( () => {
 		(async function() {
-            let trackData = await SQLActions.getPlaylistTracks(route.params.title);
-            setData(trackData);
-
-            try {
-                if(trackData.length == 0){setDuration("> 1m"); return}
-                let duration = trackData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
-                    return prev + cur;
-                })
-                if(duration/3600 >= 1){
-                    setDuration(Math.floor(duration/3600).toString() + 'h ' + Math.floor((duration % 3600) / 60).toString() + 'm');
-                }else if(duration/60 >= 1){
-                    setDuration(Math.floor(duration/60).toString() + 'm');
-                }else{
-                    setDuration("> 1m")
+            if(isFocused){ 
+                let trackData;
+                if(route.params.title == "Recently Added")
+                    trackData = GLOBALS.SQLTracks.reverse()
+                else if(route.params.title == "Downloads")
+                    trackData = GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported)
+                else if(route.params.title == "Recently Played"){}
+                else{
+                    trackData = await SQLActions.getPlaylistTracks(route.params.title.replaceAll(' ','_'));
+                    setBlock(true);
                 }
-            } catch (error) {
-                Alert.alert("Error",error)
+                setData(trackData);
+
+                try {
+                    if(trackData.length == 0){setDuration("> 1m"); return}
+                    let duration = trackData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
+                        return prev + cur;
+                    })
+                    if(duration/3600 >= 1){
+                        setDuration(Math.floor(duration/3600).toString() + 'h ' + Math.floor((duration % 3600) / 60).toString() + 'm');
+                    }else if(duration/60 >= 1){
+                        setDuration(Math.floor(duration/60).toString() + 'm');
+                    }else{
+                        setDuration("> 1m")
+                    }
+                } catch (error) {
+                    Alert.alert("Error",error)
+                }
             }
 		})();
-	}, []);
+	}, [isFocused]);
+    async function refreshData(){
+        let trackData;
+        if(route.params.title == "Recently Added")
+            trackData = GLOBALS.SQLTracks.reverse()
+        else if(route.params.title == "Downloads")
+            trackData = GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported)
+        else if(route.params.title == "Recently Played"){}
+        else{
+            trackData = await SQLActions.getPlaylistTracks(route.params.title.replaceAll(' ','_'));
+            setBlock(true);
+        }
+        setData(trackData);
+
+        try {
+            if(trackData.length == 0){setDuration("> 1m"); return}
+            let duration = trackData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
+                return prev + cur;
+            })
+            if(duration/3600 >= 1){
+                setDuration(Math.floor(duration/3600).toString() + 'h ' + Math.floor((duration % 3600) / 60).toString() + 'm');
+            }else if(duration/60 >= 1){
+                setDuration(Math.floor(duration/60).toString() + 'm');
+            }else{
+                setDuration("> 1m")
+            }
+        } catch (error) {
+            Alert.alert("Error",error)
+        }
+    } 
 	const renderTracks = ({ item }) => (
-		<SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uuid={item.uuid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode}/>
+		<SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
 	);
     function playShuffle(dat){
         let newData = [...dat]
@@ -126,17 +171,17 @@ function PlaylistSubScreen({route}){
                             <Text style={{color: '#808080', fontSize: 12}}>{data.length} tracks • {duration}</Text>
                         </View>
                         <View style={styles.playlistButtonsContainer}>
-                            {/* {playlistInfo.block == undefined && <TouchableOpacity style={styles.playlistButton} onPress={() => {
-                                navigation.navigate('Add To Playlist', {writePlaylist: playlistInfo.title })
+                            {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {
+                                navigation.navigate('Add To Playlist', {writePlaylist: route.params.title })
                             }}>
                                 <Ionicons name="add" size={35} color={colors.primary}/>
-                            </TouchableOpacity>} */}
-                            {/* {playlistInfo.block == undefined && <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
+                            </TouchableOpacity>}
+                            {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                                 <MaterialCommunityIcons name="pencil" size={25} color={colors.primary}/>
                             </TouchableOpacity>}
-                            <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
+                            {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                                 <FontAwesome name="share" size={25} color={colors.primary}/>
-                            </TouchableOpacity> */}
+                            </TouchableOpacity>}
                         </View>
                         <TouchableOpacity onPress={async() => {
                             playShuffle(data)

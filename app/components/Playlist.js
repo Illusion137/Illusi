@@ -2,7 +2,7 @@ import React, {useEffect,useState} from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation,useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
 import * as SQLActions from '../../SQLActions';
@@ -11,20 +11,8 @@ import * as SQLActions from '../../SQLActions';
 function Playlist(props) {
 	const navigation = useNavigation();
 
-    // useEffect( () => {
-	// 	(async function() {
-	// 		let storage = await AsyncStorage.getItem(props.title);
-	// 		if (storage == null){
-	// 			setData([]);
-	// 			return;
-	// 		}
-	// 		let playlists = [];
-	// 		storage.toString().split('::').forEach(d => {
-	// 			playlists.push(JSON.parse(d));
-	// 		});
-	// 		setData(playlists);
-	// 	})();
-	// }, []);
+	const { colors } = useTheme();
+	const styles = themeStyles(colors);
 
 	const [pinned, setPinned] =  useState(props.pinned);
 
@@ -39,12 +27,11 @@ function Playlist(props) {
 					onPress: async() => {
 							if(!await SQLActions.getIsPlaylistsPinned(props.title)){
 								await SQLActions.pinUnpinPlaylist(props.title, true)
-								setPinned(true)
 							}
 							else{
 								await SQLActions.pinUnpinPlaylist(props.title, false)
-								setPinned(false)
 							}
+							await props.refreshData();
 						}
 					},
 					{ text: "Delete", onPress: () => Alert.alert("Confirm?","Confirm Delete this playlist?",
@@ -52,7 +39,8 @@ function Playlist(props) {
 									{
 										text: "Confirm Delete",
 										onPress: async() => {
-											SQLActions.deletePlaylist(props.title)
+											await SQLActions.deletePlaylist(props.title)
+											await props.refreshData();
 										}
 										},
 									{
@@ -60,8 +48,6 @@ function Playlist(props) {
 										// onPress: () => console.log("Cancel Pressed"),
 										style: "cancel"
 									}
-
-									
 								]) 
 					},
 					{
@@ -97,13 +83,13 @@ function Playlist(props) {
         </>
 	);
 }
-const styles = StyleSheet.create({
+const themeStyles = (colors) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 80, 
 		alignItems: 'flex-start',
         alignItems: 'center',
-        backgroundColor: '#000000',
+        backgroundColor: colors.track,
         flexDirection: 'row'
 	},
     notfound:{

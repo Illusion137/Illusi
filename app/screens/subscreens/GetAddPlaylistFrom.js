@@ -6,8 +6,9 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponentSearch from '../../components/SongComponentSearch';
 import ProgressBar from '../../components/ProgressBar';
-import { GenerateNewUUID } from '../../Illusive/IllusiveSearch';
+import { GenerateNewUID } from '../../Illusive/IllusiveSearch';
 import * as SQLActions from '../../../SQLActions';
+import * as Illusive from '../../Illusive/IllusivePlaylistResolver';
 
 function GetAddPlaylistFrom({route}) {
 	const inputRef = useRef()
@@ -17,13 +18,13 @@ function GetAddPlaylistFrom({route}) {
 	const [isDoneSearching, setDoneSearching] = useState(false)
 	const [data, setData] = useState([])
 	let copyData = []
-	const [title, setTitle] = useState('')
+	// const [title, setTitle] = useState('')
 	const [badRequest, setBadRequest] = useState(false);
 	
 	const url = route.params.url;
 	const service = route.params.title.toString().split(' ')[1]
 
-	function setHeader(data, title) {
+	function setHeader(header_data, header_title) {
 		navigation.setOptions({title: route.params.title})
 		navigation.setOptions({ headerRight: () => (
 			<Button
@@ -37,27 +38,31 @@ function GetAddPlaylistFrom({route}) {
 				async(buttonIndex) => {
 				  if (buttonIndex === 0) {
 				  } else if (buttonIndex === 1) {
-						let m_title = title;
+						let m_title = header_title;
 						await SQLActions.createPlaylist(m_title);
-						for(const track of data){
-							let uuid = GenerateNewUUID(track.video_name)
+						for(const track of header_data){
+							let uid = GenerateNewUID(track.video_name)
 							let t = new SQLActions.Track({
 								"video_duration": track.video_duration,
 								"video_name": track.video_name,
 								"video_creator": track.video_creator,
 								"video_id": track.video_id,
 								"saved": true,
-								"uuid": uuid,
+								"uid": uid,
 							})
-							if(!(await SQLActions.checkIfVideoIdExists(track.video_id)))
+							if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
 								await SQLActions.insertTrackData(t);
-							await SQLActions.insertTrackIntoPlaylist(t, m_title);
+								await SQLActions.insertTrackIntoPlaylist(t, m_title);
+							} else{
+								let videoIDUIDTrack = await SQLActions.getExistingVideoIdUID(track.video_id);
+								await SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, m_title);	
+							}
 						}
 						navigation.navigate('Tabs')
 						
 				  } else if (buttonIndex === 2) { 
-					for(const track of data){
-						let uuid = GenerateNewUUID(track.video_name)
+					for(const track of header_data){
+						let uid = GenerateNewUID(track.video_name)
 						if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
 							await SQLActions.insertTrackData(new SQLActions.Track({
 								"video_duration": track.video_duration,
@@ -65,7 +70,7 @@ function GetAddPlaylistFrom({route}) {
 								"video_creator": track.video_creator,
 								"video_id": track.video_id,
 								"saved": true,
-								"uuid": uuid,
+								"uid": uid,
 							}))
 						}
 					}
@@ -83,25 +88,33 @@ function GetAddPlaylistFrom({route}) {
 				try {
 					switch(service){
 						case('Musi'):
-							const playlistParam = url.replace('https://feelthemusi.com/playlist/','')
-							const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
-							if (!response.ok) {
-								setBadRequest(true);
-							}
-							
-							const json = await response.json();
-							let parsed = JSON.parse(json.success.data)
-							setTitle(parsed.title);
-							
-							for(let i = 0; i < parsed.data.length; i++){
-								parsed.data[i]['saved'] = false;
-								if(await SQLActions.checkIfVideoIdExists(parsed.data[i].video_id))
-									parsed.data[i]['saved'] = true;
-							}
+							let musiData = await Illusive.getMusiPlaylist(url);
 
-							setData(parsed.data);
+							setData(musiData.data);
 							setDoneSearching(true);
-							setHeader(parsed.data, parsed.title)
+							setHeader(musiData.data, musiData.title)
+							break;
+						case('YouTube'):
+							let youTubeData = await Illusive.getYoutubePlaylist(url);
+
+							setData(youTubeData.data);
+							setDoneSearching(true);
+							setHeader(youTubeData.data, youTubeData.title)
+							break;
+						case('Spotify'):
+						 	let spotifyData = await Illusive.getSpotifyPlaylist(url);
+							
+							setData(spotifyData.data);
+							setDoneSearching(true);
+							setHeader(spotifyData.data, spotifyData.title)
+							break;
+						case('Amazon'):
+							let amazonMusicData = await Illusive.getAmazonMusicPlaylist(url);
+						   
+						   	setData(amazonMusicData.data);
+						   	setDoneSearching(true);
+						   	setHeader(amazonMusicData.data, amazonMusicData.title)
+						   	break;
 					}
 				}
 				catch(error){
@@ -111,7 +124,7 @@ function GetAddPlaylistFrom({route}) {
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded}/>
+		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={GenerateNewUID(item.video_name)}/>
 	);
 
 	return(

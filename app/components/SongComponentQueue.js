@@ -10,7 +10,7 @@ function SongComponentQueue(props) {
 	const styles = themeStyles(colors);
 
 	return (
-		<View style={{backgroundColor: 'black'}}  >
+		<View style={{backgroundColor: colors.track}}  >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
 					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>

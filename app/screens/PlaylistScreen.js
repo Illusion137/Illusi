@@ -7,6 +7,9 @@ import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
 import Playlist from '../components/Playlist';
 import * as SQLActions from '../../SQLActions';
+import GLOBALS from '../../globals';
+
+import { useIsFocused } from '@react-navigation/native';
 
 function PlaylistScreen({ route }) {
 	const [data, setData] = useState([]);
@@ -23,87 +26,65 @@ function PlaylistScreen({ route }) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
+    const isFocused = useIsFocused();
+
 	useEffect( () => {
 		(async function() {
-			let playlists = await SQLActions.getAllPlaylists();
+            if(isFocused){
+				let playlists = await SQLActions.getAllPlaylists();
 
-			for(let i = 0; i < playlists.length; i++){
-				let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name);
-				playlists[i]['track_count'] = playlistTracks.length;
-				playlists[i]['four_track'] = playlistTracks.slice(0,4);
-				playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name) == 0 ? false : true
+				for(let i = 0; i < playlists.length; i++){
+					let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name.replaceAll(' ', '_'));
+
+					playlists[i]['track_count'] = playlistTracks.length;
+					playlists[i]['four_track'] = playlistTracks.slice(0,4);
+					playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name) == 0 ? false : true
+				}
+				let orderedPlaylists = []
+				for(let i = 0; i < playlists.length; i++){
+					if(playlists[i].pinned)
+						orderedPlaylists.unshift(playlists[i])
+					else
+						orderedPlaylists.push(playlists[i])
+				}
+				setData([])
+				setData(orderedPlaylists)
+
+				setRecentAddData(GLOBALS.SQLTracks.reverse().slice(0,4))
+				setDownloadData(GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported).slice(0,4))
 			}
-			setData(playlists)
-			// let storage = await AsyncStorage.getItem('Playlists');
-			// let libStorage = await AsyncStorage.getItem('Library')
-			// let libMap; 
-			// if(libStorage != null){
-			// 	libMap = new Map(JSON.parse(libStorage).map((track) => [track.uuid, track]))
-			// }
-			// if (storage == null){
-			// 	setData([]);
-			// }else{
-			// 	let playlists = JSON.parse(storage)
-			// 	let orderedPlaylists = [];
-			// 	let unorderedPlaylists = [];
-				
-			// 	for(const playlist of playlists){
-			// 		let newPlaylist = playlist
-			// 		let newMappedTracks = []
-			// 		for(const trackUUID of playlist.playlistInfo.tracks){
-			// 			newMappedTracks.push(libMap.get(trackUUID))
-			// 		}
-			// 		newPlaylist.playlistInfo.tracks = newMappedTracks
-			// 		if(playlist.pinned){orderedPlaylists.push(newPlaylist)}
-			// 		else{unorderedPlaylists.push(newPlaylist)}
-			// 	}
-			// 	let names = []
-			// 	try {
-					
-			// 		for(const playlist of playlists){
-			// 			names.push(playlist.playlistInfo.title)
-			// 		}
-			// 	} catch (error) {
-			// 		console.log(error)
-			// 	}
-			// 	// console.log(names)
-			// 	setPlaylistNames(names);
-			// 	setData(orderedPlaylists.concat(unorderedPlaylists));
-			// }
-						
-			// if(libStorage != null){
-			// 	let parsedStorage = JSON.parse(libStorage)
-				
-			// 	setDownloadData({title:'Downloaded', tracks: parsedStorage.filter(item=>item.downloaded || item.imported), block: true})
-				
-			// 	parsedStorage.reverse()
-			// 	setRecentAddData({title:'Recently Added', tracks: parsedStorage.slice(0,200), block: true})
-				
-			// 	let recentPlayed = await AsyncStorage.getItem('RecentPlayed')
-			// 	if(recentPlayed != null){
-			// 		let parsedPlayed = JSON.parse(recentPlayed)
-			// 		let newMappedTracks = []
-			// 		for(const trackUUID of parsedPlayed){
-			// 			newMappedTracks.push(libMap.get(trackUUID))
-			// 		}
-			// 		setRecentPlayedData({title:'Recently Played', tracks: newMappedTracks.slice(0,200), block: true});
-			// 	}
-			// }
 		})();
-	}, []);
+	}, [isFocused]);
+
+	async function refreshData(){
+		let playlists = await SQLActions.getAllPlaylists();
+		
+		for(let i = 0; i < playlists.length; i++){
+			let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name.replaceAll(' ', '_'));
+			
+			playlists[i]['track_count'] = playlistTracks.length;
+			playlists[i]['four_track'] = playlistTracks.slice(0,4);
+			playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name) == 0 ? false : true
+		}
+		let orderedPlaylists = []
+		for(let i = 0; i < playlists.length; i++){
+			if(playlists[i].pinned)
+			orderedPlaylists.unshift(playlists[i])
+		else
+		orderedPlaylists.push(playlists[i])
+		}
+		setData([])
+		setData(orderedPlaylists)
+
+		setRecentAddData(GLOBALS.SQLTracks.reverse().slice(0,4))
+		setDownloadData(GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported).slice(0,4))
+	}
 
 	const renderItem = ({ item }) => (
-		<Playlist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} setPlaying={route.params?.setPlaying}/>
+		<Playlist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} setPlaying={route.params?.setPlaying} refreshData={refreshData.bind(this)}/>
 	);
 
-	function setDataOutside(dat){
-		setData(dat)
-	}
-
 	function hide(){ addPlaylistPanelRef.current.hide(); }
-	async function getPlaylistInfo(toGet){
-		
-	}
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.header}>
@@ -127,55 +108,55 @@ function PlaylistScreen({ route }) {
 				</View>
 			</View>
 			<View style={styles.defaultContainer}>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: recentAddData, setPlaying:route.params?.setPlaying})}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Recently Added", setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Added</Text>
-						{recentAddData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						{recentAddData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>
 					</View>
 				</TouchableHighlight>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: downloadData, setPlaying:route.params?.setPlaying})}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Downloads", setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Downloads</Text>
-						{downloadData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						{downloadData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {downloadData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {downloadData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>
 					</View>
 				</TouchableHighlight>
-				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {playlistInfo: recentPlayedData, setPlaying:route.params?.setPlaying})}>
+				{/* <TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Recently Played", setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Played</Text>
-						{recentPlayedData.tracks.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						{recentPlayedData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentPlayedData.tracks[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentPlayedData.tracks[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentPlayedData.tracks[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentPlayedData.tracks[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData.tracks[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>
 
 					</View>
-				</TouchableHighlight>
+				</TouchableHighlight> */}
 			</View>
 			<View style={{width: '100%', height: 1, backgroundColor: '#808080', marginLeft: 30, marginRight: 30}}/>
 			<FlatList style={{height: '71%'}} data={data} renderItem={renderItem}/>
@@ -186,7 +167,7 @@ function PlaylistScreen({ route }) {
 			{/* <Playlist title={'Songs'} length={200} pinned={true}/> */}
 
 			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={addPlaylistPanelRef} animatedValue={new Animated.Value(0)}>
-				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={setDataOutside.bind()} allPlaylistNames={playlistNames}/>
+				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={refreshData.bind(this)} allPlaylistNames={playlistNames}/>
 			</SlidingUpPanel>
 		</View>
 	);

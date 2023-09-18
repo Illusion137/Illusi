@@ -1,34 +1,18 @@
 import React,  { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity,Text, Switch } from 'react-native';
-import { Entypo } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 
+import { useNavigation, useTheme } from '@react-navigation/native';
 
 function ExtraSettingsScreen(props) {
-	const [isEnabled, setIsEnabled] = useState(false);
-
+	const { colors } = useTheme();
+	const styles = themeStyles(colors);
 	return(
-		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>
-			
-			{/* <TouchableOpacity style={styles.}>
+		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
 
-			</TouchableOpacity> */}
-
-			{/* <View>
-
-			</View> */}
-
-			<Switch
-				trackColor={{ false: "#767577", true: "#424ed4" }}
-				thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
-				onValueChange={() => setIsEnabled(previousState => !previousState)}
-				value={isEnabled}
-			/>
 		</View>
 	);
 }
-const styles = StyleSheet.create({
-    multiSliderItem:{
-		
-	}
+const themeStyles = (colors) => StyleSheet.create({
+    
 });
 export default ExtraSettingsScreen;

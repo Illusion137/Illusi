@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableH
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SQLActions from '../../../SQLActions';
 
 function AddPlaylist(props, ref) {
 	const inputRef = useRef();
@@ -25,17 +26,8 @@ function AddPlaylist(props, ref) {
 				{isEmptyName && <Button title='Create' color={'#808080'} ></Button>}
 				{!isEmptyName && <Button title='Create' color={'#424ed4'} onPress={async () => {
 					setIsEmpty(true)
-					let storageCheck = await AsyncStorage.getItem('Playlists');
-					if(storageCheck == null){
-						AsyncStorage.setItem('Playlists', JSON.stringify([{pinned: false, playlistInfo:{title: playlistName, tracks: []}}]))
-						// props.refreshData([{pinned: false, playlistInfo:{title: playlistName, tracks: []}}])
-						return
-					}
-					let parsedStorage = JSON.parse(storageCheck);
-					parsedStorage.push({ pinned: false, playlistInfo:{title: playlistName, tracks: []}})
-					AsyncStorage.setItem('Playlists', JSON.stringify(parsedStorage))
-					// props.refreshData(parsedStorage)
-					props.allPlaylistNames.push(playlistName)
+					await SQLActions.createPlaylist(playlistName)
+					await props.refreshData()
 					inputRef.current?.clear()
 					inputRef.current?.blur()
 					props.panelref();
@@ -85,7 +77,7 @@ function AddPlaylist(props, ref) {
 				</View>
 			</TouchableHighlight>
 			<View style={styles.line}/>
-			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Custom Service'})}>
+			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Custom Service'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={require("../../../assets/dark.png")}/>
 					<Text style={styles.importfromtext}>Import From Custom Service</Text>
@@ -97,7 +89,7 @@ function AddPlaylist(props, ref) {
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={require("../../../assets/notfound.png")}/>
 					<Text style={styles.importfromtext}>Import From File</Text>
 				</View>
-			</TouchableHighlight>
+			</TouchableHighlight> */}
 		</View>
 	);
 }
