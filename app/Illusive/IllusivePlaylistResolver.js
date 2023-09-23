@@ -23,7 +23,6 @@ async function getProxyList(){
         return proxies
         
     } catch (error) {
-        console.log(error);
         return [];
     }
 }
@@ -31,9 +30,6 @@ async function getProxyList(){
 export async function getMusiPlaylist(url){
     const playlistParam = url.replace('https://feelthemusi.com/playlist/','')
     const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
-    if (!response.ok) {
-        setBadRequest(true);
-    }
     
     const json = await response.json();
     let parsed = JSON.parse(json.success.data)
@@ -192,7 +188,6 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
         }
 
 		body = (await axios({'method': 'POST', 'url': postURL, 'headers': headers, 'data': postData})).data
-        // console.log(body)
         let contents = body;
         let continuationTokenGood = false;
         let continutationToken = undefined;
@@ -202,7 +197,6 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
             continutationToken = continuationItems[continuationItems.length-1].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
             continuationTokenGood = true;
         } catch (error) {
-            // console.log(error)
         }
 
         let playlistVideoRenderers = continuationItems.slice(0,continuationItems.length-1)
@@ -217,20 +211,16 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
 					'video_duration': durationToInt(video.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
                 })
             } catch (error) {
-                // console.log("mid2: " + error + ' : ' + playlistVideoRenderers[i])               
             }
         }
-        // console.log(videos)
 
         if(continuationTokenGood){
-            // console.log('good')
             videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken));
         }
 
         return videos
 
     } catch (error) {
-        // console.log(error)
         return []
     }
 }
@@ -276,7 +266,6 @@ export async function getYoutubePlaylist(url){
 					'video_duration': durationToInt(parsedVideo.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
                 })
             } catch (error) {
-                // console.log("mid: " + error + ' : ' + playlistVideoRenderers[i][1])     
             }
         }
         
@@ -292,7 +281,6 @@ export async function getYoutubePlaylist(url){
         return {'data': videos, 'title': title};
 	}
 	catch(error){
-		// console.log("final: " + error)
         return {'data': [], 'title': null};
 	}
 }
@@ -427,7 +415,6 @@ export async function getSpotifyPlaylist(url){
         }
 
     } catch (error) {
-        console.log(error)
         return { 'data': [], 'title': undefined }
     }
 
@@ -451,7 +438,6 @@ export async function getAmazonMusicPlaylist(url){
         try {
             amznMusic = JSON.parse(amznMusicText);
         } catch (error) {
-            console.log(error);
             return null;
         }
     }
@@ -554,7 +540,6 @@ export async function getAmazonMusicPlaylist(url){
 
     return {data: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
   } catch (error) {
-    console.log(error)
     return {data: [], title: null}
   }
 }

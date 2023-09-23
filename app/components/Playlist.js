@@ -45,14 +45,12 @@ function Playlist(props) {
 										},
 									{
 										text: "Cancel",
-										// onPress: () => console.log("Cancel Pressed"),
 										style: "cancel"
 									}
 								]) 
 					},
 					{
 					text: "Cancel",
-					// onPress: () => console.log("Cancel Pressed"),
 					style: "cancel"
 					}
 				]

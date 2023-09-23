@@ -22,9 +22,11 @@ import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 
-import GLOBALS from './globals';
+import * as GLOBALS from './globals';
 import * as SQLActions from './SQLActions';
 import * as Prefs from './Preferences'
+
+import * as Haptics from 'expo-haptics';
 
 import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
@@ -41,6 +43,9 @@ import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownl
 // LogBox.ignoreLogs([
 // 	'Non-serializable values',
 // ]);
+LogBox.ignoreLogs([
+	'Non-serializable values were found in the navigation state',
+  ]);  
 LogBox.ignoreAllLogs();
 
 const Tab  = createBottomTabNavigator();
@@ -66,19 +71,20 @@ const Theme = {
 		playingSong: '#141722',
 		playScreen: '#141722',
 		track: '#141722',
+		highlightPressColor: '#bbaaff'
 	},
 };
 
 const ExtrasStack = createNativeStackNavigator();
 
-function ExtrasStackScreen() {
+function ExtrasStackScreen(props) {
   return (
 	<ExtrasStack.Navigator options={{headerShown: false}}>
-	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} />
+	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} initialParams={{downloadVideo: props.route.params.downloadVideo}} />
 	  <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
 	  <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
 	  <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
-	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} />
+	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen}/>
 	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
 	  {/* <ExtrasStack.Screen name="Backup, Recover & Transfer" component={} /> */}
 	</ExtrasStack.Navigator>
@@ -169,75 +175,87 @@ export default class App extends Component{
 		
 		return new Promise(poll);
 	}
-	async downloadVideo(uid, video_id, duration, progressUpdater, startDownloadState, setTrackData = undefined, length = undefined, title = undefined){
+	async downloadVideo(uid, video_id, duration, progressUpdater, startDownloadState, setFinishedDownloadedState = undefined){
+		function isInDownloadRange(uid, downloadQueueMaxLength){
+			for(let i = 0; i < downloadQueueMaxLength; i++){
+				if(GLOBALS.DOWNLOADING[i]?.uid === uid)
+					return true;
+			}
+			return false;
+		}
 		function callback(downloadProgress){
 			const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-			let index = GLOBALS.DOWNLOADING.findIndex((item, i) => {
-				return item.uid == uid
-			})
+			let index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
 			if(index !== -1)
 				if(GLOBALS.DOWNLOADING[index].progress < progress * 100 + 1){
 					GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-					progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+					if(progressUpdater != undefined){
+						progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+					}
 				}
 		}
-		if(setTrackData != undefined){
-			setTrackData(title, length - GLOBALS.DOWNLOADING.length)
+		const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
+		
+		let downloadURI;
+		//140
+		try {
+			
+			downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
+			downloadURI = downloadURI[0].url;
+		} catch (error) {
+			let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+			GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+			Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
+			return
 		}
-		  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
-		  
-		  let downloadURI;
-		  //140
-		  try {
-				
-			  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
-			  downloadURI = downloadURI[0].url;
-			//   console.log(downloadURI)
-		  } catch (error) {
-			  GLOBALS.DOWNLOADING.shift()
-			  Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
-			  return
-		  }
 
 		GLOBALS.DOWNLOADING.push({uid: uid, progress: 0})
-		this.waitFor(() => GLOBALS.DOWNLOADING[0].uid === uid || GLOBALS.DOWNLOADING[1]?.uid === uid || GLOBALS.DOWNLOADING[2]?.uid === uid)
+		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
+		this.waitFor(() => isInDownloadRange(uid,downloadQueueMaxLength))
   		.then(async() => {
+			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
+			try {
+				if(startDownloadState != undefined)
+					startDownloadState(true)
+				const { uri } = await downloadResumable.downloadAsync();
 
-			  const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
-			  try {
-				//   setIsDownloading(true)
-				startDownloadState(true)
-				  const { uri } = await downloadResumable.downloadAsync();
-
-				  let soundTemp = new Audio.Sound();
-				  await soundTemp.loadAsync({uri: uri});
-				  let metaData = await soundTemp.getStatusAsync();
-				//   console.log(metaData)
-				  if(!metaData.isLoaded){
+				let soundTemp = new Audio.Sound();
+				await soundTemp.loadAsync({uri: uri});
+				let metaData = await soundTemp.getStatusAsync();
+				if(!metaData.isLoaded){
 					await soundTemp.unloadAsync();
 					throw new Error('No load');
-				  }
-				  else{
-					  await soundTemp.unloadAsync();
-				  }
+				} else if(Math.round(metaData.durationMillis/1000) < 3){
+					await soundTemp.unloadAsync();
+					throw new Error('Invalid Duration');
+				}
+				else{
+					await soundTemp.unloadAsync();
+				}
 
-				//   console.log('Finished downloading to ', uri);
 		
-				  await SQLActions.setTrackAsDownloaded(uid, uid + '.mp4');
+				await SQLActions.setTrackAsDownloaded(uid, uid + '.mp4');
 
-				  GLOBALS.DOWNLOADING.shift()
-				  if(GLOBALS.DOWNLOADING.length === 0){
+				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+				
+				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+				
+				if(GLOBALS.DOWNLOADING.length === 0){
 					Alert.alert("Finished Download Enqueued Tracks")
-				  }
-			  } catch (e) {
+				}
+				if(startDownloadState != undefined)
+					startDownloadState(false)
+				if(setFinishedDownloadedState != undefined)
+					setFinishedDownloadedState(true)
+			  	} catch (e) {
 				//   setIsDownloading(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
 					GLOBALS.DOWNLOADING.shift()
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}
-			  }
-				startDownloadState(false)
+			  	}
 		});
 	}
 	render(){
@@ -250,7 +268,7 @@ export default class App extends Component{
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
+							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
 									headerRight: () => (
 										<Button
 											color='#808080'
@@ -259,7 +277,7 @@ export default class App extends Component{
 										/>
 										),
 									})} />
-							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: '#121212',} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
 									headerRight: () => (
 										<Button
 											color='#1313ff'

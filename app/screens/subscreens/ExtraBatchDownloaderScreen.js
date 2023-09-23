@@ -1,71 +1,83 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler, Modal, Pressable} from 'react-native';
+import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler, Modal, Pressable, FlatList} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import * as SQLActions from '../../../SQLActions';
-
+import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
 
-function ExtraBatchDownloaderScreen(props) {
+function ExtraBatchDownloaderScreen({route}) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-
-	function setTrackDataFrom(title, position){
-		setTrackData({position: position+1, title: title})
-	}
-
+	
 	useEffect(() => {
 		(async function() {
 			let playlists_names = await SQLActions.getAllPlaylists();
-			console.log(playlists_names)
 			let pushData = []
 			pushData.push({key: '0', value: 'Library'})
 			for (let i = 0; i < playlists_names.length; i++) {
 				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
 			}
 			setPlaylistDownloadData(pushData)
+			
+			setDownloadingTracksData(GLOBALS.DOWNLOADING)
 		})()
 	}, []);
+	
+	const [downloadingTracksData, setDownloadingTracksData] = React.useState([]);
 
 	const confirmDownloadPlaylistAlert = () =>
     Alert.alert(
-      "Download All Tracks in Playlist",
-      "Are you sure?",
-      [ { text: "Cancel"},
+		"Download All Tracks in Playlist",
+		"Are you sure?",
+		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			if(selected === ""){return}
 			if(selected === "Library"){
 				let filteredData = GLOBALS.SQLTracks.filter(item=>!(item.downloaded || item.imported))
-				setEndProgress(filteredData.length)
 				for (let i = 0; i < filteredData.length; i++) {
 					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
 					},1000)
 				}
 			}
 			else{
 				let selected_playlist = selected;
 				let playlistTracks = await SQLActions.getPlaylistTracks(selected_playlist.replaceAll(' ', '_'));
-
+				
 				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
-				setEndProgress(filteredData.length)
 				for (let i = 0; i < filteredData.length; i++) {
 					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, setDProgress, setIsDownloading, setTrackDataFrom, filteredData.length, filteredData[i].video_name)
+						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
 					},1000)
 				}
 			}
+			const interval = setInterval(() => {
+				setDownloadingTracksData(GLOBALS.DOWNLOADING)
+			}, 1000);
 		} } ]
-    );
-
+	);
+		
 	const [selected, setSelected] = React.useState("");
 	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
-	
-	const [isDownloading, setIsDownloading] = React.useState(false);
-	const [dProgress, setDProgress] = React.useState(0);
-	const [endProgress, setEndProgress] = React.useState(0);
 
-	const [trackData, setTrackData] = React.useState({position: 0, title: "title"});
+
+	const renderHeaderItem = ({item}) => <>
+		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloadingTracksData.length} Tracks Remaining</Text>
+		<View style={{height: 8}}/>
+		<View style={styles.linelong}/>
+		<View style={{height: 30}}/>
+	</>;
+	const renderItem = ({item}) => 
+	<>
+		<View style={{height:8}}/>
+		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>
+			{item.uid.replace(/-.+/,'')}: {item.progress}%
+		</Text>
+		<View style={{height:8}}/>
+		<View style={styles.linelong}/>
+	</>;
+
 
 	return(
 		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
@@ -73,13 +85,21 @@ function ExtraBatchDownloaderScreen(props) {
 					setSelected={(val) => setSelected(val)}
 					data={playlistDownloadData} 
 					save="value"
-					inputStyles={{backgroundColor: 'white'}}
-					boxStyles={{backgroundColor: 'white'}}
-					dropdownStyles={{backgroundColor: 'white'}}
+					arrowicon={() => <></>}
+					searchicon={() => <></>}
+					searchPlaceholder={"Select Playlist"}
+					inputStyles={{backgroundColor: colors.track, color: 'white'}}
+					boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
+					dropdownStyles={{backgroundColor: colors.track}}
+					dropdownTextStyles={{color: 'white'}}
 				/>
 				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
-
-				{isDownloading && <Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>{trackData.title}: {dProgress}% {trackData.position}/{endProgress} Tracks Completed</Text>}
+				<View style={{height: 15}}/>
+				<FlatList 
+					data={downloadingTracksData} 
+					ListHeaderComponent={ renderHeaderItem }
+					renderItem={renderItem}
+				/>
 		</View>
 	);
 }
@@ -90,6 +110,12 @@ const themeStyles = (colors) => StyleSheet.create({
 		marginBottom: 20,
 		marginHorizontal: 12,
 		textAlign: 'left'
+	},
+	linelong:{
+		width: "100%",
+		height: 0.4,
+		opacity: 0.2,
+		backgroundColor: 'white',
 	},
 });
 export default ExtraBatchDownloaderScreen;

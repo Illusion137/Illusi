@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
-import GLOBALS from '../../globals';
+import * as GLOBALS from '../../globals';
 import * as SQLActions from '../../SQLActions'
 
 function SongComponentSearch(props) {
@@ -34,7 +34,6 @@ function SongComponentSearch(props) {
 								}));
 								isSaved(true)
 							}catch(e){
-								console.log(e);
 								return;
 							}
 						}

@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'r
 import CookieManager from '@react-native-community/cookies';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import WebView from 'react-native-webview';
+import * as Prefs from '../../../Preferences';
 
 function ExternalServicesScreen(props) {
 	const { colors } = useTheme();
@@ -40,17 +41,10 @@ function ExternalServicesScreen(props) {
 
 	const [url, setUrl] = useState(null);
 	navChange = e => {
-		// console.log("e", e);
 		// this.setState({ loading: e.loading });
 		if (e.url == "https://m.youtube.com/") {
 		  CookieManager.getAll(true).then(res => {
-			console.log("CookieManager.getAll =>", res);
-			if (!!res) {
-			  console.log({res})
-			  CookieManager.clearAll(true).then(res => {
-				console.log("LoginScreen CookieManager.clearAll =>", res);
-			  });
-			}
+			Prefs.setCookies(res, 'youtube_cookies');
 		  });
 		}
 	  };
@@ -67,7 +61,9 @@ function ExternalServicesScreen(props) {
 			</View> }
 			<ScrollView>
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
-				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => {setUrl("https://youtube.com")} }>
+				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => {
+						if(url == null) setUrl("https://youtube.com"); 
+						else setUrl(null)} }>
 					<View style={styles.importfrom}>
 						<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is5-ssl.mzstatic.com/image/thumb/Purple122/v4/fc/c7/18/fcc718a6-bd55-b1aa-93e4-4073a2ad3b13/logo_youtube_color-1x_U007emarketing-0-6-0-85-220.png/350x350.png?'}}/>
 						<Text style={styles.importfromtext}>Add YouTube Account</Text>

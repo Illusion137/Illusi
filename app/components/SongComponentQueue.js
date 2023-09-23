@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as GLOBALS from '../../globals';
 
 function SongComponentQueue(props) {
 	const id = props.video_id;
@@ -13,7 +14,7 @@ function SongComponentQueue(props) {
 		<View style={{backgroundColor: colors.track}}  >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={{uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>
+					<Image source={id == "" ? GLOBALS.importedIcon : {uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>
 				</View>
 				<View style={styles.text}>
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>

@@ -1,4 +1,4 @@
-import GLOBALS from './globals';
+import * as GLOBALS from './globals';
 
 export class Track { 
     constructor(t) {
@@ -52,11 +52,11 @@ export async function recreateAllTables(){
 
 export async function createPlaylist(playlistName){
     let playlistNames = await getAllPlaylists();
-    for(const playlist_name of playlistNames){
-        if(playlist_name.playlist_name == playlistName){
-            playlistName = `${playlistName} 2`;
-        }
+    let count = 0;
+    while(playlistNames.findIndex((item) => item.playlist_name == `${playlistName} ${count}`) != -1 && count <= 100){
+        count++;
     }
+    playlistName = `${playlistName} ${count}`;
 
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO playlists (playlist_name, pinned) Values (?, false)', args: [playlistName]}], false)
     await GLOBALS.db.execAsync([{sql: `CREATE TABLE IF NOT EXISTS ${playlistName.replaceAll(' ', '_')} (id INTEGER PRIMARY KEY, track_uid STRING)`, args: []}], false);
@@ -73,16 +73,20 @@ export async function fetchTrackDataFromUID(uid) {
 
 export async function setTrackAsDownloaded(uid, media_URI) {
     await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET media_URI="${media_URI}", downloaded=true WHERE uid="${uid}"`, args: []}], false);
+    await fetchTrackData();
 }
  
 export async function fetchTrackData() {
     let tracks = await GLOBALS.db.execAsync([{sql: 'SELECT * FROM tracks', args: []}], false);
     GLOBALS.SQLTracks = tracks[0].rows
+    for(let i = 0; i < GLOBALS.SQLTracks.length; i++){
+        GLOBALS.SQLTracks[i].video_name = String(GLOBALS.SQLTracks[i].video_name)
+        GLOBALS.SQLTracks[i].video_creator = String(GLOBALS.SQLTracks[i].video_creator)
+    }
 }
 
 export async function getAllTables() {
     let tables = await GLOBALS.db.execAsync([{sql: "SELECT * FROM sqlite_master where type='table'", args: []}], false);
-    // tables;
     return tables[0].rows;
 
 }

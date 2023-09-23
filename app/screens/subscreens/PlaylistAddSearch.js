@@ -7,7 +7,7 @@ import { useRoute, useTheme } from '@react-navigation/native';
 import BigList from 'react-native-big-list';
 import * as Haptics from 'expo-haptics';
 import * as SQLActions from '../../../SQLActions';
-import GLOBALS from '../../../globals';
+import * as GLOBALS from '../../../globals';
 
 function PlaylistAddSearch(){
 
@@ -58,9 +58,7 @@ function PlaylistAddSearch(){
 			if(playlistTracks != []){
 				for(let i = 0; i < sections.length; i++){
 					for(let j = 0; j < sections[i].length; j++){
-						sections[i][j].saved = playlistTracks.findIndex((item) => {
-							return item.uid == sections[i][j].uid
-						}) == -1 ? false : true;
+						sections[i][j].saved = playlistTracks.findIndex((item) => item.uid == sections[i][j].uid) == -1 ? false : true;
 					}
 				}
 			}

@@ -8,10 +8,11 @@ import SongComponent from '../../components/SongComponent';
 import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 
-import GLOBALS from '../../../globals';
+import * as GLOBALS from '../../../globals';
 import * as SQLActions from '../../../SQLActions';
 
 function PlaylistSubScreen({route}){
+
     const navigation = useNavigation();
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
@@ -34,7 +35,7 @@ function PlaylistSubScreen({route}){
         if (buttonIndex === 0) {
             // cancel action
         }else if (buttonIndex === 1) {
-            // console.log('Export Playlist To YouTube')
+            // 'Export Playlist To YouTube')
             let base = 'http://www.youtube.com/watch_videos?video_ids='
             let allIds = playlistInfo.tracks.map(({video_id}) => video_id).slice(0,50)
             for(let i = 0; i < allIds.length-1; i++){
@@ -42,11 +43,9 @@ function PlaylistSubScreen({route}){
             }
             base += allIds[allIds.length-2]
             // base+='&disable_polymer=true'
-            // console.log(base)
             Linking
             .openURL( base  )
         }else if (buttonIndex === 2) {
-            console.log('Clear Tracks')
         }else if (buttonIndex === 3) {
             let toggle = editMode
             if(toggle == 0){
@@ -55,7 +54,6 @@ function PlaylistSubScreen({route}){
                 toggle = 0
             }
             seteditMode(toggle)
-            // console.log('Toggle Edit Playlist')
         }
       }
     );
@@ -64,11 +62,15 @@ function PlaylistSubScreen({route}){
     useEffect( () => {
 		(async function() {
             if(isFocused){ 
-                let trackData;
-                if(route.params.title == "Recently Added")
-                    trackData = GLOBALS.SQLTracks.reverse()
-                else if(route.params.title == "Downloads")
-                    trackData = GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported)
+                let trackData = [];
+                if(route.params.title == "Recently Added"){
+                    let t = [...GLOBALS.SQLTracks]
+                    trackData = t.reverse()
+                }
+                else if(route.params.title == "Downloads"){
+                    let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
+                    trackData = t.reverse();
+                }
                 else if(route.params.title == "Recently Played"){}
                 else{
                     trackData = await SQLActions.getPlaylistTracks(route.params.title.replaceAll(' ','_'));
@@ -95,7 +97,7 @@ function PlaylistSubScreen({route}){
 		})();
 	}, [isFocused]);
     async function refreshData(){
-        let trackData;
+        let trackData = [];
         if(route.params.title == "Recently Added")
             trackData = GLOBALS.SQLTracks.reverse()
         else if(route.params.title == "Downloads")
@@ -124,9 +126,11 @@ function PlaylistSubScreen({route}){
         }
     } 
 	const renderTracks = ({ item }) => (
-		<SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
+		<SongComponent imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
 	);
     function playShuffle(dat){
+        if( dat.filter((item) => item.downloaded || item.imported).length === 0)
+            return;
         let newData = [...dat]
 		let currentIndex = newData.length, randomIndex;
 
@@ -158,12 +162,12 @@ function PlaylistSubScreen({route}){
                         {data.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
                         <View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[2]?.video_id != undefined && <Image source={data[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[3]?.video_id != undefined && <Image source={data[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${data[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[0]?.video_id != undefined && <Image source={data[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[1]?.video_id != undefined && <Image source={data[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
                         </View>
                         <View style={{top: 15, alignItems: 'center'}}>
@@ -188,7 +192,7 @@ function PlaylistSubScreen({route}){
                         }} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
                         <Text style={{fontWeight: '500', fontSize: 15}}>Shuffle Play</Text></TouchableOpacity>
                     </View>
-                )} data={data} renderItem={renderTracks} itemHeight={61}>
+                )} data={data} renderItem={renderTracks} itemHeight={61} ListFooterComponent={(<View style={{height:50}}></View>)} footerHeight={50}>
                 </BigList>
             </View>
         </View>

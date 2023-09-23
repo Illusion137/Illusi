@@ -1,14 +1,11 @@
 const { Queue } = require("./app/Illusive/Queue");
 import * as SQLite from 'expo-sqlite'
 
-let db = SQLite.openDatabase('illusi-db.sqlite3')
-const SQLTracks = [];
-
-module.exports = {
-  DOWNLOADING: [],
-  IsPlaying: false,
-  pQueue: new Queue(),
-  mutex: false,
-  db,
-  SQLTracks
-};
+export let DOWNLOADING = [];
+export let db = SQLite.openDatabase('illusi-db.sqlite3')
+export let prefs = {};
+export const importedIcon = require("./assets/imported.png")
+export const SQLTracks = [];
+export let IsPlaying = false
+export let pQueue = new Queue()
+export let mutex = false

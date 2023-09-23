@@ -7,7 +7,7 @@ import { useNavigation, useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
 import { SelectList } from 'react-native-dropdown-select-list';
-import GLOBALS from '../../globals';
+import * as GLOBALS from '../../globals';
 import * as Sharing from 'expo-sharing';
 import WebView from 'react-native-webview';
 import * as Battery from 'expo-battery';
@@ -61,8 +61,6 @@ function ExtraScreen({route}) {
     );
 
 	async function zipData(){
-		// console.log(FileSystem.documentDirectory)
-		// console.log(await FileSystem.readDirectoryAsync("file:///var/mobile/"))
 		const UTI = 'public.item';
 		await Sharing.shareAsync(FileSystem.documentDirectory, {UTI});
 	}
@@ -109,7 +107,7 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify, Amazon Music, and Souncloud for extra features.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
+					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
 				<View style={styles.linelong}/>
@@ -134,6 +132,8 @@ function ExtraScreen({route}) {
 					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={async() => await Prefs.resetPrefs()}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={confirmDeletePlaylistDataAlert}/>
 					<View style={styles.lineshort}/>	

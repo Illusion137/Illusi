@@ -23,6 +23,11 @@ function PlayingSong (props) {
 		setPlaying(playVideoRef.current?.isPlaying)
 		playVideoPanelRef.current?.hide();
 	}
+	function setStates(){
+		setTitle(playVideoRef.current?.title);
+		setArtist(playVideoRef.current?.artist);
+		setPlaying(playVideoRef.current?.isPlaying); 
+	}
 	useEffect(() => {
 		function onEffect() {
 			playVideoPanelRef.current.show()
@@ -32,9 +37,6 @@ function PlayingSong (props) {
 		
 	}, []);
 
-	// console.log(playVideoRef.current?.artist)
-	// console.log(playVideoRef.current?.title)
-	// console.log(playVideoRef.current?.isPlaying)
 	return (
 		<View style={styles.container} >			
 			<View style={styles.audioPlayer}>
@@ -49,8 +51,8 @@ function PlayingSong (props) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={38} color='#424ed4'/>
 					</TouchableOpacity>
 			</View>
-			<SlidingUpPanel friction={1} snappingPoints={[0,850]} animatedValue={new Animated.Value(0)} ref={playVideoPanelRef} onBottomReached={()=>{setTitle(playVideoRef.current?.title);setArtist(playVideoRef.current?.artist);setPlaying(playVideoRef.current?.isPlaying); }}>
-					<PlayVideoScreen data={props.data} playlist={props.playlist} ref={playVideoRef} style={styles.video} panelref={hide.bind()}/>
+			<SlidingUpPanel friction={1} snappingPoints={[0,850]} animatedValue={new Animated.Value(0)} ref={playVideoPanelRef} onBottomReached={setStates} onDragEnd={setStates}>
+					<PlayVideoScreen data={props.data} playlist={props.playlist} ref={playVideoRef} style={styles.video} hide={hide.bind(this)}/>
 			</SlidingUpPanel>
 		</View>
 	)

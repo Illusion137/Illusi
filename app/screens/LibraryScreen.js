@@ -7,19 +7,26 @@ import { useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
-import {GenerateNewUID} from '../Illusive/IllusiveSearch'
+import {GenerateNewUID, decodeHex} from '../Illusive/IllusiveSearch'
 import * as DocumentPicker from 'react-native-document-picker'
 import BigList from 'react-native-big-list';
 import * as SQLActions from '../../SQLActions';
-import GLOBALS from '../../globals';
+import * as GLOBALS from '../../globals';
+import { getAllYoutubePlaylistsFromAccount } from '../Illusive/IllusiveAccountPlaylistFinder';
 
-import * as Illusive from '../Illusive/IllusivePlaylistResolver';
+const LibraryScreen = ({ navigation, route }) => {
+	const [allData, setAllData] = useState({charData: [], dataMask: [], numTracks: 0, editMode: 0})
 
+	function setEditMode(mode){
+		setAllData(
+			{
+				charData: allData.charData, 
+				dataMask: allData.dataMask, 
+				numTracks: allData.numTracks, 
+				editMode: mode
+			});
+	}
 
-const LibraryScreen = ({ navigation, route }) => {	
-	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
-
-	const [editMode, setEditMode] = useState(0)
 	let allAlphabetFastScrollLocations = [];
 	let currentPosition = 0;
 	let topScroll = 0;
@@ -29,7 +36,6 @@ const LibraryScreen = ({ navigation, route }) => {
 		if (DocumentPicker.isCancel(err)) {
 		  // User cancelled the picker, exit any dialogs or menus and move on
 		} else if (DocumentPicker.isInProgress(err)) {
-		  console.log('multiple pickers were opened, only the last will be considered')
 		} else {
 		  throw err
 		}
@@ -37,22 +43,17 @@ const LibraryScreen = ({ navigation, route }) => {
 	  
 	useEffect( () => {
 		(async function() {
-			// console.log(await SQLActions.getExistingVideoIdUID('myAhekAfwr0'))
-			// await Illusive.getSpotifyPlaylist("https://open.spotify.com/album/2etKCuXtTG2sBdNZxp3Qca");
-			// console.log(await Illusive.getSpotifyPlaylist("https://open.spotify.com/playlist/3nFbVGLRbBouJ2c9lApDF8"));
-			// console.log(await Illusive.getSpotifyPlaylist("https://open.spotify.com/playlist/7dRabwP32H3bBtPxr98uDg"));
-			// console.log(await Illusive.getAmazonMusicPlaylist("https://music.amazon.com/user-playlists/36c596e56c044997ac6a8aebdf9ff57csune"));
+			// await getAllYoutubePlaylistsFromAccount();
 
 			await SQLActions.fetchTrackData();
-			let tracks = GLOBALS.SQLTracks;
-			if (tracks == null || tracks == []){
-				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
+			if (GLOBALS.SQLTracks == null || GLOBALS.SQLTracks == []){
+				setAllData({charData: [], dataMask: [], numTracks: 0, editMode: allData.editMode || 0});
 				return;
 			}
 
 			let sectionsMap = new Map();
-			for(const track of tracks){
-				let char = track.video_name[0].toUpperCase()
+			for(const track of GLOBALS.SQLTracks){
+				let char = track.video_name[0].toUpperCase();
 				if(!(/[A-Z]/).test(char)){ char = '#' }
 				if( !sectionsMap.has(char) ){
 					sectionsMap.set(char, [track])
@@ -72,16 +73,17 @@ const LibraryScreen = ({ navigation, route }) => {
 					)
 					sectionChars.push(value[0])
 				}
-				setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
+				setAllData({charData: sectionChars, dataMask: sections, numTracks: GLOBALS.SQLTracks.length, editMode: allData.editMode || 0 })
 			})();
 	}, []);
 		
 	async function refreshData(dat){
 		if(dat == undefined){return}
+		GLOBALS.SQLTracks = dat;
 		
 		let sectionsMap = new Map();
 		for(const track of dat){
-			let char = track.video_name[0].toUpperCase()
+			let char = char = track.video_name[0].toUpperCase();
 			if(!(/[A-Z]/).test(char)){ char = '#' }
 			if( !sectionsMap.has(char) ){
 				sectionsMap.set(char, [track])
@@ -101,12 +103,12 @@ const LibraryScreen = ({ navigation, route }) => {
 			)
 			sectionChars.push(value[0])
 		}
-		setAllData({charData: sectionChars, dataMask: sections, baseData: dat, numTracks: dat.length})
+		setAllData({charData: sectionChars, dataMask: sections, numTracks: dat.length, editMode: allData.editMode || 0})
 	}
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={editMode} 
+	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
 	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 
@@ -114,8 +116,10 @@ const LibraryScreen = ({ navigation, route }) => {
 		if(route.params.setPlaying == undefined){
 			return
 		}
-		await fetchTrackData();
-		let tracks = GLOBALS.SQLTracks
+		await SQLActions.fetchTrackData();
+		let tracks = [...GLOBALS.SQLTracks]
+		if(tracks.filter((item) => item.downloaded || item.imported).length === 0)
+			return;
 		if (tracks == []){
 			return;
 		}
@@ -143,7 +147,7 @@ const LibraryScreen = ({ navigation, route }) => {
 				<Text style={styles.toptext}>My Library</Text>
 				<View style={styles.searchcontainer}>
 					<TouchableOpacity style={{bottom: 6, left: 6}} onPress={() => {
-						let eM = editMode + 1; 
+						let eM = allData.editMode + 1; 
 						if(eM > 2){
 							setEditMode(0)
 						}else{
@@ -151,19 +155,16 @@ const LibraryScreen = ({ navigation, route }) => {
 						}
 					}
 					}>
-						<MaterialCommunityIcons name="pencil" size={25} color={editMode == 0 ? colors.inactive : (editMode == 1 ? colors.primary : colors.red) }/>
+						<MaterialCommunityIcons name="pencil" size={25} color={allData.editMode == 0 ? colors.inactive : (allData.editMode == 1 ? colors.primary : colors.red) }/>
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
 					<TextInput placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={query => {
-						let newTracks = allData.baseData;
-						
-						let filteredTracks = newTracks.filter(track => 
-							(track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase()))
+						let filteredTracks = GLOBALS.SQLTracks.filter(track => 
+								(track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase()))
 						)
-						
 						let sectionsMap = new Map();
 						for(const track of filteredTracks){
-							let char = track.video_name[0].toUpperCase()
+							let char = track.video_name[0].toUpperCase();
 							if(!(/[A-Z]/).test(char)){ char = '#' }
 							if( !sectionsMap.has(char) ){
 								sectionsMap.set(char, [track])
@@ -183,7 +184,7 @@ const LibraryScreen = ({ navigation, route }) => {
 							)
 							sectionChars.push(value[0])
 						}
-						setAllData({charData: sectionChars, dataMask: sections, baseData: allData.baseData, numTracks: filteredTracks.length})
+						setAllData({charData: sectionChars, dataMask: sections, numTracks: filteredTracks.length, editMode: allData.editMode || 0})
 					}}></TextInput>
 					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => {
 						try {
@@ -208,6 +209,7 @@ const LibraryScreen = ({ navigation, route }) => {
 									"video_duration": Math.round(metaData.durationMillis/1000) || 0,
 									"media_URI": newFileURI,
 									"imported": true,
+									"saved": true,
 								}));
 							}
 							
@@ -243,7 +245,7 @@ const LibraryScreen = ({ navigation, route }) => {
 				footerHeight={100}
 				ref={listRef}
 				itemHeight={61}
-				onScrollToIndexFailed={() => {console.log('err')}}
+				onScrollToIndexFailed={() => {}}
 			/>
 			<View style={{backgroundColor: colors.background,
 					position: 'absolute',
@@ -254,7 +256,7 @@ const LibraryScreen = ({ navigation, route }) => {
 					borderRadius: 10,
 					width: 25
 				}}
-				hitSlop={{left: editMode === 0 ? 30 : 0, right: 20}}
+				hitSlop={{left: allData.editMode === 0 ? 20 : 0, right: 20}}
 				onStartShouldSetResponder={(ev) => true}
 				onTouchStart={(e) => {
 					topScroll = 380-(7*allData.charData.length);

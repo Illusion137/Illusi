@@ -74,7 +74,6 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		for (const id of searchData) {
 			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
 			let uid = GenerateNewUID(id[1].replaceAll('\\', ''))
-			// console.log(id)
 			pushData.push({
 					'video_id': id[10] || '',
 					'video_name': id[1].replaceAll('\\', '') || '',
@@ -87,7 +86,6 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		return {data: pushData}
 	}
 	catch(error){
-		console.log(error)
 	}
 	// let data = await usetube.searchVideo(searchTerms)
 	// const reData = []
@@ -157,7 +155,6 @@ async function ContinueYouTubeSearch(continueData){
 			},
 			continuation: continueData.token
 		})
-		// console.log(JSON.stringify(response.data))
 		let innerJSON = response.data.onResponseReceivedCommands[0].appendContinuationItemsAction.continuationItems;
 		let newToken = innerJSON[1].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
 
@@ -176,7 +173,6 @@ async function ContinueYouTubeSearch(continueData){
 			data: data
 		};
 	} catch (error) {
-		console.log(error)
 	}
 }
 export { GenerateNewUID, decodeHex, durationToInt };

@@ -9,6 +9,7 @@ import ProgressBar from '../../components/ProgressBar';
 import { GenerateNewUID } from '../../Illusive/IllusiveSearch';
 import * as SQLActions from '../../../SQLActions';
 import * as Illusive from '../../Illusive/IllusivePlaylistResolver';
+import BigList from 'react-native-big-list';
 
 function GetAddPlaylistFrom({route}) {
 	const inputRef = useRef()
@@ -118,7 +119,6 @@ function GetAddPlaylistFrom({route}) {
 					}
 				}
 				catch(error){
-					console.log(error);
 				}
 			})();
 	}, []);
@@ -132,7 +132,7 @@ function GetAddPlaylistFrom({route}) {
 			{badRequest && <Text style={styles.badRequestText}>Bad Request check the url again</Text>}
 			{/* { !isDoneSearching && <ProgressBar progressPercent={progress}/>} */}
 			{ isDoneSearching && <View style={styles.searchview}>
-				<FlatList data={data} renderItem={renderItem} removeClippedSubviews={true} initialNumToRender={1}/>
+				<BigList data={data} renderItem={renderItem} itemHeight={61} removeClippedSubviews={true} initialNumToRender={1}/>
 			</View>}
 		</View>
 	);

@@ -6,7 +6,7 @@ import TrackPlayer, {
     RepeatMode,
     Event
   } from 'react-native-track-player';
-import globals from './globals';
+import * as globals from './globals';
   
   export async function setupPlayer() {
     let isSetup = false;
@@ -87,31 +87,25 @@ import globals from './globals';
     })
     // TODO: Attach remote event handlers
     TrackPlayer.addEventListener(Event.RemotePause, async() => {
-      // console.log('Event.RemotePause');
       await TrackPlayer.pause();
     });
   
     TrackPlayer.addEventListener(Event.RemotePlay, async() => {
-      // console.log('Event.RemotePlay');
       await TrackPlayer.play();
     });
   
     TrackPlayer.addEventListener(Event.RemoteNext, async() => {
-      // console.log('Event.RemoteNext');
       globals.mutex = true;
       await TrackPlayer.skipToNext();
       globals.mutex = false;
     });
   
     TrackPlayer.addEventListener(Event.RemotePrevious, async() => {
-      // console.log('Event.RemotePrevious');
       globals.mutex = true;
       await TrackPlayer.skipToPrevious();
       globals.mutex = false;
     });
     TrackPlayer.addEventListener(Event.RemoteSeek, async(position) => {
-      // console.log('Event.RemoteSeek');
-      // console.log(position)
       await TrackPlayer.seekTo(position.position)
     })
     TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async(data) => {

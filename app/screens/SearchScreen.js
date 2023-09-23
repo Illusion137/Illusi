@@ -60,7 +60,6 @@ const SearchScreen = (props) => {
 			// const json = await response.json();
 			// setSearchingData(json[1]);
 		} catch (error) {
-			console.log(error);
 		}
 	}
 	async function Search(query) {
@@ -78,9 +77,8 @@ const SearchScreen = (props) => {
 				}
 			}
 			setData(search.data);
-		} catch (error) {console.log(error);}
+		} catch (error) {}
 		if(data == null){
-			console.log('Error in search');
 			return;
 		}
   	}
@@ -106,7 +104,6 @@ const SearchScreen = (props) => {
 					newVideo['saved'] = false;
 					newVideo['downloaded'] = false;
 					for(const video of allTracks){
-						// console.log(video.id + ':' + newVideo.id)
 						if(video.id == newVideo.id){
 							if(video.saved){
 								newVideo['saved'] = true;
@@ -122,9 +119,8 @@ const SearchScreen = (props) => {
 				let temp = data;
 				setData(temp.concat(search.data));
 			}
-		} catch (error) {console.log(error);}
+		} catch (error) {}
 		if(data == null){
-			console.log('Error in search');
 			return;
 		}
   	}
@@ -135,7 +131,6 @@ const SearchScreen = (props) => {
 			const json = await response.json();
 			setSearchingData(json[1]);
 		} catch (error) {
-			console.log(error);
 		}
 	}
 }

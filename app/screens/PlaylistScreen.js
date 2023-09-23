@@ -7,11 +7,12 @@ import SlidingUpPanel from 'rn-sliding-up-panel';
 import AddPlaylist from './subscreens/AddPlaylist';
 import Playlist from '../components/Playlist';
 import * as SQLActions from '../../SQLActions';
-import GLOBALS from '../../globals';
+import * as GLOBALS from '../../globals';
 
 import { useIsFocused } from '@react-navigation/native';
 
 function PlaylistScreen({ route }) {
+
 	const [data, setData] = useState([]);
 	const [recentAddData, setRecentAddData] = useState({title:'Recently Added', tracks: [], block: true});
 	const [downloadData, setDownloadData] = useState({title:'Downloaded', tracks: [], block: true});
@@ -50,8 +51,9 @@ function PlaylistScreen({ route }) {
 				setData([])
 				setData(orderedPlaylists)
 
-				setRecentAddData(GLOBALS.SQLTracks.reverse().slice(0,4))
-				setDownloadData(GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported).slice(0,4))
+				let t = [...GLOBALS.SQLTracks].reverse()
+				setRecentAddData(t.slice(0,4))
+				setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4))
 			}
 		})();
 	}, [isFocused]);
@@ -69,15 +71,16 @@ function PlaylistScreen({ route }) {
 		let orderedPlaylists = []
 		for(let i = 0; i < playlists.length; i++){
 			if(playlists[i].pinned)
-			orderedPlaylists.unshift(playlists[i])
-		else
-		orderedPlaylists.push(playlists[i])
+				orderedPlaylists.unshift(playlists[i])
+			else
+				orderedPlaylists.push(playlists[i])
 		}
 		setData([])
 		setData(orderedPlaylists)
 
-		setRecentAddData(GLOBALS.SQLTracks.reverse().slice(0,4))
-		setDownloadData(GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported).slice(0,4))
+		let t = [...GLOBALS.SQLTracks].reverse()
+		setRecentAddData(t.slice(0,4))
+		setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4))
 	}
 
 	const renderItem = ({ item }) => (
@@ -112,32 +115,33 @@ function PlaylistScreen({ route }) {
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Added</Text>
 						{recentAddData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-						<View>
+						{recentAddData.length > 0 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[2]?.video_id != undefined && <Image source={recentAddData[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[2]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[3]?.video_id != undefined && <Image source={recentAddData[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[3]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentAddData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[0]?.video_id != undefined && <Image source={recentAddData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[0]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[1]?.video_id != undefined && <Image source={recentAddData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[1]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
-                        </View>
+                        </View>}
 					</View>
 				</TouchableHighlight>
 				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Downloads", setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Downloads</Text>
 						{downloadData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
+						{downloadData.length > 0 && 
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {downloadData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[2]?.video_id != undefined && <Image source={downloadData[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[2]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[3]?.video_id != undefined && <Image source={downloadData[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[3]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {downloadData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${downloadData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[0]?.video_id != undefined && <Image source={downloadData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[0]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[1]?.video_id != undefined && <Image source={downloadData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[1]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
-                        </View>
+                        </View>}
 					</View>
 				</TouchableHighlight>
 				{/* <TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Recently Played", setPlaying:route.params?.setPlaying})}>

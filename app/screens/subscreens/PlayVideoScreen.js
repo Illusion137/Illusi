@@ -14,7 +14,7 @@ import * as Sharing from 'expo-sharing';
 import SongComponentQueue from '../../components/SongComponentQueue'
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import BigList from 'react-native-big-list';
-import globals from "../../../globals";
+import * as globals from "../../../globals";
 
 import TextTicker from 'react-native-text-ticker'
 import YouTube from 'react-native-youtube';
@@ -78,7 +78,6 @@ function PlayVideoScreen(props ,ref) {
 							 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uid, 
 							artwork: (track.video_id == "0" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
 					} catch (error) {
-						console.log(error)
 					}
 				}
 				await TrackPlayer.add(tracks)
@@ -96,8 +95,7 @@ function PlayVideoScreen(props ,ref) {
 	}, []);
 
 	useEffect(() => {
-
-		  const interval = setInterval(async () => {
+		const interval = setInterval(async () => {
 			if(isPlayerReady){
 				let curTrack = await TrackPlayer.getCurrentTrack()
 				setPlaying(await TrackPlayer.getState() == State.Playing ? true : false)
@@ -165,7 +163,7 @@ function PlayVideoScreen(props ,ref) {
 		<View style={styles.topcontainer}>
 			{/* HEADER ---------------------------------------------------- */}
 			<View style={styles.header}>
-				<TouchableOpacity style={{top:28}} onPress={()=>{playVideoPanelRef.current.hide()}}>
+				<TouchableOpacity style={{top:28}} onPress={()=>{props.hide()}}>
 					<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
 				</TouchableOpacity>
 				<View style={{alignItems: 'center'}}>
@@ -180,7 +178,7 @@ function PlayVideoScreen(props ,ref) {
 											try {
 												for(let i = 0; i < queue.length; i++ ){
 													mainQueue.push(
-														{video_id: queue[i].artwork.replace("https://img.youtube.com/vi/",'').replace("/mqdefault.jpg",''), 
+														{video_id: queue[i].artwork ? queue[i].artwork.replace("https://img.youtube.com/vi/",'').replace("/mqdefault.jpg",'') : "", 
 														video_creator: queue[i].artist,
 														video_name: queue[i].title
 													})
@@ -189,12 +187,11 @@ function PlayVideoScreen(props ,ref) {
 												mainQueue = mainQueue.slice(index)
 												setQueueData(mainQueue);
 											} catch (error) {
-												console.log(error)
 											}
 										} 
 										setQueueVisible(true);
 				}}>
-					<Fontisto name="play-list" size={15} color='#424ed4'/>
+					<Fontisto name="play-list" size={15} color={colors.primary}/>
 				</TouchableOpacity>
 			</View>
 			<View style={{height: 220, backgroundColor: '#121212'}}/>
@@ -204,8 +201,8 @@ function PlayVideoScreen(props ,ref) {
 						onValueChange={async(val) => {setTimeValue(val);
 							await TrackPlayer.seekTo(val[0]);
 						}}
-						thumbTintColor='#424ed4'
-						minimumTrackTintColor='#424ed4'
+						thumbTintColor={colors.primary}
+						minimumTrackTintColor={colors.primary}
 						maximumTrackTintColor='#DADADAA0'
 						thumbStyle={{width: 8, height: 8}}
 						thumbTouchSize={{width: 40, height: 40}}
@@ -233,32 +230,34 @@ function PlayVideoScreen(props ,ref) {
 			<View style={styles.container}>
 			{/* PLAY CONTROLS ----------------------------------------------------*/}
 				<View style={styles.playbackcontainer}>
-					<TouchableOpacity >
-						<Ionicons name="shuffle-sharp" size={35} color='#424ed4'/>
+					<TouchableOpacity onPress={() => {
+						//NOT IMPLEMENTED
+					}}>
+						<Ionicons name="shuffle-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
 							await TrackPlayer.skipToPrevious();
 						}}>
-						<Ionicons name="play-back-sharp" size={35} color='#424ed4'/>
+						<Ionicons name="play-back-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={togglePlaying}>
-						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color='#424ed4'/>
+						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
 							await TrackPlayer.skipToNext();
 					}}>
-						<Ionicons name="play-forward-sharp" size={35} color='#424ed4'/>
+						<Ionicons name="play-forward-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
 						let prevModeisTrack = repeatModeTrack;
 						let newModeisTrack = !prevModeisTrack;
 						setRepeatModeTrack(newModeisTrack)
-						if(newModeisTrack == false)
+						if(newModeisTrack)
 							await TrackPlayer.setRepeatMode(RepeatMode.Track)
 						else
 							await TrackPlayer.setRepeatMode(RepeatMode.Queue)
 						}}>
-						<Ionicons name="repeat-sharp" size={35} color={repeatModeTrack ? '#424ed4' : "#656565"}/>
+						<Ionicons name="repeat-sharp" size={35} color={repeatModeTrack ? colors.primary : "#656565"}/>
 					</TouchableOpacity>
 				</View>
 			{/* VOLUME CONTROLS ----------------------------------------------------*/}
@@ -267,10 +266,10 @@ function PlayVideoScreen(props ,ref) {
 					<View style={styles.volumeslidercontainer}>
 						<Slider value={audioValue}
 								onValueChange={async(value) => {setAudioValue(value[0].toFixed()); await TrackPlayer.setVolume(value[0]/100) }}
-								thumbTintColor='#424ed4'
+								thumbTintColor={colors.primary}
 								thumbStyle={{width: 15, height: 15}}
 								thumbTouchSize={{width: 40, height: 40}}
-								minimumTrackTintColor='#424ed4'
+								minimumTrackTintColor={colors.primary}
 								maximumTrackTintColor='#DADADA40'
 								maximumValue={100}
 						/>
@@ -284,18 +283,18 @@ function PlayVideoScreen(props ,ref) {
 			{/* EXTRA CONTROLS ----------------------------------------------------*/}
 				<View style={{flexDirection:'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15}}>
 					<TouchableOpacity>
-						<View style={{backgroundColor:'#424ed4', height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center'}}>
+						<View style={{backgroundColor:colors.primary, height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center'}}>
 							<Text>+ Add</Text>
 						</View>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => {setEqSettingsVisible(true)}}>
-						<SimpleLineIcons name="equalizer" size={28} color='#424ed4'/>
+						<SimpleLineIcons name="equalizer" size={28} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity>
-						<Ionicons name="mic-outline" size={28} color='#424ed4'/>
+						<Ionicons name="mic-outline" size={28} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={onShare}>
-						<Ionicons name="share-outline" size={28} color='#424ed4'/>
+						<Ionicons name="share-outline" size={28} color={colors.primary}/>
 					</TouchableOpacity>
 				</View>
 			</View>
@@ -340,10 +339,10 @@ function PlayVideoScreen(props ,ref) {
 							<Slider
 									value={rateValue}
 									onValueChange={async(value) => { setRateValue(value[0].toFixed()); await TrackPlayer.setRate((value[0].toFixed()/100) * 2) }}
-									thumbTintColor='#424ed4'
+									thumbTintColor={colors.primary}
 									thumbStyle={{width: 15, height: 15}}
 									thumbTouchSize={{width: 40, height: 40}}
-									minimumTrackTintColor='#424ed4'
+									minimumTrackTintColor={colors.primary}
 									maximumTrackTintColor='#DADADA40'
 									maximumValue={100}
 							/>
