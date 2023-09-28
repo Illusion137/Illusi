@@ -14,11 +14,10 @@ import { useIsFocused } from '@react-navigation/native';
 function PlaylistScreen({ route }) {
 
 	const [data, setData] = useState([]);
-	const [recentAddData, setRecentAddData] = useState({title:'Recently Added', tracks: [], block: true});
-	const [downloadData, setDownloadData] = useState({title:'Downloaded', tracks: [], block: true});
-	const [recentPlayedData, setRecentPlayedData] = useState({title:'Recently Played', tracks: [], block: true});
-	const [playlistNames, setPlaylistNames] = useState([]);
-
+	const [recentAddData, setRecentAddData] = useState([]);
+	const [downloadData, setDownloadData] = useState([]);
+	const [recentPlayedData, setRecentPlayedData] = useState([]);
+	
 	const addPlaylistPanelRef = useRef();
 	const addPlaylistRef = useRef();
 
@@ -54,13 +53,17 @@ function PlaylistScreen({ route }) {
 				let t = [...GLOBALS.SQLTracks].reverse()
 				setRecentAddData(t.slice(0,4))
 				setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4))
+
+				// setRecentPlayedData(await SQLActions.getRecentlyPlayedData());
 			}
 		})();
 	}, [isFocused]);
 
-	async function refreshData(){
+	async function refreshData(searchVal = undefined){
 		let playlists = await SQLActions.getAllPlaylists();
-		
+		if(searchVal != '' && searchVal != null && searchVal != undefined)
+			playlists = playlists.filter(item => item.playlist_name.toLowerCase().includes(searchVal.toLowerCase()))
+
 		for(let i = 0; i < playlists.length; i++){
 			let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name.replaceAll(' ', '_'));
 			
@@ -93,7 +96,7 @@ function PlaylistScreen({ route }) {
 			<View style={styles.header}>
 				<View style={{flexDirection: 'row', bottom: 20, alignItems: 'center'}}>
 					<TouchableOpacity>
-						<Ionicons name="swap-vertical-sharp" size={25} color='#424ed4' style={{right:110}}/>
+						<Ionicons name="swap-vertical-sharp" size={25} color={colors.primary} style={{right:110}}/>
 					</TouchableOpacity>
 					<Text style={styles.toptext}>Playlists</Text>
 					<TouchableOpacity onPress={() => { 
@@ -102,12 +105,12 @@ function PlaylistScreen({ route }) {
 								addPlaylistRef.current.focusInput(); 
 							});
 						 }}>
-						<Ionicons name="add" size={25} color='#424ed4' style={{left: 110}}/>
+						<Ionicons name="add" size={25} color={colors.primary} style={{left: 110}}/>
 					</TouchableOpacity>
 				</View>
 				<View style={styles.searchcontainer}>
 					<Ionicons name="search" size={22} color='#808080' style={styles.icon}/>
-					<TextInput placeholder='Search Playlists' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={() => {}}></TextInput>
+					<TextInput placeholder='Search Playlists' placeholderTextColor='#808080' style={styles.searchinput} onChangeText={(val) => {refreshData(val)}}></TextInput>
 				</View>
 			</View>
 			<View style={styles.defaultContainer}>
@@ -144,11 +147,11 @@ function PlaylistScreen({ route }) {
                         </View>}
 					</View>
 				</TouchableHighlight>
-				{/* <TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Recently Played", setPlaying:route.params?.setPlaying})}>
+				<TouchableHighlight style={styles.defaultPlaylistButton} onPress={async() => navigation.navigate('PlaylistSubScreen', {'title': "Recently Played", setPlaying:route.params?.setPlaying})}>
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Played</Text>
 						{recentPlayedData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-						<View>
+						{recentPlayedData.length > 0 && <View>
                             <View style={{flexDirection: 'row'}}>
                                 {recentPlayedData[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[2].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
                                 {recentPlayedData[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[3].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
@@ -157,10 +160,9 @@ function PlaylistScreen({ route }) {
                                 {recentPlayedData[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[0].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
                                 {recentPlayedData[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${recentPlayedData[1].video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
-                        </View>
-
+                        </View>}
 					</View>
-				</TouchableHighlight> */}
+				</TouchableHighlight>
 			</View>
 			<View style={{width: '100%', height: 1, backgroundColor: '#808080', marginLeft: 30, marginRight: 30}}/>
 			<FlatList style={{height: '71%'}} data={data} renderItem={renderItem}/>
@@ -171,7 +173,7 @@ function PlaylistScreen({ route }) {
 			{/* <Playlist title={'Songs'} length={200} pinned={true}/> */}
 
 			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={addPlaylistPanelRef} animatedValue={new Animated.Value(0)}>
-				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={refreshData.bind(this)} allPlaylistNames={playlistNames}/>
+				<AddPlaylist ref={addPlaylistRef} panelref={hide.bind()} refreshData={refreshData.bind(this)}/>
 			</SlidingUpPanel>
 		</View>
 	);
@@ -250,7 +252,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	notfound:{
 		width:110,
 		height:110,
-		borderRadius: 5
+		borderRadius: 5,
 	},
 
 });

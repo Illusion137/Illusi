@@ -13,6 +13,9 @@ import BigList from 'react-native-big-list';
 import * as SQLActions from '../../SQLActions';
 import * as GLOBALS from '../../globals';
 import { getAllYoutubePlaylistsFromAccount } from '../Illusive/IllusiveAccountPlaylistFinder';
+import axios from 'axios';
+import { getYoutubeMusicPlaylist } from '../Illusive/IllusivePlaylistResolver';
+import * as Prefs from '../../Preferences';
 
 const LibraryScreen = ({ navigation, route }) => {
 	const [allData, setAllData] = useState({charData: [], dataMask: [], numTracks: 0, editMode: 0})
@@ -40,11 +43,13 @@ const LibraryScreen = ({ navigation, route }) => {
 		  throw err
 		}
 	}
-	  
 	useEffect( () => {
 		(async function() {
-			// await getAllYoutubePlaylistsFromAccount();
-
+			if(!GLOBALS.deletedCacheMutex && Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
+				GLOBALS.deletedCacheMutex = true
+				await SQLActions.deleteUnusedCachedThumbnails();
+			}
+			
 			await SQLActions.fetchTrackData();
 			if (GLOBALS.SQLTracks == null || GLOBALS.SQLTracks == []){
 				setAllData({charData: [], dataMask: [], numTracks: 0, editMode: allData.editMode || 0});
@@ -108,7 +113,7 @@ const LibraryScreen = ({ navigation, route }) => {
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
+	const renderItem = ({item}) => <SongComponent artwork={item.artwork} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
 	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 
@@ -190,6 +195,8 @@ const LibraryScreen = ({ navigation, route }) => {
 						try {
 							const audioFiles = await DocumentPicker.pickMultiple({type: DocumentPicker.types.audio, copyTo: 'documentDirectory'})
 
+							let allPromiseTracks = []
+
 							for(const audioFile of audioFiles){	
 								let fileName = audioFile.name.replace(/\..+/, '') || ""						
 								let uid = GenerateNewUID(fileName)
@@ -201,7 +208,7 @@ const LibraryScreen = ({ navigation, route }) => {
 								let metaData = await soundTemp.getStatusAsync();
 								await soundTemp.unloadAsync()
 
-								await SQLActions.insertTrackData(new SQLActions.Track({
+								allPromiseTracks.push(SQLActions.insertTrackData(new SQLActions.Track({
 									"uid": uid,
 									"video_id": "0",
 									"video_name": fileName,
@@ -210,8 +217,10 @@ const LibraryScreen = ({ navigation, route }) => {
 									"media_URI": newFileURI,
 									"imported": true,
 									"saved": true,
-								}));
+								})));
 							}
+
+							await Promise.all(allPromiseTracks);
 							
 							await refreshData(GLOBALS.SQLTracks)
 							
@@ -246,6 +255,7 @@ const LibraryScreen = ({ navigation, route }) => {
 				ref={listRef}
 				itemHeight={61}
 				onScrollToIndexFailed={() => {}}
+				stickySectionHeadersEnabled={false}
 			/>
 			<View style={{backgroundColor: colors.background,
 					position: 'absolute',

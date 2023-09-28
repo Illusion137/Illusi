@@ -29,8 +29,8 @@ function PlayVideoScreen(props ,ref) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const data = props.data.filter(item=>item.downloaded || item.imported);
-	// const data = props.data;
+	// const data = props.data.filter(item=>item.downloaded || item.imported);
+	const data = props.data;
 	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	const [queueData, setQueueData] = useState([]);
@@ -49,6 +49,10 @@ function PlayVideoScreen(props ,ref) {
 	const [title, setTitle] = useState(data[0]?.video_name);
 	const [artist, setArtist] = useState(data[0]?.video_creator);
 	const [maxDuration, setMaxDuration] = useState(data[0]?.video_duration);
+	
+	// const [title, setTitle] = useState("test");
+	// const [artist, setArtist] = useState("testArtists");
+	// const [maxDuration, setMaxDuration] = useState(148);
 	
 	const [isPlayerReady, setIsPlayerReady] = useState(false)
 
@@ -71,27 +75,15 @@ function PlayVideoScreen(props ,ref) {
 			await TrackPlayer.reset();
 			const queue = await TrackPlayer.getQueue();
 			if(isSetup && queue.length <= 0) {
-				const tracks = []
-				for(const track of data){
-					try {
-						tracks.push({url: FileSystem.documentDirectory + track.media_URI,
-							 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uid, 
-							artwork: (track.video_id == "0" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
-					} catch (error) {
-					}
-				}
-				await TrackPlayer.add(tracks)
+				globals.playingTracksIndex = 0; 
+				globals.playingTracks = data
+				await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[0]))
 			}
 			setIsPlayerReady(isSetup);
 			TrackPlayer.play()
-			// TrackPlayer.add({ title: "Alice in Paris 30 mins", artist: "Seycara", duration: 1800, id: "Alice in Paris - 4253895", 
-							//   artwork: `https://img.youtube.com/vi/ui-HCqcbxQ0/mqdefault.jpg`})
 	  	}
   
 	  setup();
-		// (async function() {
-			// await setup();
-		// })
 	}, []);
 
 	useEffect(() => {
@@ -173,20 +165,23 @@ function PlayVideoScreen(props ,ref) {
 				<TouchableOpacity style={{top:28}} onPress={async() => {
 										if(globals.IsPlaying){
 											// setDraggable(false)
-											let queue = await TrackPlayer.getQueue();
+											let index = await TrackPlayer.getCurrentTrack();
+											let queue = globals.playingTracks.slice(index);
 											let mainQueue = []
+											// console.log(mainQueue)
 											try {
 												for(let i = 0; i < queue.length; i++ ){
 													mainQueue.push(
-														{video_id: queue[i].artwork ? queue[i].artwork.replace("https://img.youtube.com/vi/",'').replace("/mqdefault.jpg",'') : "", 
-														video_creator: queue[i].artist,
-														video_name: queue[i].title
+														{video_id: queue[i].video_id, 
+														video_creator: queue[i].video_creator,
+														video_name: queue[i].video_name
 													})
 												}
-												let index = await TrackPlayer.getCurrentTrack();
-												mainQueue = mainQueue.slice(index)
+												// let index = await TrackPlayer.getCurrentTrack();
+												// mainQueue = mainQueue.slice(index)
 												setQueueData(mainQueue);
 											} catch (error) {
+												console.log(error)
 											}
 										} 
 										setQueueVisible(true);
@@ -244,7 +239,16 @@ function PlayVideoScreen(props ,ref) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
+						let index = await TrackPlayer.getCurrentTrack();
+						if(!globals.addTrackIntoQueueTracksMutex && index == globals.playingTracksIndex && globals.playingTracksIndex + 1 < globals.playingTracks.length ){
+							globals.addTrackIntoQueueTracksMutex = true;
+							globals.playingTracksIndex++;
+							await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[globals.playingTracksIndex]));
 							await TrackPlayer.skipToNext();
+							globals.addTrackIntoQueueTracksMutex = false;
+						} else if(index < globals.playingTracksIndex){
+							await TrackPlayer.skipToNext();
+						}
 					}}>
 						<Ionicons name="play-forward-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>

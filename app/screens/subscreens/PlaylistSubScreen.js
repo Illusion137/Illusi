@@ -65,11 +65,11 @@ function PlaylistSubScreen({route}){
                 let trackData = [];
                 if(route.params.title == "Recently Added"){
                     let t = [...GLOBALS.SQLTracks]
-                    trackData = t.reverse()
+                    trackData = t.reverse().slice(0,200);
                 }
                 else if(route.params.title == "Downloads"){
                     let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
-                    trackData = t.reverse();
+                    trackData = t.reverse().slice(0,200);
                 }
                 else if(route.params.title == "Recently Played"){}
                 else{
@@ -126,7 +126,7 @@ function PlaylistSubScreen({route}){
         }
     } 
 	const renderTracks = ({ item }) => (
-		<SongComponent imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
+		<SongComponent artwork={item.artwork} imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} duration={item.video_duration} downloaded={item.downloaded} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
 	);
     function playShuffle(dat){
         if( dat.filter((item) => item.downloaded || item.imported).length === 0)
@@ -160,16 +160,17 @@ function PlaylistSubScreen({route}){
                 <BigList style={{backgroundColor: colors.background}} headerHeight={400} ListHeaderComponent={(
                     <View style={styles.playlistListHeader}>
                         {data.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
-                        <View>
+                        {data.length !== 0 && data.length < 4 && <Image source={{uri: `https://img.youtube.com/vi/${data[0]?.video_id}/mqdefault.jpg`}} style={{width: 150, height: 150}}/>}
+                        {data.length >= 4 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[2]?.video_id != undefined && <Image source={data[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[3]?.video_id != undefined && <Image source={data[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[0]?.video_id != undefined && <Image source={data[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[0]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[1]?.video_id != undefined && <Image source={data[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[1]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[0]?.video_id != undefined && <Image source={data[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[1]?.video_id != undefined && <Image source={data[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[2]?.video_id != undefined && <Image source={data[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[2]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[3]?.video_id != undefined && <Image source={data[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[3]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
                             </View>
-                        </View>
+                        </View>}
                         <View style={{top: 15, alignItems: 'center'}}>
                             <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{route.params.title}</Text>
                             <Text style={{color: '#808080', fontSize: 12}}>{data.length} tracks • {duration}</Text>

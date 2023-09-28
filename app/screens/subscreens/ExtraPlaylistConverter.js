@@ -5,12 +5,18 @@ import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import * as SQLActions from '../../../SQLActions';
 import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import * as NetInfo from '@react-native-community/netinfo'
+import * as EImage from 'expo-image'
+import * as IMGPickExpo from 'expo-image-picker'
+import * as NetExpo from 'expo-network'
+import * as CelluarExpo from 'expo-cellular'
+import * as BlurExpo from 'expo-blur'
+import * as AVExpo from 'expo-av'
 
-function ExtraBatchDownloaderScreen({route}) {
+function ExtraPlaylistConverter({route}) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	
-	const [downloadingTracksData, setDownloadingTracksData] = React.useState([...GLOBALS.DOWNLOADING]);
 	
 	const confirmDownloadPlaylistAlert = () =>
     Alert.alert(
@@ -37,43 +43,8 @@ function ExtraBatchDownloaderScreen({route}) {
 		} } ]
 	);
 
-	useEffect(() => {
-		(async function() {
-			let playlists_names = await SQLActions.getAllPlaylists();
-			let pushData = []
-			pushData.push({key: '0', value: 'Library'})
-			for (let i = 0; i < playlists_names.length; i++) {
-				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
-			}
-			setPlaylistDownloadData(pushData)
-		})()
-		const interval = setInterval(() => {
-			setDownloadingTracksData([...GLOBALS.DOWNLOADING]);
-        }, 200);
-  
-        //Clearing the interval
-        return () => clearInterval(interval);
-	}, []);
 	const [selected, setSelected] = React.useState("");
 	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
-	
-	
-	const renderHeaderItem = ({item}) => <>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloadingTracksData.length} Tracks Remaining</Text>
-		<View style={{height: 8}}/>
-		<View style={styles.linelong}/>
-		<View style={{height: 30}}/>
-	</>;
-	const renderItem = ({item}) => 
-	<>
-		<View style={{height:8}}/>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>
-			{item.uid.replace(/-.+/,'')}: {item.progress}%
-		</Text>
-		<View style={{height:8}}/>
-		<View style={styles.linelong}/>
-	</>;
-
 
 	return(
 		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
@@ -83,8 +54,8 @@ function ExtraBatchDownloaderScreen({route}) {
 					save="value"
 					arrowicon={<></>}
 					searchicon={<></>}
-					searchPlaceholder={"Select Playlist"}
-					placeholder='Select Playlist'
+					searchPlaceholder={"Select Illusi Playlist"}
+					placeholder='Select Illusi Playlist'
 					inputStyles={{backgroundColor: colors.track, color: 'white'}}
 					boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
 					dropdownStyles={{backgroundColor: colors.track}}
@@ -92,11 +63,11 @@ function ExtraBatchDownloaderScreen({route}) {
 				/>
 				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
 				<View style={{height: 15}}/>
-				<FlatList 
-					data={downloadingTracksData} 
-					ListHeaderComponent={ renderHeaderItem }
-					renderItem={renderItem}
-				/>
+				{/* <SegmentedControl 
+					values={['One', 'Two']}
+					selectedIndex={0}
+					onChange={(event) => {}}
+				/> */}
 		</View>
 	);
 }
@@ -115,4 +86,4 @@ const themeStyles = (colors) => StyleSheet.create({
 		backgroundColor: 'white',
 	},
 });
-export default ExtraBatchDownloaderScreen;
+export default ExtraPlaylistConverter;

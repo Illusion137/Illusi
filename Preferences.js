@@ -34,23 +34,40 @@ export async function fetchPrefs(){
     prefs = JSON.parse(await AsyncStorage.getItem("Prefs"));
 }
 
+export function hasYouTubeCookies(){
+    return prefs.external_services.youtube_cookies.includes('LOGIN_INFO')
+} 
+export function hasYouTubeMusicCookies(){
+    return prefs.external_services.youtube_music_cookies.includes('LOGIN_INFO')
+}
+export function hasSpotifyCookies(){
+    return prefs.external_services.spotify_cookies.includes('LOGIN_INFO')
+} 
+export function hasAmazonCookies(){
+    return prefs.external_services.amazon_music_cookies.includes('LOGIN_INFO')
+} 
+
 function formatCookies(cookieData){
-    //await CookieManager.get("https://m.youtube.com/");
-    let cookieKeys = []
-    let formatedCookies = ""
-    for (var key in cookieData) {
-        cookieKeys.push(key);
+    try {
+        //await CookieManager.get("https://m.youtube.com/");
+        let cookieKeys = []
+        let formatedCookies = ""
+        for (var key in cookieData) {
+            cookieKeys.push(key);
+        }
+        cookieKeys.forEach((key) => {
+            formatedCookies += `${key}=${cookieData[key].value}; `;
+        })
+        formatedCookies = formatedCookies.slice(0, formatedCookies.length-2)
+    
+        return formatedCookies;
+    
+        // let response = await axios({'url': "https://www.youtube.com/playlist?list=LL", 'method': 'GET', 'headers': {
+        //     'Cookies': formatedCookies
+        // }})
+    } catch (error) {
+        
     }
-    cookieKeys.forEach((key) => {
-        formatedCookies += `${key}=${cookieData[key].value}; `;
-    })
-    formatedCookies = formatedCookies.slice(0, formatedCookies.length-2)
-
-    return formatedCookies;
-
-    // let response = await axios({'url': "https://www.youtube.com/playlist?list=LL", 'method': 'GET', 'headers': {
-    //     'Cookies': formatedCookies
-    // }})
 }
 
 export async function setCookies(unformatedCookies, service){
@@ -64,6 +81,17 @@ export async function fetchAutoLinkedPlaylists(){
     for(const linkedPlaylist of prefs.linker.linked_playlists){
 
     }
+}
+export async function setSettingsNumber(key, value){
+    prefs.settings[plainTextToSnakeCase(key)] = value
+    await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
+}
+export async function setSettingsDropdown(){
+    await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
+}
+export async function setSettingsToggle(preKey, key, value){
+    prefs[preKey][plainTextToSnakeCase(key)] = value
+    await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
 }
 export function getExperimentalFeatureEnabled(feature){
     return prefs.settings.enable_experimental_features && prefs.experimental_features[feature]
@@ -85,11 +113,15 @@ function getDefaultPrefs(){
             'download_queue_max_length': 3,
             'always_shuffle': true,
             'show_track_duration': false,
+            'ask_where_to_save': false,
+            'edit_mode_disables_playing': false,
+            'enable_dev_features': false,
             'enable_experimental_features': false,
         },
         'sleep_timer_time': 0,
         'external_services': {
             'youtube_cookies' : '',
+            'youtube_music_cookies' : '',
             'spotify_cookies' : '',
             'amazon_music_cookies' : '',
         },
@@ -128,15 +160,42 @@ function getDefaultPrefs(){
         }
     }
 } 
+function plainTextToSnakeCase(text){
+    text = text.replaceAll(' ','_').toLowerCase()
+    return text
+}
+export function snakeCaseToPlainText(text){
+    text = text.replaceAll('_',' ')
+    const words = text.split(" ");
+    for (let i = 0; i < words.length; i++) {
+        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+    }
+    return words.join(" ");
+}
 
 export async function resetPrefs(){ 
     prefs = getDefaultPrefs();
     await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
 }
 
+function recUpdatePrefsSchema(obj, prevObjs = []){
+    let prefCopy = pref;
+
+	let entries = Object.entries(obj);
+	for(const entry of entries){
+		console.log(entry[0], entry[1])
+		if(typeof(entry[1]) == "object" && Object.entries(entry[1]).length > 0){
+            let pObjs = []
+            for(const o of prevObjs){
+                pObjs.push(o)
+            }
+            pObjs.push(entry[0])
+            recUpdatePrefsSchema(obj[entry[0]],pObjs)
+		}
+	}
+}
+
 export async function deepComparePrefsSchemaAndUpdatePrefsSchema(){
-    let defaultPrefs = getDefaultPrefs();
-    let prefsCopy = prefs;
-    prefs = defaultPrefs;
-    
+    // let defaultPrefs = getDefaultPrefs();
+    // recUpdatePrefsSchema(defaultPrefs)
 }

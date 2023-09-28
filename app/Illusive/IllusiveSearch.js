@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
 
 function GenerateNewUID(prefixName) {
-	return prefixName.replaceAll(/[^a-zA-Z]/g,'') + ' - ' + new Date().getTime().toString(36).substring(2, 15) +
+	return prefixName.replaceAll(/[^a-zA-Z0-9]/g,'') + '-' + new Date().getTime().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15);
 }
@@ -11,6 +11,7 @@ function decodeHex(hex) {
 	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
   }
 function durationToInt(durationString){
+	console.log(durationString)
 	let duration = 0;
 	let splitDuration = durationString.split(',')
 	
@@ -25,10 +26,21 @@ function durationToInt(durationString){
 			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] )
 		}
 	}
+	console.log(duration)
 
 	return duration
 }
 
+function parseYTDuration(textDur){
+    let textDurSplit = textDur.split(':')
+    let j = 0;
+    let duration = 0;
+    for(let i = textDurSplit.length-1; i >= 0; i--){
+        duration += (parseInt(textDurSplit[i]) * Math.pow(60,j))
+        j++;
+    }
+    return duration
+}
 
 async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns first video
 	if(searchTerms.trim === ''){
@@ -63,29 +75,50 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		const raw = dataRegex.exec(body)?.[1] || '{}'
 		const apikey = apiRegex.exec(body)[1] || ''
 		
-		let data = JSON.parse(decodeHex(raw))
-		data.apikey = apikey
-		let apiKey = data.apiKey
-
-		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( [0-9,]+ views?.+?ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+)(\d+ (hour|minute|second|hours|minutes|seconds)))(.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
-
+		let ytInitialData = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,'').replaceAll('\n',''))
+     
+		let contents = ytInitialData.contents.sectionListRenderer.contents[0].itemSectionRenderer.contents
+		console.log(JSON.stringify(contents))
+		ytInitialData.apikey = apikey
+		let apiKey = ytInitialData.apiKey
+		// let searchData = [...JSON.stringify(ytInitialData).matchAll(/"videoId":"(.+?)",.+?TimeStatusRenderer":.+?\[{"text":"(.+?)"}.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago/g)]
+//"videoId":"(.+?)",.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago.+?lengthText.+?simpleText":"(.+?)"
 		const pushData = []
 		
-		for (const id of searchData) {
-			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
-			let uid = GenerateNewUID(id[1].replaceAll('\\', ''))
-			pushData.push({
-					'video_id': id[10] || '',
-					'video_name': id[1].replaceAll('\\', '') || '',
-					'video_creator': id[2].replaceAll('\\', '') || '',
-					'video_duration': durationToInt(id[5]) || '',
-					'uid': uid
+		for (const video of contents) {
+			try {				
+				let uid = GenerateNewUID(video.videoWithContextRenderer.headline.runs[0].text)
+				pushData.push({
+				'video_id': video.videoWithContextRenderer.videoId,
+				'video_name': video.videoWithContextRenderer.headline.runs[0].text,
+				'video_creator': video.videoWithContextRenderer.shortBylineText.runs[0].text,
+				'video_duration': parseYTDuration(video.videoWithContextRenderer.lengthText.runs[0].text),
+				'uid': uid
 				})
+			} catch (error) {
+			}
 		}
+
+		// for (const id of searchData) {
+		// 	try {				
+		// 		let uid = GenerateNewUID(id[3].replaceAll('\\', ''))
+		// 		pushData.push({
+		// 		'video_id': id[1] || '',
+		// 		'video_name': id[3].replaceAll('\\', '') || '',
+		// 		'video_creator': id[4].replaceAll('\\', '') || '',
+		// 		'video_duration': parseYTDuration(id[2]) || 0,
+		// 		'uid': uid
+		// 		})
+		// 	} catch (error) {
+		// 		console.log(error)
+		// 	}
+		// }
 
 		return {data: pushData}
 	}
 	catch(error){
+		console.log(error)
+		return {data: []}
 	}
 	// let data = await usetube.searchVideo(searchTerms)
 	// const reData = []

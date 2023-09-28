@@ -1,6 +1,7 @@
 import axios from "axios"; //HTTP Request Library
 import SearchYouTube, { GenerateNewUID, decodeHex, durationToInt } from "./IllusiveSearch";
 import * as SQLActions from "../../SQLActions";
+import * as Prefs from "../../Preferences";
 
 function getRandomIndex(max) {
     max = Math.floor(max);
@@ -42,7 +43,7 @@ export async function getMusiPlaylist(url){
     return parsed;
 }
 
-async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey){
+async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey, client){
     try {
 
         let videos = [];
@@ -56,134 +57,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
         }
         let postURL = `https://www.youtube.com/youtubei/v1/browse?key=${innertube_api_key}&prettyPrint=false`
         let postData = {
-            'context': {
-                "client": {
-                  "hl": "en",
-                  "gl": "US",
-                  "remoteHost": "70.190.160.240",
-                  "deviceMake": "",
-                  "deviceModel": "",
-                  "visitorData": "CgtVbmR5bk9HMFZ1ayib9JSoBjIICgJVUxICGgA%3D",
-                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36,gzip(gfe)",
-                  "clientName": "WEB",
-                  "clientVersion": "2.20230914.04.00",
-                  "osName": "Windows",
-                  "osVersion": "10.0",
-                  "originalUrl": "https://www.youtube.com/playlist?list=PLnIB0XeUqT-hlVYRC3mf1Yc1tSuOwmEf2",
-                  "platform": "DESKTOP",
-                  "clientFormFactor": "UNKNOWN_FORM_FACTOR",
-                  "configInfo": {
-                    "appInstallData": "CJv0lKgGEJfn_hIQieiuBRDnuq8FEO6irwUQ1eWvBRDi1K4FENnJrwUQuIuuBRDT4a8FEIjjrwUQx-avBRClwv4SEOSz_hIQ5OavBRC15q8FEMzfrgUQu-uvBRDd6P4SEOrDrwUQ65OuBRDUoa8FEIzLrwUQp-r-EhCst68FEL22rgUQhuqvBRCm7P4SEPOorwUQg9-vBRD65P4SELrSrwUQvMz-EhDW6q8FEN3rrwUQxN2vBRDr6P4SELTJrwUQtaavBRCj3q8FENuvrwUQt-r-EhD6vq8FEMyu_hIQlNn-EhDj8K8FELPr_hIQv-avBRDs4a8F"
-                  },
-                  "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
-                  "timeZone": "America/Phoenix",
-                  "browserName": "Chrome",
-                  "browserVersion": "116.0.0.0",
-                  "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                  "deviceExperimentId": "ChxOekkzT1RJNE9ESTJNRFV3TlRneU56QXlPQT09EJv0lKgGGJv0lKgG",
-                  "screenWidthPoints": 727,
-                  "screenHeightPoints": 923,
-                  "screenPixelDensity": 1,
-                  "screenDensityFloat": 1,
-                  "utcOffsetMinutes": -420,
-                  "connectionType": "CONN_CELLULAR_4G",
-                  "memoryTotalKbytes": "8000000",
-                  "mainAppWebInfo": {
-                    "graftUrl": "https://www.youtube.com/playlist?list=PLnIB0XeUqT-hlVYRC3mf1Yc1tSuOwmEf2",
-                    "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_CAN_BE_INSTALLED",
-                    "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                    "isWebNativeShareAvailable": true
-                  }
-                },
-                "user": {
-                  "lockedSafetyMode": false
-                },
-                "request": {
-                  "useSsl": true,
-                  "internalExperimentFlags": [
-                    {
-                      "key": "force_enter_once_in_webview",
-                      "value": "true"
-                    }
-                  ],
-                  "consistencyTokenJars": []
-                },
-                "clickTracking": {
-                  "clickTrackingParams": "CEAQui8iEwiz5YePsK6BAxVwT0wIHRaJDn8="
-                },
-                "adSignalsInfo": {
-                  "params": [
-                    {
-                      "key": "dt",
-                      "value": "1694841370403"
-                    },
-                    {
-                      "key": "flash",
-                      "value": "0"
-                    },
-                    {
-                      "key": "frm",
-                      "value": "0"
-                    },
-                    {
-                      "key": "u_tz",
-                      "value": "-420"
-                    },
-                    {
-                      "key": "u_his",
-                      "value": "3"
-                    },
-                    {
-                      "key": "u_h",
-                      "value": "1080"
-                    },
-                    {
-                      "key": "u_w",
-                      "value": "1920"
-                    },
-                    {
-                      "key": "u_ah",
-                      "value": "1032"
-                    },
-                    {
-                      "key": "u_aw",
-                      "value": "1920"
-                    },
-                    {
-                      "key": "u_cd",
-                      "value": "24"
-                    },
-                    {
-                      "key": "bc",
-                      "value": "31"
-                    },
-                    {
-                      "key": "bih",
-                      "value": "923"
-                    },
-                    {
-                      "key": "biw",
-                      "value": "710"
-                    },
-                    {
-                      "key": "brdim",
-                      "value": "2560,81,2560,81,1920,81,1920,1032,727,923"
-                    },
-                    {
-                      "key": "vis",
-                      "value": "1"
-                    },
-                    {
-                      "key": "wgl",
-                      "value": "true"
-                    },
-                    {
-                      "key": "ca_type",
-                      "value": "image"
-                    }
-                  ]
-                }
-              },
+            'context': client,
             'continuation' : continuationKey
         }
 
@@ -215,7 +89,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
         }
 
         if(continuationTokenGood){
-            videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken));
+            videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken, client));
         }
 
         return videos
@@ -228,6 +102,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
 export async function getYoutubePlaylist(url){
     try{
         let body;
+        let continue_ = true;
 
 		let videos = []
 		
@@ -240,18 +115,29 @@ export async function getYoutubePlaylist(url){
 			}
 		}
 
-		const dataRegex  = /var\ ytInitialData\ \=\ \'(.*)\'\;<\/script>/
+		const dataRegex  = /var ytInitialData = \'(.*)\';<\/script>/gs
 		const apiRegex  = /"innertubeApiKey":"(.*?)"/
+        const clientRegex = /INNERTUBE_CONTEXT":({.+?}})/s;
         const continuationTokenRegex = /continuationCommand.+?:\\x22(.+?)\\x22,/
         const titleRegex = /<title>(.+?) - YouTube - YouTube<\/title>/
 
 		body = (await axios(url, headers)).data
 		const raw = dataRegex.exec(body)[1]
 		const apikey = apiRegex.exec(body)[1]
-		const continuationToken = continuationTokenRegex.exec(body)[1]
+        const clientKey = JSON.parse((clientRegex.exec(body)[1]).replaceAll(/\n\s+/g,''));
+
+        let continuationToken;
+        try {
+            continuationToken = continuationTokenRegex.exec(body)[1]
+        } catch (error) {
+            console.log(error)
+            continue_ = false;
+        }
+
 		const title = titleRegex.exec(body)[1]
 
-		let data = JSON.parse(decodeHex(raw))
+
+		let data = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,''))
 		data.apikey = apikey
 
 		let playlistVideoRenderers = [...JSON.stringify(data).matchAll(/({"playlistVideoRenderer.+?"}]}}})[^\]]/g)]
@@ -266,11 +152,14 @@ export async function getYoutubePlaylist(url){
 					'video_duration': durationToInt(parsedVideo.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
                 })
             } catch (error) {
+                console.log(error)
             }
         }
         
-        let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken);
-        videos = videos.concat(continuedVideos);
+        if(continue_){
+            let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey);
+            videos = videos.concat(continuedVideos);
+        }
 
         for(let i = 0; i < videos.length; i++){
             videos[i]['saved'] = false;
@@ -281,11 +170,138 @@ export async function getYoutubePlaylist(url){
         return {'data': videos, 'title': title};
 	}
 	catch(error){
+        console.log(error)
         return {'data': [], 'title': null};
 	}
 }
+function parseYTMusicDuration(textDur){
+    let textDurSplit = textDur.split(':')
+    let j = 0;
+    let duration = 0;
+    for(let i = textDurSplit.length-1; i >= 0; i--){
+        duration += (parseInt(textDurSplit[i]) * Math.pow(60,j))
+        j++;
+    }
+    return duration
+}
+async function getYoutubeMusicPlaylistContinuation(ogURL,client ,innertube_api_key, continuation, itct){
+    try {
+        let videos = [];
+        let postURL = `https://music.youtube.com/youtubei/v1/browse?ctoken=${continuation}&continuation=${continuation}&type=next&itct=${itct}&key=${innertube_api_key}&prettyPrint=false`
+        let postData = {"context": client}
 
-export async function getYoutubeMusicPlaylist(){
+		let contents = (await axios({'method': 'POST', 'url': postURL, 'headers': {
+            'Access-Control-Allow-Origin' : '*',
+            'x-youtube-client-name': 1,
+            'x-youtube-client-version': '2.20200911.04.00',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+            "Cookies": Prefs.prefs.external_services.youtube_music_cookies
+        }, 'data': postData})).data
+        let continuationTokenGood = false;
+        let continutationToken = undefined;
+        let continuationItems = undefined;
+        try {
+            continuationItems = contents.continuationContents.musicPlaylistShelfContinuation.contents;
+            continutationToken = contents.continuationContents.musicPlaylistShelfContinuation.continuations[0].nextContinuationData.continuation;
+            continuationTokenGood = true;
+        } catch (error) {
+        }
+
+        for (const track of continuationItems){
+            try {
+                let video_duration;
+                try {
+                    video_duration = track.musicResponsiveListItemRenderer.fixedColumns[0].musicResponsiveListItemFixedColumnRenderer.text.runs[0].text
+                } catch (error) {
+                    video_duration = track.musicResponsiveListItemRenderer.flexColumns[3].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text
+                }
+                videos.push({
+                    'video_id':       track.musicResponsiveListItemRenderer.playlistItemData.videoId,
+					'video_name':     track.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text,
+					'video_creator':  track.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text,
+					'video_duration': parseYTMusicDuration(video_duration),
+                })
+            } catch (error) {
+            }
+        }
+
+        if(continuationTokenGood){
+            videos = videos.concat(await getYoutubeMusicPlaylistContinuation(ogURL, client, innertube_api_key, continutationToken));
+        }
+        return videos
+
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+//REQUIRES COOKIES
+export async function getYoutubeMusicPlaylist(url){
+    if(!Prefs.hasYouTubeMusicCookies())
+        return undefined;
+    try 
+    {
+        continue_ = true
+        let response = (await axios({"method": 'GET', 'url': url,
+            'headers': {
+                'Access-Control-Allow-Origin' : '*',
+				'x-youtube-client-name': 1,
+				'x-youtube-client-version': '2.20200911.04.00',
+				'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+                "Cookies": Prefs.prefs.external_services.youtube_music_cookies
+            },
+            'withCredentials': true            
+        })).data;
+        const initialDataRegex = /initialData\.push.+?initialData\.push.+?data: '(.+?)'.+?ytcfg.set/gs;
+        const innertubeApiKeyRegex = /\"INNERTUBE_API_KEY\": ?\"(.+?)\"/;
+        const innertubeContextRegex = /\"INNERTUBE_CONTEXT\": ?({.+?}}).+?INNERTUBE_CONTEXT_CLIENT_NAME/s;
+        const continuationAndTrackingRegex = /nextContinuationData\\x22:\\x7b\\x22continuation\\x22:\\x22(.+?)\\x22,\\x22clickTrackingParams\\x22:\\x22(.+?)\\x22/s;
+
+        let decodedResponse = decodeHex(response)
+        
+        //[1].replaceAll(/\n\s+/g,'')
+        const INNERTUBE_API_KEY = innertubeApiKeyRegex.exec(decodedResponse)[1];
+        const INNERTUBE_CONTEXT = JSON.parse(innertubeContextRegex.exec(decodedResponse)[1].replaceAll(/\n\s+/g,''));
+        
+        let continuationAndTracking;
+        let CONTINUATION;
+        let TRACKING;
+        try {
+            continuationAndTracking = continuationAndTrackingRegex.exec(response)
+    
+            CONTINUATION = continuationAndTracking[1];
+            TRACKING = continuationAndTracking[2];
+        } catch (error) {
+            continue_ = false
+        }
+
+        let initialData = decodeHex(initialDataRegex.exec(response)[1]);
+        
+        initialData = JSON.parse(initialData)
+        let initialDataTracks = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents
+
+        const playlistTitle = initialData.header.musicEditablePlaylistDetailHeaderRenderer.header.musicDetailHeaderRenderer.title.runs[0].text
+        let tracks = [];
+        
+        for(const track of initialDataTracks){
+            try {
+                tracks.push({
+                    'video_id': track.musicResponsiveListItemRenderer.playlistItemData.videoId,
+                    'video_name': track.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text,
+                    'video_creator': track.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text,
+                    'video_duration': parseYTMusicDuration(track.musicResponsiveListItemRenderer.flexColumns[3].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text),
+                })
+            } catch (error) {
+                // console.log(error)
+            }
+        }
+        tracks = tracks.concat(await getYoutubeMusicPlaylistContinuation(url,INNERTUBE_CONTEXT, INNERTUBE_API_KEY, CONTINUATION, TRACKING))
+
+        return {'data': tracks, 'title': playlistTitle}
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
 
 }
 

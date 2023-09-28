@@ -18,7 +18,8 @@ function GetAddPlaylistFrom({route}) {
 	const [progress, setProgress] = useState(0);
 	const [isDoneSearching, setDoneSearching] = useState(false)
 	const [data, setData] = useState([])
-	let copyData = []
+	let serviceT = "";
+	let serviceTEx = "";
 	// const [title, setTitle] = useState('')
 	const [badRequest, setBadRequest] = useState(false);
 	
@@ -41,6 +42,7 @@ function GetAddPlaylistFrom({route}) {
 				  } else if (buttonIndex === 1) {
 						let m_title = header_title;
 						await SQLActions.createPlaylist(m_title);
+						let allPromiseTracks = []
 						for(const track of header_data){
 							let uid = GenerateNewUID(track.video_name)
 							let t = new SQLActions.Track({
@@ -50,31 +52,40 @@ function GetAddPlaylistFrom({route}) {
 								"video_id": track.video_id,
 								"saved": true,
 								"uid": uid,
+								"youtube": serviceT == "YouTube" ? true : false,
+								"spotify": serviceTEx == "Spotify" ? true : false,
+								"amazonmusic": serviceTEx == "Amazon" ? true : false,
 							})
 							if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
-								await SQLActions.insertTrackData(t);
-								await SQLActions.insertTrackIntoPlaylist(t, m_title);
+								allPromiseTracks.push(SQLActions.insertTrackData(t));
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(t, m_title));
 							} else{
 								let videoIDUIDTrack = await SQLActions.getExistingVideoIdUID(track.video_id);
-								await SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, m_title);	
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, m_title));	
 							}
 						}
+						await Promise.all(allPromiseTracks)
 						navigation.navigate('Tabs')
 						
-				  } else if (buttonIndex === 2) { 
+				  } else if (buttonIndex === 2) {
+					let allPromiseTracks = []
 					for(const track of header_data){
 						let uid = GenerateNewUID(track.video_name)
 						if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
-							await SQLActions.insertTrackData(new SQLActions.Track({
+							allPromiseTracks.push(SQLActions.insertTrackData(new SQLActions.Track({
 								"video_duration": track.video_duration,
 								"video_name": track.video_name,
 								"video_creator": track.video_creator,
 								"video_id": track.video_id,
 								"saved": true,
 								"uid": uid,
-							}))
+								"youtube": serviceT == "YouTube" ? true : false,
+								"spotify": serviceTEx == "Spotify" ? true : false,
+								"amazonmusic": serviceTEx == "Amazon" ? true : false,
+							})))
 						}
 					}
+					await Promise.all(allPromiseTracks)
 					navigation.navigate('Tabs')
 				}
 			}
@@ -90,28 +101,37 @@ function GetAddPlaylistFrom({route}) {
 					switch(service){
 						case('Musi'):
 							let musiData = await Illusive.getMusiPlaylist(url);
-
+							serviceT = 'YouTube'
 							setData(musiData.data);
 							setDoneSearching(true);
 							setHeader(musiData.data, musiData.title)
 							break;
 						case('YouTube'):
 							let youTubeData = await Illusive.getYoutubePlaylist(url);
-
+							serviceT = 'YouTube'
 							setData(youTubeData.data);
 							setDoneSearching(true);
 							setHeader(youTubeData.data, youTubeData.title)
 							break;
+						case('YTMusic'):
+							let youTubeMusicData = await Illusive.getYoutubeMusicPlaylist(url);
+							serviceT = 'YouTube'
+							setData(youTubeMusicData.data);
+							setDoneSearching(true);
+							setHeader(youTubeMusicData.data, youTubeMusicData.title)
+							break;
 						case('Spotify'):
 						 	let spotifyData = await Illusive.getSpotifyPlaylist(url);
-							
+							serviceT = 'YouTube'
+							serviceTEx = 'Spotify'
 							setData(spotifyData.data);
 							setDoneSearching(true);
 							setHeader(spotifyData.data, spotifyData.title)
 							break;
 						case('Amazon'):
 							let amazonMusicData = await Illusive.getAmazonMusicPlaylist(url);
-						   
+							serviceT = 'YouTube'
+							serviceTEx = 'Amazon'
 						   	setData(amazonMusicData.data);
 						   	setDoneSearching(true);
 						   	setHeader(amazonMusicData.data, amazonMusicData.title)
@@ -119,6 +139,7 @@ function GetAddPlaylistFrom({route}) {
 					}
 				}
 				catch(error){
+					console.log(error)
 				}
 			})();
 	}, []);

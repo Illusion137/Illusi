@@ -34,6 +34,8 @@ import PlayingSong from './app/screens/subscreens/PlayingSong';
 import ExternalServicesScreen from './app/screens/subscreens/ExtraExternalServicesScreen';
 import ExtraLinkerScreen from './app/screens/subscreens/ExtraLinkerScreen';
 import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownloaderScreen';
+import ExtraSettingsExperimentalFeatures from './app/screens/subscreens/ExtraSettingsExperimentalFeatures';
+import ExtraPlaylistConverter from './app/screens/subscreens/ExtraPlaylistConverter';
 // import RNFetchBlob from "rn-fetch-blob";
 
 // import { Provider } from 'react-redux';
@@ -45,7 +47,7 @@ import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownl
 // ]);
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state',
-  ]);  
+]);  
 LogBox.ignoreAllLogs();
 
 const Tab  = createBottomTabNavigator();
@@ -54,7 +56,10 @@ const Stack = createNativeStackNavigator();
 const Theme = {
 	dark: false,
 	colors: {
-		primary: '#462cc9',
+		// primary: '#462cc9',
+		// secondary: '#c92cb4',
+		primary: '#7400fe',
+		secondary: '#fc00c9',
 		background: '#0d1016',
 		card: '#131213',
 		text: '#ffffff',
@@ -68,6 +73,7 @@ const Theme = {
 		searchPlaceholder: '#8080a0',
 		inactive: '#8080a0',
 		red: '#FF0000',
+		green: '#00FF00',
 		playingSong: '#141722',
 		playScreen: '#141722',
 		track: '#141722',
@@ -83,10 +89,11 @@ function ExtrasStackScreen(props) {
 	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} initialParams={{downloadVideo: props.route.params.downloadVideo}} />
 	  <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
 	  <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
+	  <ExtrasStack.Screen name="Experimental Features" component={ExtraSettingsExperimentalFeatures} />
 	  <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
-	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen}/>
+	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}}/>
 	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
-	  {/* <ExtrasStack.Screen name="Backup, Recover & Transfer" component={} /> */}
+	  <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
 	</ExtrasStack.Navigator>
   );
 }
@@ -151,11 +158,15 @@ export default class App extends Component{
 		playlistName: '',
 	}
 	async componentDidMount() {
-		await activateKeepAwakeAsync();
-		await SQLActions.recreateAllTables();
+		let allPromises = []
 		if(await Prefs.isPrefsEmpty())
 			await Prefs.resetPrefs();
-		await Prefs.fetchAutoLinkedPlaylists();
+		allPromises.push(activateKeepAwakeAsync());
+		allPromises.push(SQLActions.recreateAllTables());
+		allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
+		allPromises.push(Prefs.fetchAutoLinkedPlaylists());
+		allPromises.push(SQLActions.createCacheDirs());
+		Promise.all(allPromises)
 	}
 	playVideo(data, playlistName){
 		this.setState({isPlaying: false}, () => {
@@ -167,7 +178,6 @@ export default class App extends Component{
 		)
 	}
 	waitFor(conditionFunction) {
-		
 		const poll = resolve => {
 			if(conditionFunction()) resolve();
 			else setTimeout(_ => poll(resolve), 400);
@@ -194,25 +204,24 @@ export default class App extends Component{
 					}
 				}
 		}
-		const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
 		
-		let downloadURI;
-		//140
-		try {
-			
-			downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
-			downloadURI = downloadURI[0].url;
-		} catch (error) {
-			let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-			GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-			Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
-			return
-		}
-
 		GLOBALS.DOWNLOADING.push({uid: uid, progress: 0})
 		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
 		this.waitFor(() => isInDownloadRange(uid,downloadQueueMaxLength))
-  		.then(async() => {
+		.then(async() => {
+			  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
+			  
+			  let downloadURI;
+			  //140
+			  try {
+				  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
+				  downloadURI = downloadURI[0].url;
+			  } catch (error) {
+				  let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+				  GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+				  Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
+				  return
+			  }
 			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
 			try {
 				if(startDownloadState != undefined)
@@ -268,7 +277,7 @@ export default class App extends Component{
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
+							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Theme.colors.primary,
 									headerRight: () => (
 										<Button
 											color='#808080'

@@ -35,7 +35,7 @@ import * as globals from './globals';
           Capability.SkipToNext,
           Capability.PlayFromSearch,
         ],
-        progressUpdateEventInterval: 2,
+        progressUpdateEventInterval: 1,
       });
   
       isSetup = true;
@@ -61,6 +61,15 @@ import * as globals from './globals';
 
   export async function playbackService() {
     // let currentSongID = "";
+    TrackPlayer.addEventListener(Event.PlaybackMetadataReceived, async(data) => {
+        console.log('done')
+        await TrackPlayer.play();
+      // console.log(data)
+    })
+    TrackPlayer.addEventListener(Event.RemoteDuck, async(data) => {
+        // console.log('done')
+        // await TrackPlayer.play();
+    })
     TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async() => {
       try {
         if(!globals.pQueue.isEmpty){
@@ -95,22 +104,46 @@ import * as globals from './globals';
     });
   
     TrackPlayer.addEventListener(Event.RemoteNext, async() => {
-      globals.mutex = true;
-      await TrackPlayer.skipToNext();
-      globals.mutex = false;
+        globals.mutex = true;
+        try {
+            let index = await TrackPlayer.getCurrentTrack();
+            if(!globals.addTrackIntoQueueTracksMutex && index == globals.playingTracksIndex && globals.playingTracksIndex + 1 < globals.playingTracks.length ){
+                globals.addTrackIntoQueueTracksMutex = true;
+                globals.playingTracksIndex++;
+                await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[globals.playingTracksIndex]));
+                await TrackPlayer.skipToNext();
+                globals.addTrackIntoQueueTracksMutex = false;
+            } else if(index < globals.playingTracksIndex){
+                await TrackPlayer.skipToNext();
+            }
+        } catch (error) {
+        }
+        globals.mutex = false;
     });
   
     TrackPlayer.addEventListener(Event.RemotePrevious, async() => {
       globals.mutex = true;
-      await TrackPlayer.skipToPrevious();
+      try {
+        await TrackPlayer.skipToPrevious();
+      } catch (error) {
+      }
       globals.mutex = false;
     });
     TrackPlayer.addEventListener(Event.RemoteSeek, async(position) => {
       await TrackPlayer.seekTo(position.position)
     })
     TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async(data) => {
-      try {
-        let index = await TrackPlayer.getCurrentTrack();
+        console.log(data)
+        try {
+            let curTrack = await TrackPlayer.getTrack(data.track || 0);
+            if(!globals.addTrackIntoQueueTracksMutex && data.track == globals.playingTracksIndex && data.position + 5 > curTrack.duration && globals.playingTracksIndex + 1 < globals.playingTracks.length ){
+                globals.addTrackIntoQueueTracksMutex = true;
+                globals.playingTracksIndex++;
+                await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[globals.playingTracksIndex]));
+                globals.addTrackIntoQueueTracksMutex = false;
+            }
+
+            // let index = await TrackPlayer.getCurrentTrack();
         // if(data.position > (await TrackPlayer.getTrack(index)).duration && !globals.mutex){
         //   globals.mutex = true;
         //   await TrackPlayer.seekTo(0);
@@ -119,9 +152,9 @@ import * as globals from './globals';
         //   await TrackPlayer.play();
         //   globals.mutex = false;
         // }
-      } catch (error) {
-        
-      }
+        } catch (error) {
+            console.log(error)
+        }
     })
   }
   

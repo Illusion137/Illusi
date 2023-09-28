@@ -17,7 +17,7 @@ export async function getAllYoutubePlaylistsFromAccount(){
         ytInitialData = JSON.parse(decodeHex(ytInitialData));
         
         let playlistNamesData = ytInitialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[2].shelfRenderer.content.verticalListRenderer.items
-        console.log(JSON.stringify(playlistNamesData))
+        // console.log(JSON.stringify(playlistNamesData))
         let playlistNames = new Map();
         for(const playlistName of playlistNamesData){
             try {

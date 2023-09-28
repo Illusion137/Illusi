@@ -6,27 +6,21 @@ import * as Prefs from '../../../Preferences';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
 
-function ExtraSettingsScreen(props) {
-	const navigation = useNavigation();
+function ExtraSettingsExperimentalFeatures(props) {
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
-	const [settingsData, setSettingsData] = useState(Object.entries(Prefs.prefs.settings)); 
+	const [settingsData, setSettingsData] = useState(Object.entries(Prefs.prefs.experimental_features)); 
 	const renderItem = (item) => 
 	<>
-		<SettingsMultiButton settingsKey={item.item[0]} settingsValue={item.item[1]} preKey={'settings'}/>
+		<SettingsMultiButton settingsKey={item.item[0]} settingsValue={item.item[1]} preKey={'experimental_features'}/>
 		{item.index !== settingsData.length-1 && <View style={styles.lineshort}/>}
 	</>;
 	return(
 		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
 			<FlatList data={settingsData} renderItem={renderItem} ListHeaderComponent={<View style={styles.linelong}/>} ListFooterComponent={
-				<>
-					<View style={styles.linelong}/>
-					<View style={{top: 30}}>
-						<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
-					</View>
-				</>
+				<View style={styles.linelong}/>
 			}/>
 		</View>
 	);
@@ -46,4 +40,4 @@ const themeStyles = (colors) => StyleSheet.create({
 		marginLeft: 42
 	}
 });
-export default ExtraSettingsScreen;
+export default ExtraSettingsExperimentalFeatures;

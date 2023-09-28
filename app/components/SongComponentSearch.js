@@ -30,6 +30,7 @@ function SongComponentSearch(props) {
 									video_id: props.video_id || "0",
 									video_duration: props.video_duration || 0,
 									saved: true,
+									youtube: true,
 									uid: props.uid,
 								}));
 								isSaved(true)

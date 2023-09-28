@@ -48,7 +48,7 @@ function PlayingSong (props) {
 						<Text style={{color: '#808080', fontSize: 12}} numberOfLines={1}>{artist}</Text>
 				</TouchableOpacity>
 					<TouchableOpacity style={{right:15}} onPress={()=>{playVideoRef.current?.setPlaying(!playVideoRef.current?.isPlaying); setPlaying(!playVideoRef.current?.isPlaying)}}>
-						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={38} color='#424ed4'/>
+						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={38} color={colors.primary}/>
 					</TouchableOpacity>
 			</View>
 			<SlidingUpPanel friction={1} snappingPoints={[0,850]} animatedValue={new Animated.Value(0)} ref={playVideoPanelRef} onBottomReached={setStates} onDragEnd={setStates}>
