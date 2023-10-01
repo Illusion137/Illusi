@@ -55,6 +55,7 @@ function GetAddPlaylistFrom({route}) {
 								"youtube": serviceT == "YouTube" ? true : false,
 								"spotify": serviceTEx == "Spotify" ? true : false,
 								"amazonmusic": serviceTEx == "Amazon" ? true : false,
+								"exid": track.exid
 							})
 							if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
 								allPromiseTracks.push(SQLActions.insertTrackData(t));

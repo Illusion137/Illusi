@@ -45,11 +45,6 @@ const LibraryScreen = ({ navigation, route }) => {
 	}
 	useEffect( () => {
 		(async function() {
-			if(!GLOBALS.deletedCacheMutex && Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
-				GLOBALS.deletedCacheMutex = true
-				await SQLActions.deleteUnusedCachedThumbnails();
-			}
-			
 			await SQLActions.fetchTrackData();
 			if (GLOBALS.SQLTracks == null || GLOBALS.SQLTracks == []){
 				setAllData({charData: [], dataMask: [], numTracks: 0, editMode: allData.editMode || 0});

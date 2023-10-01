@@ -125,10 +125,27 @@ function SongComponent(props) {
 	return (
 		<TouchableOpacity disabled={props.disabled || false} style={{backgroundColor: colors.track}} onLongPress={async() => {
 			if(GLOBALS.IsPlaying){
-				let track= {url: FileSystem.documentDirectory + props.media_URI, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uid, artwork: getThumbnail()?.uri || getThumbnail()};
-				TrackPlayer.add(track, (await TrackPlayer.getCurrentTrack()) + 1 + GLOBALS.pQueue.length);
+				
+				let trackIndex = await TrackPlayer.getCurrentTrack();
+				let track = new SQLActions.Track({
+					'imported': props.imported || false,
+					'thumbnail_URI': props.thumbnail_URI || "",
+					'downloaded': props.downloaded || false,
+					'youtube': props.youtube || false,
+					'video_name': props.video_name || "", 
+					'video_creator': props.video_creator || "", 
+					'video_duration':props.duration || 0, 
+					'video_id':props.video_id || "", 
+					'uid': props.uid || "",
+				});
+				track['successful'] = false
+				track['added'] = false
+
+				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
+
 				GLOBALS.pQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 			}
 		}} 
 		onPress={ async ()=>{

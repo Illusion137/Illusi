@@ -1,6 +1,7 @@
 import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
+import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getAmazonMusicUserHash, getAmznCsrf, getAmznMusicHeaders, getAmznMusicRequestHeaders, getAmznVideoPlayerToken, getXAmznAuth } from "./IllusiveAccountPlaylistFinder";
 
 function GenerateNewUID(prefixName) {
 	return prefixName.replaceAll(/[^a-zA-Z0-9]/g,'') + '-' + new Date().getTime().toString(36).substring(2, 15) +
@@ -138,24 +139,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 	// 		token: data.token, 
 	// 	},data: reData}
 }
-
-/**
-
-// const clientVersion = between(body, 'INNERTUBE_CONTEXT_CLIENT_VERSION":"', '"') ||
-    // between(body, 'innertube_context_client_version":"', '"');
-  // Make deep copy and set clientVersion
-//   const context = JSON.parse(JSON.stringify(DEFAULT_CONTEXT));
-//   context.client.clientVersion = clientVersion;
-  // Add params to context
-//   if (options.gl) context.client.gl = options.gl;
-//   if (options.hl) context.client.hl = options.hl;
-//   if (options.utcOffsetMinutes) context.client.utcOffsetMinutes = options.utcOffsetMinutes;
-//   if (options.safeSearch) context.user.enableSafetyMode = true;
-//   // Return multiple values
-//   return { json, apiKey, context };
-
-/*
-clientVersion 2.20221122.06.00
+/*clientVersion 2.20221122.06.00
 DEFAULT_CONTEXT = {
   client: {
     utcOffsetMinutes: 0,
@@ -166,9 +150,7 @@ DEFAULT_CONTEXT = {
   },
   user: {},
   request: {},
-}
-
-*/
+}*/
 //apiKey, token, clientVersion, options
 async function ContinueYouTubeSearch(continueData){
 	try {
@@ -205,15 +187,58 @@ async function ContinueYouTubeSearch(continueData){
 	} catch (error) {
 	}
 }
+
+export async function searchAmazonMusic(query){
+	try {		
+		let url = `https://music.amazon.com/search/${query.replaceAll(' ', '+')}`
+		let filter = {'IsLibrary': ["false"]}
+		let keyword = {
+			"interface": "Web.TemplatesInterface.v1_0.Touch.SearchTemplateInterface.SearchKeywordClientInformation",
+			"keyword": ""
+		}
+		let amznMusic = await getAmazonMusicAmznMusicData(url);
+		let showHomeData = await getAmazonMusicShowHomeData(amznMusic, url);
+	
+		let authHeader = JSON.parse(showHomeData.methods[0].header);
+	
+		let userHash = getAmazonMusicUserHash();
+		let xAmznAuth = getXAmznAuth(amznMusic);
+		let amznCSRF = getAmznCsrf(amznMusic);
+		let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
+		let rqheaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,amznCSRF,xAmznVideoPlayerToken,url);
+		let requestPayload = {
+			"filter":JSON.stringify(filter),
+			"keyword": JSON.stringify(keyword),
+			"suggestedKeyword": query,
+			"userHash":	JSON.stringify(userHash),
+			"headers": JSON.stringify(rqheaders)
+		}
+		let response = (await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/showSearch", 'headers': getAmznMusicHeaders(), 'data': requestPayload})).data;
+		let songWidgetsIndex = 2;
+		let widgets = response.methods[0].template.widgets
+		for(const widget of widgets){
+			if(widget.header == "Songs"){
+				songWidgetsIndex = 2;
+			}
+		}
+		let data = [];
+		for(const item of response.methods[0].template.widgets[songWidgetsIndex].items){
+			let id = item.secondaryLink.deeplink.replace(/\/.+?\//,'').replace(/\/.+/,'');
+			data.push({
+				'video_name': item.primaryText.text,
+				'video_artist': item.secondaryText,
+				'video_id': id,
+			})
+		}
+
+	} catch (error) {
+		console.log('2err',error)
+	}
+} 
+
+
 export { GenerateNewUID, decodeHex, durationToInt };
 export default SearchYouTube;
-
-/* Hex => ASCII
-\x22 = "
-\x7b = {
-\x5b = [
-etc...
-*/
 
 // Daniel Raygoza @ Illusion
 // Github : Illusion137

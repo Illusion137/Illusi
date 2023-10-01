@@ -65,7 +65,7 @@ const SearchScreen = (props) => {
 	);
 
 	const renderSongSearchComponents = ({ item }) => (
-		<SongComponentSearch addFrom={addFrom.bind(this)} disabled={true} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
+		<SongComponentSearch addFrom={addFrom.bind(this)} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
@@ -205,7 +205,6 @@ const SearchScreen = (props) => {
 	async function GetSuggestions(query){
 		try {
 			if(query == '' || query == null || query == undefined || query.replaceAll(' ', '') == ''){
-				console.log(Prefs.prefs.search.recent_searches)
 				setSearchingData(Prefs.prefs.search.recent_searches);
 				return;
 			}

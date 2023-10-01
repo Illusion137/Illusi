@@ -261,13 +261,15 @@ export async function insertTrackIntoRecentlyPlayed(track){
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO recently_played_tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
 }
 export async function cleanupRecentlyPlayed(){
-    const recently_played_max_size = 100;
+    const recently_played_max_size = 50;
     let recently_played_data = await getRecentlyPlayedData();
-    recently_played_data.reverse();
     
     let allPromises = [];
     
     if(recently_played_data.length > recently_played_max_size){
+        recently_played_data.reverse();
+        recently_played_data = recently_played_data.slice(0, recently_played_max_size);
+        recently_played_data.reverse();
         await GLOBALS.db.execAsync([{'sql': 'DELETE FROM recently_played_tracks', 'args': [] }], false);
         for(let i = 0; i < recently_played_max_size; i++){
             let track = recently_played_data[i];
@@ -284,7 +286,6 @@ export async function cleanupRecentlyPlayed(){
                             'youtube':track.youtube,
                             'spotify':track.spotify,
                             'amazonmusic':track.amazonmusic,
-                            'exid':track.exid,
                         })
                 ))
         }

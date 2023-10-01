@@ -6,13 +6,49 @@ import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import * as GLOBALS from '../../globals';
 import * as SQLActions from '../../SQLActions'
+import axios from 'axios';
+import TrackPlayer from 'react-native-track-player';
+import * as Haptics from 'expo-haptics';
 
 function SongComponentSearch(props) {
 		
 	const [saved, isSaved] = useState(props.saved);
 	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
-		<TouchableOpacity disabled={props.disabled || false}>
+		<TouchableOpacity disabled={props.disabled || false} onLongPress={async() => {
+			if(GLOBALS.IsPlaying){
+				let trackIndex = await TrackPlayer.getCurrentTrack();
+				let track = new SQLActions.Track({
+					'youtube': true,
+					'video_name': props.video_name || "", 
+					'video_creator': props.video_creator || "", 
+					'video_duration':props.video_duration || 0, 
+					'video_id':props.video_id || "", 
+					'uid': props.uid || "",
+				});
+				track['successful'] = false
+				track['added'] = false
+				console.log(track)
+
+				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
+
+				GLOBALS.pQueue.enqueue(track);
+				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+			}
+		}} onPress={async() => {
+			let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
+			try {
+				let response = await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
+					'Access-Control-Allow-Origin' : '*',
+					'x-youtube-client-name': 1,
+					'x-youtube-client-version': '2.20200911.04.00',
+					'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+				}});
+			} catch (error) {
+				
+			}
+		}}>
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
 					<Image source={{uri:`https://img.youtube.com/vi/${props.video_id}/mqdefault.jpg`}} style={styles.image}></Image>

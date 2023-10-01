@@ -48,5 +48,6 @@ export let queueTracks = [];
 export let pQueue = new Queue()
 export let mutex = false
 export let deletedCacheMutex = false
+export let initialPlaybackTrackChangedMutex = true;
 
 export let playingTracksIndex = 0;

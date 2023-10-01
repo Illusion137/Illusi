@@ -54,37 +54,39 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
     try {
         const innertubeApiKeyRegex = /"INNERTUBE_API_KEY": ?\"(.+?)\"/s;
         const innertubeContextRegex = /INNERTUBE_CONTEXT": ?({.+?}})/s;
-        let headers = {
-            'Access-Control-Allow-Origin' : '*',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "application/json",
-            "sec-ch-ua": "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
-            "sec-ch-ua-arch": "\"x86\"",
-            "sec-ch-ua-bitness": "\"64\"",
-            "sec-ch-ua-full-version": "\"117.0.5938.92\"",
-            "sec-ch-ua-full-version-list": "\"Google Chrome\";v=\"117.0.5938.92\", \"Not;A=Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"117.0.5938.92\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-model": "\"\"",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-ch-ua-platform-version": "\"15.0.0\"",
-            "sec-ch-ua-wow64": "?0",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "same-origin",
-            "sec-fetch-site": "same-origin",
-            "x-client-data": "CKS1yQEIh7bJAQiitskBCKmdygEI6NTKAQiQ+soBCJahywEI85jNAQiFoM0BCNy9zQEI38TNAQi5ys0BCMXRzQEI1NTNAQjM1s0BCOLWzQEI+cDUFRi60s0BGOuNpRc=",
-            "x-goog-authuser": "0",
-            "x-goog-visitor-id": "CgtVbmR5bk9HMFZ1ayjotd2oBjIICgJVUxICGgA%3D",
-            "x-origin": "https://www.youtube.com",
-            "x-youtube-bootstrap-logged-in": "true",
-            "x-youtube-client-name": "1",
-            "x-youtube-client-version": "2.20230928.04.00",
-            "Cookies": Prefs.prefs.external_services.youtube_cookies
-        }
+        let config = {
+			method: 'get',
+			maxBodyLength: Infinity,
+			url: url,
+			headers: { 
+			  'authority': 'www.youtube.com', 
+			  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 
+			  'accept-language': 'en-US,en;q=0.9', 
+			  'cache-control': 'max-age=0', 
+			  'Cookies': Prefs.prefs.external_services.youtube_cookies,  
+			  'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"', 
+			  'sec-ch-ua-arch': '"x86"', 
+			  'sec-ch-ua-bitness': '"64"', 
+			  'sec-ch-ua-full-version': '"117.0.5938.92"', 
+			  'sec-ch-ua-full-version-list': '"Google Chrome";v="117.0.5938.92", "Not;A=Brand";v="8.0.0.0", "Chromium";v="117.0.5938.92"', 
+			  'sec-ch-ua-mobile': '?0', 
+			  'sec-ch-ua-model': '""', 
+			  'sec-ch-ua-platform': '"Windows"', 
+			  'sec-ch-ua-platform-version': '"15.0.0"', 
+			  'sec-ch-ua-wow64': '?0', 
+			  'sec-fetch-dest': 'document', 
+			  'sec-fetch-mode': 'navigate', 
+			  'sec-fetch-site': 'none', 
+			  'sec-fetch-user': '?1', 
+			  'service-worker-navigation-preload': 'true', 
+			  'upgrade-insecure-requests': '1', 
+			  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36', 
+			  'x-client-data': 'CKS1yQEIh7bJAQiitskBCKmdygEI6NTKAQiQ+soBCJahywEI85jNAQiFoM0BCNy9zQEI38TNAQi5ys0BCMXRzQEI1NTNAQjM1s0BCOLWzQEI+cDUFRi60s0BGOuNpRc='
+			}
+		  };
 
-        const response = await axios({'method': 'GET', 'url': url, 'headers': headers, 'withCredentials': true});
-        const responseData = decodeHex(response.data);
+        const response = await axios(config);
+        const responseData = response.data;
 
         const INNERTUBE_API_KEY = innertubeApiKeyRegex.exec(responseData)[1]
         let INNERTUBE_CONTEXT = JSON.parse(innertubeContextRegex.exec(responseData)[1].replaceAll(/\n\s+/g,''))
@@ -170,8 +172,7 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
         let returnData = {
             'INNERTUBE_API_KEY': INNERTUBE_API_KEY, 
             'INNERTUBE_CONTEXT': INNERTUBE_CONTEXT, 
-            'data': responseData,
-            'headers': headers};
+            'data': responseData};
         return returnData;
     } catch (error) {
         console.log(error)
@@ -179,23 +180,100 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
     }
 }
 
-async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey, client){
+async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey, context, url, trackingParams){
     try {
         let videos = [];
-        let headers = ytDefaultHeaders;
+        let headers = { 
+            'authority': 'www.youtube.com', 
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7', 
+            'accept-language': 'en-US,en;q=0.9', 
+            'cache-control': 'max-age=0', 
+            'Cookies': Prefs.prefs.external_services.youtube_cookies,  
+            'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"', 
+            'sec-ch-ua-arch': '"x86"', 
+            'sec-ch-ua-bitness': '"64"', 
+            'sec-ch-ua-full-version': '"117.0.5938.92"', 
+            'sec-ch-ua-full-version-list': '"Google Chrome";v="117.0.5938.92", "Not;A=Brand";v="8.0.0.0", "Chromium";v="117.0.5938.92"', 
+            'sec-ch-ua-mobile': '?0', 
+            'sec-ch-ua-model': '""', 
+            'sec-ch-ua-platform': '"Windows"', 
+            'sec-ch-ua-platform-version': '"15.0.0"', 
+            'sec-ch-ua-wow64': '?0', 
+            'sec-fetch-dest': 'document', 
+            'sec-fetch-mode': 'navigate', 
+            'sec-fetch-site': 'none', 
+            'sec-fetch-user': '?1', 
+            'service-worker-navigation-preload': 'true', 
+            'upgrade-insecure-requests': '1', 
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36', 
+            'x-client-data': 'CKS1yQEIh7bJAQiitskBCKmdygEI6NTKAQiQ+soBCJahywEI85jNAQiFoM0BCNy9zQEI38TNAQi5ys0BCMXRzQEI1NTNAQjM1s0BCOLWzQEI+cDUFRi60s0BGOuNpRc='
+        };
         let postURL = `https://www.youtube.com/youtubei/v1/browse?key=${innertube_api_key}&prettyPrint=false`
         let postData = {
-            'context': client,
-            'continuation' : continuationKey
+            "context": {
+                "client": {
+                    "hl": context.client.hl,
+                    "gl": context.client.gl,
+                    "remoteHost": context.client.remoteHost,
+                    "deviceMake": "",
+                    "deviceModel": "",
+                    "visitorData": context.client.visitorData,
+                    "userAgent": context.client.userAgent,
+                    "clientName": context.client.clientName,
+                    "clientVersion": context.client.clientVersion,
+                    "osName": context.client.osVersion,
+                    "osVersion": context.client.osVersion,
+                    "originalUrl": url,
+                    "platform": context.client.platform,
+                    "clientFormFactor": context.client.clientFormFactor,
+                    "configInfo": context.client.configInfo,
+                    "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
+                    "timeZone": context.client.timeZone,
+                    "browserName": context.client.browserName,
+                    "browserVersion": context.client.browserVersion,
+                    "acceptHeader": context.client.acceptHeader,
+                    "deviceExperimentId": context.client.deviceExperimentId,
+                    "screenWidthPoints": 632,
+                    "screenHeightPoints": 913,
+                    "screenPixelDensity": 1,
+                    "screenDensityFloat": 1,
+                    "utcOffsetMinutes": -420,
+                    "connectionType": "CONN_CELLULAR_4G",
+                    "memoryTotalKbytes": "8000000",
+                    "mainAppWebInfo": {
+                        "graftUrl": url,
+                        "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_CAN_BE_INSTALLED",
+                        "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                        "isWebNativeShareAvailable": true
+                    }
+                },
+                "user": {
+                    "lockedSafetyMode": false
+                },
+                "request": {
+                    "useSsl": true,
+                    "consistencyTokenJars": [
+                        {
+                            "encryptedTokenJarContents": []
+                        }
+                    ],
+                    "internalExperimentFlags": [
+                        {
+                            "key": "force_enter_once_in_webview",
+                            "value": "true"
+                        }
+                    ]
+                },
+                "clickTracking": {
+                    "clickTrackingParams": "CEQQ7zsYACITCO70-p291IEDFXBPTAgdLmwCgg=="
+                },
+            },
+            "continuation": continuationKey
         }
+        console.log(postURL)
+        console.log(postData)
 
-		let body = await axios({'method': 'POST', 'url': postURL, 'headers': {'headers': {
-            'Access-Control-Allow-Origin' : '*',
-            'x-youtube-client-name': 1,
-            'x-youtube-client-version': '2.20200911.04.00',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-            'Cookies': 'VISITOR_INFO1_LIVE=UndynOG0Vuk; VISITOR_PRIVACY_METADATA=CgJVUxICGgA%3D; _gcl_au=1.1.1654163908.1692824047; LOGIN_INFO=AFmmF2swRAIgb_DfnlDOCMB92erwqc_sH_CpB4KtzNhJYjU1CuXxXEkCIHvBDT5WZwjYdg83tWunFwVkmS01JTxVgX81hC3OqfsB:QUQ3MjNmengyWXFTaHJaSHlZWS00NVhJZ0xWSW5RNmQ4NG45R3lyV0NDR05WZ0dqVllGbDdfeGRkX3hqZHRUSUtIbDlfQThMQTZ3d0RwRmtDWklxMlE0Ui1RZFZhajZITU5RTk5PWEJoS3h0NmRObV90Uk56dHZ2VktURkFEeVRDYU9lYVJUOE1iREd0MVg3ZlI2ODJQREJNLS0zQlhMRWV3; SID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjzWmCNYZ_90ajMk-xvWpRxg.; __Secure-1PSID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjDvZY6SmfFiorazcuJ4QhtQ.; __Secure-3PSID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjSV9SulFnNgBZg8RbZscbFw.; HSID=AmKautbw6k4YOyt90; SSID=AKankHoBJZsx73vzj; APISID=KDAVZ_L7nKQWrkZw/AVCcwbHhDYb0uhTDR; SAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; __Secure-1PAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; __Secure-3PAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; YSC=O44K8c5EADY; PREF=f6=40000080&volume=34&f7=140&tz=America.Phoenix&autoplay=true&f5=20000; __Secure-1PSIDTS=sidts-CjEB3e41hfHwYIcAZS6CvNiHMESsNFhXDc5BWrDq4HXqtgDn3it45rZNJkX8iPh9lWoqEAA; __Secure-3PSIDTS=sidts-CjEB3e41hfHwYIcAZS6CvNiHMESsNFhXDc5BWrDq4HXqtgDn3it45rZNJkX8iPh9lWoqEAA; SIDCC=ACA-OxO7i6TfKYnQRMbMD8n8OrkSJc3LkfpLG1Fql70uqZOYg68P-RGhlphhqhTiVYQ2anIywYbu; __Secure-1PSIDCC=ACA-OxNXPOMDchOZgxmUnsaZQOcnUCdfcwUnvpg39E4o26jK5yiwC3Llnk_YL7HiToNfpuygmx0; __Secure-3PSIDCC=ACA-OxOgQww43kqHD8nwv0hKqz-rBiCsft6GikzkVICcSHX1-_zst8U-Y2YNrF43cGxKZpCOIXg; CONSISTENCY=AKreu9tL-5Fl-WDHH2Lvl21VJRQWUAtIWjkMuP6ZSxi0g8BwSghZwf8wEEqdrxBbzUwb1DQJMrk9a0SCSR097Urx0ogIosQjQ2C1V4Gtr2NMSL-UORg58AHt3p6hRQrmU-ZRktwLjceMkj594-Z21q_lG2DcaUGjNqLd8RJeUIeCkFYP2E58owl-_-i2b3U53AL2SIVPdzMRjgYmUCjossvbXwz4KV3rbE5PZMvqwjwP2NaNwS2WXFi5Zw'
-        }}, 'data': postData, 'withCredentials': true})
+		let body = await axios({'method': 'POST', 'url': postURL, 'headers': headers, 'data': postData})
         let contents = body.data;
         console.log(JSON.stringify(contents))
         let continuationTokenGood = false;
@@ -250,11 +328,20 @@ export async function getYoutubePlaylist(url){
 		const apikey = initialData.INNERTUBE_API_KEY
         const clientKey = initialData.INNERTUBE_CONTEXT
 
-		const dataRegex  = /var ytInitialData = \'(.*)\';<\/script>/gs
-        const continuationTokenRegex = /continuationCommand.+?:\\x22(.+?)\\x22,/
-        const titleRegex = /<title>(.+?) - YouTube - YouTube<\/title>/
-
-		const raw = dataRegex.exec(initialData.data)[1]
+		const dataRegex  = /var ytInitialData ?= ?\'(.+?)\';<\/script>/gs
+		const data2Regex  = /var ytInitialData ?= ?({.+?});<\/script>/gs
+        // const continuationTokenRegex = /continuationCommand.+?:\\x22(.+?)\\x22,/
+        const trackingParamsRegex = /"clickTrackingParams": ?"(.+?)"/s
+        const continuationTokenRegex = /continuationCommand.+?:"(.+?)",/s
+        const titleRegex = /<title>(.+?) - YouTube<\/title>/
+        // console.log(decodeHex( initialData.data))
+        let raw;
+        try {
+            raw = dataRegex.exec(initialData.data)[1]
+            raw = decodeHex(raw)
+        } catch (error) {
+            raw = data2Regex.exec(initialData.data)[1]
+        }
 
         let continuationToken;
         try {
@@ -265,7 +352,7 @@ export async function getYoutubePlaylist(url){
 
 		const title = titleRegex.exec(initialData.data)[1]
 
-		let data = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,''))
+		let data = JSON.parse(raw.replaceAll(/\n\s+/g,''))
 		data.apikey = apikey
 
 		let playlistVideoRenderers = [...JSON.stringify(data).matchAll(/({"playlistVideoRenderer.+?"}]}}})[^\]]/g)]
@@ -284,9 +371,7 @@ export async function getYoutubePlaylist(url){
         }
         
         if(continue_){
-            console.log(apikey)
-            console.log(continuationToken)
-            let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey);
+            let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey, url, trackingParamsRegex.exec(raw)[0]);
             videos = videos.concat(continuedVideos);
         }
 
@@ -546,7 +631,7 @@ export async function getAmazonMusicPlaylist(url){
                             
         let trimmedURL = url.replace("https://",'').replace("music.amazon.com",'');
     
-        let playlistData = await getAmazonMusicShowHomeData(amznMusic, url, trimmedURL);
+        let playlistData = await getAmazonMusicShowHomeData(amznMusic, url);
     
         let templateListIndex = -1;
         for(let i = 0; i < playlistData.methods.length; i++){
@@ -567,18 +652,23 @@ export async function getAmazonMusicPlaylist(url){
         }
         let proxies = await getProxyList();
             
-        async function searchYT(title, artist, proxy = null, exid = null){
+        async function searchYT(title, artist, proxy = null, amznTData = null){
             let search_query = `${artist} - ${title}`;
             let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
             let result = ytSearchResult.data[0]
-            result['exid'] = exid
+            result['exid'] = JSON.stringify([
+                {"service": "amazon", "exid": amznTData}
+            ])
             return ytSearchResult.data[0]
         }
         
         const ytTracks = [];
         for(let i = 0; i < tracks.length; i++){
             ytTracks.push(
-                searchYT(tracks[i].video_name, tracks[i].video_creator, proxies[getRandomIndex(proxies.length)], tracks[i].id)
+                searchYT(tracks[i].video_name, tracks[i].video_creator, proxies[getRandomIndex(proxies.length)], 
+                {"id": tracks[i].id,
+                "title": tracks[i].video_name,
+                "artist": tracks[i].video_creator})
             )
         }
         let results = await Promise.all(ytTracks)

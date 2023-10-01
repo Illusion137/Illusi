@@ -127,8 +127,6 @@ function PlaylistSubScreen({route}){
 		<SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (editMode !== 0)} artwork={item.artwork} imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} duration={item.video_duration} downloaded={item.downloaded} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
 	);
     function playShuffle(dat){
-        if( dat.filter((item) => item.downloaded || item.imported).length === 0)
-            return;
         let newData = [...dat]
 		let currentIndex = newData.length, randomIndex;
 

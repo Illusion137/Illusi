@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as Prefs from '../../Preferences'
 import { decodeHex } from "./IllusiveSearch";
+import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getAmazonMusicUserHash, getAmznCsrf, getAmznMusicHeaders, getAmznMusicRequestHeaders, getAmznVideoPlayerToken, getXAmznAuth } from "./IllusiveAccountPlaylistFinder";
 
 export function getYTPlaylistIdFromURL(url){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
@@ -208,4 +209,36 @@ export async function insertIntoYouTubePlaylist(playlistId, videoIds){
     // "x-youtube-client-version": "2.20230925.02.00",
     // "Referer": "https://www.youtube.com/",
     // "Referrer-Policy": "strict-origin-when-cross-origin"
+}
+
+export async function insertIntoAmazonMusicPlaylist(playlistURL, playlistTitle, tracks){
+    let playlistId = playlistURL.replace(/(https?:\/\/)?(www\.)?music\.amazon\.com\/my\/playlists\//, '')
+
+    let amznMusic = await getAmazonMusicAmznMusicData();
+    let showHomeData = await getAmazonMusicShowHomeData(amznMusic, playlistURL);
+
+    let authHeader = JSON.parse(showHomeData.methods[0].header);
+
+    let userHash = getAmazonMusicUserHash();
+    let xAmznAuth = getXAmznAuth(amznMusic);
+    let amznCSRF = getAmznCsrf(amznMusic);
+    let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
+    let rqheaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,amznCSRF,xAmznVideoPlayerToken,playlistURL);
+    let requsetPayload = {
+        // "isTrackInLibrary": "true",
+        "isTrackInLibrary": "false",
+        "playlistId": playlistId,
+        "playlistTitle": playlistTitle,
+        "rejectDuplicate": "true",
+        "shouldReplaceAddedTrack": "true",
+        "trackId": "d4732e82-3ca0-480e-b180-f26028302b75",
+        "trackTitle": "Always Saucy [Explicit]",
+        "userHash": JSON.stringify(userHash),
+        "version": "1:0",
+        "headers": JSON.stringify(rqheaders)
+    }
+    let response = await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/addTrackToPlaylist", 
+        'headers': getAmznMusicHeaders(),
+        'data': requsetPayload
+    });
 }

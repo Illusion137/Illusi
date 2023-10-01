@@ -196,8 +196,9 @@ export async function getAmazonMusicAmznMusicData(url){
     }
 }
 
-export async function getAmazonMusicShowHomeData(amznMusic, url, trimmedURL = "/my/library"){
+export async function getAmazonMusicShowHomeData(amznMusic, url){
     try {
+        let trimmedURL = url.replace("https://",'').replace("music.amazon.com",'')
         let deeplink = {
             "interface": "DeeplinkInterface.v1_0.DeeplinkClientInformation",
             "deeplink": trimmedURL
@@ -259,68 +260,86 @@ export async function getAmazonMusicShowHomeData(amznMusic, url, trimmedURL = "/
         console.log(error)
     }
 }
+export function getXAmznAuth(amznMusic){
+    return {
+        "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
+        "accessToken": amznMusic.appConfig.accessToken
+    }
+} 
+export function getAmznCsrf(amznMusic){
+    return {
+        "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
+        "token": amznMusic.appConfig.csrf.token,
+        "timestamp": amznMusic.appConfig.csrf.ts,
+        "rndNonce": amznMusic.appConfig.csrf.rnd
+    }
+}
+export function getAmznVideoPlayerToken(authHeader){
+    return {
+        "interface": authHeader.interface,
+        "token": authHeader.token,
+        "expirationMS": authHeader.expirationMS
+    }
+}
+export function getAmznMusicHeaders(){
+    return {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "text/plain;charset=UTF-8",
+        "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "Referer": "https://music.amazon.com/",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+    }
+}
+export function getAmznMusicRequestHeaders(xAmznAuth, amznMusic, xAmznCsrf, xAmznVideoPlayerToken, playlistURL = "https://music.amazon.com/my/library"){
+    return {
+        "x-amzn-authentication": JSON.stringify(xAmznAuth),
+        "x-amzn-device-model": "WEBPLAYER",
+        "x-amzn-device-width": "1920",
+        "x-amzn-device-family": "WebPlayer",
+        "x-amzn-device-id": amznMusic.appConfig.deviceId,
+        "x-amzn-user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        "x-amzn-session-id": amznMusic.appConfig.sessionId,
+        "x-amzn-device-height": "1080",
+        "x-amzn-request-id": "449fef43-8891-44ab-896c-6ed4c9ec1e77",
+        "x-amzn-device-language": amznMusic.appConfig.displayLanguage,
+        "x-amzn-currency-of-preference": "USD",
+        "x-amzn-os-version": "1.0",
+        "x-amzn-application-version": amznMusic.appConfig.version,
+        "x-amzn-device-time-zone": "America/Phoenix",
+        "x-amzn-timestamp": amznMusic.appConfig.csrf.ts,
+        "x-amzn-csrf": JSON.stringify(xAmznCsrf),
+        "x-amzn-music-domain": "music.amazon.com",
+        "x-amzn-referer": "",
+        "x-amzn-affiliate-tags": "",
+        "x-amzn-ref-marker": "",
+        "x-amzn-page-url": playlistURL,
+        "x-amzn-weblab-id-overrides": "",
+        "x-amzn-video-player-token": JSON.stringify(xAmznVideoPlayerToken),
+        "x-amzn-feature-flags": "hd-supported,uhd-supported"
+    }
+}
+export function getAmazonMusicUserHash(){
+    return {'level': 'SONIC_RUSH_MEMBER'}
+}
 export async function getAllAmazonMusicPlaylistsFromAccount(){
     try {
         let amznMusic = await getAmazonMusicAmznMusicData("https://music.amazon.com/my/library")
         let showHomeData = await getAmazonMusicShowHomeData(amznMusic, "https://music.amazon.com/my/library");
 
-        let xAmznAuth = {
-            "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
-            "accessToken": amznMusic.appConfig.accessToken
-        };
-        let xAmznCsrf = {
-            "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
-            "token": amznMusic.appConfig.csrf.token,
-            "timestamp": amznMusic.appConfig.csrf.ts,
-            "rndNonce": amznMusic.appConfig.csrf.rnd
-        }
+        let xAmznAuth = getXAmznAuth(amznMusic);
+        let xAmznCsrf = getAmznCsrf(amznMusic);
         let authHeader = JSON.parse(showHomeData.methods[0].header);
-        let xAmznVideoPlayerToken = {
-            "interface": authHeader.interface,
-            "token": authHeader.token,
-            "expirationMS": authHeader.expirationMS
-        };
-        let rqHeaders = {
-            "x-amzn-authentication": JSON.stringify(xAmznAuth),
-            "x-amzn-device-model": "WEBPLAYER",
-            "x-amzn-device-width": "1920",
-            "x-amzn-device-family": "WebPlayer",
-            "x-amzn-device-id": amznMusic.appConfig.deviceId,
-            "x-amzn-user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
-            "x-amzn-session-id": amznMusic.appConfig.sessionId,
-            "x-amzn-device-height": "1080",
-            "x-amzn-request-id": "449fef43-8891-44ab-896c-6ed4c9ec1e77",
-            "x-amzn-device-language": amznMusic.appConfig.displayLanguage,
-            "x-amzn-currency-of-preference": "USD",
-            "x-amzn-os-version": "1.0",
-            "x-amzn-application-version": amznMusic.appConfig.version,
-            "x-amzn-device-time-zone": "America/Phoenix",
-            "x-amzn-timestamp": amznMusic.appConfig.csrf.ts,
-            "x-amzn-csrf": JSON.stringify(xAmznCsrf),
-            "x-amzn-music-domain": "music.amazon.com",
-            "x-amzn-referer": "",
-            "x-amzn-affiliate-tags": "",
-            "x-amzn-ref-marker": "",
-            "x-amzn-page-url": "https://music.amazon.com/my/library",
-            "x-amzn-weblab-id-overrides": "",
-            "x-amzn-video-player-token": JSON.stringify(xAmznVideoPlayerToken),
-            "x-amzn-feature-flags": "hd-supported,uhd-supported"
-        };
-        let userHash = {'level': 'SONIC_RUSH_MEMBER'};
+        let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
+        let rqHeaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,xAmznCsrf,xAmznVideoPlayerToken);
+        let userHash = getAmazonMusicUserHash();
         let requestPayload = {'headers': JSON.stringify(rqHeaders), 'userHash': JSON.stringify(userHash)};
-        let showLibraryData = (await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/showLibraryHome", 'headers': {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "text/plain;charset=UTF-8",
-            "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "Referer": "https://music.amazon.com/",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            },
+        let showLibraryData = (await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/showLibraryHome", 'headers': getAmznMusicHeaders(),
             'data': requestPayload
         })).data;
         let playlists = showLibraryData.methods[0].template.widgets[1].items

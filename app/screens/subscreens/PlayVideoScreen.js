@@ -7,7 +7,7 @@ import { Slider } from '@miblanchard/react-native-slider';
 import * as FileSystem from 'expo-file-system';
 
 import TrackPlayer, { RepeatMode, State } from 'react-native-track-player';
-import { setupPlayer, addTracks } from '../../../trackPlayerServices';
+import { setupPlayer, addTracks, TrackPlayerNext, TrackPlayerPrev } from '../../../trackPlayerServices';
 import ytdl from "react-native-ytdl";
 import * as Sharing from 'expo-sharing';
 
@@ -81,20 +81,12 @@ function PlayVideoScreen(props ,ref) {
 			if(isSetup && queue.length <= 0) {
 				globals.playingTracksIndex = 0; 
 				globals.playingTracks = data
-				let track = globals.playingTracks[0];
-				await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(
-					{
-						'uid':track.uid,
-						'video_id':track.video_id,
-						'video_name':track.video_name,
-						'video_creator':track.video_creator,
-						'video_duration':track.video_duration,
-						'saved': true,
-						'youtube':track.youtube,
-						'spotify':track.spotify,
-						'amazonmusic':track.amazonmusic,
-						'exid':track.exid,
-					}))
+				for(let i = 0; i < data.length; i++){
+					globals.playingTracks[i]['successful'] = false
+					globals.playingTracks[i]['added'] = false
+				}
+				globals.initialPlaybackTrackChangedMutex = true
+				globals.playingTracks[0]['added'] = true
 				await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[0]))
 			}
 			setIsPlayerReady(isSetup);
@@ -114,11 +106,9 @@ function PlayVideoScreen(props ,ref) {
 						let trackData = await TrackPlayer.getTrack(curTrack)
 						setTitle(trackData.title)
 						setArtist(trackData.artist)
+						trackData.duration = (trackData.duration || 1) <= 0 ? 60 : (trackData.duration || 1) 
 						setMaxDuration(trackData.duration)
-						setArtwork(
-							SQLActions.getTrackArtwork(
-								globals.playingTracks[curTrack]
-						))
+						setArtwork( {'uri': trackData.artwork})
 					} catch (error) {
 						
 					}
@@ -224,7 +214,7 @@ function PlayVideoScreen(props ,ref) {
 						thumbStyle={{width: 8, height: 8}}
 						thumbTouchSize={{width: 40, height: 40}}
 						minimumValue={0}
-						maximumValue={maxDuration}
+						maximumValue={(maxDuration || 60) <= 0 ? 60 : maxDuration}
 				/>
 			</View>
 			<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
@@ -253,7 +243,7 @@ function PlayVideoScreen(props ,ref) {
 						<Ionicons name="shuffle-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
-							await TrackPlayer.skipToPrevious();
+							await TrackPlayerPrev();
 						}}>
 						<Ionicons name="play-back-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
@@ -261,16 +251,7 @@ function PlayVideoScreen(props ,ref) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
-						let index = await TrackPlayer.getCurrentTrack();
-						if(!globals.addTrackIntoQueueTracksMutex && index == globals.playingTracksIndex && globals.playingTracksIndex + 1 < globals.playingTracks.length ){
-							globals.addTrackIntoQueueTracksMutex = true;
-							globals.playingTracksIndex++;
-							await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[globals.playingTracksIndex]));
-							await TrackPlayer.skipToNext();
-							globals.addTrackIntoQueueTracksMutex = false;
-						} else if(index < globals.playingTracksIndex){
-							await TrackPlayer.skipToNext();
-						}
+            			await TrackPlayerNext();
 					}}>
 						<Ionicons name="play-forward-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
