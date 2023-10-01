@@ -54,7 +54,7 @@ function PlaylistScreen({ route }) {
 				setRecentAddData(t.slice(0,4))
 				setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4))
 
-				// setRecentPlayedData(await SQLActions.getRecentlyPlayedData());
+				setRecentPlayedData(await SQLActions.getRecentlyPlayedData());
 			}
 		})();
 	}, [isFocused]);

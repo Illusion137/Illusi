@@ -82,6 +82,7 @@ function GetAddPlaylistFrom({route}) {
 								"youtube": serviceT == "YouTube" ? true : false,
 								"spotify": serviceTEx == "Spotify" ? true : false,
 								"amazonmusic": serviceTEx == "Amazon" ? true : false,
+								"exid": track.exid
 							})))
 						}
 					}
@@ -145,7 +146,7 @@ function GetAddPlaylistFrom({route}) {
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<SongComponentSearch video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={GenerateNewUID(item.video_name)}/>
+		<SongComponentSearch disabled={true} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={GenerateNewUID(item.video_name)}/>
 	);
 
 	return(

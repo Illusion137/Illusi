@@ -6,51 +6,83 @@ import * as SQLActions from '../../../SQLActions';
 import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
-import * as NetInfo from '@react-native-community/netinfo'
-import * as EImage from 'expo-image'
-import * as IMGPickExpo from 'expo-image-picker'
-import * as NetExpo from 'expo-network'
-import * as CelluarExpo from 'expo-cellular'
-import * as BlurExpo from 'expo-blur'
-import * as AVExpo from 'expo-av'
+import * as Prefs from '../../../Preferences'
+import { getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
+import { getYTPlaylistIdFromURL, insertIntoYouTubePlaylist } from '../../Illusive/IllusiveInsertIntoPlaylist';
+import axios from 'axios';
+// import * as AVExpo from 'expo-av'
 
 function ExtraPlaylistConverter({route}) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
-	const confirmDownloadPlaylistAlert = () =>
+	let cachedData = {};
+
+	const confirmConvertPlaylistAlert = () =>
     Alert.alert(
 		"Download All Tracks in Playlist",
 		"Are you sure?",
 		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
-			if(selected === ""){return}
-			if(selected === "Library"){
-				let filteredData = GLOBALS.SQLTracks.filter(item=>!(item.downloaded || item.imported))
-				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
-				}
-			}
-			else{
-				let selected_playlist = selected;
-				let playlistTracks = await SQLActions.getPlaylistTracks(selected_playlist.replaceAll(' ', '_'));
-				
-				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
-				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
-				}
+			try {
+				let playlistURL = data.get(selectedServicePlaylist)
+				let playlistId = getYTPlaylistIdFromURL(playlistURL)
+				await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.SQLTracks].map(({video_id}) => (video_id)));
+			} catch (error) {
+				console.log(error)
 			}
 		} } ]
 	);
+	useEffect(() => {
+		(async function() {
+			let playlists_names = await SQLActions.getAllPlaylists();
+			let pushData = []
+			pushData.push({key: '0', value: 'Library'})
+			for (let i = 0; i < playlists_names.length; i++) {
+				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
+			}
+			setIllusiPlaylistData(pushData)
+			let segmentedServiceValuesData = [];
+			if(Prefs.hasYouTubeCookies()) segmentedServiceValuesData.push("YouTube");
+			if(Prefs.hasYouTubeMusicCookies()) segmentedServiceValuesData.push("YT Music");
+			if(Prefs.hasSpotifyCookies()) segmentedServiceValuesData.push("Spotify");
+			if(Prefs.hasAmazonCookies()) segmentedServiceValuesData.push("Amazon");
+			setSegmentedServiceValues(segmentedServiceValuesData);
+		})()
+	}, []);
 
-	const [selected, setSelected] = React.useState("");
-	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
+	async function getServicePlaylistData(val){
+		switch(val){
+			case("YouTube"):
+				let dat = await getAllYoutubePlaylistsFromAccount();
+				setServicePlaylistData([...dat.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
+				setData(dat)
+				break;
+			case("YTMusic"):
+				break;
+			case("Spotify"):
+				break;
+			case("Amazon"):
+				break;
+		}
+	}
+
+	const [data,setData] = useState([]);
+
+	const [selectedIllusiPlaylist, setSelectedIllusiPlaylist] = React.useState("");
+	const [illusiPlaylistData, setIllusiPlaylistData] = React.useState("");
+
+	const [segmentedServiceValues, setSegmentedServiceValues] = React.useState([]);
+	const [selectedSegmentedServiceValue, setSelectedSegmentedServiceValue] = React.useState("");
+
+	const [selectedServicePlaylist, setSelectedServicePlaylist] = React.useState("");
+	const [servicePlaylistData, setServicePlaylistData] = React.useState("");
 
 	return(
 		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
 				<SelectList 
-					setSelected={(val) => setSelected(val)}
-					data={playlistDownloadData} 
+					setSelected={(val) => setSelectedIllusiPlaylist(val)}
+					data={illusiPlaylistData} 
 					save="value"
 					arrowicon={<></>}
 					searchicon={<></>}
@@ -61,22 +93,40 @@ function ExtraPlaylistConverter({route}) {
 					dropdownStyles={{backgroundColor: colors.track}}
 					dropdownTextStyles={{color: 'white'}}
 				/>
-				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
-				<View style={{height: 15}}/>
-				{/* <SegmentedControl 
-					values={['One', 'Two']}
-					selectedIndex={0}
-					onChange={(event) => {}}
-				/> */}
+				{selectedIllusiPlaylist != undefined && selectedIllusiPlaylist !== "" && 
+				<>
+					<View style={{height: 15}}/>
+					<Text style={styles.descriptiontxt}>Select service to convert playlist to</Text>
+					<SegmentedControl 
+						values={segmentedServiceValues}
+						selectedIndex={0}
+						onChange={async(event) => {setSelectedSegmentedServiceValue(event.nativeEvent.value); await getServicePlaylistData(event.nativeEvent.value)}}
+					/>
+					<View style={{height: 15}}/>
+					<SelectList 
+						setSelected={(val) => {setSelectedServicePlaylist(val)}}
+						data={servicePlaylistData} 
+						save="value"
+						arrowicon={<></>}
+						searchicon={<></>}
+						searchPlaceholder={`Select ${selectedSegmentedServiceValue} Playlist`}
+						placeholder={`Select ${selectedSegmentedServiceValue} Playlist`}
+						inputStyles={{backgroundColor: colors.track, color: 'white'}}
+						boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
+						dropdownStyles={{backgroundColor: colors.track}}
+						dropdownTextStyles={{color: 'white'}}
+					/>
+					<View style={{height: 15}}/>
+					{selectedServicePlaylist != undefined && selectedServicePlaylist != "" && <ExtrasSectionButton showArrow={false} text='Convert Playlist' icon='swap-horizontal' onPress={confirmConvertPlaylistAlert}/>}
+				</>}
+				
 		</View>
 	);
 }
 const themeStyles = (colors) => StyleSheet.create({
     descriptiontxt:{
 		color: '#A0A0A0',
-		marginTop: 10,
-		marginBottom: 20,
-		marginHorizontal: 12,
+		marginHorizontal: 6,
 		textAlign: 'left'
 	},
 	linelong:{

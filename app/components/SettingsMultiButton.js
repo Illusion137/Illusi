@@ -19,7 +19,7 @@ function SettingsMultiButton(props) {
 			<Text style={styles.btnsectionText}>{settingsKey}</Text>
 			<View style={{flex: 1, alignItems: 'flex-end', right:10}}>
 				{typeof(settingsValue) === 'number' && 
-					<TextInput maxLength={2} style={{color: 'white', fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={numSettingsValue} onChangeText={(val) => { setNumSettingsValue(val) } }
+					<TextInput maxLength={3} style={{color: 'white', fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={numSettingsValue} onChangeText={(val) => { setNumSettingsValue(val) } }
 					onBlur={async() => {let n = parseInt(numSettingsValue) || 1; setNumSettingsValue(String(n)); await Prefs.setSettingsNumber(settingsKey, n) }}/>
 				}
 				{typeof(settingsValue) === 'boolean' && 

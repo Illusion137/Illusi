@@ -80,7 +80,9 @@ function SongComponent(props) {
 		return
 	}
 	function play(data){
-		// if(data.filter((item) => item.downloaded || item.imported).length !== 0)
+		if(Prefs.prefs.settings.only_play_downloaded){
+			data = data.filter((item) => item.downloaded || item.imported)
+		}
 		if(data.length !== 0)
 			if(Prefs.prefs.settings.always_shuffle)
 				playShuffle(data)
@@ -121,7 +123,7 @@ function SongComponent(props) {
 		return () => clearInterval(interval);
 	}, []);
 	return (
-		<TouchableOpacity style={{backgroundColor: colors.track}} onLongPress={async() => {
+		<TouchableOpacity disabled={props.disabled || false} style={{backgroundColor: colors.track}} onLongPress={async() => {
 			if(GLOBALS.IsPlaying){
 				let track= {url: FileSystem.documentDirectory + props.media_URI, title: props.video_name, artist: props.video_creator, duration: props.duration, id: props.uid, artwork: getThumbnail()?.uri || getThumbnail()};
 				TrackPlayer.add(track, (await TrackPlayer.getCurrentTrack()) + 1 + GLOBALS.pQueue.length);
@@ -133,23 +135,31 @@ function SongComponent(props) {
 			if(props.setPlaying == undefined){
 				return
 			}
-			if(props.from == 'Downloads'){
+			else if(props.from == 'Downloads'){
 				let tracks = [...GLOBALS.SQLTracks];
 
-				// tracks = tracks.filter(item=>item.downloaded || item.imported)
+				tracks = tracks.filter(item=>item.downloaded || item.imported).slice(0,Prefs.prefs.settings.default_playlists_size)
 				if(tracks != []) 
 					play(tracks)
 				return
 			}
-			if(props.from == 'Recently Added'){
+			else if(props.from == 'Recently Added'){
 				let tracks = [...GLOBALS.SQLTracks];
 				tracks.reverse()
-				tracks.slice(0,200)
+				tracks = tracks.slice(0,Prefs.prefs.settings.default_playlists_size)
 				if(tracks != [])
 					play(tracks)
 				return
 			}
-			if(props.from != 'My Library'){ //From Playlist
+			else if(props.from == 'Recenty Played'){
+				let tracks = await SQLActions.getRecentlyPlayedData();
+				tracks.reverse()
+				tracks = tracks.slice(0,Prefs.prefs.settings.default_playlists_size)
+				if(tracks != [])
+					play(tracks)
+				return
+			}
+			else if(props.from != 'My Library'){ //From Playlist
 				try {
 					let playlistTracks = await SQLActions.getPlaylistTracks(props.from.replaceAll(' ', '_'));
 					// playlistTracks = playlistTracks.filter(item=>item.downloaded || item.imported)

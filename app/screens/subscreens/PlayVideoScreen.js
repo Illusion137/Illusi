@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
-import { Animated , View, Button, StyleSheet, Text, TouchableOpacity, Easing, Modal } from "react-native";
+import { Animated , View, Button, StyleSheet, Text, TouchableOpacity, Easing, Modal, Image } from "react-native";
 import { useTheme } from '@react-navigation/native';
 // import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
@@ -18,6 +18,9 @@ import * as globals from "../../../globals";
 
 import TextTicker from 'react-native-text-ticker'
 import YouTube from 'react-native-youtube';
+
+import * as SQLActions from '../../../SQLActions'
+import { getLyrics } from "../../Illusive/IllusiveLyrics";
 
 // import MusicControl from 'react-native-music-control'
 // import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,6 +49,7 @@ function PlayVideoScreen(props ,ref) {
 	const [elapsed, setElapsed] = useState('00:00');
 	const [durationleft, setDurationLeft] = useState('00:00');
 	
+	const [artwork, setArtwork] = useState(SQLActions.getTrackArtwork(data[0]));
 	const [title, setTitle] = useState(data[0]?.video_name);
 	const [artist, setArtist] = useState(data[0]?.video_creator);
 	const [maxDuration, setMaxDuration] = useState(data[0]?.video_duration);
@@ -77,6 +81,20 @@ function PlayVideoScreen(props ,ref) {
 			if(isSetup && queue.length <= 0) {
 				globals.playingTracksIndex = 0; 
 				globals.playingTracks = data
+				let track = globals.playingTracks[0];
+				await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(
+					{
+						'uid':track.uid,
+						'video_id':track.video_id,
+						'video_name':track.video_name,
+						'video_creator':track.video_creator,
+						'video_duration':track.video_duration,
+						'saved': true,
+						'youtube':track.youtube,
+						'spotify':track.spotify,
+						'amazonmusic':track.amazonmusic,
+						'exid':track.exid,
+					}))
 				await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[0]))
 			}
 			setIsPlayerReady(isSetup);
@@ -97,6 +115,10 @@ function PlayVideoScreen(props ,ref) {
 						setTitle(trackData.title)
 						setArtist(trackData.artist)
 						setMaxDuration(trackData.duration)
+						setArtwork(
+							SQLActions.getTrackArtwork(
+								globals.playingTracks[curTrack]
+						))
 					} catch (error) {
 						
 					}
@@ -189,7 +211,7 @@ function PlayVideoScreen(props ,ref) {
 					<Fontisto name="play-list" size={15} color={colors.primary}/>
 				</TouchableOpacity>
 			</View>
-			<View style={{height: 220, backgroundColor: '#121212'}}/>
+			<Image source={artwork} height={220} style={{width: "auto", opacity: 0.5}}/>
 			{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 			<View style={styles.timestampslidercontainer}>
 				<Slider value={timeValue}
@@ -294,7 +316,9 @@ function PlayVideoScreen(props ,ref) {
 					<TouchableOpacity onPress={() => {setEqSettingsVisible(true)}}>
 						<SimpleLineIcons name="equalizer" size={28} color={colors.primary}/>
 					</TouchableOpacity>
-					<TouchableOpacity>
+					<TouchableOpacity onPress={async() => {
+						// await getLyrics(title);
+					}}>
 						<Ionicons name="mic-outline" size={28} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={onShare}>
@@ -310,7 +334,7 @@ function PlayVideoScreen(props ,ref) {
 					setQueueVisible(!queueVisible);}}>
 						<View style={{width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row"}} >
 							<View style={{marginLeft:10}}>
-								<Button color={"#a382ff"} title='close' onPress={() => {setQueueVisible(false)}}/>
+								<Button color={colors.primary} title='close' onPress={() => {setQueueVisible(false)}}/>
 							</View>
 							<Text style={{left: 85, color: "white", fontWeight: "bold", fontSize: 17}}>Up Next</Text>
 						</View>
@@ -332,7 +356,7 @@ function PlayVideoScreen(props ,ref) {
 					setEqSettingsVisible(!eqSettingsVisible);}}>
 					<View style={{width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row"}} >
 						<View style={{marginLeft:10}}>
-							<Button color={"#a382ff"} title='close' onPress={() => {setEqSettingsVisible(false);}}/>
+							<Button color={colors.primary} title='close' onPress={() => {setEqSettingsVisible(false);}}/>
 						</View>
 						<Text style={{left: 85, color: "white", fontWeight: "bold", fontSize: 17}}>Settings</Text>
 					</View>
@@ -385,7 +409,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	timestampslidercontainer:{
         alignItems: 'stretch',
         justifyContent: 'center',
-		bottom: 29
+		bottom: 20
 	},
 	textcontainer:{
 		justifyContent: 'flex-start',

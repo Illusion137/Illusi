@@ -11,7 +11,6 @@ function decodeHex(hex) {
 	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
   }
 function durationToInt(durationString){
-	console.log(durationString)
 	let duration = 0;
 	let splitDuration = durationString.split(',')
 	
@@ -26,8 +25,6 @@ function durationToInt(durationString){
 			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] )
 		}
 	}
-	console.log(duration)
-
 	return duration
 }
 
@@ -78,7 +75,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		let ytInitialData = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,'').replaceAll('\n',''))
      
 		let contents = ytInitialData.contents.sectionListRenderer.contents[0].itemSectionRenderer.contents
-		console.log(JSON.stringify(contents))
+		// console.log(JSON.stringify(contents))
 		ytInitialData.apikey = apikey
 		let apiKey = ytInitialData.apiKey
 		// let searchData = [...JSON.stringify(ytInitialData).matchAll(/"videoId":"(.+?)",.+?TimeStatusRenderer":.+?\[{"text":"(.+?)"}.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago/g)]

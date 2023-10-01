@@ -23,9 +23,9 @@ function ExtraSettingsScreen(props) {
 			<FlatList data={settingsData} renderItem={renderItem} ListHeaderComponent={<View style={styles.linelong}/>} ListFooterComponent={
 				<>
 					<View style={styles.linelong}/>
-					<View style={{top: 30}}>
-						<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
-					</View>
+					<View style={{height: 30}}/>
+					<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
+					<View style={{height: 100}}/>
 				</>
 			}/>
 		</View>

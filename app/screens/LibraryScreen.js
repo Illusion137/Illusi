@@ -113,7 +113,7 @@ const LibraryScreen = ({ navigation, route }) => {
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent artwork={item.artwork} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
+	const renderItem = ({item}) => <SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (allData.editMode !== 0)} artwork={item.artwork} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
 	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 

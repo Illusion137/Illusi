@@ -11,6 +11,7 @@ export const SQLTracks = [];
 export let IsPlaying = false
 export let addTrackIntoQueueTracksMutex = false
 export let playingTracks = [];
+
 export async function playingTrackToRNTrack(track){
     try {
         let artwork = "";

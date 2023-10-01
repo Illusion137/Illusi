@@ -46,13 +46,13 @@ function AddPlaylist(props, ref) {
 			}
 			}}></TextInput>
 			<View style={{height:40}}></View>
-			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
+			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={require('../../../assets/icon.png')}/>
 					<Text style={styles.importfromtext}>Import Playlist From Illusi</Text>
 				</View>
 			</TouchableHighlight>
-			<View style={styles.line}/>
+			<View style={styles.line}/> */}
 			<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Musi Playlist'})}>
 				<View style={styles.importfrom}>
 					<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is2-ssl.mzstatic.com/image/thumb/Purple122/v4/7d/76/2f/7d762f0e-10ab-1ff2-baf7-84cdaca16219/Icon-1x_U007emarketing-0-6-0-85-220.png/350x350.png?'}}/>

@@ -20,10 +20,16 @@ function ExternalServicesScreen(props) {
 		// this.setState({ loading: e.loading });
 		switch(e.url){
 			case('https://m.youtube.com/'):
-				CookieManager.getAll(true).then(async(res) => { await Prefs.setCookies(res, 'youtube_cookies'); setYTCookiesEnabled(true) });
+				CookieManager.get('https://m.youtube.com/').then(async(res) => { await Prefs.setCookies(res, 'youtube_cookies'); setYTCookiesEnabled(true) });
 				break;
 			case('https://music.youtube.com/'):
-				CookieManager.getAll(true).then(async(res) => { await Prefs.setCookies(res, 'youtube_music_cookies'); setYTMusicCookiesEnabled(true) });
+				CookieManager.get('https://music.youtube.com/').then(async(res) => { await Prefs.setCookies(res, 'youtube_music_cookies'); setYTMusicCookiesEnabled(true) });
+				break;
+			case('https://open.spotify.com/'):
+				CookieManager.get('https://open.spotify.com/').then(async(res) => { await Prefs.setCookies(res, 'spotify_cookies'); setSpotifyCookiesEnabled(true) });
+				break;
+			case('https://music.amazon.com/'):
+				CookieManager.get('https://music.amazon.com/').then(async(res) => { await Prefs.setCookies(res, 'amazon_music_cookies'); setAmazonCookiesEnabled(true) });
 				break;
 		}
 	  };
@@ -36,6 +42,9 @@ function ExternalServicesScreen(props) {
 						sharedCookiesEnabled={true}
 						thirdPartyCookiesEnabled={true}
 						onNavigationStateChange={this.navChange}
+						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+						// applicationNameForUserAgent='Illusi'
+						contentMode="mobile"
 						/>
 			</View> }
 			<ScrollView>
@@ -64,7 +73,9 @@ function ExternalServicesScreen(props) {
 					</View>
 				</TouchableHighlight>
 				<View style={styles.line}/>
-				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Spotify Playlist'})}>
+				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => {
+						if(url == null) setUrl("https://open.spotify.com/"); 
+						else setUrl(null)} }>
 					<View style={styles.importfrom}>
 						<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is2-ssl.mzstatic.com/image/thumb/Purple122/v4/63/64/fa/6364fa97-398a-46da-32ac-765e8f328548/AppIcon-0-1x_U007emarketing-0-6-0-0-0-85-220-0.png/350x350.png?'}}/>
 						<Text style={styles.importfromtext}>Add Spotify Account</Text>
@@ -74,7 +85,9 @@ function ExternalServicesScreen(props) {
 					</View>
 				</TouchableHighlight>
 				<View style={styles.line}/>
-				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Amazon Playlist'})}>
+				<TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => {
+						if(url == null) setUrl("https://music.amazon.com/"); 
+						else setUrl(null)} }>
 					<View style={styles.importfrom}>
 						<Image style={{marginHorizontal: 12,height: 25, width: 25, borderRadius: 5}} source={{uri: 'https://is4-ssl.mzstatic.com/image/thumb/Purple122/v4/fc/b8/aa/fcb8aae7-180e-7b29-7c83-255f1c86eba8/AppIcon-1x_U007emarketing-0-10-0-85-220.png/350x350.png?'}}/>
 						<Text style={styles.importfromtext}>Add Amazon Music Account</Text>

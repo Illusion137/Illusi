@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableH
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { SelectList } from 'react-native-dropdown-select-list';
-import { getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
+import { getAllAmazonMusicPlaylistsFromAccount, getAllSpotifyPlaylistsFromAccount, getAllYTMusicPlaylistsFromAccount, getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
 import * as Prefs from '../../../Preferences';
 
 function AddPlaylistFrom({route}) {
@@ -32,15 +32,34 @@ function AddPlaylistFrom({route}) {
 			if(Prefs.getExperimentalFeatureEnabled('get_account_playlists_in_get_playlist')){
 				switch(from){
 					case('YouTube'):
-						let data = await getAllYoutubePlaylistsFromAccount()
-						setPlaylistNameData(data)
-						setPlaylistNames([...data.keys()]);
+						if(Prefs.hasYouTubeCookies()){
+							let ytdata = await getAllYoutubePlaylistsFromAccount()
+							setPlaylistNameData(ytdata)
+							setPlaylistNames([...ytdata.keys()]);
+						}
+						break;
+					case('YTMusic'):
+						if(Prefs.hasYouTubeCookies() && Prefs.hasYouTubeMusicCookies()){
+							let ytmusicdata = await getAllYTMusicPlaylistsFromAccount()
+							setPlaylistNameData(ytmusicdata)
+							setPlaylistNames([...ytmusicdata.keys()]);
+						}
 						break;
 					case('Musi'):
 						break;
 					case('Spotify'):
+						if(Prefs.hasSpotifyCookies()){
+							let spotifydata = await getAllSpotifyPlaylistsFromAccount();
+							setPlaylistNameData(spotifydata)
+							setPlaylistNames([...spotifydata.keys()]);
+						}
 						break;
 					case('Amazon'):
+						if(Prefs.hasAmazonCookies()){
+							let amazondata = await getAllAmazonMusicPlaylistsFromAccount();
+							setPlaylistNameData(amazondata)
+							setPlaylistNames([...amazondata.keys()]);
+						}
 						break;
 					default:
 						break;

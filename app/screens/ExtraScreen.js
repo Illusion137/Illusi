@@ -15,6 +15,8 @@ import { recreateAllTables, deleteAllTables, deleteAllPlaylists } from '../../SQ
 import * as SQLite from 'expo-sqlite'
 import * as Prefs from '../../Preferences'
 import * as SQLActions from '../../SQLActions';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import CookieManager from '@react-native-community/cookies';
 
 function ExtraScreen({route}) {
 	const navigation = useNavigation();
@@ -22,6 +24,8 @@ function ExtraScreen({route}) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
+	const darkModeIndexMap = new Map([['ON',0],['OFF',1]])
+
 	let keepPrefs = false;
 
 	const confirmDeleteDataAlert = () =>
@@ -48,6 +52,7 @@ function ExtraScreen({route}) {
 			await SQLActions.createCacheDirs();
 			await recreateAllTables();
 			if(!keepPrefs){
+				await CookieManager.clearAll();
 				await Prefs.resetPrefs();
 				keepPrefs=false;
 			}
@@ -112,7 +117,7 @@ function ExtraScreen({route}) {
 					<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.linelong}/>
 
-				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify, Amazon Music, and Souncloud for extra features.</Text>
+				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
@@ -127,12 +132,6 @@ function ExtraScreen({route}) {
 				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Transfer playlists back to other Music Services.</Text>
-
-				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Dark Mode' icon='moon-outline' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={true} text='Themes' icon='brush-outline' onPress={async () => {}}/>
-				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Customize all the colors of Illusi; save and share custom themes.</Text>
 
@@ -198,6 +197,18 @@ const themeStyles = (colors) => StyleSheet.create({
 		opacity: 0.1,
 		backgroundColor: 'white',
 		marginLeft: 42
+	},
+	sectionContainer:{
+		width: '100%', 
+		height: 50, 
+		backgroundColor: colors.track, 
+		flexDirection: 'row', 
+		alignItems: 'center'
+	},
+	btnsectionText:{
+		color: '#FFFFFF',
+		fontSize: 16,
+		left:20
 	}
 });
 export default ExtraScreen;

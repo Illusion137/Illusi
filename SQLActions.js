@@ -87,14 +87,17 @@ export async function setTrackAsDownloaded(uid, media_URI) {
     await fetchTrackData();
 }
 
-function getTrackArtwork(track){
+export function getTrackArtwork(track){
     if(track.imported || false)
         return GLOBALS.importedIcon;
     else if(track.thumbnail_URI || "" !== "")
         return {'uri': GLOBALS.thumbnailsCacheDir + track.thumbnail_URI};
     else if(track.youtube || false)
-        return {'uri': `https://img.youtube.com/vi/${id}/mqdefault.jpg`, 'cache': 'force-cache'}
+        return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
     return {uri: ""} ;
+}
+export function getTrackArtworkRP(track){
+    return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
 }
 
 export async function fetchTrackData() {
@@ -111,7 +114,7 @@ export async function fetchTrackData() {
         GLOBALS.SQLTracks[i].soundcloud = Boolean(GLOBALS.SQLTracks[i].soundcloud)
         GLOBALS.SQLTracks[i].spotify = Boolean(GLOBALS.SQLTracks[i].spotify)
         GLOBALS.SQLTracks[i].youtube = Boolean(GLOBALS.SQLTracks[i].youtube)
-        GLOBALS.SQLTracks[i].artwork = getTrackArtwork(GLOBALS.SQLTracks[i])
+        GLOBALS.SQLTracks[i]['artwork'] = getTrackArtwork(GLOBALS.SQLTracks[i])
     }
 }
 
@@ -130,8 +133,21 @@ export async function pinUnpinPlaylist(playlistName, pin) {
 
 export async function getPlaylistTracks(playlistName) {
     let playlist = await GLOBALS.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlistName} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
-    // let playlist = await GLOBALS.db.execAsync([{sql: `SELECT * FROM tracks AS t WHERE uid IN (SELECT track_uid FROM ${playlistName} AS p) ORDER BY p.id`, args: []}], false);
-    return playlist[0].rows;
+    let data = playlist[0].rows
+    for(let i = 0; i < data.length; i++){
+        data[i].video_name = String(data[i].video_name)
+        data[i].video_creator = String(data[i].video_creator)
+        data[i].saved = Boolean(data[i].saved)
+        data[i].downloaded = Boolean(data[i].downloaded)
+        data[i].lvid = Boolean(data[i].lvid)
+        data[i].amazonmusic = Boolean(data[i].amazonmusic)
+        data[i].applemusic = Boolean(data[i].applemusic)
+        data[i].soundcloud = Boolean(data[i].soundcloud)
+        data[i].spotify = Boolean(data[i].spotify)
+        data[i].youtube = Boolean(data[i].youtube)
+        data[i]['artwork'] = getTrackArtwork(data[i])
+    }
+    return data;
 }
 
 export async function getAllPlaylists() {
@@ -222,4 +238,56 @@ export async function insertTrackData(track) {
 
 export async function insertTrackIntoPlaylist(track, playlistName) {
     let tracks = await GLOBALS.db.execAsync([{sql: `INSERT INTO ${playlistName.replaceAll(' ', '_')} (track_uid) values (?)`, args: [track.uid]}], false);
+}
+export async function getRecentlyPlayedData(){
+    let tracks = await GLOBALS.db.execAsync([{sql: 'SELECT * FROM recently_played_tracks', args: []}], false);
+    let data = tracks[0].rows
+    for(let i = 0; i < data.length; i++){
+        data[i].video_name = String(data[i].video_name)
+        data[i].video_creator = String(data[i].video_creator)
+        data[i].saved = Boolean(data[i].saved)
+        data[i].downloaded = Boolean(data[i].downloaded)
+        data[i].lvid = Boolean(data[i].lvid)
+        data[i].amazonmusic = Boolean(data[i].amazonmusic)
+        data[i].applemusic = Boolean(data[i].applemusic)
+        data[i].soundcloud = Boolean(data[i].soundcloud)
+        data[i].spotify = Boolean(data[i].spotify)
+        data[i].youtube = Boolean(data[i].youtube)
+        data[i]['artwork'] = getTrackArtworkRP(data[i])
+    }
+    return data;
+}
+export async function insertTrackIntoRecentlyPlayed(track){
+    await GLOBALS.db.execAsync([{sql: 'INSERT INTO recently_played_tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
+}
+export async function cleanupRecentlyPlayed(){
+    const recently_played_max_size = 100;
+    let recently_played_data = await getRecentlyPlayedData();
+    recently_played_data.reverse();
+    
+    let allPromises = [];
+    
+    if(recently_played_data.length > recently_played_max_size){
+        await GLOBALS.db.execAsync([{'sql': 'DELETE FROM recently_played_tracks', 'args': [] }], false);
+        for(let i = 0; i < recently_played_max_size; i++){
+            let track = recently_played_data[i];
+            allPromises.push(
+                insertTrackIntoRecentlyPlayed(
+                    new Track(
+                        {
+                            'uid':track.uid,
+                            'video_id':track.video_id,
+                            'video_name':track.video_name,
+                            'video_creator':track.video_creator,
+                            'video_duration':track.video_duration,
+                            'saved': true,
+                            'youtube':track.youtube,
+                            'spotify':track.spotify,
+                            'amazonmusic':track.amazonmusic,
+                            'exid':track.exid,
+                        })
+                ))
+        }
+    }
+    await Promise.all(allPromises);
 }

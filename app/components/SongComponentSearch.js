@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ytdl from "react-native-ytdl"
@@ -12,7 +12,7 @@ function SongComponentSearch(props) {
 	const [saved, isSaved] = useState(props.saved);
 	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
-		<TouchableOpacity>
+		<TouchableOpacity disabled={props.disabled || false}>
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
 					<Image source={{uri:`https://img.youtube.com/vi/${props.video_id}/mqdefault.jpg`}} style={styles.image}></Image>
@@ -22,6 +22,16 @@ function SongComponentSearch(props) {
 					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 				</View>
 				<TouchableOpacity disabled={saved} style={{justifyContent: 'center'}} onPress={async()=>{
+						if(props.addFrom !== undefined){
+							props.addFrom(
+								{
+									'video_name': props.video_name,
+									'video_creator': props.video_creator,
+									'video_id': props.video_id,
+									'uid': props.uid,
+								});
+							return;
+						} 
 						if(!saved){
 							try{
 								await SQLActions.insertTrackData(new SQLActions.Track({
@@ -46,7 +56,6 @@ function SongComponentSearch(props) {
 				</TouchableOpacity>
 			</View>
 			<View style={styles.line}/>
-
 		</TouchableOpacity>
 	);
 }

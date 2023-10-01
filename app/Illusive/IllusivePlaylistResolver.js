@@ -2,6 +2,13 @@ import axios from "axios"; //HTTP Request Library
 import SearchYouTube, { GenerateNewUID, decodeHex, durationToInt } from "./IllusiveSearch";
 import * as SQLActions from "../../SQLActions";
 import * as Prefs from "../../Preferences";
+import req from "./Req";
+import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getSpotifyInitialData } from "./IllusiveAccountPlaylistFinder";
+
+function getYTPlaylistIdFromURL(url){
+    const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
+    return url.replace(idRegex, '')
+}
 
 function getRandomIndex(max) {
     max = Math.floor(max);
@@ -43,26 +50,154 @@ export async function getMusiPlaylist(url){
     return parsed;
 }
 
+export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
+    try {
+        const innertubeApiKeyRegex = /"INNERTUBE_API_KEY": ?\"(.+?)\"/s;
+        const innertubeContextRegex = /INNERTUBE_CONTEXT": ?({.+?}})/s;
+        let headers = {
+            'Access-Control-Allow-Origin' : '*',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "sec-ch-ua": "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
+            "sec-ch-ua-arch": "\"x86\"",
+            "sec-ch-ua-bitness": "\"64\"",
+            "sec-ch-ua-full-version": "\"117.0.5938.92\"",
+            "sec-ch-ua-full-version-list": "\"Google Chrome\";v=\"117.0.5938.92\", \"Not;A=Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"117.0.5938.92\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-model": "\"\"",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-ch-ua-platform-version": "\"15.0.0\"",
+            "sec-ch-ua-wow64": "?0",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "same-origin",
+            "sec-fetch-site": "same-origin",
+            "x-client-data": "CKS1yQEIh7bJAQiitskBCKmdygEI6NTKAQiQ+soBCJahywEI85jNAQiFoM0BCNy9zQEI38TNAQi5ys0BCMXRzQEI1NTNAQjM1s0BCOLWzQEI+cDUFRi60s0BGOuNpRc=",
+            "x-goog-authuser": "0",
+            "x-goog-visitor-id": "CgtVbmR5bk9HMFZ1ayjotd2oBjIICgJVUxICGgA%3D",
+            "x-origin": "https://www.youtube.com",
+            "x-youtube-bootstrap-logged-in": "true",
+            "x-youtube-client-name": "1",
+            "x-youtube-client-version": "2.20230928.04.00",
+            "Cookies": Prefs.prefs.external_services.youtube_cookies
+        }
+
+        const response = await axios({'method': 'GET', 'url': url, 'headers': headers, 'withCredentials': true});
+        const responseData = decodeHex(response.data);
+
+        const INNERTUBE_API_KEY = innertubeApiKeyRegex.exec(responseData)[1]
+        let INNERTUBE_CONTEXT = JSON.parse(innertubeContextRegex.exec(responseData)[1].replaceAll(/\n\s+/g,''))
+
+        INNERTUBE_CONTEXT['adSignalsInfo'] = {'params':[
+            {
+                "key": "dt",
+                "value": "1696043921913"
+            },
+            {
+                "key": "flash",
+                "value": "0"
+            },
+            {
+                "key": "frm",
+                "value": "0"
+            },
+            {
+                "key": "u_tz",
+                "value": "-420"
+            },
+            {
+                "key": "u_his",
+                "value": "5"
+            },
+            {
+                "key": "u_h",
+                "value": "1440"
+            },
+            {
+                "key": "u_w",
+                "value": "2560"
+            },
+            {
+                "key": "u_ah",
+                "value": "1392"
+            },
+            {
+                "key": "u_aw",
+                "value": "2560"
+            },
+            {
+                "key": "u_cd",
+                "value": "24"
+            },
+            {
+                "key": "bc",
+                "value": "31"
+            },
+            {
+                "key": "bih",
+                "value": "1283"
+            },
+            {
+                "key": "biw",
+                "value": "1511"
+            },
+            {
+                "key": "brdim",
+                "value": "0,0,0,0,2560,0,2560,1392,1528,1283"
+            },
+            {
+                "key": "vis",
+                "value": "1"
+            },
+            {
+                "key": "wgl",
+                "value": "true"
+            },
+            {
+                "key": "ca_type",
+                "value": "image"
+            }
+        ]}
+        INNERTUBE_CONTEXT['request']['consistencyTokenJars'] = []
+        INNERTUBE_CONTEXT['request']['internalExperimentFlags'] = [
+            {
+                "key": "force_enter_once_in_webview",
+                "value": "true"
+            }
+        ]
+
+        let returnData = {
+            'INNERTUBE_API_KEY': INNERTUBE_API_KEY, 
+            'INNERTUBE_CONTEXT': INNERTUBE_CONTEXT, 
+            'data': responseData,
+            'headers': headers};
+        return returnData;
+    } catch (error) {
+        console.log(error)
+        return null;
+    }
+}
+
 async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey, client){
     try {
-
         let videos = [];
-        headers = {
-            headers: {
-                'Access-Control-Allow-Origin' : '*',
-                'x-youtube-client-name': 1,
-                'x-youtube-client-version': '2.20200911.04.00',
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-            }
-        }
+        let headers = ytDefaultHeaders;
         let postURL = `https://www.youtube.com/youtubei/v1/browse?key=${innertube_api_key}&prettyPrint=false`
         let postData = {
             'context': client,
             'continuation' : continuationKey
         }
 
-		body = (await axios({'method': 'POST', 'url': postURL, 'headers': headers, 'data': postData})).data
-        let contents = body;
+		let body = await axios({'method': 'POST', 'url': postURL, 'headers': {'headers': {
+            'Access-Control-Allow-Origin' : '*',
+            'x-youtube-client-name': 1,
+            'x-youtube-client-version': '2.20200911.04.00',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+            'Cookies': 'VISITOR_INFO1_LIVE=UndynOG0Vuk; VISITOR_PRIVACY_METADATA=CgJVUxICGgA%3D; _gcl_au=1.1.1654163908.1692824047; LOGIN_INFO=AFmmF2swRAIgb_DfnlDOCMB92erwqc_sH_CpB4KtzNhJYjU1CuXxXEkCIHvBDT5WZwjYdg83tWunFwVkmS01JTxVgX81hC3OqfsB:QUQ3MjNmengyWXFTaHJaSHlZWS00NVhJZ0xWSW5RNmQ4NG45R3lyV0NDR05WZ0dqVllGbDdfeGRkX3hqZHRUSUtIbDlfQThMQTZ3d0RwRmtDWklxMlE0Ui1RZFZhajZITU5RTk5PWEJoS3h0NmRObV90Uk56dHZ2VktURkFEeVRDYU9lYVJUOE1iREd0MVg3ZlI2ODJQREJNLS0zQlhMRWV3; SID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjzWmCNYZ_90ajMk-xvWpRxg.; __Secure-1PSID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjDvZY6SmfFiorazcuJ4QhtQ.; __Secure-3PSID=bQgdkMpssHpUHDgFcciNnNw_NyNMRChG7t82C9YE5Wjp87MjSV9SulFnNgBZg8RbZscbFw.; HSID=AmKautbw6k4YOyt90; SSID=AKankHoBJZsx73vzj; APISID=KDAVZ_L7nKQWrkZw/AVCcwbHhDYb0uhTDR; SAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; __Secure-1PAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; __Secure-3PAPISID=n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw; YSC=O44K8c5EADY; PREF=f6=40000080&volume=34&f7=140&tz=America.Phoenix&autoplay=true&f5=20000; __Secure-1PSIDTS=sidts-CjEB3e41hfHwYIcAZS6CvNiHMESsNFhXDc5BWrDq4HXqtgDn3it45rZNJkX8iPh9lWoqEAA; __Secure-3PSIDTS=sidts-CjEB3e41hfHwYIcAZS6CvNiHMESsNFhXDc5BWrDq4HXqtgDn3it45rZNJkX8iPh9lWoqEAA; SIDCC=ACA-OxO7i6TfKYnQRMbMD8n8OrkSJc3LkfpLG1Fql70uqZOYg68P-RGhlphhqhTiVYQ2anIywYbu; __Secure-1PSIDCC=ACA-OxNXPOMDchOZgxmUnsaZQOcnUCdfcwUnvpg39E4o26jK5yiwC3Llnk_YL7HiToNfpuygmx0; __Secure-3PSIDCC=ACA-OxOgQww43kqHD8nwv0hKqz-rBiCsft6GikzkVICcSHX1-_zst8U-Y2YNrF43cGxKZpCOIXg; CONSISTENCY=AKreu9tL-5Fl-WDHH2Lvl21VJRQWUAtIWjkMuP6ZSxi0g8BwSghZwf8wEEqdrxBbzUwb1DQJMrk9a0SCSR097Urx0ogIosQjQ2C1V4Gtr2NMSL-UORg58AHt3p6hRQrmU-ZRktwLjceMkj594-Z21q_lG2DcaUGjNqLd8RJeUIeCkFYP2E58owl-_-i2b3U53AL2SIVPdzMRjgYmUCjossvbXwz4KV3rbE5PZMvqwjwP2NaNwS2WXFi5Zw'
+        }}, 'data': postData, 'withCredentials': true})
+        let contents = body.data;
+        console.log(JSON.stringify(contents))
         let continuationTokenGood = false;
         let continutationToken = undefined;
         let continuationItems = undefined;
@@ -95,6 +230,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
         return videos
 
     } catch (error) {
+        console.log(error)
         return []
     }
 }
@@ -106,36 +242,28 @@ export async function getYoutubePlaylist(url){
 
 		let videos = []
 		
-		headers = {
-			headers: {
-				'Access-Control-Allow-Origin' : '*',
-				'x-youtube-client-name': 1,
-				'x-youtube-client-version': '2.20200911.04.00',
-				'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-			}
-		}
+        let initialData = await getYouTubeInitialData(url);
+        if(initialData === null){
+            throw new Error("YouTube Initial Data is null")
+        }
+
+		const apikey = initialData.INNERTUBE_API_KEY
+        const clientKey = initialData.INNERTUBE_CONTEXT
 
 		const dataRegex  = /var ytInitialData = \'(.*)\';<\/script>/gs
-		const apiRegex  = /"innertubeApiKey":"(.*?)"/
-        const clientRegex = /INNERTUBE_CONTEXT":({.+?}})/s;
         const continuationTokenRegex = /continuationCommand.+?:\\x22(.+?)\\x22,/
         const titleRegex = /<title>(.+?) - YouTube - YouTube<\/title>/
 
-		body = (await axios(url, headers)).data
-		const raw = dataRegex.exec(body)[1]
-		const apikey = apiRegex.exec(body)[1]
-        const clientKey = JSON.parse((clientRegex.exec(body)[1]).replaceAll(/\n\s+/g,''));
+		const raw = dataRegex.exec(initialData.data)[1]
 
         let continuationToken;
         try {
-            continuationToken = continuationTokenRegex.exec(body)[1]
+            continuationToken = continuationTokenRegex.exec(initialData.data)[1]
         } catch (error) {
-            console.log(error)
             continue_ = false;
         }
 
-		const title = titleRegex.exec(body)[1]
-
+		const title = titleRegex.exec(initialData.data)[1]
 
 		let data = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,''))
 		data.apikey = apikey
@@ -152,11 +280,12 @@ export async function getYoutubePlaylist(url){
 					'video_duration': durationToInt(parsedVideo.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
                 })
             } catch (error) {
-                console.log(error)
             }
         }
         
         if(continue_){
+            console.log(apikey)
+            console.log(continuationToken)
             let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey);
             videos = videos.concat(continuedVideos);
         }
@@ -250,7 +379,7 @@ export async function getYoutubeMusicPlaylist(url){
 				'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
                 "Cookies": Prefs.prefs.external_services.youtube_music_cookies
             },
-            'withCredentials': true            
+            'withCredentials': true
         })).data;
         const initialDataRegex = /initialData\.push.+?initialData\.push.+?data: '(.+?)'.+?ytcfg.set/gs;
         const innertubeApiKeyRegex = /\"INNERTUBE_API_KEY\": ?\"(.+?)\"/;
@@ -309,42 +438,17 @@ export async function getSpotifyPlaylist(url){
     try {
         const playlistUID = url.replace(/https:\/\/open\.spotify\.com\/(album|playlist)\//,'')
 
-        headers = {
-            headers: {
-                'Access-Control-Allow-Origin' : '*',
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-            }
-        }
+        const limit = Prefs.prefs.settings.spotify_playlist_limit
 
-        body = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
-        const sessionRegex = /<script id="session" data-testid="session" type="application\/json">(.+?)<\/script>/
-        let session = sessionRegex.exec(body)[1]
-        let sessionJson = JSON.parse(session)
-        
-        let clientToken = await fetch("https://clienttoken.spotify.com/v1/clienttoken", {
-            "headers": {
-              "accept": "application/json",
-              "accept-language": "en-US,en;q=0.9",
-              "content-type": "application/json",
-              "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
-              "sec-ch-ua-mobile": "?0",
-              "sec-ch-ua-platform": "\"Windows\"",
-              "sec-fetch-dest": "empty",
-              "sec-fetch-mode": "cors",
-              "sec-fetch-site": "same-site",
-              "Referer": "https://open.spotify.com/",
-              "Referrer-Policy": "strict-origin-when-cross-origin"
-            },
-                "body": "{\"client_data\":{\"client_version\":\"1.2.21.625.gab84de47\",\"client_id\":\"" + sessionJson.clientId + "\",\"js_sdk_data\":{\"device_brand\":\"unknown\",\"device_model\":\"unknown\",\"os\":\"windows\",\"os_version\":\"NT 10.0\",\"device_id\":\"null\",\"device_type\":\"computer\"}}}",
-                "method": "POST"
-        });
-        clientToken = await clientToken.json();
+        let initialData = await getSpotifyInitialData(url);
+        let clientToken = initialData.clientToken
+        let sessionJson = initialData.session
 
         let playlistData;
         let tracks = [];
 
         if(url.includes("album")){
-            playlistData = await fetch("https://api-partner.spotify.com/pathfinder/v1/query?operationName=getAlbum&variables=%7B%22uri%22%3A%22spotify%3Aalbum%3A" + playlistUID + "%22%2C%22locale%22%3A%22%22%2C%22offset%22%3A0%2C%22limit%22%3A50%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2246ae954ef2d2fe7732b4b2b4022157b2e18b7ea84f70591ceb164e4de1b5d5d3%22%7D%7D", {
+            playlistData = await fetch(`https://api-partner.spotify.com/pathfinder/v1/query?operationName=getAlbum&variables=%7B%22uri%22%3A%22spotify%3Aalbum%3A${playlistUID}%22%2C%22locale%22%3A%22%22%2C%22offset%22%3A0%2C%22limit%22%3A${limit}%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2246ae954ef2d2fe7732b4b2b4022157b2e18b7ea84f70591ceb164e4de1b5d5d3%22%7D%7D`, {
                 "headers": {
                   "accept": "application/json",
                   "accept-language": "en",
@@ -377,7 +481,7 @@ export async function getSpotifyPlaylist(url){
                 })
             }
         } else if(url.includes("playlist")){
-            playlistData = await fetch("https://api-partner.spotify.com/pathfinder/v1/query?operationName=fetchPlaylist&variables=%7B%22uri%22%3A%22spotify%3Aplaylist%3A"+ playlistUID +"%22%2C%22offset%22%3A0%2C%22limit%22%3A25%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2273a3b3470804983e4d55d83cd6cc99715019228fd999d51429cc69473a18789d%22%7D%7D", {
+            playlistData = await fetch(`https://api-partner.spotify.com/pathfinder/v1/query?operationName=fetchPlaylist&variables=%7B%22uri%22%3A%22spotify%3Aplaylist%3A${playlistUID}%22%2C%22offset%22%3A0%2C%22limit%22%3A${limit}%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2273a3b3470804983e4d55d83cd6cc99715019228fd999d51429cc69473a18789d%22%7D%7D`, {
                 "headers": {
                   "accept": "application/json",
                   "accept-language": "en",
@@ -437,129 +541,50 @@ export async function getSpotifyPlaylist(url){
 }
 
 export async function getAmazonMusicPlaylist(url){
-  try {
-    let amznMusic = {};
-    {
-        let configBody = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
-       
-        const amznMusicRegex = /window.amznMusic = ({.+});/s
-
-        //Fixing the shitty json
-        let amznMusicText = amznMusicRegex.exec(configBody)[1]
-        amznMusicText = amznMusicText.replaceAll(/\n\s+/g,'')
-                            .replace("appConfig", "\"appConfig\"")
-                            .replace("ssr:", "\"ssr\":")
-                            .replace("isInContainerApp: true,","\"isInContainerApp\": true")
-                            .replace("isInContainerApp: false,","\"isInContainerApp\": false")
-        try {
-            amznMusic = JSON.parse(amznMusicText);
-        } catch (error) {
-            return null;
-        }
-    }
-                        
-    let trimmedURL = url.replace("https://",'').replace("music.amazon.com",'');
-
-    let deeplink = {
-        "interface": "DeeplinkInterface.v1_0.DeeplinkClientInformation",
-        "deeplink": trimmedURL
-    }
-    let x_amzn_authentication = {
-        "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
-        "accessToken": amznMusic.appConfig.accessToken
-    }
-    let x_amzn_csrf = {
-        "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
-        "token": amznMusic.appConfig.csrf.token,
-        "timestamp": amznMusic.appConfig.csrf.ts,
-        "rndNonce": amznMusic.appConfig.csrf.rnd
-    }
-    let headers = {
-        "x-amzn-authentication": JSON.stringify(x_amzn_authentication),
-        "x-amzn-device-model": "WEBPLAYER",
-        "x-amzn-device-width": "1920",
-        "x-amzn-device-family": "WebPlayer",
-        "x-amzn-device-id": amznMusic.appConfig.deviceId,
-        "x-amzn-user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-        "x-amzn-session-id": amznMusic.appConfig.sessionId,
-        "x-amzn-device-height": "1080",
-        "x-amzn-request-id": "dfefb1b8-4ae6-4d38-973b-a4964eefbd76",
-        "x-amzn-device-language": amznMusic.appConfig.displayLanguage,
-        "x-amzn-currency-of-preference": "USD",
-        "x-amzn-os-version": "1.0",
-        "x-amzn-application-version": amznMusic.appConfig.version,
-        "x-amzn-device-time-zone": "America/Phoenix",
-        "x-amzn-timestamp": amznMusic.appConfig.csrf.ts,
-        "x-amzn-csrf": JSON.stringify(x_amzn_csrf),
-        "x-amzn-music-domain": "music.amazon.com",
-        "x-amzn-referer": "",
-        "x-amzn-affiliate-tags": "",
-        "x-amzn-ref-marker": "",
-        "x-amzn-page-url": url,
-        "x-amzn-weblab-id-overrides": "",
-        "x-amzn-video-player-token": "",
-        "x-amzn-feature-flags": "hd-supported,uhd-supported"
-    }
-    let body = JSON.stringify({"deeplink": JSON.stringify(deeplink), "headers": JSON.stringify(headers)})
-    let playlistData = await fetch("https://na.mesk.skill.music.a2z.com/api/showHome", {
-        "headers": {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "text/plain;charset=UTF-8",
-            "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "Referer": "https://music.amazon.com/",
-            "Referrer-Policy": "strict-origin-when-cross-origin"
-        },
-        "body": body,
-        "method": "POST"
-    });
-
-    playlistData = await playlistData.json();
-
-    let templateListIndex = -1;
-    for(let i = 0; i < playlistData.methods.length; i++){
-        if(playlistData.methods[i].interface == "TemplateListInterface.v1_0.CreateAndBindTemplateMethod"){
-            templateListIndex = i;
-        }
-    }
-
-    let amznTrackData = playlistData.methods[templateListIndex].template.widgets[0].items;
-    const tracks = [];
-
-    for(let i = 0; i < amznTrackData.length; i++){
-        tracks.push({
-            'video_name': amznTrackData[i].primaryText,
-            'video_creator': amznTrackData[i].secondaryText1,
-        })
-    }
-
-    let proxies = await getProxyList();
-        
-    async function searchYT(title, artist, proxy = null){
-        let search_query = `${artist} - ${title}`;
-        let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
-        return ytSearchResult.data[0]
-    }
+    try {
+        let amznMusic = await getAmazonMusicAmznMusicData(url);
+                            
+        let trimmedURL = url.replace("https://",'').replace("music.amazon.com",'');
     
-    const ytTracks = [];
-    for(let i = 0; i < tracks.length; i++){
-        ytTracks.push(
-            searchYT(tracks[i].video_name, tracks[i].video_creator, proxies[getRandomIndex(proxies.length)])
-        )
-    }
-    let results = await Promise.all(ytTracks)
-
-    return {data: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
-  } catch (error) {
-    return {data: [], title: null}
-  }
-}
-
-export async function getSoundcloudPlaylist(){
-    // const initialTrackRegex = /"artist": ?"(.+?)".+?"title": ?"(.+?)"/gs;
+        let playlistData = await getAmazonMusicShowHomeData(amznMusic, url, trimmedURL);
+    
+        let templateListIndex = -1;
+        for(let i = 0; i < playlistData.methods.length; i++){
+            if(playlistData.methods[i].interface == "TemplateListInterface.v1_0.CreateAndBindTemplateMethod"){
+                templateListIndex = i;
+            }
+        }
+    
+        let amznTrackData = playlistData.methods[templateListIndex].template.widgets[0].items;
+        const tracks = [];
+    
+        for(let i = 0; i < amznTrackData.length; i++){
+            tracks.push({
+                'id': amznTrackData[i].id,
+                'video_name': amznTrackData[i].primaryText,
+                'video_creator': amznTrackData[i].secondaryText1,
+            })
+        }
+        let proxies = await getProxyList();
+            
+        async function searchYT(title, artist, proxy = null, exid = null){
+            let search_query = `${artist} - ${title}`;
+            let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
+            let result = ytSearchResult.data[0]
+            result['exid'] = exid
+            return ytSearchResult.data[0]
+        }
+        
+        const ytTracks = [];
+        for(let i = 0; i < tracks.length; i++){
+            ytTracks.push(
+                searchYT(tracks[i].video_name, tracks[i].video_creator, proxies[getRandomIndex(proxies.length)], tracks[i].id)
+            )
+        }
+        let results = await Promise.all(ytTracks)
+    
+        return {data: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
+      } catch (error) {
+        return {data: [], title: null}
+      }
 }

@@ -34,6 +34,26 @@ export async function fetchPrefs(){
     prefs = JSON.parse(await AsyncStorage.getItem("Prefs"));
 }
 
+export function cookiesToJson(cookies){
+    let cookieJson = {};
+    let cookieSet = cookies.split('; ');
+    cookieSet.forEach(cookie => {
+        let cookieKeyValue = cookie.split('=')
+        cookieJson[cookieKeyValue[0]] = cookieKeyValue[1]
+    })
+    return cookieJson;
+}
+
+export function updateCookies(cookies, newCookies){
+    cookies = cookiesToJson(cookies)
+    newCookies.forEach(cookie => {
+        let cook = cookie.split(';')
+        let cookieKeyValue = cookie[0].split('=')
+        cookies[cookieKeyValue[0]] = cookieKeyValue[1]
+    })
+    return formatCookies(cookies);
+}
+
 export function hasYouTubeCookies(){
     return prefs.external_services.youtube_cookies.includes('LOGIN_INFO')
 } 
@@ -41,10 +61,10 @@ export function hasYouTubeMusicCookies(){
     return prefs.external_services.youtube_music_cookies.includes('LOGIN_INFO')
 }
 export function hasSpotifyCookies(){
-    return prefs.external_services.spotify_cookies.includes('LOGIN_INFO')
+    return prefs.external_services.spotify_cookies.includes('sp_dc')
 } 
 export function hasAmazonCookies(){
-    return prefs.external_services.amazon_music_cookies.includes('LOGIN_INFO')
+    return prefs.external_services.amazon_music_cookies.includes('at-main')
 } 
 
 function formatCookies(cookieData){
@@ -69,7 +89,23 @@ function formatCookies(cookieData){
         
     }
 }
-
+function formatCookiesJson(cookieData){
+    try {
+        let formatedCookies = "";
+        for(const cookie of Object.entries(cookieData)){
+            formatedCookies += `${cookie[0]}=${cookie[1]}; `;
+            formatedCookies = formatedCookies.slice(0, formatedCookies.length-2)
+        }
+        return formatedCookies;
+    } catch (error) {
+        
+    }
+}
+export async function setCookiesJson(unformatedCookies, service){
+    let cookies = formatCookiesJson(unformatedCookies);
+    prefs.external_services[service] = cookies;
+    await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
+}
 export async function setCookies(unformatedCookies, service){
     let cookies = formatCookies(unformatedCookies);
     prefs.external_services[service] = cookies;
@@ -96,22 +132,47 @@ export async function setSettingsToggle(preKey, key, value){
 export function getExperimentalFeatureEnabled(feature){
     return prefs.settings.enable_experimental_features && prefs.experimental_features[feature]
 }
+
+export const darkThemeDefault = {
+    dark: true,
+    colors: {
+        primary: '#7400fe',
+        secondary: '#fc00c9',
+        background: '#0d1016',
+        card: '#131213',
+        text: '#ffffff',
+        subtext: '#8c939d',
+        border: '#222222',
+        notification: '#1313ff',
+        shelf: '#161B22',
+        tabInactive: '#cad1d8',
+        line: '#303040',
+        searchInput: '#404254',
+        searchPlaceholder: '#8080a0',
+        inactive: '#8080a0',
+        red: '#FF0000',
+        green: '#00FF00',
+        playingSong: '#141722',
+        playScreen: '#141722',
+        track: '#141722',
+        highlightPressColor: '#bbaaff'
+    },
+}
+
 function getDefaultPrefs(){
     return {
         'experimental_features':{
-            'display_video_in_play_screen': true,
             'get_account_playlists_in_get_playlist': true,
-            'enable_advanced_search': true,
-            'enable_advanced_lyrics': true,
             'auto_cache_thumbnails': true,
             'smart_remove_cached_thumbnails': true,
         },
         'settings': {
-            'search_service': 'YOUTUBE',
-            'search_screen_service': 'YOUTUBE_MUSIC',
-            'import_playlist_from_to': 'SELF',
+            'default_playlists_size': 200,
             'download_queue_max_length': 3,
+            'spotify_library_limit': 20,
+            'spotify_playlist_limit': 200,
             'always_shuffle': true,
+            'only_play_downloaded': false,
             'show_track_duration': false,
             'ask_where_to_save': false,
             'edit_mode_disables_playing': false,
@@ -128,33 +189,6 @@ function getDefaultPrefs(){
         'linker': {
             'linked_playlists': []
         },
-        'dark_mode': 'OFF',
-        'themes': [
-            {
-                'name': 'default',
-                'primary': '#462cc9',
-                'background': '#0d1016',
-                'card': '#131213',
-                'text': '#ffffff',
-                'subtext': '#8c939d',
-                'border': '#222222',
-                'notification': '#1313ff',
-                'shelf': '#161B22',
-                'tabInactive': '#cad1d8',
-                'line': '#303040',
-                'searchInput': '#404254',
-                'searchPlaceholder': '#8080a0',
-                'inactive': '#8080a0',
-                'red': '#FF0000',
-                'playingSong': '#141722',
-                'playScreen': '#141722',
-                'track': '#141722',
-            },
-            {
-                'light': 'default'
-            }
-        ],
-        'selected_theme': -1,
         'search': {
             'recent_searches': []
         }
@@ -175,6 +209,9 @@ export function snakeCaseToPlainText(text){
 
 export async function resetPrefs(){ 
     prefs = getDefaultPrefs();
+    await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
+}
+export async function savePrefs(){
     await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
 }
 
