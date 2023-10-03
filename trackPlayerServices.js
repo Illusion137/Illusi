@@ -135,14 +135,12 @@ import * as SQLActions from './SQLActions'
           globals.pQueue.elements = {}
           globals.pQueue.head = 0
           globals.pQueue.tail = 0
-
           let index = (await TrackPlayer.getCurrentTrack()) || 0;
           let track = globals.playingTracks[index];
 
           if(index != 0 && globals.playingTracks[index]['successful'] == false && !prevMutex){
-                await TrackPlayer.pause();
+                await TrackPlayer.pause(c);
                 let newTrack = await globals.playingTrackToRNTrack(globals.playingTracks[index]);
-                console.log(newTrack)
                 if(newTrack == null){
                     await TrackPlayerNext();
                 }else{
@@ -153,25 +151,27 @@ import * as SQLActions from './SQLActions'
           }
           index = (await TrackPlayer.getCurrentTrack()) || 0;
           track = globals.playingTracks[index];
-          await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(
-            {
-              'uid':track.uid,
-              'video_id':track.video_id,
-              'video_name':track.video_name,
-              'video_creator':track.video_creator,
-              'video_duration':track.video_duration,
-              'saved': true,
-              'youtube':track.youtube,
-              'spotify':track.spotify,
-              'amazonmusic':track.amazonmusic,
-            }))
+
+          if(!track.imported)
+            await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(
+              {
+                'uid':track.uid,
+                'video_id':track.video_id,
+                'video_name':track.video_name,
+                'video_creator':track.video_creator,
+                'video_duration':track.video_duration,
+                'saved': true,
+                'youtube':track.youtube,
+                'spotify':track.spotify,
+                'amazonmusic':track.amazonmusic,
+              }))
         }else{
           globals.initialPlaybackTrackChangedMutex = false;
         }
         } catch (error) {
             console.log(error)
         }
-    changedMutex = false;
+      changedMutex = false;
     })
     // TODO: Attach remote event handlers
     TrackPlayer.addEventListener(Event.RemotePause, async() => {
@@ -206,7 +206,8 @@ import * as SQLActions from './SQLActions'
         // console.log(data)
         try {
             let curTrack = await TrackPlayer.getTrack(data.track || 0);
-            if(!trackMutex && !globals.addTrackIntoQueueTracksMutex && data.position + 5 > curTrack.duration && globals.playingTracks[data.track + 1]["successful"] === false && globals.playingTracks[data.track + 1]["added"] === false){
+            //data.position + 5 > curTrack.duration
+            if(!trackMutex && !globals.addTrackIntoQueueTracksMutex && globals.playingTracks[data.track + 1]["successful"] === false && globals.playingTracks[data.track + 1]["added"] === false){
                 pnMutex = true;
                 trackMutex = true;
                 globals.addTrackIntoQueueTracksMutex = true;

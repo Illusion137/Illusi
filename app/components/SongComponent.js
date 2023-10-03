@@ -130,6 +130,7 @@ function SongComponent(props) {
 				let track = new SQLActions.Track({
 					'imported': props.imported || false,
 					'thumbnail_URI': props.thumbnail_URI || "",
+					'media_URI': props.media_URI || "",
 					'downloaded': props.downloaded || false,
 					'youtube': props.youtube || false,
 					'video_name': props.video_name || "", 
@@ -168,7 +169,7 @@ function SongComponent(props) {
 					play(tracks)
 				return
 			}
-			else if(props.from == 'Recenty Played'){
+			else if(props.from == 'Recently Played'){
 				let tracks = await SQLActions.getRecentlyPlayedData();
 				tracks.reverse()
 				tracks = tracks.slice(0,Prefs.prefs.settings.default_playlists_size)

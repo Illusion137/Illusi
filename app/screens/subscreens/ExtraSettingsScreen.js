@@ -1,6 +1,6 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet,Text, FlatList } from 'react-native';
-
+import * as SQLActions from '../../../SQLActions';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import * as Prefs from '../../../Preferences';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
@@ -25,6 +25,8 @@ function ExtraSettingsScreen(props) {
 					<View style={styles.linelong}/>
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
+					<ExtrasSectionButton showArrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.refreshCache}/>
+					<ExtrasSectionButton showArrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clearCache}/>
 					<View style={{height: 100}}/>
 				</>
 			}/>

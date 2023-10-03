@@ -7,6 +7,7 @@ export const thumbnailsCacheDir = FileSystem.documentDirectory + "CachedThumbnai
 export let DOWNLOADING = [];
 export let db = SQLite.openDatabase('illusi-db.sqlite3')
 export const importedIcon = require("./assets/imported.png")
+export const notfoundIcon = require('./assets/notfound.png')
 export const SQLTracks = [];
 export let IsPlaying = false
 export let addTrackIntoQueueTracksMutex = false

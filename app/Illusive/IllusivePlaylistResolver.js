@@ -645,7 +645,7 @@ export async function getAmazonMusicPlaylist(url){
     
         for(let i = 0; i < amznTrackData.length; i++){
             tracks.push({
-                'id': amznTrackData[i].id,
+                'id': amznTrackData[i].primaryLink.deeplink.replace(/.+?trackAsin=/,''),
                 'video_name': amznTrackData[i].primaryText,
                 'video_creator': amznTrackData[i].secondaryText1,
             })

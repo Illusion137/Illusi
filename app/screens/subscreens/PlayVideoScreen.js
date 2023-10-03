@@ -49,7 +49,7 @@ function PlayVideoScreen(props ,ref) {
 	const [elapsed, setElapsed] = useState('00:00');
 	const [durationleft, setDurationLeft] = useState('00:00');
 	
-	const [artwork, setArtwork] = useState(SQLActions.getTrackArtwork(data[0]));
+	const [artwork, setArtwork] = useState(SQLActions.getTrackArtwork(data[0]) || globals.notfoundIcon);
 	const [title, setTitle] = useState(data[0]?.video_name);
 	const [artist, setArtist] = useState(data[0]?.video_creator);
 	const [maxDuration, setMaxDuration] = useState(data[0]?.video_duration);
@@ -95,10 +95,21 @@ function PlayVideoScreen(props ,ref) {
   
 	  setup();
 	}, []);
-
+	let ticks = 0;
 	useEffect(() => {
 		const interval = setInterval(async () => {
 			if(isPlayerReady){
+				let bufferedPos = await TrackPlayer.getBufferedPosition();
+				if(ticks >= 8){
+					await TrackPlayerNext();
+					ticks = 0;
+				}
+				else{
+					if(bufferedPos <= 0){
+						ticks++;
+					}
+				}
+
 				let curTrack = await TrackPlayer.getCurrentTrack()
 				setPlaying(await TrackPlayer.getState() == State.Playing ? true : false)
 				// if(curTrack != curIndex){
@@ -108,7 +119,7 @@ function PlayVideoScreen(props ,ref) {
 						setArtist(trackData.artist)
 						trackData.duration = (trackData.duration || 1) <= 0 ? 60 : (trackData.duration || 1) 
 						setMaxDuration(trackData.duration)
-						setArtwork( {'uri': trackData.artwork})
+						setArtwork( SQLActions.getTrackArtwork(globals.playingTracks[curTrack]) )
 					} catch (error) {
 						
 					}

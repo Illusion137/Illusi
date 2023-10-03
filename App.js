@@ -108,6 +108,7 @@ export class Tabs extends Component {
 				}}
 				/>
 				<Tab.Screen name="Search" component={SearchHomeScreen}
+				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 				}}
@@ -133,17 +134,17 @@ export default class App extends Component{
 	}
 	async componentDidMount() {
 		let allPromises = []
+		await SQLActions.createCacheDirs();
 		await Prefs.fetchPrefs();
-		if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
-			await SQLActions.deleteUnusedCachedThumbnails();
-		}
-		// await searchAmazonMusic("skummy b");
+		// if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
+			// await SQLActions.deleteUnusedCachedThumbnails();
+		// }
+		// await searchAmazonMusic("crash yo whip music babytron");
 		allPromises.push(SQLActions.cleanupRecentlyPlayed())
 		allPromises.push(activateKeepAwakeAsync());
 		allPromises.push(SQLActions.recreateAllTables());
 		allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
 		allPromises.push(Prefs.fetchAutoLinkedPlaylists());
-		allPromises.push(SQLActions.createCacheDirs());
 		Promise.all(allPromises)
 	}
 	playVideo(data, playlistName){

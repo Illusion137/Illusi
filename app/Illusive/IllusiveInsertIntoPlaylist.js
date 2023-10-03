@@ -1,7 +1,10 @@
 import axios from "axios";
 import * as Prefs from '../../Preferences'
-import { decodeHex } from "./IllusiveSearch";
+import { decodeHex, searchAmazonMusic } from "./IllusiveSearch";
 import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getAmazonMusicUserHash, getAmznCsrf, getAmznMusicHeaders, getAmznMusicRequestHeaders, getAmznVideoPlayerToken, getXAmznAuth } from "./IllusiveAccountPlaylistFinder";
+import { Alert } from "react-native";
+import * as SQLActions from '../../SQLActions'
+import * as Haptics from 'expo-haptics';
 
 export function getYTPlaylistIdFromURL(url){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
@@ -211,34 +214,80 @@ export async function insertIntoYouTubePlaylist(playlistId, videoIds){
     // "Referrer-Policy": "strict-origin-when-cross-origin"
 }
 
+export function formatQuery(query){
+    return query.replaceAll(/oficial audio/gi).replaceAll(/\(lyrics\).+/gi, '').replaceAll(/\(.+?\)/g, '').replaceAll(/\[.+?\]/g, '')
+}
+
 export async function insertIntoAmazonMusicPlaylist(playlistURL, playlistTitle, tracks){
-    let playlistId = playlistURL.replace(/(https?:\/\/)?(www\.)?music\.amazon\.com\/my\/playlists\//, '')
+    try {
+        let amznTracks = [];
+        for(const track of tracks){
+            if(track.amazonmusic){
+                try {
+                    let parsed = JSON.parse(track.exid);
+                    let exidIndex = -1;
+                    for(let i = 0; i < parsed.length; i++)
+                        if(parsed[i].service == "amazon")
+                            exidIndex = i;
+                    amznTracks.push( parsed[exidIndex].exid.id )
+                } catch (error) {
+                    console.log(error)
+                }
+            }
+            else{
+                try {
+                    let query = track.video_name.replaceAll('  ', ' ')
+                    query = formatQuery(query)
+                    let searchTrack = (await searchAmazonMusic(query))[0];
+                    let newexid;
+                    
+                    if(track.exid == ""){
+                        newexid = JSON.stringify([{'exid': searchTrack, 'service': 'amazon'}])
+                    }else{
+                        newexid = JSON.stringify(JSON.parse(track.exid).push({'exid': searchTrack, 'service': 'amazon'}))
+                    }
+                    await SQLActions.updateTrackExid(track.uid, newexid, 'amazonmusic');
+                    amznTracks.push(searchTrack.id)
+                } catch (error) {
+                    console.log('er', error)
+                }
+            }
+        }
+        // console.log(amznTracks)
+        let playlistId = playlistURL.replace(/(https?:\/\/)?(www\.)?music\.amazon\.com\/my\/playlists\//, '')
+    
+        let amznMusic = await getAmazonMusicAmznMusicData(playlistURL);
+        let showHomeData = await getAmazonMusicShowHomeData(amznMusic, playlistURL);
+    
+        let authHeader = JSON.parse(showHomeData.methods[0].header);
+    
+        let userHash = getAmazonMusicUserHash();
+        let xAmznAuth = getXAmznAuth(amznMusic);
+        let amznCSRF = getAmznCsrf(amznMusic);
+        let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
+        let rqheaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,amznCSRF,xAmznVideoPlayerToken,playlistURL);
 
-    let amznMusic = await getAmazonMusicAmznMusicData();
-    let showHomeData = await getAmazonMusicShowHomeData(amznMusic, playlistURL);
+        let selectedIds = {
+            "interface": "Web.PageInterface.v1_0.SelectedItemsClientInformation",
+            "ids": amznTracks
+        }
 
-    let authHeader = JSON.parse(showHomeData.methods[0].header);
-
-    let userHash = getAmazonMusicUserHash();
-    let xAmznAuth = getXAmznAuth(amznMusic);
-    let amznCSRF = getAmznCsrf(amznMusic);
-    let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
-    let rqheaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,amznCSRF,xAmznVideoPlayerToken,playlistURL);
-    let requsetPayload = {
-        // "isTrackInLibrary": "true",
-        "isTrackInLibrary": "false",
-        "playlistId": playlistId,
-        "playlistTitle": playlistTitle,
-        "rejectDuplicate": "true",
-        "shouldReplaceAddedTrack": "true",
-        "trackId": "d4732e82-3ca0-480e-b180-f26028302b75",
-        "trackTitle": "Always Saucy [Explicit]",
-        "userHash": JSON.stringify(userHash),
-        "version": "1:0",
-        "headers": JSON.stringify(rqheaders)
+        let requestPayload = {
+            "headers": JSON.stringify(rqheaders),
+            "playlistId": playlistId,
+            "playlistTitle": playlistTitle,
+            "rejectDuplicate": "true",
+            "selectedIds": JSON.stringify(selectedIds),
+            "userHash": JSON.stringify(userHash),
+            "version": "14",
+        }
+        let response = await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/addTracksToPlaylist", 
+            'headers': getAmznMusicHeaders(),
+            'data': requestPayload
+        });
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        Alert.alert("Finished Converting to: " + playlistTitle)
+    } catch (error) {
+        console.log(error)
     }
-    let response = await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/addTrackToPlaylist", 
-        'headers': getAmznMusicHeaders(),
-        'data': requsetPayload
-    });
 }

@@ -7,8 +7,8 @@ import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import * as Prefs from '../../../Preferences'
-import { getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
-import { getYTPlaylistIdFromURL, insertIntoYouTubePlaylist } from '../../Illusive/IllusiveInsertIntoPlaylist';
+import { getAllAmazonMusicPlaylistsFromAccount, getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
+import { getYTPlaylistIdFromURL, insertIntoAmazonMusicPlaylist, insertIntoYouTubePlaylist } from '../../Illusive/IllusiveInsertIntoPlaylist';
 import axios from 'axios';
 // import * as AVExpo from 'expo-av'
 
@@ -26,8 +26,9 @@ function ExtraPlaylistConverter({route}) {
         { text: "OK", onPress: async() => {
 			try {
 				let playlistURL = data.get(selectedServicePlaylist)
-				let playlistId = getYTPlaylistIdFromURL(playlistURL)
-				await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.SQLTracks].map(({video_id}) => (video_id)));
+				await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.SQLTracks]);
+				// let playlistId = getYTPlaylistIdFromURL(playlistURL)
+				// await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.SQLTracks].map(({video_id}) => (video_id)));
 			} catch (error) {
 				console.log(error)
 			}
@@ -54,15 +55,18 @@ function ExtraPlaylistConverter({route}) {
 	async function getServicePlaylistData(val){
 		switch(val){
 			case("YouTube"):
-				let dat = await getAllYoutubePlaylistsFromAccount();
-				setServicePlaylistData([...dat.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
-				setData(dat)
+				// let dat = await getAllYoutubePlaylistsFromAccount();
+				// setServicePlaylistData([...dat.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
+				// setData(dat)
 				break;
 			case("YTMusic"):
 				break;
 			case("Spotify"):
 				break;
 			case("Amazon"):
+				let amazondata = await getAllAmazonMusicPlaylistsFromAccount();
+				setServicePlaylistData([...amazondata.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
+				setData(amazondata)
 				break;
 		}
 	}

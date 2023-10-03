@@ -9,6 +9,8 @@ import * as SQLActions from '../../SQLActions'
 import axios from 'axios';
 import TrackPlayer from 'react-native-track-player';
 import * as Haptics from 'expo-haptics';
+import * as Prefs from '../../Preferences'
+import { GenerateNewUID, decodeHex, parseYTDuration } from '../Illusive/IllusiveSearch';
 
 function SongComponentSearch(props) {
 		
@@ -28,7 +30,6 @@ function SongComponentSearch(props) {
 				});
 				track['successful'] = false
 				track['added'] = false
-				console.log(track)
 
 				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
 
@@ -39,14 +40,35 @@ function SongComponentSearch(props) {
 		}} onPress={async() => {
 			let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
 			try {
-				let response = await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
+				let response = (await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
 					'Access-Control-Allow-Origin' : '*',
 					'x-youtube-client-name': 1,
 					'x-youtube-client-version': '2.20200911.04.00',
 					'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-				}});
-			} catch (error) {
+				}})).data;
+				let ytInitialData = JSON.parse(((/ytInitialData ?= ?'(.+?})'/s).exec(decodeHex(response))[1]).replaceAll(/\n\s+/g,''))
+
+				let tracks = []
+				for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
+					try {						
+						let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
+	
+						tracks.push(new SQLActions.Track({
+							'video_id': track.playlistPanelVideoRenderer.videoId,
+							'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
+							'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
+							'video_duration': parseYTDuration(track.playlistPanelVideoRenderer.lengthText.runs[0].text),
+							'youtube': true,
+							'uid': uid,
+						}))
+					} catch (error) {
+						console.log(error)
+					}
+				}
+				props.setPlaying(tracks, "YouTube Mix");
 				
+			} catch (error) {
+				console.log(error)
 			}
 		}}>
 			<View style={styles.songbox}>
@@ -58,16 +80,18 @@ function SongComponentSearch(props) {
 					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 				</View>
 				<TouchableOpacity disabled={saved} style={{justifyContent: 'center'}} onPress={async()=>{
-						if(props.addFrom !== undefined){
-							props.addFrom(
-								{
-									'video_name': props.video_name,
-									'video_creator': props.video_creator,
-									'video_id': props.video_id,
-									'uid': props.uid,
-								});
-							return;
-						} 
+						if(Prefs.prefs.settings.ask_where_to_save){
+							if(props.addFrom !== undefined){
+								props.addFrom(
+									{
+										'video_name': props.video_name,
+										'video_creator': props.video_creator,
+										'video_id': props.video_id,
+										'uid': props.uid,
+									});
+								return;
+							} 
+						}
 						if(!saved){
 							try{
 								await SQLActions.insertTrackData(new SQLActions.Track({

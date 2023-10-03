@@ -90,11 +90,11 @@ export async function setTrackAsDownloaded(uid, media_URI) {
 export function getTrackArtwork(track){
     if(track.imported || false)
         return GLOBALS.importedIcon;
-    else if(track.thumbnail_URI || "" !== "")
+    else if((track.thumbnail_URI || "") !== "")
         return {'uri': GLOBALS.thumbnailsCacheDir + track.thumbnail_URI};
     else if(track.youtube || false)
         return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
-    return {uri: ""} ;
+    return GLOBALS.notfoundIcon ;
 }
 export function getTrackArtworkRP(track){
     return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
@@ -200,19 +200,20 @@ export async function readCacheDirs(){
     return await FileSystem.readDirectoryAsync(GLOBALS.thumbnailsCacheDir)
 }
 
-export async function deleteUnusedCachedThumbnails(){
+export async function refreshCache(){
+    for(const track of GLOBALS.SQLTracks){
+        const thumbnailDownload = FileSystem.createDownloadResumable(`https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`,  GLOBALS.thumbnailsCacheDir + track.uid + ".jpg", {})
+		thumbnailDownload.downloadAsync();
+        await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET thumbnail_URI="${track.uid + ".jpg"}" WHERE uid=${track.uid}`, args: []}], false);
+    }
+}
+
+export async function clearCache(){
     let files = await readCacheDirs();
     let allPromises = []
-    for(let i = 0; i < GLOBALS.SQLTracks.length; i++){
-        if(!GLOBALS.SQLTracks[i].imported || false){
-            let itemIndex = files.findIndex((item) => item == GLOBALS.SQLTracks[i].thumbnail_URI)
-            if(itemIndex !== -1){
-                files.splice(itemIndex, 1)
-            }
-        }
-    }
     for(const file of files)
         allPromises.push(FileSystem.deleteAsync(GLOBALS.thumbnailsCacheDir + file))
+    await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET thumbnail_URI=""`, args: []}], false);
     await Promise.all(allPromises);
 }
 
@@ -224,6 +225,11 @@ export async function createCacheDirs(){
     if(!(await FileSystem.getInfoAsync(GLOBALS.thumbnailsCacheDir)).exists){
         await FileSystem.makeDirectoryAsync(GLOBALS.thumbnailsCacheDir)
     }
+}
+
+export async function updateTrackExid(uid, newExid, service){
+    await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET exid='${newExid}' WHERE uid="${uid}"`, args: []}], false);
+    await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET ${service}=true WHERE uid="${uid}"`, args: []}], false);
 }
 
 export async function insertTrackData(track) {
@@ -258,6 +264,7 @@ export async function getRecentlyPlayedData(){
     return data;
 }
 export async function insertTrackIntoRecentlyPlayed(track){
+    await GLOBALS.db.execAsync([{'sql': "DELETE FROM recently_played_tracks where uid = ?", 'args':[track.uid]}],false)
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO recently_played_tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
 }
 export async function cleanupRecentlyPlayed(){

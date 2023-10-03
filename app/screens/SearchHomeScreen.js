@@ -34,7 +34,7 @@ function SearchHomeScreen(props){
     // const renderItem = useCallback(;
     return(
         <>
-            {!searchScreenState && <SearchScreen></SearchScreen>}
+            {!searchScreenState && <SearchScreen setPlaying={props.route.params.setPlaying}></SearchScreen>}
             {searchScreenState && <View style={styles.topContainer}>
                 <View style={styles.wrapper}>
                     <TextInput onPressIn={() => {toggle = !toggle; setSearchScreenState(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>

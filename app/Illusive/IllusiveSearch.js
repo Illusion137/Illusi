@@ -29,7 +29,7 @@ function durationToInt(durationString){
 	return duration
 }
 
-function parseYTDuration(textDur){
+export function parseYTDuration(textDur){
     let textDurSplit = textDur.split(':')
     let j = 0;
     let duration = 0;
@@ -190,7 +190,7 @@ async function ContinueYouTubeSearch(continueData){
 
 export async function searchAmazonMusic(query){
 	try {		
-		let url = `https://music.amazon.com/search/${query.replaceAll(' ', '+')}`
+		let url = `https://music.amazon.com/search/${query.replaceAll(' ', '+').replaceAll(/[^A-Za-z0-9+]+/g, '').replaceAll('++', '+')}`
 		let filter = {'IsLibrary': ["false"]}
 		let keyword = {
 			"interface": "Web.TemplatesInterface.v1_0.Touch.SearchTemplateInterface.SearchKeywordClientInformation",
@@ -216,23 +216,29 @@ export async function searchAmazonMusic(query){
 		let response = (await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/showSearch", 'headers': getAmznMusicHeaders(), 'data': requestPayload})).data;
 		let songWidgetsIndex = 2;
 		let widgets = response.methods[0].template.widgets
-		for(const widget of widgets){
-			if(widget.header == "Songs"){
-				songWidgetsIndex = 2;
+		for(let i = 0; i < widgets.length; i++){
+			if(widgets[i].header == "Songs"){
+				songWidgetsIndex = i;
 			}
 		}
 		let data = [];
 		for(const item of response.methods[0].template.widgets[songWidgetsIndex].items){
-			let id = item.secondaryLink.deeplink.replace(/\/.+?\//,'').replace(/\/.+/,'');
+			let id;
+			try {
+				id = item.primaryLink.deeplink.replace(/.+?trackAsin=/,'');
+			} catch (error) {
+				throw Error(":(")
+			}
 			data.push({
-				'video_name': item.primaryText.text,
-				'video_artist': item.secondaryText,
-				'video_id': id,
+				'title': item.primaryText.text,
+				'artist': item.secondaryText,
+				'id': id,
 			})
 		}
+		return data
 
 	} catch (error) {
-		console.log('2err',error)
+		console.log(error)
 	}
 } 
 
