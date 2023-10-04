@@ -67,9 +67,14 @@ function ExtraBatchDownloaderScreen({route}) {
 	const renderItem = ({item}) => 
 	<>
 		<View style={{height:8}}/>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>
-			{item.uid.replace(/-.+/,'')}: {item.progress}%
-		</Text>
+		<View style={{flexDirection: 'row'}}>
+			<Text numberOfLines={1} style={{color: '#aaaaaa', width: '88%'}}>
+				{item.uid.replace(/-.+/,'')}: 
+			</Text>
+			<Text style={{color: 'white', alignSelf: 'flex-end'}}>
+				{item.progress}%
+			</Text>
+		</View>
 		<View style={{height:8}}/>
 		<View style={styles.linelong}/>
 	</>;

@@ -41,7 +41,7 @@ function GetAddPlaylistFrom({route}) {
 				  if (buttonIndex === 0) {
 				  } else if (buttonIndex === 1) {
 						let m_title = header_title;
-						await SQLActions.createPlaylist(m_title);
+						let playlist_name = await SQLActions.createPlaylist(m_title);
 						let allPromiseTracks = []
 						for(const track of header_data){
 							let uid = GenerateNewUID(track.video_name)
@@ -59,10 +59,10 @@ function GetAddPlaylistFrom({route}) {
 							})
 							if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
 								allPromiseTracks.push(SQLActions.insertTrackData(t));
-								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(t, m_title));
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(t, playlist_name));
 							} else{
 								let videoIDUIDTrack = await SQLActions.getExistingVideoIdUID(track.video_id);
-								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, m_title));	
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, playlist_name));	
 							}
 						}
 						await Promise.all(allPromiseTracks)

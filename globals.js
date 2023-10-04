@@ -9,6 +9,7 @@ export let db = SQLite.openDatabase('illusi-db.sqlite3')
 export const importedIcon = require("./assets/imported.png")
 export const notfoundIcon = require('./assets/notfound.png')
 export const SQLTracks = [];
+
 export let IsPlaying = false
 export let addTrackIntoQueueTracksMutex = false
 export let playingTracks = [];
@@ -27,7 +28,7 @@ export async function playingTrackToRNTrack(track){
             url = FileSystem.documentDirectory + track.media_URI
         else if(track.youtube){
             url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18' }); // Low:18 - Med:22 - High:37
-            // url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '140' }); // Low:18 - Med:22 - High:37
+            // url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '140'}); // Low:18 - Med:22 - High:37
             url = url[0].url
         }
         return {
@@ -38,7 +39,8 @@ export async function playingTrackToRNTrack(track){
             'id': track.uid, 
             'artwork': artwork,
             // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4; codecs="mp4a.40.2"' : undefined
-            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4; codecs="avc1.42001E, mp4a.40.2"' : undefined
+            // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4; codecs="avc1.42001E, mp4a.40.2"' : undefined
+            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4' : undefined
         }
     } catch (error) {
         console.log(error)

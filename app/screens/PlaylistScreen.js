@@ -120,14 +120,15 @@ function PlaylistScreen({ route }) {
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Added</Text>
 						{recentAddData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-						{recentAddData.length > 0 && <View>
+                        {recentAddData.length !== 0 && recentAddData.length < 4 && <Image source={recentAddData[0].artwork} style={styles.notfound}/>}
+						{recentAddData.length >= 4 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData[0]?.video_id != undefined && <Image source={recentAddData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[0]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[1]?.video_id != undefined && <Image source={recentAddData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[1]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[0] != undefined && <Image source={recentAddData[0].artwork} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[1] != undefined && <Image source={recentAddData[1].artwork} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentAddData[2]?.video_id != undefined && <Image source={recentAddData[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[2]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[3]?.video_id != undefined && <Image source={recentAddData[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentAddData[3]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[2] != undefined && <Image source={recentAddData[2].artwork} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[3] != undefined && <Image source={recentAddData[3].artwork} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>}
 					</View>
@@ -136,15 +137,16 @@ function PlaylistScreen({ route }) {
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Downloads</Text>
 						{downloadData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-						{downloadData.length > 0 && 
+                        {downloadData.length !== 0 && downloadData.length < 4 && <Image source={downloadData[0].artwork} style={styles.notfound}/>}
+						{downloadData.length >= 4 && 
 						<View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData[0]?.video_id != undefined && <Image source={downloadData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[0]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[1]?.video_id != undefined && <Image source={downloadData[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[1]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[0] != undefined && <Image source={downloadData[0].artwork} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentAddData[1] != undefined && <Image source={downloadData[1].artwork} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {downloadData[2]?.video_id != undefined && <Image source={downloadData[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[2]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {downloadData[3]?.video_id != undefined && <Image source={downloadData[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${downloadData[3]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[2] != undefined && <Image source={downloadData[2].artwork} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {downloadData[3] != undefined && <Image source={downloadData[3].artwork} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>}
 					</View>
@@ -153,14 +155,15 @@ function PlaylistScreen({ route }) {
 					<View style={{justifyContent: 'center', alignItems: 'center'}}>
 						<Text style={styles.defaultPlaylistText}>Recently Played</Text>
 						{recentPlayedData.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-						{recentPlayedData.length > 0 && <View>
+                        {recentPlayedData.length !== 0 && recentPlayedData.length < 4 && <Image source={recentPlayedData[0].artwork} style={styles.notfound}/>}
+						{recentPlayedData.length >= 4 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentPlayedData[0]?.video_id != undefined && <Image source={recentPlayedData[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentPlayedData[0]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentAddData[1]?.video_id != undefined && <Image source={recentPlayedData[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentPlayedData[1]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[0] != undefined && <Image source={recentPlayedData[0].artwork} style={{width: 55, height: 55, borderTopLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[1] != undefined && <Image source={recentPlayedData[1].artwork} style={{width: 55, height: 55, borderTopRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {recentPlayedData[2]?.video_id != undefined && <Image source={recentPlayedData[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentPlayedData[2]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
-                                {recentPlayedData[3]?.video_id != undefined && <Image source={recentPlayedData[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${recentPlayedData[3]?.video_id}/mqdefault.jpg`}} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[2] != undefined && <Image source={recentPlayedData[2].artwork} style={{width: 55, height: 55, borderBottomLeftRadius: 5,opacity: 0.8}}/>}
+                                {recentPlayedData[3] != undefined && <Image source={recentPlayedData[3].artwork} style={{width: 55, height: 55, borderBottomRightRadius: 5,opacity: 0.8}}/>}
                             </View>
                         </View>}
 					</View>

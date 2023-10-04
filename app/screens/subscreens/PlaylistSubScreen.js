@@ -56,8 +56,8 @@ function PlaylistSubScreen({route}){
                     trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
                 }
                 else if(route.params.title == "Downloads"){
-                    let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported).slice(0,Prefs.prefs.settings.default_playlists_size)
-                    trackData = t.reverse().slice(0,200);
+                    let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
+                    trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
                 }
                 else if(route.params.title == "Recently Played"){
                     let t = await SQLActions.getRecentlyPlayedData();
@@ -94,8 +94,8 @@ function PlaylistSubScreen({route}){
             trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
         }
         else if(route.params.title == "Downloads"){
-            let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported).slice(0,Prefs.prefs.settings.default_playlists_size)
-            trackData = t.reverse().slice(0,200);
+            let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
+            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
         }
         else if(route.params.title == "Recently Played"){
             let t = await SQLActions.getRecentlyPlayedData();
@@ -130,6 +130,9 @@ function PlaylistSubScreen({route}){
         let newData = [...dat]
 		let currentIndex = newData.length, randomIndex;
 
+		if(Prefs.prefs.settings.only_play_downloaded)
+            newData = newData.filter(item => item.downloaded || item.imported);
+
         while (currentIndex != 0) {
 
             randomIndex = Math.floor(Math.random() * currentIndex);
@@ -156,15 +159,15 @@ function PlaylistSubScreen({route}){
                 <BigList style={{backgroundColor: colors.background}} headerHeight={400} ListHeaderComponent={(
                     <View style={styles.playlistListHeader}>
                         {data.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
-                        {data.length !== 0 && data.length < 4 && <Image source={{uri: `https://img.youtube.com/vi/${data[0]?.video_id}/mqdefault.jpg`}} style={{width: 150, height: 150}}/>}
+                        {data.length !== 0 && data.length < 4 && <Image source={data[0].artwork} style={{width: 150, height: 150}}/>}
                         {data.length >= 4 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[0]?.video_id != undefined && <Image source={data[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[0]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[1]?.video_id != undefined && <Image source={data[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[1]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[0] != undefined && <Image source={data[0].artwork} style={{width: 75, height: 75}}/>}
+                                {data[1] != undefined && <Image source={data[1].artwork} style={{width: 75, height: 75}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[2]?.video_id != undefined && <Image source={data[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[2]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[3]?.video_id != undefined && <Image source={data[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[3]?.video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[2] != undefined && <Image source={data[2].artwork} style={{width: 75, height: 75}}/>}
+                                {data[3] != undefined && <Image source={data[3].artwork} style={{width: 75, height: 75}}/>}
                             </View>
                         </View>}
                         <View style={{top: 15, alignItems: 'center'}}>

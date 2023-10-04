@@ -38,6 +38,8 @@ import ExtraSettingsExperimentalFeatures from './app/screens/subscreens/ExtraSet
 import ExtraPlaylistConverter from './app/screens/subscreens/ExtraPlaylistConverter';
 import axios from 'axios';
 import { searchAmazonMusic } from './app/Illusive/IllusiveSearch';
+// const sha1 = require('js-sha1');
+
 // import RNFetchBlob from "rn-fetch-blob";
 
 // import { Provider } from 'react-redux';
@@ -136,9 +138,30 @@ export default class App extends Component{
 		let allPromises = []
 		await SQLActions.createCacheDirs();
 		await Prefs.fetchPrefs();
+		await SQLActions.fixToNewUpdate();
 		// if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
 			// await SQLActions.deleteUnusedCachedThumbnails();
 		// }
+        // String sapisid = "b4qUZKO4943exo9W/AmP2OAZLWGDwTsuh1";
+        // String origin = "https://hangouts.google.com";
+        // String sapisidhash = "1447033700279" + " " + sapisid + " " + origin;
+        // System.out.println("SAPISID:\n"+ hashString(sapisidhash));
+        // System.out.println("Expecting:");
+        // System.out.println("38cb670a2eaa2aca37edf07293150865121275cd");
+
+		// let SAPISID = Prefs.cookiesToJson(Prefs.prefs.external_services.youtube_cookies).SAPISID
+		// let SAPISID = 'n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw'
+		// let origin = "https://www.youtube.com"
+		// // let time = new Date().getTime();
+		// // console.log("SAPISIDHASH " + time + '_' +  sha1(time + ' ' + SAPISID + ' ' + origin));
+
+		// let sap = "SAPISIDHASH " + "1696308018" + '_' +  sha1("1696308018" + '' + SAPISID + '' + origin);
+		// console.log(sap)
+		// if(sap == 'SAPISIDHASH 1696308018_1ad74f95f8bc2a88adf54ebbb10be4d9cf813602'){
+		// 	console.log("OMG WE DID IT :3");
+		// }
+		// 1696305870_4e640b4e2b31a53e19ac6af2c4291f61e2a8ce15
+		// 1696308018_1ad74f95f8bc2a88adf54ebbb10be4d9cf813602
 		// await searchAmazonMusic("crash yo whip music babytron");
 		allPromises.push(SQLActions.cleanupRecentlyPlayed())
 		allPromises.push(activateKeepAwakeAsync());
@@ -196,9 +219,13 @@ export default class App extends Component{
 				  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 				  downloadURI = downloadURI[0].url;
 			  } catch (error) {
+				//   if(String(error).includes("Video unavailable")){
+					// console.log(';3')
+					//Clipboard.setString('mail@mail.com');
+				//   }
 				  let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
 				  GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-				  Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
+				  Alert.alert("Coudln't find the file", uid + ' : ' + error)
 				  return
 			  }
 			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
@@ -239,7 +266,8 @@ export default class App extends Component{
 			  	} catch (e) {
 				//   setIsDownloading(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
-					GLOBALS.DOWNLOADING.shift()
+					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+					GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}

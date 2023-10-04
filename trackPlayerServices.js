@@ -59,7 +59,6 @@ import * as SQLActions from './SQLActions'
     ]);
     await TrackPlayer.setRepeatMode(RepeatMode.Queue);
   }
-  let trackMutex = false;
   let prevMutex = false;
   let changedMutex = false;
   let pnMutex = false;
@@ -72,7 +71,11 @@ import * as SQLActions from './SQLActions'
                     pnMutex = false;
                     return
                 }
-                trackMutex = true;
+                if(globals.playingTracks[index+1]['added']){
+                  await TrackPlayer.skipToNext();
+
+                  return;
+                }
                 globals.addTrackIntoQueueTracksMutex = true;
                 globals.playingTracksIndex++;
                 let rnTrack = await globals.playingTrackToRNTrack(globals.playingTracks[index + 1])
@@ -85,13 +88,13 @@ import * as SQLActions from './SQLActions'
                   globals.playingTracks[index + 1]["added"] = true
                   await TrackPlayer.add(rnTrack, index + 1);
                 }
+                pnMutex = false;
                 globals.addTrackIntoQueueTracksMutex = false;
                 await TrackPlayer.skipToNext();
             }
             catch(error){
                 console.log(error)
             }
-            pnMutex = false;
         }
     }
     export async function TrackPlayerPrev(){
@@ -128,7 +131,6 @@ import * as SQLActions from './SQLActions'
       try {
         if(!globals.initialPlaybackTrackChangedMutex && !changedMutex){
             changedMutex = true;
-            trackMutex = false;
           if(!globals.pQueue.isEmpty){
             globals.pQueue.dequeue();
           }
@@ -207,19 +209,17 @@ import * as SQLActions from './SQLActions'
         try {
             let curTrack = await TrackPlayer.getTrack(data.track || 0);
             //data.position + 5 > curTrack.duration
-            if(!trackMutex && !globals.addTrackIntoQueueTracksMutex && globals.playingTracks[data.track + 1]["successful"] === false && globals.playingTracks[data.track + 1]["added"] === false){
+            if(globals.playingTracks[data.track + 1]["added"] === false && !globals.addTrackIntoQueueTracksMutex && globals.playingTracks[data.track + 1]["successful"] === false){
+                globals.playingTracks[data.track + 1]["added"] = true
                 pnMutex = true;
-                trackMutex = true;
                 globals.addTrackIntoQueueTracksMutex = true;
                 globals.playingTracksIndex++;
                 let rnTrack = await globals.playingTrackToRNTrack(globals.playingTracks[data.track + 1])
                 if(rnTrack == null){
                   //handle dat
-                  globals.playingTracks[data.track + 1]["added"] = true
                   await TrackPlayer.add({url: require('./assets/placeholder.mp3'), 'title': 'NULL', 'artist': 'Sudo'}, data.track + 1 );
                 }
                 else{
-                  globals.playingTracks[data.track + 1]["added"] = true
                   globals.playingTracks[data.track + 1]["successful"] = true
                   await TrackPlayer.add(rnTrack, data.track + 1);
                 }

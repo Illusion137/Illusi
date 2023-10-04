@@ -14,7 +14,7 @@ function SongComponentQueue(props) {
 		<View style={{backgroundColor: colors.track}}  >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={id == "" ? GLOBALS.importedIcon : {uri:`https://img.youtube.com/vi/${id}/mqdefault.jpg`, cache: 'force-cache'}} style={styles.image}></Image>
+					<Image source={props.artwork} style={styles.image}></Image>
 				</View>
 				<View style={styles.text}>
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>

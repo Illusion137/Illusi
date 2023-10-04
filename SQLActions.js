@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as Prefs from './Preferences';
 import * as GLOBALS from './globals';
+import { Alert } from 'react-native';
 export class Track { 
     constructor(t) {
         this.uid = t.uid || "";
@@ -71,6 +72,7 @@ export async function createPlaylist(playlistName, thumbnailToDownload = undefin
     }
 
     await GLOBALS.db.execAsync([{sql: `CREATE TABLE IF NOT EXISTS ${playlistName.replaceAll(' ', '_')} (id INTEGER PRIMARY KEY, track_uid STRING)`, args: []}], false);
+    return playlistName
 }
 
 export async function deleteAllTables(){
@@ -94,7 +96,7 @@ export function getTrackArtwork(track){
         return {'uri': GLOBALS.thumbnailsCacheDir + track.thumbnail_URI};
     else if(track.youtube || false)
         return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
-    return GLOBALS.notfoundIcon ;
+    return {'uri': `https://img.youtube.com/vi/${"lol"}/mqdefault.jpg`, 'cache': 'force-cache'}
 }
 export function getTrackArtworkRP(track){
     return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
@@ -268,7 +270,7 @@ export async function insertTrackIntoRecentlyPlayed(track){
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO recently_played_tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
 }
 export async function cleanupRecentlyPlayed(){
-    const recently_played_max_size = 50;
+    const recently_played_max_size = 100;
     let recently_played_data = await getRecentlyPlayedData();
     
     let allPromises = [];
@@ -298,4 +300,15 @@ export async function cleanupRecentlyPlayed(){
         }
     }
     await Promise.all(allPromises);
+}
+export async function fixToNewUpdate(){ 
+    let tables = await getAllTables()
+    let tracksIndex = tables.findIndex(item => item.name == 'tracks')
+    if(!JSON.stringify(tables[tracksIndex]).includes('exid'))
+    {   
+        await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET youtube=true`, args: []}], false);
+        await GLOBALS.db.execAsync([{sql: `ALTER TABLE tracks ADD exid STRING`, args: []}], false);
+        await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET exid=""`, args: []}], false);
+        Alert.alert('Schema Updated', "Illusi's Database Schema has been updated")
+    }
 }

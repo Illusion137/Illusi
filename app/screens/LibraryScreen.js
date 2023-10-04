@@ -118,9 +118,9 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		await SQLActions.fetchTrackData();
 		let tracks = [...GLOBALS.SQLTracks]
-		if(tracks.filter((item) => item.downloaded || item.imported).length === 0)
-			return;
-		if (tracks == []){
+		if(Prefs.prefs.settings.only_play_downloaded)
+			tracks = tracks.filter(item => item.downloaded || item.imported);
+		if (tracks.length == 0){
 			return;
 		}
 		let currentIndex = tracks.length, randomIndex;

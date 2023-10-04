@@ -32,7 +32,6 @@ function SongComponentSearch(props) {
 				track['added'] = false
 
 				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
-
 				GLOBALS.pQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -52,15 +51,17 @@ function SongComponentSearch(props) {
 				for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
 					try {						
 						let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
-	
-						tracks.push(new SQLActions.Track({
+						let t = new SQLActions.Track({
 							'video_id': track.playlistPanelVideoRenderer.videoId,
 							'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
 							'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
 							'video_duration': parseYTDuration(track.playlistPanelVideoRenderer.lengthText.runs[0].text),
 							'youtube': true,
 							'uid': uid,
-						}))
+						})
+						t['successful'] = false;
+						t['added'] = false;
+						tracks.push(t);
 					} catch (error) {
 						console.log(error)
 					}

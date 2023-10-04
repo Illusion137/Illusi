@@ -143,7 +143,6 @@ function SongComponent(props) {
 				track['added'] = false
 
 				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
-
 				GLOBALS.pQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)

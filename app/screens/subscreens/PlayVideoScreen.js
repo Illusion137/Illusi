@@ -63,7 +63,7 @@ function PlayVideoScreen(props ,ref) {
 	const playVideoPanelRef = useRef()
 	const [draggable, setDraggable] = useState(true);
 	
-	const renderItem = ({item, index}) => <SongComponentQueue video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator}/>;
+	const renderItem = ({item, index}) => <SongComponentQueue artwork={item.artwork} video_name={item.video_name} video_creator={item.video_creator}/>;
 
 	useImperativeHandle(ref, () => ({
 		title: title,
@@ -188,6 +188,7 @@ function PlayVideoScreen(props ,ref) {
 				<TouchableOpacity style={{top:28}} onPress={async() => {
 										if(globals.IsPlaying){
 											// setDraggable(false)
+											console.log(await TrackPlayer.getQueue())
 											let index = await TrackPlayer.getCurrentTrack();
 											let queue = globals.playingTracks.slice(index);
 											let mainQueue = []
@@ -195,9 +196,9 @@ function PlayVideoScreen(props ,ref) {
 											try {
 												for(let i = 0; i < queue.length; i++ ){
 													mainQueue.push(
-														{video_id: queue[i].video_id, 
-														video_creator: queue[i].video_creator,
-														video_name: queue[i].video_name
+														{'artwork': SQLActions.getTrackArtwork(queue[i]), 
+														'video_creator': queue[i].video_creator,
+														'video_name': queue[i].video_name
 													})
 												}
 												// let index = await TrackPlayer.getCurrentTrack();
