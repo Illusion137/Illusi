@@ -25,6 +25,7 @@ function ExtraSettingsScreen(props) {
 					<View style={styles.linelong}/>
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
+					<View style={{height: 30}}/>
 					<ExtrasSectionButton showArrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.refreshCache}/>
 					<ExtrasSectionButton showArrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clearCache}/>
 					<View style={{height: 100}}/>

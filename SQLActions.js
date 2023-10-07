@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Prefs from './Preferences';
 import * as GLOBALS from './globals';
 import { Alert } from 'react-native';
-export class Track { 
+export class Track {
     constructor(t) {
         this.uid = t.uid || "";
         this.video_id = t.video_id || "";
@@ -46,15 +46,73 @@ export class Track {
         return toArray;
     }
 }
+class SmallTrack {
+    constructor(t) {
+        this.uid = t.uid || "";
+        this.video_id = String(t.video_id) || "";
+        this.video_name = String(t.video_name) || "";
+        this.video_creator = String(t.video_creator) || "";
+        this.video_duration = t.video_duration || 0;
+    }
+    toSQLInsert(){
+        const toArray = [];
+        
+        toArray.push(this.uid)
+        toArray.push(this.video_id)
+        toArray.push(this.video_name)
+        toArray.push(this.video_creator)
+        toArray.push(this.video_duration)
+        
+        return toArray;
+    }
+}
 
 export async function recreateAllTables(){
     await GLOBALS.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_URI STRING, thumbnail_URI STRING, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, longvid BOOLEAN, exid STRING )', args: []}], false);
     await GLOBALS.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS recently_played_tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_URI STRING, thumbnail_URI STRING, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, longvid BOOLEAN, exid STRING )', args: []}], false);
+    await GLOBALS.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS backpack (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER )', args: []}], false);
     await GLOBALS.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS playlists (id INTEGER PRIMARY KEY, playlist_name STRING, pinned BOOLEAN, thumbnail_URI STRING)', args: []}], false);
     await createCacheDirs();
 }
 
+export async function swapFromBackpack(oldUID, newTrack){
+    await deleteFromBackpack(oldUID);
+    await insertTrackData(newTrack);
+}
+
+export async function clearBackpack(){
+    await GLOBALS.db.execAsync([{sql: `DELETE FROM backpack`, args: []}], false)
+}
+
+export async function deleteFromBackpack(uid){
+    await GLOBALS.db.execAsync([{sql: `DELETE FROM backpack WHERE uid="${uid}"`, args: []}], false)
+}
+
+export async function getBackpack(){
+    let tracks = await GLOBALS.db.execAsync([{sql: 'SELECT * FROM backpack', args: []}], false);
+    tracks = tracks[0].rows
+    for(let i = 0; i < tracks.length; i++){
+        tracks[i].video_name = String(tracks[i].video_name)
+        tracks[i].video_creator = String(tracks[i].video_creator)
+        tracks[i].artwork = GLOBALS.notfoundIcon
+    }
+    return tracks
+}
+
+export async function addToBackpack(uid){
+    let track = await fetchTrackDataFromUID(uid);
+    track = new SmallTrack(track)
+    let allPromises = [];
+    allPromises.push( deleteTrack(uid) );
+    allPromises.push( GLOBALS.db.execAsync([{sql: 'INSERT INTO backpack (uid, video_id, video_name, video_creator, video_duration) values (?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false) );
+
+    await Promise.all(allPromises);
+}
+
 export async function createPlaylist(playlistName, thumbnailToDownload = undefined){
+    if(playlistName == 'backpack' || playlistName == 'tracks' || playlistName == 'recently_played_tracks' || playlistName == 'playlists'){
+        playlistName += ' - Illusi';
+    }
     let playlistNames = await getAllPlaylists();
     let count = 2;
     if(playlistNames.findIndex((item) => item.playlist_name == playlistName) != -1){
@@ -109,6 +167,7 @@ export async function fetchTrackData() {
         GLOBALS.SQLTracks[i].video_name = String(GLOBALS.SQLTracks[i].video_name)
         GLOBALS.SQLTracks[i].video_creator = String(GLOBALS.SQLTracks[i].video_creator)
         GLOBALS.SQLTracks[i].saved = Boolean(GLOBALS.SQLTracks[i].saved)
+        GLOBALS.SQLTracks[i].imported = Boolean(GLOBALS.SQLTracks[i].imported)
         GLOBALS.SQLTracks[i].downloaded = Boolean(GLOBALS.SQLTracks[i].downloaded)
         GLOBALS.SQLTracks[i].lvid = Boolean(GLOBALS.SQLTracks[i].lvid)
         GLOBALS.SQLTracks[i].amazonmusic = Boolean(GLOBALS.SQLTracks[i].amazonmusic)
@@ -202,21 +261,41 @@ export async function readCacheDirs(){
     return await FileSystem.readDirectoryAsync(GLOBALS.thumbnailsCacheDir)
 }
 
+export async function downloadTrackThumbnail(track){
+    const thumbnailDownload = FileSystem.createDownloadResumable(`https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`,  GLOBALS.thumbnailsCacheDir + track.uid + ".jpg", {})
+    await thumbnailDownload.downloadAsync();
+    await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET thumbnail_URI="${track.uid + ".jpg"}" WHERE uid="${track.uid}"`, args: []}], false);
+}
+
 export async function refreshCache(){
+    await fetchTrackData();
     for(const track of GLOBALS.SQLTracks){
-        const thumbnailDownload = FileSystem.createDownloadResumable(`https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`,  GLOBALS.thumbnailsCacheDir + track.uid + ".jpg", {})
-		thumbnailDownload.downloadAsync();
-        await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET thumbnail_URI="${track.uid + ".jpg"}" WHERE uid=${track.uid}`, args: []}], false);
+        if(!(track.imported || ((track.thumbnail_URI || "") !== "")))
+            downloadTrackThumbnail(track)
     }
 }
 
 export async function clearCache(){
+    await fetchTrackData();
     let files = await readCacheDirs();
     let allPromises = []
     for(const file of files)
         allPromises.push(FileSystem.deleteAsync(GLOBALS.thumbnailsCacheDir + file))
     await GLOBALS.db.execAsync([{sql: `UPDATE tracks SET thumbnail_URI=""`, args: []}], false);
     await Promise.all(allPromises);
+}
+
+export async function cleanCache(){
+    await fetchTrackData();
+    let files = await readCacheDirs();
+    let filesToDelete = [];
+    let thumbnailURIs = GLOBALS.SQLTracks.map(({thumbnail_URI}) => thumbnail_URI);
+    for(const file of files){
+        if(!thumbnailURIs.includes(file)){
+            filesToDelete.push(FileSystem.deleteAsync(GLOBALS.thumbnailsCacheDir + file))
+        }
+    }
+    await Promise.all(filesToDelete)
 }
 
 export async function deleteCacheDirs(){
@@ -236,9 +315,7 @@ export async function updateTrackExid(uid, newExid, service){
 
 export async function insertTrackData(track) {
     if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails') && track.youtube){
-        track.thumbnail_URI = track.uid + ".jpg"
-        const thumbnailDownload = FileSystem.createDownloadResumable(`https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`,  GLOBALS.thumbnailsCacheDir + track.thumbnail_URI, {})
-		thumbnailDownload.downloadAsync();
+        downloadTrackThumbnail(track)
     }
     GLOBALS.SQLTracks.push(track)
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LogBox, Button ,ActionSheetIOS, Alert, Appearance } from 'react-native';
+import { LogBox, Button ,ActionSheetIOS, Alert, Appearance, Image } from 'react-native';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 
 import LibraryScreen from './app/screens/LibraryScreen';
@@ -38,6 +38,7 @@ import ExtraSettingsExperimentalFeatures from './app/screens/subscreens/ExtraSet
 import ExtraPlaylistConverter from './app/screens/subscreens/ExtraPlaylistConverter';
 import axios from 'axios';
 import { searchAmazonMusic } from './app/Illusive/IllusiveSearch';
+import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
 // const sha1 = require('js-sha1');
 
 // import RNFetchBlob from "rn-fetch-blob";
@@ -70,6 +71,7 @@ function ExtrasStackScreen(props) {
 	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}}/>
 	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
 	  <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
+	  <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
 	</ExtrasStack.Navigator>
   );
 }
@@ -98,7 +100,7 @@ export class Tabs extends Component {
 				initialParams={{setPlaying: this.props.route.params.setPlaying, downloadVideo: this.props.route.params.downloadVideo}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
-					unmountOnBlur: true,
+					unmountOnBlur: false,
 				}}
 				
 				/>
@@ -133,42 +135,29 @@ export default class App extends Component{
 		isPlayingRestart: false,
 		data: [],
 		playlistName: '',
+		isLoading: false
 	}
 	async componentDidMount() {
-		let allPromises = []
-		await SQLActions.createCacheDirs();
-		await Prefs.fetchPrefs();
-		await SQLActions.fixToNewUpdate();
-		// if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails')){
-			// await SQLActions.deleteUnusedCachedThumbnails();
-		// }
-        // String sapisid = "b4qUZKO4943exo9W/AmP2OAZLWGDwTsuh1";
-        // String origin = "https://hangouts.google.com";
-        // String sapisidhash = "1447033700279" + " " + sapisid + " " + origin;
-        // System.out.println("SAPISID:\n"+ hashString(sapisidhash));
-        // System.out.println("Expecting:");
-        // System.out.println("38cb670a2eaa2aca37edf07293150865121275cd");
-
-		// let SAPISID = Prefs.cookiesToJson(Prefs.prefs.external_services.youtube_cookies).SAPISID
-		// let SAPISID = 'n9T8rzcU26SQRCoz/A7fo727lUFjaLq6tw'
-		// let origin = "https://www.youtube.com"
-		// // let time = new Date().getTime();
-		// // console.log("SAPISIDHASH " + time + '_' +  sha1(time + ' ' + SAPISID + ' ' + origin));
-
-		// let sap = "SAPISIDHASH " + "1696308018" + '_' +  sha1("1696308018" + '' + SAPISID + '' + origin);
-		// console.log(sap)
-		// if(sap == 'SAPISIDHASH 1696308018_1ad74f95f8bc2a88adf54ebbb10be4d9cf813602'){
-		// 	console.log("OMG WE DID IT :3");
-		// }
-		// 1696305870_4e640b4e2b31a53e19ac6af2c4291f61e2a8ce15
-		// 1696308018_1ad74f95f8bc2a88adf54ebbb10be4d9cf813602
-		// await searchAmazonMusic("crash yo whip music babytron");
-		allPromises.push(SQLActions.cleanupRecentlyPlayed())
-		allPromises.push(activateKeepAwakeAsync());
-		allPromises.push(SQLActions.recreateAllTables());
-		allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
-		allPromises.push(Prefs.fetchAutoLinkedPlaylists());
-		Promise.all(allPromises)
+		try {
+			let allPromises = []
+			await SQLActions.recreateAllTables();
+			await Prefs.fetchPrefs();
+			await SQLActions.fixToNewUpdate();
+			await SQLActions.fetchTrackData();
+			allPromises.push(SQLActions.cleanupRecentlyPlayed())
+			if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails'))
+				allPromises.push(SQLActions.cleanCache())
+			allPromises.push(activateKeepAwakeAsync());
+			allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
+			allPromises.push(Prefs.fetchAutoLinkedPlaylists());
+			await Promise.all(allPromises)
+		} catch (error) {
+			Alert.alert("Error", error)
+		} finally {
+			this.setState({isLoading: true})
+			if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
+				await SQLActions.refreshCache()
+		}
 	}
 	playVideo(data, playlistName){
 		this.setState({isPlaying: false}, () => {
@@ -219,14 +208,15 @@ export default class App extends Component{
 				  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 				  downloadURI = downloadURI[0].url;
 			  } catch (error) {
-				//   if(String(error).includes("Video unavailable")){
-					// console.log(';3')
-					//Clipboard.setString('mail@mail.com');
-				//   }
-				  let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-				  GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-				  Alert.alert("Coudln't find the file", uid + ' : ' + error)
-				  return
+				  if(String(error).includes("Video unavailable")){
+					SQLActions.addToBackpack(uid);
+				  }
+				if(startDownloadState != undefined)
+					startDownloadState(false)
+				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+				Alert.alert("Coudln't find the file", uid + ' : ' + error)
+				return
 			  }
 			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
 			try {
@@ -265,6 +255,8 @@ export default class App extends Component{
 					setFinishedDownloadedState(true)
 			  	} catch (e) {
 				//   setIsDownloading(false)
+				if(startDownloadState != undefined)
+					startDownloadState(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
 					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
 					GLOBALS.DOWNLOADING.splice(itemIndex, 1)
@@ -279,7 +271,8 @@ export default class App extends Component{
 			// <Provider store={store}>
 				<NavigationContainer theme={Prefs.darkThemeDefault}>
 						{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
-						<Stack.Navigator>
+						{!this.state.isLoading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
+						{this.state.isLoading && <Stack.Navigator>
 							<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
@@ -316,7 +309,7 @@ export default class App extends Component{
 										/>
 										),
 									})}/>
-						</Stack.Navigator>
+						</Stack.Navigator>}
 				</NavigationContainer>
 			// </Provider>
 		);

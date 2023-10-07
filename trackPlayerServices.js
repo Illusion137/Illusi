@@ -154,19 +154,10 @@ import * as SQLActions from './SQLActions'
           index = (await TrackPlayer.getCurrentTrack()) || 0;
           track = globals.playingTracks[index];
 
-          if(!track.imported)
-            await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(
-              {
-                'uid':track.uid,
-                'video_id':track.video_id,
-                'video_name':track.video_name,
-                'video_creator':track.video_creator,
-                'video_duration':track.video_duration,
-                'saved': true,
-                'youtube':track.youtube,
-                'spotify':track.spotify,
-                'amazonmusic':track.amazonmusic,
-              }))
+          if(!track.imported){
+            track['saved']=true
+            await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(track))
+          }
         }else{
           globals.initialPlaybackTrackChangedMutex = false;
         }

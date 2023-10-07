@@ -133,7 +133,11 @@ function ExtraScreen({route}) {
 
 				<Text style={styles.descriptiontxt}>Transfer playlists back to other Music Services.</Text>
 
-				<Text style={styles.descriptiontxt}>Customize all the colors of Illusi; save and share custom themes.</Text>
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton showArrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
+				<View style={styles.linelong}/>
+				
+				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>

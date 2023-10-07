@@ -91,6 +91,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 				'video_name': video.videoWithContextRenderer.headline.runs[0].text,
 				'video_creator': video.videoWithContextRenderer.shortBylineText.runs[0].text,
 				'video_duration': parseYTDuration(video.videoWithContextRenderer.lengthText.runs[0].text),
+				'youtube': true,
 				'uid': uid
 				})
 			} catch (error) {

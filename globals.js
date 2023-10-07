@@ -2,6 +2,7 @@ const { Queue } = require("./app/Illusive/Queue");
 import * as SQLite from 'expo-sqlite'
 import * as FileSystem from 'expo-file-system';
 import ytdl from "react-native-ytdl"
+import { Alert } from 'react-native';
 
 export const thumbnailsCacheDir = FileSystem.documentDirectory + "CachedThumbnails/"; 
 export let DOWNLOADING = [];
@@ -13,6 +14,27 @@ export const SQLTracks = [];
 export let IsPlaying = false
 export let addTrackIntoQueueTracksMutex = false
 export let playingTracks = [];
+
+class SmallTrack {
+    constructor(t) {
+        this.uid = t.uid || "";
+        this.video_id = String(t.video_id) || "";
+        this.video_name = String(t.video_name) || "";
+        this.video_creator = String(t.video_creator) || "";
+        this.video_duration = t.video_duration || 0;
+    }
+    toSQLInsert(){
+        const toArray = [];
+        
+        toArray.push(this.uid)
+        toArray.push(this.video_id)
+        toArray.push(this.video_name)
+        toArray.push(this.video_creator)
+        toArray.push(this.video_duration)
+        
+        return toArray;
+    }
+}
 
 export async function playingTrackToRNTrack(track){
     try {
@@ -43,7 +65,21 @@ export async function playingTrackToRNTrack(track){
             'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4' : undefined
         }
     } catch (error) {
-        console.log(error)
+        let err = String(error)
+        if(err.includes("Video unavailable")){
+            let t = await db.execAsync([{sql: `SELECT * FROM tracks WHERE uid = (?)`, args: [track.uid]}], false);
+            t = t[0].rows[0]
+            t = new SmallTrack(t)
+            let allPromises = [];
+            allPromises.push(db.execAsync([{sql: `DELETE FROM tracks WHERE uid=?`, args: [t.uid]}], false));
+            allPromises.push( db.execAsync([{sql: 'INSERT INTO backpack (uid, video_id, video_name, video_creator, video_duration) values (?, ?, ?, ?, ?)', args: t.toSQLInsert()}], false) );
+        
+            Alert.alert("Error", err)
+
+            await Promise.all(allPromises);
+            return 'skip'
+        }
+        Alert.alert("Error", err)
         return null;
     }
 }

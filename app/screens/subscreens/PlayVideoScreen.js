@@ -87,7 +87,14 @@ function PlayVideoScreen(props ,ref) {
 				}
 				globals.initialPlaybackTrackChangedMutex = true
 				globals.playingTracks[0]['added'] = true
-				await TrackPlayer.add(await globals.playingTrackToRNTrack(globals.playingTracks[0]))
+				let count = 0;
+				let track = await globals.playingTrackToRNTrack(globals.playingTracks[0])
+				while((track == null || track == 'skip' ) && count < 10){
+					globals.playingTracks = globals.playingTracks.slice(1)
+					track = await globals.playingTrackToRNTrack(globals.playingTracks[0])
+					count++;
+				}
+				await TrackPlayer.add(track)
 			}
 			setIsPlayerReady(isSetup);
 			TrackPlayer.play()
@@ -178,17 +185,16 @@ function PlayVideoScreen(props ,ref) {
 		<View style={styles.topcontainer}>
 			{/* HEADER ---------------------------------------------------- */}
 			<View style={styles.header}>
-				<TouchableOpacity style={{top:28}} onPress={()=>{props.hide()}}>
+				<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={()=>{props.hide()}}>
 					<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
 				</TouchableOpacity>
 				<View style={{alignItems: 'center'}}>
 					<Text style={styles.topfrom}>PLAYING FROM</Text>
 					<Text style={styles.toptitle}>{playlist}</Text>
 				</View>
-				<TouchableOpacity style={{top:28}} onPress={async() => {
+				<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={async() => {
 										if(globals.IsPlaying){
 											// setDraggable(false)
-											console.log(await TrackPlayer.getQueue())
 											let index = await TrackPlayer.getCurrentTrack();
 											let queue = globals.playingTracks.slice(index);
 											let mainQueue = []
@@ -333,11 +339,19 @@ function PlayVideoScreen(props ,ref) {
 						</View>
 						<View style={{flex:1, backgroundColor: colors.background}}>
 
-							<BigList style={{height: '71%'}} data={queueData}
+							<BigList style={{height: '71%'}} data={queueData.slice(1)}
 								renderItem={renderItem}
 								keyExtractor={(item, index) => index}
 								itemHeight={61}
 								onScrollToIndexFailed={() => {}}
+								renderHeader={true}
+								headerHeight={140}
+								ListHeaderComponent={() => 
+								<View style={{flex: 1, width: '100%', height: 140}}>
+									<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Now Playing</Text>
+									<SongComponentQueue artwork={queueData[0].artwork} video_name={queueData[0].video_name} video_creator={queueData[0].video_creator}/>
+									<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Up Next</Text>
+								</View>}
 							/>
 						</View>
 			</Modal>

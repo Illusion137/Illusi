@@ -208,6 +208,7 @@ function SongComponent(props) {
 						{(props.applemusic || false) && <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon}/>}
 						{(downloaded) && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
 						{(downloading) && <Ionicons name="download" size={15} color={colors.secondary} style={styles.icon}/>}
+						{((props.thumbnail_URI || "") !== "") && <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/>}
 					</View>
 				</View>
 				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center'}} onPress={ async() => {
@@ -240,7 +241,7 @@ function SongComponent(props) {
 							}
 							await SQLActions.deleteTrack(props.uid);
 							await SQLActions.fetchTrackData(); 
-							await props.refreshData(GLOBALS.SQLTracks);
+							await props.refreshData();
 						} else{
 							await SQLActions.deleteTrackInPlaylist(props.playlistFrom.replaceAll(' ', '_'), props.uid)
 							await props.refreshData();

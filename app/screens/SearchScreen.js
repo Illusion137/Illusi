@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight, TouchableOpacity, Modal, Button, ImageBackground, Easing, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight, TouchableOpacity, Modal, Button, ImageBackground, Easing, Image, Alert } from 'react-native';
 import SongComponentSearch from '../components/SongComponentSearch';
 import { useTheme } from '@react-navigation/native';
 // import searchVideo from '../usetube';
@@ -18,7 +18,6 @@ const SearchScreen = (props) => {
 	const [data, setData] = useState('');
 	const [searchingData, setSearchingData] = useState();
 	const [searchingMode, setSearchingMode] = useState(true);
-	const [recentData, setRecentData] = useState('');
 	const [searchQuery, setSearchQuery] = useState('');
 	
 	const [continueData, setContinueData] = useState();
@@ -71,18 +70,20 @@ const SearchScreen = (props) => {
 			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item); setSearchingMode(false); await Search(item)}}>
 				<>
 					{isUsingRecentSearches && <Ionicons name={'time-outline'} color={'#808080'} size={24} style={{left: 20,}} />}
-					<Text style={styles.queryItemsText}>{item}</Text>
+					<Text style={styles.queryItemsText} numberOfLines={1}>{item}</Text>
 					<View style={{flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end', right: 50}}>
 					{isUsingRecentSearches &&< TouchableOpacity onPress={async () => {
-						console.log('here')
+						setSearchingMode(false)
 						let recentSearchIndex = Prefs.prefs.search.recent_searches.findIndex(el => el == item);
 						if(recentSearchIndex !== -1){
-							Prefs.prefs.search.recent_searches = Prefs.prefs.search.recent_searches.splice(recentSearchIndex, 1);
+							Prefs.prefs.search.recent_searches.splice(recentSearchIndex, 1);
 						}
+
 						setSearchingData(Prefs.prefs.search.recent_searches);
 						await Prefs.savePrefs();
+						setSearchingMode(true)
 					}}>
-							<Octicons name={'x'} color={colors.red} size={24} style={{left: 20,}} />
+							<Octicons name={'x'} color={colors.red} size={24} style={{left: 50, padding: 10, paddingRight: 40}} />
 						</TouchableOpacity> }
 					</View>
 				</>
@@ -95,7 +96,7 @@ const SearchScreen = (props) => {
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
 				<TextInput ref={inputRef} value={searchQuery} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
-					onFocus={() => {getPreviousSearches()}} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query); if(query != ''){setIsUsingRecentSearches(false)} else{setIsUsingRecentSearches(true)} }} onSubmitEditing={async() => {await Search(searchQuery); setSearchingMode(false)}}/>
+					onFocus={() => {getPreviousSearches()}} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query); if(query.replaceAll(/\s/g,'') != ''){setIsUsingRecentSearches(false)} else{setIsUsingRecentSearches(true)} }} onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}/>
 			</View>
 			<View style={styles.searchview}>
 				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
@@ -131,6 +132,10 @@ const SearchScreen = (props) => {
 		setSearchingData(Prefs.prefs.search.recent_searches);
 	}
 	async function Search(query) {
+		if(query.replaceAll(/\s/g,'') == ''){
+			return null;
+		}
+
 		let recentSearchIndex = Prefs.prefs.search.recent_searches.findIndex(item => item == query);
 
 		if(recentSearchIndex !== -1){
@@ -154,7 +159,9 @@ const SearchScreen = (props) => {
 				}
 			}
 			setData(search.data);
-		} catch (error) {}
+		} catch (error) {
+			Alert.alert('Error', error)
+		}
 		if(data == null){
 			return;
 		}
@@ -244,6 +251,7 @@ const themeStyles = (colors) => StyleSheet.create({
 		color: colors.text,
 		fontSize: 17,
 		marginLeft: 40,
+		width: '70%'
 	},
 	queryItems:{
 		height: 50,

@@ -78,10 +78,11 @@ export async function getSpotifyInitialData(url){
             "upgrade-insecure-requests": "1",
             'Access-Control-Allow-Origin' : '*',
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
-            'Cookies': Prefs.prefs.external_services.spotify_cookies
+            "Cookies": Prefs.prefs.external_services.spotify_cookies
         }
-    
+
         body = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
+
         const sessionRegex = /<script id="session" data-testid="session" type="application\/json">(.+?)<\/script>/is
         let session = sessionRegex.exec(body)[1]
 
@@ -99,7 +100,8 @@ export async function getSpotifyInitialData(url){
               "sec-fetch-mode": "cors",
               "sec-fetch-site": "same-site",
               "Referer": "https://open.spotify.com/",
-              "Referrer-Policy": "strict-origin-when-cross-origin"
+              "Referrer-Policy": "strict-origin-when-cross-origin",
+              "Cookies": Prefs.prefs.external_services.spotify_cookies
             },
                 "body": "{\"client_data\":{\"client_version\":\"1.2.21.625.gab84de47\",\"client_id\":\"" + sessionJson.clientId + "\",\"js_sdk_data\":{\"device_brand\":\"unknown\",\"device_model\":\"unknown\",\"os\":\"windows\",\"os_version\":\"NT 10.0\",\"device_id\":\"null\",\"device_type\":\"computer\"}}}",
                 "method": "POST"
@@ -147,10 +149,11 @@ export async function getAllSpotifyPlaylistsFromAccount(){
             try {                
                 let uri = playlist.item._uri
                 let splitUri = uri.split(':')
-                mappedData.set(playlist.item.data.name, `https://open.spotify.com/playlist/${splitUri[2]}`)
+                mappedData.set(playlist.item.data.name, `https://open.spotify.com/${splitUri[1]}/${splitUri[2]}`)
             } catch (error) {
             }
         }
+        // mappedData.set()
         return mappedData;
     } catch (error) {
         console.log(error)
