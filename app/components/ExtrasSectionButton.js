@@ -10,9 +10,9 @@ function ExtrasSectionButton({showArrow = true, ...props}) {
 	return(
 		<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={props.onPress}>
 			<View style={styles.sectionContainer}>
-				<Ionicons name={props.icon} size={25} color='#424ed4' style={{left: 10}}/>
+				<Ionicons name={props.icon} size={25} color={colors.primary} style={{left: 10}}/>
 				<Text style={styles.btnsectionText}>{props.text}</Text>
-				{ showArrow && <AntDesign name="right" size={22} color='#424ed4' style={{position: 'absolute', left: 340}}/>}
+				{ showArrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: 340}}/>}
 			</View>
 		</TouchableHighlight>
 	);

@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponent from '../../components/SongComponent';
 import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
-
+import * as Prefs from '../../../Preferences'
 import * as GLOBALS from '../../../globals';
 import * as SQLActions from '../../../SQLActions';
 
@@ -26,7 +26,7 @@ function PlaylistSubScreen({route}){
     const actions = () =>
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: ["Cancel","Export Playlist To YouTube" , "Clear Tracks", "Edit Playlist"],
+        options: ["Cancel", "Edit Playlist"],
         destructiveButtonIndex: 2,
         cancelButtonIndex: 0,
         userInterfaceStyle: 'dark'
@@ -35,18 +35,6 @@ function PlaylistSubScreen({route}){
         if (buttonIndex === 0) {
             // cancel action
         }else if (buttonIndex === 1) {
-            // 'Export Playlist To YouTube')
-            let base = 'http://www.youtube.com/watch_videos?video_ids='
-            let allIds = playlistInfo.tracks.map(({video_id}) => video_id).slice(0,50)
-            for(let i = 0; i < allIds.length-1; i++){
-                base += (allIds[i] + ',')
-            }
-            base += allIds[allIds.length-2]
-            // base+='&disable_polymer=true'
-            Linking
-            .openURL( base  )
-        }else if (buttonIndex === 2) {
-        }else if (buttonIndex === 3) {
             let toggle = editMode
             if(toggle == 0){
                 toggle = 2
@@ -65,13 +53,16 @@ function PlaylistSubScreen({route}){
                 let trackData = [];
                 if(route.params.title == "Recently Added"){
                     let t = [...GLOBALS.SQLTracks]
-                    trackData = t.reverse()
+                    trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
                 }
                 else if(route.params.title == "Downloads"){
                     let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
-                    trackData = t.reverse();
+                    trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
                 }
-                else if(route.params.title == "Recently Played"){}
+                else if(route.params.title == "Recently Played"){
+                    let t = await SQLActions.getRecentlyPlayedData();
+                    trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+                }
                 else{
                     trackData = await SQLActions.getPlaylistTracks(route.params.title.replaceAll(' ','_'));
                     setBlock(true);
@@ -98,11 +89,18 @@ function PlaylistSubScreen({route}){
 	}, [isFocused]);
     async function refreshData(){
         let trackData = [];
-        if(route.params.title == "Recently Added")
-            trackData = GLOBALS.SQLTracks.reverse()
-        else if(route.params.title == "Downloads")
-            trackData = GLOBALS.SQLTracks.reverse().filter(item=>item.downloaded || item.imported)
-        else if(route.params.title == "Recently Played"){}
+        if(route.params.title == "Recently Added"){
+            let t = [...GLOBALS.SQLTracks]
+            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+        }
+        else if(route.params.title == "Downloads"){
+            let t = [...GLOBALS.SQLTracks].filter(item=>item.downloaded || item.imported)
+            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+        }
+        else if(route.params.title == "Recently Played"){
+            let t = await SQLActions.getRecentlyPlayedData();
+            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+        }
         else{
             trackData = await SQLActions.getPlaylistTracks(route.params.title.replaceAll(' ','_'));
             setBlock(true);
@@ -126,13 +124,14 @@ function PlaylistSubScreen({route}){
         }
     } 
 	const renderTracks = ({ item }) => (
-		<SongComponent imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
+		<SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (editMode !== 0)} artwork={item.artwork} imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} duration={item.video_duration} downloaded={item.downloaded} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
 	);
     function playShuffle(dat){
-        if( dat.filter((item) => item.downloaded || item.imported).length === 0)
-            return;
         let newData = [...dat]
 		let currentIndex = newData.length, randomIndex;
+
+		if(Prefs.prefs.settings.only_play_downloaded)
+            newData = newData.filter(item => item.downloaded || item.imported);
 
         while (currentIndex != 0) {
 
@@ -160,16 +159,17 @@ function PlaylistSubScreen({route}){
                 <BigList style={{backgroundColor: colors.background}} headerHeight={400} ListHeaderComponent={(
                     <View style={styles.playlistListHeader}>
                         {data.length == 0 && <Image source={require('../../../assets/notfound.png')} style={{width: 150, height: 150}}/>}
-                        <View>
+                        {data.length !== 0 && data.length < 4 && <Image source={data[0].artwork} style={{width: 150, height: 150}}/>}
+                        {data.length >= 4 && <View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[2]?.video_id != undefined && <Image source={data[2]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[2].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[3]?.video_id != undefined && <Image source={data[3]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[3].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[0] != undefined && <Image source={data[0].artwork} style={{width: 75, height: 75}}/>}
+                                {data[1] != undefined && <Image source={data[1].artwork} style={{width: 75, height: 75}}/>}
                             </View>
                             <View style={{flexDirection: 'row'}}>
-                                {data[0]?.video_id != undefined && <Image source={data[0]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[0].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
-                                {data[1]?.video_id != undefined && <Image source={data[1]?.imported ? GLOBALS.importedIcon : {uri: `https://img.youtube.com/vi/${data[1].video_id}/mqdefault.jpg`}} style={{width: 75, height: 75}}/>}
+                                {data[2] != undefined && <Image source={data[2].artwork} style={{width: 75, height: 75}}/>}
+                                {data[3] != undefined && <Image source={data[3].artwork} style={{width: 75, height: 75}}/>}
                             </View>
-                        </View>
+                        </View>}
                         <View style={{top: 15, alignItems: 'center'}}>
                             <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{route.params.title}</Text>
                             <Text style={{color: '#808080', fontSize: 12}}>{data.length} tracks • {duration}</Text>

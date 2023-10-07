@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
-import { Animated , View, Button, StyleSheet, Text, TouchableOpacity, Easing, Modal } from "react-native";
+import { Animated , View, Button, StyleSheet, Text, TouchableOpacity, Easing, Modal, Image } from "react-native";
 import { useTheme } from '@react-navigation/native';
 // import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { Slider } from '@miblanchard/react-native-slider';
 import * as FileSystem from 'expo-file-system';
 
 import TrackPlayer, { RepeatMode, State } from 'react-native-track-player';
-import { setupPlayer, addTracks } from '../../../trackPlayerServices';
+import { setupPlayer, addTracks, TrackPlayerNext, TrackPlayerPrev } from '../../../trackPlayerServices';
 import ytdl from "react-native-ytdl";
 import * as Sharing from 'expo-sharing';
 
@@ -19,6 +19,9 @@ import * as globals from "../../../globals";
 import TextTicker from 'react-native-text-ticker'
 import YouTube from 'react-native-youtube';
 
+import * as SQLActions from '../../../SQLActions'
+import { getLyrics } from "../../Illusive/IllusiveLyrics";
+
 // import MusicControl from 'react-native-music-control'
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -29,8 +32,8 @@ function PlayVideoScreen(props ,ref) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const data = props.data.filter(item=>item.downloaded || item.imported);
-	// const data = props.data;
+	// const data = props.data.filter(item=>item.downloaded || item.imported);
+	const data = props.data;
 	const playlist = props.playlist;
 	// const navigation = useNavigation();
 	const [queueData, setQueueData] = useState([]);
@@ -46,16 +49,21 @@ function PlayVideoScreen(props ,ref) {
 	const [elapsed, setElapsed] = useState('00:00');
 	const [durationleft, setDurationLeft] = useState('00:00');
 	
+	const [artwork, setArtwork] = useState(SQLActions.getTrackArtwork(data[0]) || globals.notfoundIcon);
 	const [title, setTitle] = useState(data[0]?.video_name);
 	const [artist, setArtist] = useState(data[0]?.video_creator);
 	const [maxDuration, setMaxDuration] = useState(data[0]?.video_duration);
+	
+	// const [title, setTitle] = useState("test");
+	// const [artist, setArtist] = useState("testArtists");
+	// const [maxDuration, setMaxDuration] = useState(148);
 	
 	const [isPlayerReady, setIsPlayerReady] = useState(false)
 
 	const playVideoPanelRef = useRef()
 	const [draggable, setDraggable] = useState(true);
 	
-	const renderItem = ({item, index}) => <SongComponentQueue video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator}/>;
+	const renderItem = ({item, index}) => <SongComponentQueue artwork={item.artwork} video_name={item.video_name} video_creator={item.video_creator}/>;
 
 	useImperativeHandle(ref, () => ({
 		title: title,
@@ -71,32 +79,44 @@ function PlayVideoScreen(props ,ref) {
 			await TrackPlayer.reset();
 			const queue = await TrackPlayer.getQueue();
 			if(isSetup && queue.length <= 0) {
-				const tracks = []
-				for(const track of data){
-					try {
-						tracks.push({url: FileSystem.documentDirectory + track.media_URI,
-							 title: track.video_name, artist: track.video_creator, duration: track.video_duration, id: track.uid, 
-							artwork: (track.video_id == "0" ? null : `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`) });
-					} catch (error) {
-					}
+				globals.playingTracksIndex = 0; 
+				globals.playingTracks = data
+				for(let i = 0; i < data.length; i++){
+					globals.playingTracks[i]['successful'] = false
+					globals.playingTracks[i]['added'] = false
 				}
-				await TrackPlayer.add(tracks)
+				globals.initialPlaybackTrackChangedMutex = true
+				globals.playingTracks[0]['added'] = true
+				let count = 0;
+				let track = await globals.playingTrackToRNTrack(globals.playingTracks[0])
+				while((track == null || track == 'skip' ) && count < 10){
+					globals.playingTracks = globals.playingTracks.slice(1)
+					track = await globals.playingTrackToRNTrack(globals.playingTracks[0])
+					count++;
+				}
+				await TrackPlayer.add(track)
 			}
 			setIsPlayerReady(isSetup);
 			TrackPlayer.play()
-			// TrackPlayer.add({ title: "Alice in Paris 30 mins", artist: "Seycara", duration: 1800, id: "Alice in Paris - 4253895", 
-							//   artwork: `https://img.youtube.com/vi/ui-HCqcbxQ0/mqdefault.jpg`})
 	  	}
   
 	  setup();
-		// (async function() {
-			// await setup();
-		// })
 	}, []);
-
+	let ticks = 0;
 	useEffect(() => {
 		const interval = setInterval(async () => {
 			if(isPlayerReady){
+				let bufferedPos = await TrackPlayer.getBufferedPosition();
+				if(ticks >= 8){
+					await TrackPlayerNext();
+					ticks = 0;
+				}
+				else{
+					if(bufferedPos <= 0){
+						ticks++;
+					}
+				}
+
 				let curTrack = await TrackPlayer.getCurrentTrack()
 				setPlaying(await TrackPlayer.getState() == State.Playing ? true : false)
 				// if(curTrack != curIndex){
@@ -104,7 +124,9 @@ function PlayVideoScreen(props ,ref) {
 						let trackData = await TrackPlayer.getTrack(curTrack)
 						setTitle(trackData.title)
 						setArtist(trackData.artist)
+						trackData.duration = (trackData.duration || 1) <= 0 ? 60 : (trackData.duration || 1) 
 						setMaxDuration(trackData.duration)
+						setArtwork( SQLActions.getTrackArtwork(globals.playingTracks[curTrack]) )
 					} catch (error) {
 						
 					}
@@ -163,30 +185,33 @@ function PlayVideoScreen(props ,ref) {
 		<View style={styles.topcontainer}>
 			{/* HEADER ---------------------------------------------------- */}
 			<View style={styles.header}>
-				<TouchableOpacity style={{top:28}} onPress={()=>{props.hide()}}>
+				<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={()=>{props.hide()}}>
 					<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
 				</TouchableOpacity>
 				<View style={{alignItems: 'center'}}>
 					<Text style={styles.topfrom}>PLAYING FROM</Text>
 					<Text style={styles.toptitle}>{playlist}</Text>
 				</View>
-				<TouchableOpacity style={{top:28}} onPress={async() => {
+				<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={async() => {
 										if(globals.IsPlaying){
 											// setDraggable(false)
-											let queue = await TrackPlayer.getQueue();
+											let index = await TrackPlayer.getCurrentTrack();
+											let queue = globals.playingTracks.slice(index);
 											let mainQueue = []
+											// console.log(mainQueue)
 											try {
 												for(let i = 0; i < queue.length; i++ ){
 													mainQueue.push(
-														{video_id: queue[i].artwork ? queue[i].artwork.replace("https://img.youtube.com/vi/",'').replace("/mqdefault.jpg",'') : "", 
-														video_creator: queue[i].artist,
-														video_name: queue[i].title
+														{'artwork': SQLActions.getTrackArtwork(queue[i]), 
+														'video_creator': queue[i].video_creator,
+														'video_name': queue[i].video_name
 													})
 												}
-												let index = await TrackPlayer.getCurrentTrack();
-												mainQueue = mainQueue.slice(index)
+												// let index = await TrackPlayer.getCurrentTrack();
+												// mainQueue = mainQueue.slice(index)
 												setQueueData(mainQueue);
 											} catch (error) {
+												console.log(error)
 											}
 										} 
 										setQueueVisible(true);
@@ -194,7 +219,7 @@ function PlayVideoScreen(props ,ref) {
 					<Fontisto name="play-list" size={15} color={colors.primary}/>
 				</TouchableOpacity>
 			</View>
-			<View style={{height: 220, backgroundColor: '#121212'}}/>
+			<Image source={artwork} height={220} style={{width: "auto", opacity: 0.5}}/>
 			{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 			<View style={styles.timestampslidercontainer}>
 				<Slider value={timeValue}
@@ -207,7 +232,7 @@ function PlayVideoScreen(props ,ref) {
 						thumbStyle={{width: 8, height: 8}}
 						thumbTouchSize={{width: 40, height: 40}}
 						minimumValue={0}
-						maximumValue={maxDuration}
+						maximumValue={(maxDuration || 60) <= 0 ? 60 : maxDuration}
 				/>
 			</View>
 			<View style={{flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30}}>
@@ -236,7 +261,7 @@ function PlayVideoScreen(props ,ref) {
 						<Ionicons name="shuffle-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
-							await TrackPlayer.skipToPrevious();
+							await TrackPlayerPrev();
 						}}>
 						<Ionicons name="play-back-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
@@ -244,7 +269,7 @@ function PlayVideoScreen(props ,ref) {
 						<Ionicons name={playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={async () => {
-							await TrackPlayer.skipToNext();
+            			await TrackPlayerNext();
 					}}>
 						<Ionicons name="play-forward-sharp" size={35} color={colors.primary}/>
 					</TouchableOpacity>
@@ -290,7 +315,9 @@ function PlayVideoScreen(props ,ref) {
 					<TouchableOpacity onPress={() => {setEqSettingsVisible(true)}}>
 						<SimpleLineIcons name="equalizer" size={28} color={colors.primary}/>
 					</TouchableOpacity>
-					<TouchableOpacity>
+					<TouchableOpacity onPress={async() => {
+						// await getLyrics(title);
+					}}>
 						<Ionicons name="mic-outline" size={28} color={colors.primary}/>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={onShare}>
@@ -306,17 +333,25 @@ function PlayVideoScreen(props ,ref) {
 					setQueueVisible(!queueVisible);}}>
 						<View style={{width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row"}} >
 							<View style={{marginLeft:10}}>
-								<Button color={"#a382ff"} title='close' onPress={() => {setQueueVisible(false)}}/>
+								<Button color={colors.primary} title='close' onPress={() => {setQueueVisible(false)}}/>
 							</View>
 							<Text style={{left: 85, color: "white", fontWeight: "bold", fontSize: 17}}>Up Next</Text>
 						</View>
 						<View style={{flex:1, backgroundColor: colors.background}}>
 
-							<BigList style={{height: '71%'}} data={queueData}
+							<BigList style={{height: '71%'}} data={queueData.slice(1)}
 								renderItem={renderItem}
 								keyExtractor={(item, index) => index}
 								itemHeight={61}
 								onScrollToIndexFailed={() => {}}
+								renderHeader={true}
+								headerHeight={140}
+								ListHeaderComponent={() => 
+								<View style={{flex: 1, width: '100%', height: 140}}>
+									<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Now Playing</Text>
+									<SongComponentQueue artwork={queueData[0].artwork} video_name={queueData[0].video_name} video_creator={queueData[0].video_creator}/>
+									<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Up Next</Text>
+								</View>}
 							/>
 						</View>
 			</Modal>
@@ -328,7 +363,7 @@ function PlayVideoScreen(props ,ref) {
 					setEqSettingsVisible(!eqSettingsVisible);}}>
 					<View style={{width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row"}} >
 						<View style={{marginLeft:10}}>
-							<Button color={"#a382ff"} title='close' onPress={() => {setEqSettingsVisible(false);}}/>
+							<Button color={colors.primary} title='close' onPress={() => {setEqSettingsVisible(false);}}/>
 						</View>
 						<Text style={{left: 85, color: "white", fontWeight: "bold", fontSize: 17}}>Settings</Text>
 					</View>
@@ -381,7 +416,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	timestampslidercontainer:{
         alignItems: 'stretch',
         justifyContent: 'center',
-		bottom: 29
+		bottom: 20
 	},
 	textcontainer:{
 		justifyContent: 'flex-start',

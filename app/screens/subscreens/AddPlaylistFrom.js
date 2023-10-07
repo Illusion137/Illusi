@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableH
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { SelectList } from 'react-native-dropdown-select-list';
-import { getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
+import { getAllAmazonMusicPlaylistsFromAccount, getAllSpotifyPlaylistsFromAccount, getAllYTMusicPlaylistsFromAccount, getAllYoutubePlaylistsFromAccount } from '../../Illusive/IllusiveAccountPlaylistFinder';
 import * as Prefs from '../../../Preferences';
 
 function AddPlaylistFrom({route}) {
@@ -32,15 +32,34 @@ function AddPlaylistFrom({route}) {
 			if(Prefs.getExperimentalFeatureEnabled('get_account_playlists_in_get_playlist')){
 				switch(from){
 					case('YouTube'):
-						let data = await getAllYoutubePlaylistsFromAccount()
-						setPlaylistNameData(data)
-						setPlaylistNames([...data.keys()]);
+						if(Prefs.hasYouTubeCookies()){
+							let ytdata = await getAllYoutubePlaylistsFromAccount()
+							setPlaylistNameData(ytdata)
+							setPlaylistNames([...ytdata.keys()]);
+						}
+						break;
+					case('YTMusic'):
+						if(Prefs.hasYouTubeCookies() && Prefs.hasYouTubeMusicCookies()){
+							let ytmusicdata = await getAllYTMusicPlaylistsFromAccount()
+							setPlaylistNameData(ytmusicdata)
+							setPlaylistNames([...ytmusicdata.keys()]);
+						}
 						break;
 					case('Musi'):
 						break;
 					case('Spotify'):
+						if(Prefs.hasSpotifyCookies()){
+							let spotifydata = await getAllSpotifyPlaylistsFromAccount();
+							setPlaylistNameData(spotifydata)
+							setPlaylistNames([...spotifydata.keys()]);
+						}
 						break;
 					case('Amazon'):
+						if(Prefs.hasAmazonCookies()){
+							let amazondata = await getAllAmazonMusicPlaylistsFromAccount();
+							setPlaylistNameData(amazondata)
+							setPlaylistNames([...amazondata.keys()]);
+						}
 						break;
 					default:
 						break;
@@ -53,6 +72,8 @@ function AddPlaylistFrom({route}) {
 		switch(from){
 			case('YouTube'):
 				return 'https://www.youtube.com/playlist?list=...'
+			case('YTMusic'):
+				return 'https://music.youtube.com/playlist?list=...'
 			case('Musi'):
 				return 'https://feelthemusi.com/playlist/...'
 			case('Spotify'):
@@ -67,7 +88,9 @@ function AddPlaylistFrom({route}) {
 	function isValidInput(text){
 		switch(from){
 			case('YouTube'):
-				if( RegExp(/(https?:\/\/)youtube\.com\/playlist\?list=.+/i).test(text)){ return true; } else{return false;}
+				if( RegExp(/(https?:\/\/)(www\.)?youtube\.com\/playlist\?list=.+/i).test(text)){ return true; } else{return false;}
+			case('YTMusic'):
+				if( RegExp(/(https?:\/\/)(www\.)?music\.youtube\.com\/playlist\?list=.+/i).test(text)){ return true; } else{return false;}
 			case('Musi'):
 				if( RegExp(/(https?:\/\/)feelthemusi\.com\/playlist\/.+/i).test(text)){ return true; } else{return false;}
 			case('Spotify'):
@@ -83,7 +106,7 @@ function AddPlaylistFrom({route}) {
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			<TextInput autoCorrect={false} ref={inputRef} placeholder='Playlist Link' placeholderTextColor='#808080' style={styles.nameinput} 
 				value={inputValue}
-				onChangeText={text => { if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
+				onChangeText={text => { setInputValue(text); if(isValidInput(text)){ setDisabled(false) ; navigation.setOptions({ headerRight: () => (
 								<Button
 									color='blue'
 									onPress={() => navigation.navigate('GetAddPlaylistFrom', {url: text, title: route.params.title})}
@@ -103,12 +126,19 @@ function AddPlaylistFrom({route}) {
 			<Text style={styles.exlinktext}> - {defaultlink}</Text>
 			<View style={{height: 20}}/>
 			{playlistNames != undefined && <SelectList 
-					setSelected={(val) => {setSelected(val); setInputValue(playlistNameData.get(val)); setDisabled(false) }}
+					setSelected={(val) => {setSelected(val); setInputValue(playlistNameData.get(val)); setDisabled(false);						navigation.setOptions({ headerRight: () => (
+						<Button
+							color='blue'
+							onPress={() => navigation.navigate('GetAddPlaylistFrom', {url: playlistNameData.get(val), title: route.params.title})}
+							title="Next"
+						/>
+					)}) }}
 					data={playlistNames} 
 					save="value"
 					arrowicon={<></>}
 					searchicon={<></>}
 					searchPlaceholder={"Select Playlist"}
+					placeholder="Select Playlist"
 					inputStyles={{backgroundColor: colors.track, color: 'white'}}
 					boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
 					dropdownStyles={{backgroundColor: colors.track}}

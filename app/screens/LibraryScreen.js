@@ -1,9 +1,9 @@
 import React, {useState, useEffect, useRef} from 'react';
 import SongComponent from '../components/SongComponent';
-import { StyleSheet, Text, View, TextInput, SectionList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TextInput, SectionList, TouchableOpacity, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '@react-navigation/native';
+import { useIsFocused, useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
@@ -13,10 +13,13 @@ import BigList from 'react-native-big-list';
 import * as SQLActions from '../../SQLActions';
 import * as GLOBALS from '../../globals';
 import { getAllYoutubePlaylistsFromAccount } from '../Illusive/IllusiveAccountPlaylistFinder';
+import axios from 'axios';
+import { getYoutubeMusicPlaylist } from '../Illusive/IllusivePlaylistResolver';
+import * as Prefs from '../../Preferences';
 
 const LibraryScreen = ({ navigation, route }) => {
 	const [allData, setAllData] = useState({charData: [], dataMask: [], numTracks: 0, editMode: 0})
-
+	const [curQuery, setCurQuery] = useState("")
 	function setEditMode(mode){
 		setAllData(
 			{
@@ -40,19 +43,24 @@ const LibraryScreen = ({ navigation, route }) => {
 		  throw err
 		}
 	}
-	  
+
+    const isFocused = useIsFocused();
+
 	useEffect( () => {
 		(async function() {
-			// await getAllYoutubePlaylistsFromAccount();
-
 			await SQLActions.fetchTrackData();
+
 			if (GLOBALS.SQLTracks == null || GLOBALS.SQLTracks == []){
 				setAllData({charData: [], dataMask: [], numTracks: 0, editMode: allData.editMode || 0});
 				return;
 			}
+			let dat = [...GLOBALS.SQLTracks]
+			if(curQuery != ""){
+				dat = dat.filter(track => (track.video_creator.toUpperCase().includes(curQuery.toUpperCase()) || track.video_name.toUpperCase().includes(curQuery.toUpperCase())))
+			}
 
 			let sectionsMap = new Map();
-			for(const track of GLOBALS.SQLTracks){
+			for(const track of dat){
 				let char = track.video_name[0].toUpperCase();
 				if(!(/[A-Z]/).test(char)){ char = '#' }
 				if( !sectionsMap.has(char) ){
@@ -75,12 +83,17 @@ const LibraryScreen = ({ navigation, route }) => {
 				}
 				setAllData({charData: sectionChars, dataMask: sections, numTracks: GLOBALS.SQLTracks.length, editMode: allData.editMode || 0 })
 			})();
-	}, []);
+	}, [isFocused]);
 		
-	async function refreshData(dat){
-		if(dat == undefined){return}
-		GLOBALS.SQLTracks = dat;
+	async function refreshData(){
+		await SQLActions.fetchTrackData();
 		
+		let dat = [...GLOBALS.SQLTracks]
+		if(curQuery != ""){
+			dat = dat.filter(track => (track.video_creator.toUpperCase().includes(curQuery.toUpperCase()) || track.video_name.toUpperCase().includes(curQuery.toUpperCase())))
+		}
+
+
 		let sectionsMap = new Map();
 		for(const track of dat){
 			let char = char = track.video_name[0].toUpperCase();
@@ -108,7 +121,7 @@ const LibraryScreen = ({ navigation, route }) => {
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
-	const renderItem = ({item}) => <SongComponent media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
+	const renderItem = ({item}) => <SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (allData.editMode !== 0)} artwork={item.artwork} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} setPlaying={route.params?.setPlaying} from={"My Library"} editMode={allData.editMode} 
 	refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>;
 	// const renderItem = ({item}) => <Text style={{color: 'white'}}>{item.video_creator}</Text>;
 
@@ -118,9 +131,9 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		await SQLActions.fetchTrackData();
 		let tracks = [...GLOBALS.SQLTracks]
-		if(tracks.filter((item) => item.downloaded || item.imported).length === 0)
-			return;
-		if (tracks == []){
+		if(Prefs.prefs.settings.only_play_downloaded)
+			tracks = tracks.filter(item => item.downloaded || item.imported);
+		if (tracks.length == 0){
 			return;
 		}
 		let currentIndex = tracks.length, randomIndex;
@@ -158,10 +171,12 @@ const LibraryScreen = ({ navigation, route }) => {
 						<MaterialCommunityIcons name="pencil" size={25} color={allData.editMode == 0 ? colors.inactive : (allData.editMode == 1 ? colors.primary : colors.red) }/>
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
-					<TextInput placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={query => {
-						let filteredTracks = GLOBALS.SQLTracks.filter(track => 
-								(track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase()))
-						)
+					<TextInput value={curQuery} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={query => {
+						setCurQuery(query)
+						let filteredTracks = GLOBALS.SQLTracks;
+
+						filteredTracks = filteredTracks.filter(track => (track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase())))
+
 						let sectionsMap = new Map();
 						for(const track of filteredTracks){
 							let char = track.video_name[0].toUpperCase();
@@ -188,9 +203,13 @@ const LibraryScreen = ({ navigation, route }) => {
 					}}></TextInput>
 					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => {
 						try {
-							const audioFiles = await DocumentPicker.pickMultiple({type: DocumentPicker.types.audio, copyTo: 'documentDirectory'})
+							const audioFiles = await DocumentPicker.pickMultiple({type: [DocumentPicker.types.audio, DocumentPicker.types.video], copyTo: 'documentDirectory'})
+
+							let allPromiseTracks = []
+							let allFileCopyTracks = []
 
 							for(const audioFile of audioFiles){	
+								allFileCopyTracks.push(audioFile.fileCopyUri)
 								let fileName = audioFile.name.replace(/\..+/, '') || ""						
 								let uid = GenerateNewUID(fileName)
 								let newFileURI = encodeURI(uid + audioFile.fileCopyUri.match(/\..+/)[0])
@@ -200,8 +219,7 @@ const LibraryScreen = ({ navigation, route }) => {
 								await soundTemp.loadAsync({uri: FileSystem.documentDirectory + newFileURI});
 								let metaData = await soundTemp.getStatusAsync();
 								await soundTemp.unloadAsync()
-
-								await SQLActions.insertTrackData(new SQLActions.Track({
+								allPromiseTracks.push(SQLActions.insertTrackData(new SQLActions.Track({
 									"uid": uid,
 									"video_id": "0",
 									"video_name": fileName,
@@ -210,14 +228,17 @@ const LibraryScreen = ({ navigation, route }) => {
 									"media_URI": newFileURI,
 									"imported": true,
 									"saved": true,
-								}));
+								})));
 							}
+							await Promise.all(allPromiseTracks);
 							
+							SQLActions.fetchTrackData();
+
 							await refreshData(GLOBALS.SQLTracks)
 							
 							for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
 								try {
-									if(file != 'RCTAsyncLocalStorage' && file != 'SQLite' && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
+									if(!(file == 'CachedThumbnails' || file == 'RCTAsyncLocalStorage' || file == 'SQLite') && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
 										await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
 									}
 								} catch (error) {
@@ -236,7 +257,7 @@ const LibraryScreen = ({ navigation, route }) => {
 
 			<BigList style={{height: '71%'}} sections={allData.dataMask}
 				renderItem={renderItem}
-				keyExtractor={(item, index) => index}
+				keyExtractor={(item, index) => item.uid}
 				renderFooter={sectionFooter}
 				renderHeader={headerComponent}
 				renderSectionHeader={sectionHeader}
@@ -246,6 +267,7 @@ const LibraryScreen = ({ navigation, route }) => {
 				ref={listRef}
 				itemHeight={61}
 				onScrollToIndexFailed={() => {}}
+				stickySectionHeadersEnabled={false}
 			/>
 			<View style={{backgroundColor: colors.background,
 					position: 'absolute',
@@ -317,7 +339,8 @@ const themeStyles = (colors) => StyleSheet.create({
 		color: 'white',
 		width: '75%',
 		bottom: 10,
-		padding: 10,
+		paddingLeft: 10,
+		fontSize: 15,
 		borderTopRightRadius: 10,// Top Right Corner
 		borderBottomRightRadius: 10, // Bottom Right Corner
 	},

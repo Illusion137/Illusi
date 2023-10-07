@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LogBox, Button ,ActionSheetIOS, Alert } from 'react-native';
+import { LogBox, Button ,ActionSheetIOS, Alert, Appearance, Image } from 'react-native';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 
 import LibraryScreen from './app/screens/LibraryScreen';
@@ -34,6 +34,13 @@ import PlayingSong from './app/screens/subscreens/PlayingSong';
 import ExternalServicesScreen from './app/screens/subscreens/ExtraExternalServicesScreen';
 import ExtraLinkerScreen from './app/screens/subscreens/ExtraLinkerScreen';
 import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownloaderScreen';
+import ExtraSettingsExperimentalFeatures from './app/screens/subscreens/ExtraSettingsExperimentalFeatures';
+import ExtraPlaylistConverter from './app/screens/subscreens/ExtraPlaylistConverter';
+import axios from 'axios';
+import { searchAmazonMusic } from './app/Illusive/IllusiveSearch';
+import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
+// const sha1 = require('js-sha1');
+
 // import RNFetchBlob from "rn-fetch-blob";
 
 // import { Provider } from 'react-redux';
@@ -45,35 +52,11 @@ import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownl
 // ]);
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state',
-  ]);  
+]);  
 LogBox.ignoreAllLogs();
 
 const Tab  = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-
-const Theme = {
-	dark: false,
-	colors: {
-		primary: '#462cc9',
-		background: '#0d1016',
-		card: '#131213',
-		text: '#ffffff',
-		subtext: '#8c939d',
-		border: '#222222',
-		notification: '#1313ff',
-		shelf: '#161B22',
-		tabInactive: '#cad1d8',
-		line: '#303040',
-		searchInput: '#404254',
-		searchPlaceholder: '#8080a0',
-		inactive: '#8080a0',
-		red: '#FF0000',
-		playingSong: '#141722',
-		playScreen: '#141722',
-		track: '#141722',
-		highlightPressColor: '#bbaaff'
-	},
-};
 
 const ExtrasStack = createNativeStackNavigator();
 
@@ -83,10 +66,12 @@ function ExtrasStackScreen(props) {
 	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} initialParams={{downloadVideo: props.route.params.downloadVideo}} />
 	  <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
 	  <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
+	  <ExtrasStack.Screen name="Experimental Features" component={ExtraSettingsExperimentalFeatures} />
 	  <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
-	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen}/>
+	  <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}}/>
 	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
-	  {/* <ExtrasStack.Screen name="Backup, Recover & Transfer" component={} /> */}
+	  <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
+	  <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
 	</ExtrasStack.Navigator>
   );
 }
@@ -108,14 +93,14 @@ export class Tabs extends Component {
 	render(){
 		return (
 			<Tab.Navigator initialRouteName={'Library'} 
-			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Theme.colors.primary, tabBarInactiveTintColor: Theme.colors.tabInactive, 
-			tabBarActiveBackgroundColor:Theme.colors.background, tabBarInactiveBackgroundColor: Theme.colors.background, tabBarStyle:{backgroundColor:Theme.colors.background, height: 90, zIndex:1}}} 
+			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
+			tabBarActiveBackgroundColor:Prefs.darkThemeDefault.colors.background, tabBarInactiveBackgroundColor: Prefs.darkThemeDefault.colors.background, tabBarStyle:{backgroundColor:Prefs.darkThemeDefault.colors.background, height: 90, zIndex:1}}} 
 			unmountInactiveScreens={true} detachInactiveScreens={true}>
 				<Tab.Screen name="My Library" component={LibraryScreen}
 				initialParams={{setPlaying: this.props.route.params.setPlaying, downloadVideo: this.props.route.params.downloadVideo}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
-					unmountOnBlur: true,
+					unmountOnBlur: false,
 				}}
 				
 				/>
@@ -127,6 +112,7 @@ export class Tabs extends Component {
 				}}
 				/>
 				<Tab.Screen name="Search" component={SearchHomeScreen}
+				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 				}}
@@ -149,13 +135,29 @@ export default class App extends Component{
 		isPlayingRestart: false,
 		data: [],
 		playlistName: '',
+		isLoading: false
 	}
 	async componentDidMount() {
-		await activateKeepAwakeAsync();
-		await SQLActions.recreateAllTables();
-		if(await Prefs.isPrefsEmpty())
-			await Prefs.resetPrefs();
-		await Prefs.fetchAutoLinkedPlaylists();
+		try {
+			let allPromises = []
+			await SQLActions.recreateAllTables();
+			await Prefs.fetchPrefs();
+			await SQLActions.fixToNewUpdate();
+			await SQLActions.fetchTrackData();
+			allPromises.push(SQLActions.cleanupRecentlyPlayed())
+			if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails'))
+				allPromises.push(SQLActions.cleanCache())
+			allPromises.push(activateKeepAwakeAsync());
+			allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
+			allPromises.push(Prefs.fetchAutoLinkedPlaylists());
+			await Promise.all(allPromises)
+		} catch (error) {
+			Alert.alert("Error", error)
+		} finally {
+			this.setState({isLoading: true})
+			if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
+				await SQLActions.refreshCache()
+		}
 	}
 	playVideo(data, playlistName){
 		this.setState({isPlaying: false}, () => {
@@ -167,7 +169,6 @@ export default class App extends Component{
 		)
 	}
 	waitFor(conditionFunction) {
-		
 		const poll = resolve => {
 			if(conditionFunction()) resolve();
 			else setTimeout(_ => poll(resolve), 400);
@@ -194,25 +195,29 @@ export default class App extends Component{
 					}
 				}
 		}
-		const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
 		
-		let downloadURI;
-		//140
-		try {
-			
-			downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
-			downloadURI = downloadURI[0].url;
-		} catch (error) {
-			let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-			GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-			Alert.alert("This file doesn't exist in a mp4 format you may try again but idk man")
-			return
-		}
-
 		GLOBALS.DOWNLOADING.push({uid: uid, progress: 0})
 		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
 		this.waitFor(() => isInDownloadRange(uid,downloadQueueMaxLength))
-  		.then(async() => {
+		.then(async() => {
+			  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
+			  
+			  let downloadURI;
+			  //140
+			  try {
+				  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
+				  downloadURI = downloadURI[0].url;
+			  } catch (error) {
+				  if(String(error).includes("Video unavailable")){
+					SQLActions.addToBackpack(uid);
+				  }
+				if(startDownloadState != undefined)
+					startDownloadState(false)
+				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+				Alert.alert("Coudln't find the file", uid + ' : ' + error)
+				return
+			  }
 			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
 			try {
 				if(startDownloadState != undefined)
@@ -250,8 +255,11 @@ export default class App extends Component{
 					setFinishedDownloadedState(true)
 			  	} catch (e) {
 				//   setIsDownloading(false)
+				if(startDownloadState != undefined)
+					startDownloadState(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
-					GLOBALS.DOWNLOADING.shift()
+					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+					GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}
@@ -261,14 +269,15 @@ export default class App extends Component{
 	render(){
 		return (
 			// <Provider store={store}>
-				<NavigationContainer theme={Theme}>
+				<NavigationContainer theme={Prefs.darkThemeDefault}>
 						{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
-						<Stack.Navigator>
+						{!this.state.isLoading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
+						{this.state.isLoading && <Stack.Navigator>
 							<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: '#424ed4',
+							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Prefs.darkThemeDefault.colors.primary,
 									headerRight: () => (
 										<Button
 											color='#808080'
@@ -277,7 +286,7 @@ export default class App extends Component{
 										/>
 										),
 									})} />
-							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Theme.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
 									headerRight: () => (
 										<Button
 											color='#1313ff'
@@ -300,7 +309,7 @@ export default class App extends Component{
 										/>
 										),
 									})}/>
-						</Stack.Navigator>
+						</Stack.Navigator>}
 				</NavigationContainer>
 			// </Provider>
 		);

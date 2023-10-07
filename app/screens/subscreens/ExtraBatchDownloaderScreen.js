@@ -10,22 +10,8 @@ function ExtraBatchDownloaderScreen({route}) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
-	useEffect(() => {
-		(async function() {
-			let playlists_names = await SQLActions.getAllPlaylists();
-			let pushData = []
-			pushData.push({key: '0', value: 'Library'})
-			for (let i = 0; i < playlists_names.length; i++) {
-				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
-			}
-			setPlaylistDownloadData(pushData)
-			
-			setDownloadingTracksData(GLOBALS.DOWNLOADING)
-		})()
-	}, []);
+	const [downloadingTracksData, setDownloadingTracksData] = React.useState([...GLOBALS.DOWNLOADING]);
 	
-	const [downloadingTracksData, setDownloadingTracksData] = React.useState([]);
-
 	const confirmDownloadPlaylistAlert = () =>
     Alert.alert(
 		"Download All Tracks in Playlist",
@@ -36,9 +22,7 @@ function ExtraBatchDownloaderScreen({route}) {
 			if(selected === "Library"){
 				let filteredData = GLOBALS.SQLTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
-					},1000)
+					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
 				}
 			}
 			else{
@@ -47,21 +31,33 @@ function ExtraBatchDownloaderScreen({route}) {
 				
 				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					setTimeout(async() => {
-						await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
-					},1000)
+					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
 				}
 			}
-			const interval = setInterval(() => {
-				setDownloadingTracksData(GLOBALS.DOWNLOADING)
-			}, 1000);
 		} } ]
 	);
-		
+
+	useEffect(() => {
+		(async function() {
+			let playlists_names = await SQLActions.getAllPlaylists();
+			let pushData = []
+			pushData.push({key: '0', value: 'Library'})
+			for (let i = 0; i < playlists_names.length; i++) {
+				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
+			}
+			setPlaylistDownloadData(pushData)
+		})()
+		const interval = setInterval(() => {
+			setDownloadingTracksData([...GLOBALS.DOWNLOADING]);
+        }, 200);
+  
+        //Clearing the interval
+        return () => clearInterval(interval);
+	}, []);
 	const [selected, setSelected] = React.useState("");
 	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
-
-
+	
+	
 	const renderHeaderItem = ({item}) => <>
 		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloadingTracksData.length} Tracks Remaining</Text>
 		<View style={{height: 8}}/>
@@ -71,9 +67,14 @@ function ExtraBatchDownloaderScreen({route}) {
 	const renderItem = ({item}) => 
 	<>
 		<View style={{height:8}}/>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%'}}>
-			{item.uid.replace(/-.+/,'')}: {item.progress}%
-		</Text>
+		<View style={{flexDirection: 'row'}}>
+			<Text numberOfLines={1} style={{color: '#aaaaaa', width: '88%'}}>
+				{item.uid.replace(/-.+/,'')}: 
+			</Text>
+			<Text style={{color: 'white', alignSelf: 'flex-end'}}>
+				{item.progress}%
+			</Text>
+		</View>
 		<View style={{height:8}}/>
 		<View style={styles.linelong}/>
 	</>;
@@ -85,9 +86,10 @@ function ExtraBatchDownloaderScreen({route}) {
 					setSelected={(val) => setSelected(val)}
 					data={playlistDownloadData} 
 					save="value"
-					arrowicon={() => <></>}
-					searchicon={() => <></>}
+					arrowicon={<></>}
+					searchicon={<></>}
 					searchPlaceholder={"Select Playlist"}
+					placeholder='Select Playlist'
 					inputStyles={{backgroundColor: colors.track, color: 'white'}}
 					boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
 					dropdownStyles={{backgroundColor: colors.track}}

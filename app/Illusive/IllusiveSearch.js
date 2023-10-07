@@ -1,9 +1,10 @@
 import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
+import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getAmazonMusicUserHash, getAmznCsrf, getAmznMusicHeaders, getAmznMusicRequestHeaders, getAmznVideoPlayerToken, getXAmznAuth } from "./IllusiveAccountPlaylistFinder";
 
 function GenerateNewUID(prefixName) {
-	return prefixName.replaceAll(/[^a-zA-Z]/g,'') + ' - ' + new Date().getTime().toString(36).substring(2, 15) +
+	return prefixName.replaceAll(/[^a-zA-Z0-9]/g,'') + '-' + new Date().getTime().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) +
 	Math.random().toString(36).substring(2, 15);
 }
@@ -25,10 +26,19 @@ function durationToInt(durationString){
 			duration += parseInt ( RegExp(/\d+/).exec(splitDuration[i])[0] )
 		}
 	}
-
 	return duration
 }
 
+export function parseYTDuration(textDur){
+    let textDurSplit = textDur.split(':')
+    let j = 0;
+    let duration = 0;
+    for(let i = textDurSplit.length-1; i >= 0; i--){
+        duration += (parseInt(textDurSplit[i]) * Math.pow(60,j))
+        j++;
+    }
+    return duration
+}
 
 async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns first video
 	if(searchTerms.trim === ''){
@@ -63,29 +73,51 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		const raw = dataRegex.exec(body)?.[1] || '{}'
 		const apikey = apiRegex.exec(body)[1] || ''
 		
-		let data = JSON.parse(decodeHex(raw))
-		data.apikey = apikey
-		let apiKey = data.apiKey
-
-		let searchData = [...JSON.stringify(data).matchAll(/accessibilityData":{"label":"([^{}]+) by ([^{}]+)( [0-9,]+ views?.+?ago ((\d+ (hour|minute|second|hours|minutes|seconds), )+)(\d+ (hour|minute|second|hours|minutes|seconds)))(.+?)"watchEndpoint":{"videoId":"(.+?)"/g)]
-
+		let ytInitialData = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,'').replaceAll('\n',''))
+     
+		let contents = ytInitialData.contents.sectionListRenderer.contents[0].itemSectionRenderer.contents
+		// console.log(JSON.stringify(contents))
+		ytInitialData.apikey = apikey
+		let apiKey = ytInitialData.apiKey
+		// let searchData = [...JSON.stringify(ytInitialData).matchAll(/"videoId":"(.+?)",.+?TimeStatusRenderer":.+?\[{"text":"(.+?)"}.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago/g)]
+//"videoId":"(.+?)",.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago.+?lengthText.+?simpleText":"(.+?)"
 		const pushData = []
 		
-		for (const id of searchData) {
-			// let accessibility = id.slice(id.indexOf('],"accessibility":{"accessibilityData":{"label":"'))
-			let uid = GenerateNewUID(id[1].replaceAll('\\', ''))
-			pushData.push({
-					'video_id': id[10] || '',
-					'video_name': id[1].replaceAll('\\', '') || '',
-					'video_creator': id[2].replaceAll('\\', '') || '',
-					'video_duration': durationToInt(id[5]) || '',
-					'uid': uid
+		for (const video of contents) {
+			try {				
+				let uid = GenerateNewUID(video.videoWithContextRenderer.headline.runs[0].text)
+				pushData.push({
+				'video_id': video.videoWithContextRenderer.videoId,
+				'video_name': video.videoWithContextRenderer.headline.runs[0].text,
+				'video_creator': video.videoWithContextRenderer.shortBylineText.runs[0].text,
+				'video_duration': parseYTDuration(video.videoWithContextRenderer.lengthText.runs[0].text),
+				'youtube': true,
+				'uid': uid
 				})
+			} catch (error) {
+			}
 		}
+
+		// for (const id of searchData) {
+		// 	try {				
+		// 		let uid = GenerateNewUID(id[3].replaceAll('\\', ''))
+		// 		pushData.push({
+		// 		'video_id': id[1] || '',
+		// 		'video_name': id[3].replaceAll('\\', '') || '',
+		// 		'video_creator': id[4].replaceAll('\\', '') || '',
+		// 		'video_duration': parseYTDuration(id[2]) || 0,
+		// 		'uid': uid
+		// 		})
+		// 	} catch (error) {
+		// 		console.log(error)
+		// 	}
+		// }
 
 		return {data: pushData}
 	}
 	catch(error){
+		console.log(error)
+		return {data: []}
 	}
 	// let data = await usetube.searchVideo(searchTerms)
 	// const reData = []
@@ -108,24 +140,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 	// 		token: data.token, 
 	// 	},data: reData}
 }
-
-/**
-
-// const clientVersion = between(body, 'INNERTUBE_CONTEXT_CLIENT_VERSION":"', '"') ||
-    // between(body, 'innertube_context_client_version":"', '"');
-  // Make deep copy and set clientVersion
-//   const context = JSON.parse(JSON.stringify(DEFAULT_CONTEXT));
-//   context.client.clientVersion = clientVersion;
-  // Add params to context
-//   if (options.gl) context.client.gl = options.gl;
-//   if (options.hl) context.client.hl = options.hl;
-//   if (options.utcOffsetMinutes) context.client.utcOffsetMinutes = options.utcOffsetMinutes;
-//   if (options.safeSearch) context.user.enableSafetyMode = true;
-//   // Return multiple values
-//   return { json, apiKey, context };
-
-/*
-clientVersion 2.20221122.06.00
+/*clientVersion 2.20221122.06.00
 DEFAULT_CONTEXT = {
   client: {
     utcOffsetMinutes: 0,
@@ -136,9 +151,7 @@ DEFAULT_CONTEXT = {
   },
   user: {},
   request: {},
-}
-
-*/
+}*/
 //apiKey, token, clientVersion, options
 async function ContinueYouTubeSearch(continueData){
 	try {
@@ -175,15 +188,64 @@ async function ContinueYouTubeSearch(continueData){
 	} catch (error) {
 	}
 }
+
+export async function searchAmazonMusic(query){
+	try {		
+		let url = `https://music.amazon.com/search/${query.replaceAll(' ', '+').replaceAll(/[^A-Za-z0-9+]+/g, '').replaceAll('++', '+')}`
+		let filter = {'IsLibrary': ["false"]}
+		let keyword = {
+			"interface": "Web.TemplatesInterface.v1_0.Touch.SearchTemplateInterface.SearchKeywordClientInformation",
+			"keyword": ""
+		}
+		let amznMusic = await getAmazonMusicAmznMusicData(url);
+		let showHomeData = await getAmazonMusicShowHomeData(amznMusic, url);
+	
+		let authHeader = JSON.parse(showHomeData.methods[0].header);
+	
+		let userHash = getAmazonMusicUserHash();
+		let xAmznAuth = getXAmznAuth(amznMusic);
+		let amznCSRF = getAmznCsrf(amznMusic);
+		let xAmznVideoPlayerToken = getAmznVideoPlayerToken(authHeader);
+		let rqheaders = getAmznMusicRequestHeaders(xAmznAuth,amznMusic,amznCSRF,xAmznVideoPlayerToken,url);
+		let requestPayload = {
+			"filter":JSON.stringify(filter),
+			"keyword": JSON.stringify(keyword),
+			"suggestedKeyword": query,
+			"userHash":	JSON.stringify(userHash),
+			"headers": JSON.stringify(rqheaders)
+		}
+		let response = (await axios({'method': 'POST', 'url': "https://na.mesk.skill.music.a2z.com/api/showSearch", 'headers': getAmznMusicHeaders(), 'data': requestPayload})).data;
+		let songWidgetsIndex = 2;
+		let widgets = response.methods[0].template.widgets
+		for(let i = 0; i < widgets.length; i++){
+			if(widgets[i].header == "Songs"){
+				songWidgetsIndex = i;
+			}
+		}
+		let data = [];
+		for(const item of response.methods[0].template.widgets[songWidgetsIndex].items){
+			let id;
+			try {
+				id = item.primaryLink.deeplink.replace(/.+?trackAsin=/,'');
+			} catch (error) {
+				throw Error(":(")
+			}
+			data.push({
+				'title': item.primaryText.text,
+				'artist': item.secondaryText,
+				'id': id,
+			})
+		}
+		return data
+
+	} catch (error) {
+		console.log(error)
+	}
+} 
+
+
 export { GenerateNewUID, decodeHex, durationToInt };
 export default SearchYouTube;
-
-/* Hex => ASCII
-\x22 = "
-\x7b = {
-\x5b = [
-etc...
-*/
 
 // Daniel Raygoza @ Illusion
 // Github : Illusion137

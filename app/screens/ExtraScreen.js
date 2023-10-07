@@ -14,40 +14,50 @@ import * as Battery from 'expo-battery';
 import { recreateAllTables, deleteAllTables, deleteAllPlaylists } from '../../SQLActions';
 import * as SQLite from 'expo-sqlite'
 import * as Prefs from '../../Preferences'
+import * as SQLActions from '../../SQLActions';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import CookieManager from '@react-native-community/cookies';
 
 function ExtraScreen({route}) {
 	const navigation = useNavigation();
 
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
+	
+	const darkModeIndexMap = new Map([['ON',0],['OFF',1]])
+
+	let keepPrefs = false;
 
 	const confirmDeleteDataAlert = () =>
     Alert.alert(
       "Clear All Data",
       "Are you sure?",
-      [ { text: "Cancel"},
+      [ { text: "Cancel", onPress: () => {keepPrefs = false}},
         { text: "OK", onPress: async() => {
-			await AsyncStorage.clear();
 			await GLOBALS.db.closeAsync();
 			await GLOBALS.db.deleteAsync();
 			GLOBALS.db = SQLite.openDatabase('illusi-db.sqlite3')
 			deleteAllTables();
 			
-			AsyncStorage.clear(); 
-			
 			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
 				try {
-					//
-					if(!(file.includes("RCTAsyncLocalStorage") || file == 'SQLite')){
+					if(!(file.includes("RCTAsyncLocalStorage") || file == 'SQLite' || file == '“RCTAsyncLocalStorage_V1”')){
 						await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
 					}
 				} catch (error) {
-					
+					console.log(error)
 				}
 			}
+			await SQLActions.deleteCacheDirs();
+			await SQLActions.createCacheDirs();
 			await recreateAllTables();
-			await Prefs.resetPrefs();
-			BackHandler.exitApp() 
+			if(!keepPrefs){
+				await CookieManager.clearAll();
+				await Prefs.resetPrefs();
+				keepPrefs=false;
+			}
+			GLOBALS.SQLTracks = []
+			// BackHandler.exitApp() 
 		} } ]
     );
 	const confirmDeletePlaylistDataAlert = () =>
@@ -57,6 +67,15 @@ function ExtraScreen({route}) {
       [ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			await deleteAllPlaylists();
+		} } ]
+    );
+	const confirmResetPrefsAlert = () =>
+    Alert.alert(
+      "Reset all settings to defaults?",
+      "Are you sure?",
+      [ { text: "Cancel"},
+        { text: "OK", onPress: async() => {
+			await Prefs.resetPrefs();
 		} } ]
     );
 
@@ -83,12 +102,6 @@ function ExtraScreen({route}) {
 					<Text style={styles.toptext}>More</Text>
 				</View>
 			</View>
-			{/* <WebView
-        style={{ marginTop: 20, width: 320, height: 230 }}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        source={{ uri: "https://www.youtube.com/embed/-ZZPOXn6_9w" }}
-      /> */}
 			<ScrollView>
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
@@ -104,7 +117,7 @@ function ExtraScreen({route}) {
 					<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.linelong}/>
 
-				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify, Amazon Music, and Souncloud for extra features.</Text>
+				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
@@ -115,29 +128,33 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => {}}/>
+					<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Transfer playlists back to other Music Services.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Dark Mode' icon='moon-outline' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={true} text='Themes' icon='brush-outline' onPress={async () => {}}/>
+					<ExtrasSectionButton showArrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
 				<View style={styles.linelong}/>
-
-				<Text style={styles.descriptiontxt}>Customize all the colors of Illusi; save and share custom themes.</Text>
+				
+				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
 					<View style={styles.lineshort}/>
-					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={async() => await Prefs.resetPrefs()}/>
+					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={confirmResetPrefsAlert}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={confirmDeletePlaylistDataAlert}/>
 					<View style={styles.lineshort}/>	
 					<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash-outline' onPress={confirmDeleteDataAlert}/>
+					{Prefs.prefs.settings.enable_dev_features && 
+						<>
+							<View style={styles.lineshort}/>
+							<ExtrasSectionButton showArrow={false} text='Clear All Data; Keep Preferences' icon='trash-outline' onPress={() => { keepPrefs=true;confirmDeleteDataAlert();}}/>
+						</>
+					}
 				<View style={styles.linelong}/>
 				
 				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version} Beta</Text>
@@ -184,6 +201,18 @@ const themeStyles = (colors) => StyleSheet.create({
 		opacity: 0.1,
 		backgroundColor: 'white',
 		marginLeft: 42
+	},
+	sectionContainer:{
+		width: '100%', 
+		height: 50, 
+		backgroundColor: colors.track, 
+		flexDirection: 'row', 
+		alignItems: 'center'
+	},
+	btnsectionText:{
+		color: '#FFFFFF',
+		fontSize: 16,
+		left:20
 	}
 });
 export default ExtraScreen;
