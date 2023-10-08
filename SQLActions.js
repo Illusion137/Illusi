@@ -95,6 +95,7 @@ export async function getBackpack(){
         tracks[i].video_name = String(tracks[i].video_name)
         tracks[i].video_creator = String(tracks[i].video_creator)
         tracks[i].artwork = GLOBALS.notfoundIcon
+        tracks[i]['disabled'] = true
     }
     return tracks
 }

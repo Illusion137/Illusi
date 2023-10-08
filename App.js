@@ -41,6 +41,8 @@ import { searchAmazonMusic } from './app/Illusive/IllusiveSearch';
 import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
 // const sha1 = require('js-sha1');
 
+import * as ffmpeg from 'react-native-ffmpeg'
+
 // import RNFetchBlob from "rn-fetch-blob";
 
 // import { Provider } from 'react-redux';
@@ -139,6 +141,18 @@ export default class App extends Component{
 	}
 	async componentDidMount() {
 		try {
+			ffmpeg.RNFFmpegConfig.setLogLevel(ffmpeg.LogLevel.AV_LOG_QUIET)
+			statisticsCallback = (statistics) => {
+				let index = GLOBALS.DOWNLOADING.findIndex(item => item.executionId == statistics.executionId )
+				if(index == -1)
+					return;
+				const progress = Math.floor(statistics.time/1000) / GLOBALS.DOWNLOADING[index].duration 
+				GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
+				if(GLOBALS.DOWNLOADING[index].progressUpdater != undefined){
+					GLOBALS.DOWNLOADING[index].progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+				}
+			};
+			ffmpeg.RNFFmpegConfig.enableStatisticsCallback(statisticsCallback);
 			let allPromises = []
 			await SQLActions.recreateAllTables();
 			await Prefs.fetchPrefs();
@@ -184,19 +198,19 @@ export default class App extends Component{
 			}
 			return false;
 		}
-		function callback(downloadProgress){
-			const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-			let index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-			if(index !== -1)
-				if(GLOBALS.DOWNLOADING[index].progress < progress * 100 + 1){
-					GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-					if(progressUpdater != undefined){
-						progressUpdater(GLOBALS.DOWNLOADING[index].progress)
-					}
-				}
-		}
+		// function callback(downloadProgress){
+		// 	const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+		// 	let index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+		// 	if(index !== -1)
+		// 		if(GLOBALS.DOWNLOADING[index].progress < progress * 100 + 1){
+		// 			GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
+		// 			if(progressUpdater != undefined && GLOBALS.DOWNLOADING[index].progress < 95 ){
+		// 				progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+		// 			}
+		// 		}
+		// }
 		
-		GLOBALS.DOWNLOADING.push({uid: uid, progress: 0})
+		GLOBALS.DOWNLOADING.push({'uid': uid, 'progress': 0, 'progressUpdater': progressUpdater, 'duration': duration})
 		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
 		this.waitFor(() => isInDownloadRange(uid,downloadQueueMaxLength))
 		.then(async() => {
@@ -205,7 +219,9 @@ export default class App extends Component{
 			  let downloadURI;
 			  //140
 			  try {
-				  downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
+				  downloadURI = await ytdl(youtubeURL, { quality: 'lowestaudio' }); // Low:18 - Med:22 - High:37
+				  console.log(downloadURI)
+				//   downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 				  downloadURI = downloadURI[0].url;
 			  } catch (error) {
 				  if(String(error).includes("Video unavailable")){
@@ -218,45 +234,60 @@ export default class App extends Component{
 				Alert.alert("Coudln't find the file", uid + ' : ' + error)
 				return
 			  }
-			const downloadResumable = FileSystem.createDownloadResumable(downloadURI, FileSystem.documentDirectory + uid + '.mp4', {}, callback);
 			try {
 				if(startDownloadState != undefined)
 					startDownloadState(true)
-				const { uri } = await downloadResumable.downloadAsync();
 
-				let soundTemp = new Audio.Sound();
-				await soundTemp.loadAsync({uri: uri});
-				let metaData = await soundTemp.getStatusAsync();
-				if(!metaData.isLoaded){
-					await soundTemp.unloadAsync();
-					throw new Error('No load');
-				} else if(Math.round(metaData.durationMillis/1000) < 3){
-					await soundTemp.unloadAsync();
-					throw new Error('Invalid Duration');
-				}
-				else{
-					await soundTemp.unloadAsync();
-				}
-
+				let newUri = FileSystem.documentDirectory + uid + '.m4a'
+				ffmpeg.RNFFmpeg.executeAsync(`-i ${downloadURI} ${newUri}`, async() => {
+					try {						
+						let soundTemp = new Audio.Sound();
+						await soundTemp.loadAsync({uri: newUri});
+						let metaData = await soundTemp.getStatusAsync();
+						if(!metaData.isLoaded){
+							await soundTemp.unloadAsync();
+							throw new Error('No load');
+						} else if(Math.round(metaData.durationMillis/1000) < 3){
+							await soundTemp.unloadAsync();
+							throw new Error('Invalid Duration');
+						}
+						else{
+							await soundTemp.unloadAsync();
+						}
+				
+						await SQLActions.setTrackAsDownloaded(uid, uid + '.m4a');
 		
-				await SQLActions.setTrackAsDownloaded(uid, uid + '.mp4');
+						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+						
+						await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+						
+						if(GLOBALS.DOWNLOADING.length === 0){
+							Alert.alert("Finished Download Enqueued Tracks")
+						}
+						if(startDownloadState != undefined)
+							startDownloadState(false)
+						if(setFinishedDownloadedState != undefined)
+							setFinishedDownloadedState(true)
+					} catch (error) {
+						if(startDownloadState != undefined)
+						startDownloadState(false)
+						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
+						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+						if(GLOBALS.DOWNLOADING.length === 0){
+							Alert.alert("Finished Download Playlist")
+						}
+					}
+				}).then(executionId => {
+					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+					GLOBALS.DOWNLOADING[itemIndex]['executionId'] = executionId;
+				})
 
-				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-				
-				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
-				
-				if(GLOBALS.DOWNLOADING.length === 0){
-					Alert.alert("Finished Download Enqueued Tracks")
-				}
-				if(startDownloadState != undefined)
-					startDownloadState(false)
-				if(setFinishedDownloadedState != undefined)
-					setFinishedDownloadedState(true)
 			  	} catch (e) {
 				//   setIsDownloading(false)
-				if(startDownloadState != undefined)
-					startDownloadState(false)
+					if(startDownloadState != undefined)
+						startDownloadState(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
 					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
 					GLOBALS.DOWNLOADING.splice(itemIndex, 1)

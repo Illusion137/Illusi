@@ -15,6 +15,30 @@ import { GenerateNewUID, decodeHex, parseYTDuration } from '../Illusive/Illusive
 function SongComponentSearch(props) {
 		
 	const [saved, isSaved] = useState(props.saved);
+
+	function durationToString(){
+		let duration = props.video_duration;
+		let subLength = 50;
+		let stringDuration = '';
+		if(duration/3600 >= 1){
+			let hours = Math.floor(duration / 3600);
+			let minutes = Math.floor(duration % 3600 / 60);
+			let seconds = Math.floor(duration % 3600 % 60);
+			
+			stringDuration = String(hours) + ':' + String(minutes).padStart(2,'0') + ':' + String(seconds).padStart(2,'0')
+			subLength -= stringDuration.length == 8 ? 19 : 15;
+		}else if(duration/60 >= 1){
+			let minutes = Math.floor(duration / 60);
+			let seconds = Math.floor(duration % 60);
+			stringDuration = String(minutes) + ':' + String(seconds).padStart(2,'0')
+			subLength -= stringDuration.length == 5 ? 8 : 0
+		}else{
+			stringDuration = String(duration).padStart(2,'0')
+			subLength += 8
+		}
+		return [subLength, stringDuration]
+	}
+
 	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
 		<TouchableOpacity disabled={props.disabled || false} onLongPress={async() => {

@@ -344,7 +344,6 @@ function PlayVideoScreen(props ,ref) {
 								keyExtractor={(item, index) => index}
 								itemHeight={61}
 								onScrollToIndexFailed={() => {}}
-								renderHeader={true}
 								headerHeight={140}
 								ListHeaderComponent={() => 
 								<View style={{flex: 1, width: '100%', height: 140}}>

@@ -1,5 +1,5 @@
 import React,  { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, TouchableOpacity, Text } from 'react-native';
 import * as SQLActions from '../../../SQLActions';
 
 import { useNavigation, useTheme } from '@react-navigation/native';
@@ -16,7 +16,9 @@ function ExtraBackpackScreen(props) {
 
 	const [index, setIndex] = useState(0);
 	const [data, setData] = useState([]);
+	let restoredDataAll = []
 	const [restoredData, setRestoredData] = useState([]);
+	const [restoredIndex, setRestoredIndex] = useState(0)
 
 	function toCleanedQuery(title, artist){
 		let cleanedQuery = "";
@@ -59,7 +61,7 @@ function ExtraBackpackScreen(props) {
 				setData(backpackTracks)
 			})();
 	}, []);
-
+	console.log('er')
 	const renderHeader = () => (
 		<>
 			<ExtrasSectionButton showArrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
@@ -67,10 +69,13 @@ function ExtraBackpackScreen(props) {
 				async function searchYT(title, artist, oldUID, proxy = null){
 					let search_query = toCleanedQuery(title, artist)
 					let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
-					let result = ytSearchResult.data[0]
-					result['artwork'] = {'uri': `https://img.youtube.com/vi/${result.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
-					result['oldUID'] = oldUID;
-					return result
+					let results = ytSearchResult.data
+					for(let i = 0; i < results.length; i++){						
+						results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
+						results[i]['oldUID'] = oldUID;
+						results[i]['disabled'] = false;
+					}
+					return results.slice(0,10)
 				}
 				let tracks = data;
 				const ytTracks = [];
@@ -80,8 +85,11 @@ function ExtraBackpackScreen(props) {
 					)
 				}
 				let results = await Promise.all(ytTracks)
-				setRestoredData(results)
+				restoredDataAll = results				
+				setRestoredData(results.map( (item) => item[0] ))
+				setRestoredIndex(0);
 				setIndex(1)
+				console.log(JSON.stringify(restoredDataAll))
 			})}}/>
 			<ExtrasSectionButton showArrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
 				await SQLActions.clearBackpack();
@@ -92,12 +100,34 @@ function ExtraBackpackScreen(props) {
 				selectedIndex={index}
 				onChange={async(event) => {setIndex(event.nativeEvent.selectedSegmentIndex);}}
 			/>
-			<View style={{height: 50}}/>
+			<View style={{height: 15}}/>
+
+			{index == 1 && 
+			<View style={{flexDirection: 'row', width: '100%', height: 30}}>
+				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}}><Text style={{color: 'white', fontWeight: '200'}} onPress={() => { 
+					console.log("restoredDataAll")
+					// let idx = restoredIndex;
+					// if(idx - 1 >= 0) idx--;
+					// console.log(idx)
+					// setRestoredIndex(idx)
+					// setRestoredData(restoredDataAll.map( (item) => item[idx] ))
+				}
+				}>Previous</Text></TouchableOpacity>
+				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}}><Text style={{color: 'white', fontWeight: '200'}} onPress={() => { 
+					// let idx = restoredIndex;
+					console.log("restoredDataAll")
+					// if(idx + 1 < restoredDataAll[0].length) idx++;
+					// setRestoredIndex(idx)
+					// setRestoredData(restoredDataAll.map( (item) => item[idx] ))
+				}
+				}>Next</Text></TouchableOpacity>
+			</View>}
+			<View style={{height: 30}}/>
 		</>
 	)
 	const renderItem = ({item}) => (
 		<>
-			<SongComponentBackpack disabled={index == 0 ? true : false} oldUID={item.oldUID} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} artwork={item.artwork} video_duration={item.video_duration}/>
+			<SongComponentBackpack disabled={item.disabled || false} oldUID={item.oldUID} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} artwork={item.artwork} video_duration={item.video_duration}/>
 		</>
 	)
 

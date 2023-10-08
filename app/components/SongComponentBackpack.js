@@ -7,13 +7,11 @@ import * as Prefs from '../../Preferences';
 import * as SQLActions from '../../SQLActions';
 import { GenerateNewUID } from '../Illusive/IllusiveSearch';
 
-function SongComponentBackpack(props) {
-	const id = props.video_id;
-	
+function SongComponentBackpack(props) {	
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const [disabled, setDisabled] = useState(props.disabled)
+	const [disabled, setDisabled] = useState(false)
 
 	function durationToString(){
 		let duration = props.video_duration;
@@ -51,8 +49,7 @@ function SongComponentBackpack(props) {
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
 				</View>
-				{!disabled && <TouchableOpacity style={{alignSelf:'center', left: 20, padding: 10}} onPress={async () => {
-					console.log(props)
+				{ !(disabled || props.disabled) && <TouchableOpacity style={{alignSelf:'center', left: 20, padding: 10}} onPress={async () => {
 					setDisabled(true)
 					await SQLActions.swapFromBackpack(props.oldUID, new SQLActions.Track({
 						'uid': GenerateNewUID(props.video_name),
