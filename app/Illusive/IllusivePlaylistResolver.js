@@ -176,7 +176,7 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
             'data': responseData};
         return returnData;
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return null;
     }
 }
@@ -338,7 +338,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey
         return videos
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return []
     }
 }
@@ -414,7 +414,7 @@ export async function getYoutubePlaylist(url){
         return {'data': videos, 'title': title};
 	}
 	catch(error){
-        console.log(error)
+        // console.log(error)
         return {'data': [], 'title': null};
 	}
 }
@@ -582,7 +582,7 @@ async function getYoutubeMusicPlaylistContinuation(ogURL,client ,innertube_api_k
         return videos
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
     }
 }
 
@@ -677,7 +677,7 @@ export async function getYoutubeMusicPlaylist(url){
             tracks = tracks.concat(await getYoutubeMusicPlaylistContinuation(url,INNERTUBE_CONTEXT, INNERTUBE_API_KEY, CONTINUATION, TRACKING))
         return {'data': tracks, 'title': playlistTitle}
     } catch (error) {
-        console.log('er', error);
+        // console.log('er', error);
         return undefined;
     }
 

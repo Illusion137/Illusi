@@ -10,15 +10,16 @@ import SongComponentBackpack from '../../components/SongComponentBackpack';
 import { getProxyList, getRandomIndex } from '../../Illusive/IllusivePlaylistResolver';
 import SearchYouTube from '../../Illusive/IllusiveSearch';
 
+let restoredDataAll = []
+let restoredIndex = 0;
+
 function ExtraBackpackScreen(props) {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const [index, setIndex] = useState(0);
 	const [data, setData] = useState([]);
-	let restoredDataAll = []
 	const [restoredData, setRestoredData] = useState([]);
-	const [restoredIndex, setRestoredIndex] = useState(0)
+	const [index, setIndex] = useState(0);
 
 	function toCleanedQuery(title, artist){
 		let cleanedQuery = "";
@@ -61,7 +62,6 @@ function ExtraBackpackScreen(props) {
 				setData(backpackTracks)
 			})();
 	}, []);
-	console.log('er')
 	const renderHeader = () => (
 		<>
 			<ExtrasSectionButton showArrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
@@ -87,9 +87,8 @@ function ExtraBackpackScreen(props) {
 				let results = await Promise.all(ytTracks)
 				restoredDataAll = results				
 				setRestoredData(results.map( (item) => item[0] ))
-				setRestoredIndex(0);
-				setIndex(1)
-				console.log(JSON.stringify(restoredDataAll))
+				restoredIndex = 0;
+				setIndex(1);
 			})}}/>
 			<ExtrasSectionButton showArrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
 				await SQLActions.clearBackpack();
@@ -104,23 +103,25 @@ function ExtraBackpackScreen(props) {
 
 			{index == 1 && 
 			<View style={{flexDirection: 'row', width: '100%', height: 30}}>
-				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}}><Text style={{color: 'white', fontWeight: '200'}} onPress={() => { 
-					console.log("restoredDataAll")
-					// let idx = restoredIndex;
-					// if(idx - 1 >= 0) idx--;
-					// console.log(idx)
-					// setRestoredIndex(idx)
-					// setRestoredData(restoredDataAll.map( (item) => item[idx] ))
+				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}} onPress={() => { 
+					try {						
+						restoredIndex;
+						if(restoredIndex - 1 >= 0) restoredIndex--;
+						setRestoredData(restoredDataAll.map( (item) => item[restoredIndex] ))
+					} catch (error) {
+						console.log(error)
+					}
 				}
-				}>Previous</Text></TouchableOpacity>
-				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}}><Text style={{color: 'white', fontWeight: '200'}} onPress={() => { 
-					// let idx = restoredIndex;
-					console.log("restoredDataAll")
-					// if(idx + 1 < restoredDataAll[0].length) idx++;
-					// setRestoredIndex(idx)
-					// setRestoredData(restoredDataAll.map( (item) => item[idx] ))
+				}><Text style={{color: 'white', fontWeight: '200'}}>Previous</Text></TouchableOpacity>
+				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}} onPress={() => { 
+					try{
+						if(restoredIndex + 1 < restoredDataAll[0].length) restoredIndex++;
+						setRestoredData(restoredDataAll.map( (item) => item[restoredIndex] ))
+					} catch (error) {
+						console.log(error)
+					}
 				}
-				}>Next</Text></TouchableOpacity>
+				}><Text style={{color: 'white', fontWeight: '200'}}>Next</Text></TouchableOpacity>
 			</View>}
 			<View style={{height: 30}}/>
 		</>
@@ -133,7 +134,8 @@ function ExtraBackpackScreen(props) {
 
 	return(
 		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
-			<FlatList data={index == 0 ? data : restoredData} renderItem={renderItem} ListHeaderComponent={renderHeader}/>
+			{index == 0 && <FlatList data={data} renderItem={renderItem} ListHeaderComponent={renderHeader}/>}
+			{index == 1 && <FlatList data={restoredData} renderItem={renderItem} ListHeaderComponent={renderHeader}/>}
 		</View>
 	);
 }

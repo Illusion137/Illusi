@@ -24,8 +24,6 @@ function ExtraScreen({route}) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
-	const darkModeIndexMap = new Map([['ON',0],['OFF',1]])
-
 	let keepPrefs = false;
 
 	const confirmDeleteDataAlert = () =>
@@ -103,17 +101,17 @@ function ExtraScreen({route}) {
 				</View>
 			</View>
 			<ScrollView>
-				<View style={styles.linelong}/>
+				{/* <View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
 				<View style={styles.linelong}/>
 
-				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
+				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text> */}
 				
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
 					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	
+					{/* <ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>	 */}
 					<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.linelong}/>
 
@@ -121,15 +119,12 @@ function ExtraScreen({route}) {
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
-					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
-				<View style={styles.linelong}/>
-
-				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
-
-				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
+					{/* <View style={styles.lineshort}/>	 */}
+					{/* <ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/> */}
 				<View style={styles.linelong}/>
+
+				{/* <Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text> */}
 
 				<Text style={styles.descriptiontxt}>Transfer playlists back to other Music Services.</Text>
 
@@ -140,8 +135,8 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	
+					{/* <ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>	 */}
 					<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
 					<View style={styles.lineshort}/>
 					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={confirmResetPrefsAlert}/>

@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite'
 import * as FileSystem from 'expo-file-system';
 import ytdl from "react-native-ytdl"
 import { Alert } from 'react-native';
-import * as ffmpeg from 'react-native-ffmpeg'
+import { prefs } from './Preferences';
 
 export const thumbnailsCacheDir = FileSystem.documentDirectory + "CachedThumbnails/"; 
 export let DOWNLOADING = [];
@@ -50,10 +50,14 @@ export async function playingTrackToRNTrack(track){
         if(track.downloaded || track.imported)
             url = FileSystem.documentDirectory + track.media_URI
         else if(track.youtube){
-            // url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: 'lowestaudio' }); // Low:18 - Med:22 - High:37
-            url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18' }); // Low:18 - Med:22 - High:37
+            let requestOptions = {}
+            if(prefs.settings.use_cookies_on_playback){
+                requestOptions = {'headers': {
+                    'Cookies': prefs.external_services.youtube_cookies
+                }}
+            }
+            url = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
             url = url[0].url
-            // ffmpeg
         }
         return {
             'url': url,
@@ -62,10 +66,8 @@ export async function playingTrackToRNTrack(track){
             'duration': track.video_duration, 
             'id': track.uid, 
             'artwork': artwork,
-            // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4; codecs="mp4a.40.2"' : undefined
-            // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4; codecs="avc1.42001E, mp4a.40.2"' : undefined
-            // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4' : undefined
-            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4' : undefined
+            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4' : undefined
+            // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4' : undefined
         }
     } catch (error) {
         let err = String(error)

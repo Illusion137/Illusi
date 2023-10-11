@@ -1,5 +1,6 @@
 import axios from "axios"; //HTTP Request Library
 import * as Prefs from "../../Preferences";
+import { Alert } from "react-native";
 
 function decodeHex(hex) {
 	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
@@ -31,7 +32,7 @@ export async function getAllYoutubePlaylistsFromAccount(){
             try {
                 playlistNames.set(playlistName.compactPlaylistRenderer.title.runs[0].text, playlistName.compactPlaylistRenderer.shareUrl)
             } catch (error) {
-                console.log(error)
+                // console.log(error)
             }
         }
         if(playlistNames.size == 0 || playlistNames == undefined)
@@ -39,7 +40,7 @@ export async function getAllYoutubePlaylistsFromAccount(){
         return playlistNames
 
     } catch (error) {
-        console.log(error)
+        Alert.alert("Account Playlist Finder Error:", error)
         return undefined;
     }
 }
@@ -109,7 +110,7 @@ export async function getSpotifyInitialData(url){
         clientToken = await clientToken.json();
         return {'session': sessionJson, 'clientToken': clientToken};
     } catch (error) {
-        console.log(error)
+        Alert.alert("Spotify Initial Error:", error)
     }
 }
 
@@ -192,13 +193,13 @@ export async function getAmazonMusicAmznMusicData(url){
             try {
                 amznMusic = JSON.parse(amznMusicText);
             } catch (error) {
-                console.log(error)
+                Alert.alert("Amazon Initial JSON Error:",error)
                 return null;
             }
         }
         return amznMusic
     } catch (error) {
-        console.log(error)
+        Alert.alert("Amazon Initial Error:", error)
     }
 }
 
@@ -357,13 +358,13 @@ export async function getAllAmazonMusicPlaylistsFromAccount(){
                     `https://music.amazon.com${playlists[i].primaryLink.deeplink}`
                 )
             } catch (error) {
-                console.log(error)
+                // console.log(error)
             }
         }
 
         return mappedData;
       } catch (error) {
-        console.log(error)
+        Alert.alert("Amazon Playlist Finder Error", error)
         return {data: [], title: null}
       }
 }

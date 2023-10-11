@@ -116,7 +116,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		return {data: pushData}
 	}
 	catch(error){
-		console.log(error)
+		// console.log(error)
 		return {data: []}
 	}
 	// let data = await usetube.searchVideo(searchTerms)
@@ -239,7 +239,7 @@ export async function searchAmazonMusic(query){
 		return data
 
 	} catch (error) {
-		console.log(error)
+		// console.log(error)
 	}
 } 
 

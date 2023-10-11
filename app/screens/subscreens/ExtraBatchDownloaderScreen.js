@@ -22,7 +22,7 @@ function ExtraBatchDownloaderScreen({route}) {
 			if(selected === "Library"){
 				let filteredData = GLOBALS.SQLTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
+					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
 				}
 			}
 			else{
@@ -31,7 +31,7 @@ function ExtraBatchDownloaderScreen({route}) {
 				
 				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].duration, undefined, undefined)
+					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
 				}
 			}
 		} } ]

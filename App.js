@@ -219,8 +219,14 @@ export default class App extends Component{
 			  let downloadURI;
 			  //140
 			  try {
-				  downloadURI = await ytdl(youtubeURL, { quality: 'lowestaudio' }); // Low:18 - Med:22 - High:37
-				  console.log(downloadURI)
+				let requestOptions = {}
+				if(Prefs.prefs.settings.use_cookies_on_download){
+					requestOptions = {'headers': {
+						'Cookies': Prefs.prefs.external_services.youtube_cookies
+					}}
+				}
+				  downloadURI = await ytdl(youtubeURL, { 'quality': 'lowestaudio', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
+				//   console.log(downloadURI)
 				//   downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 				  downloadURI = downloadURI[0].url;
 			  } catch (error) {
@@ -272,7 +278,7 @@ export default class App extends Component{
 					} catch (error) {
 						if(startDownloadState != undefined)
 						startDownloadState(false)
-						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
+						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ error);
 						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
 						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 						if(GLOBALS.DOWNLOADING.length === 0){

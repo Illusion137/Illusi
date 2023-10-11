@@ -123,7 +123,7 @@ function SongComponent(props) {
 		return () => clearInterval(interval);
 	}, []);
 	return (
-		<TouchableOpacity disabled={props.disabled || false} style={{backgroundColor: colors.track}} onLongPress={async() => {
+		<TouchableOpacity disabled={props.disabled || false || props.writePlaylist != undefined} style={{backgroundColor: colors.track}} onLongPress={async() => {
 			if(GLOBALS.IsPlaying){
 				
 				let trackIndex = await TrackPlayer.getCurrentTrack();
@@ -211,7 +211,7 @@ function SongComponent(props) {
 						{((props.thumbnail_URI || "") !== "") && <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/>}
 					</View>
 				</View>
-				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center'}} onPress={ async() => {
+				{props.writePlaylist != undefined && <TouchableOpacity disabled={pSaved} style={{justifyContent: 'center', paddingRight: 30}} onPress={ async() => {
 					await SQLActions.insertTrackIntoPlaylist({'uid': props.uid}, props.writePlaylist);
 					setPSaved(true)
 					}}>

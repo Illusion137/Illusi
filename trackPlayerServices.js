@@ -63,8 +63,8 @@ import * as SQLActions from './SQLActions'
   let changedMutex = false;
   let pnMutex = false;
     export async function TrackPlayerNext(){
-        if(!pnMutex){
-            pnMutex = true;
+        // if(!pnMutex){
+            // pnMutex = true;
             try {
                 let index = await TrackPlayer.getCurrentTrack();
                 if(index + 1 >= globals.playingTracks.length){
@@ -95,7 +95,7 @@ import * as SQLActions from './SQLActions'
             catch(error){
                 console.log(error)
             }
-        }
+        // }
     }
     export async function TrackPlayerPrev(){
         if(!pnMutex){
@@ -162,7 +162,7 @@ import * as SQLActions from './SQLActions'
           globals.initialPlaybackTrackChangedMutex = false;
         }
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
       changedMutex = false;
     })
@@ -210,6 +210,9 @@ import * as SQLActions from './SQLActions'
                   //handle dat
                   await TrackPlayer.add({url: require('./assets/placeholder.mp3'), 'title': 'NULL', 'artist': 'Sudo'}, data.track + 1 );
                 }
+                else if(rnTrack == 'skip'){
+                  globals.playingTracks.splice(data.track + 1, 1)
+                }
                 else{
                   globals.playingTracks[data.track + 1]["successful"] = true
                   await TrackPlayer.add(rnTrack, data.track + 1);
@@ -219,7 +222,7 @@ import * as SQLActions from './SQLActions'
             }
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     })
   }

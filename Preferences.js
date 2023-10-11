@@ -176,8 +176,12 @@ function getDefaultPrefs(){
             'show_track_duration': true,
             'ask_where_to_save': false,
             'edit_mode_disables_playing': true,
+            'use_cookies_on_playback': false,
+            'use_cookies_on_download': false,
+            // 'alphascroll_hitslop': 20,
+            // 'cache_backpack_ids': false,
             'enable_dev_features': false,
-            'enable_experimental_features': false,
+            'enable_experimental_features': false
         },
         'sleep_timer_time': 0,
         'external_services': {
@@ -220,7 +224,7 @@ function recUpdatePrefsSchema(obj, prevObjs = []){
 
 	let entries = Object.entries(obj);
 	for(const entry of entries){
-		console.log(entry[0], entry[1])
+		// console.log(entry[0], entry[1])
 		if(typeof(entry[1]) == "object" && Object.entries(entry[1]).length > 0){
             let pObjs = []
             for(const o of prevObjs){

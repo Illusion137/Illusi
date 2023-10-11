@@ -25,8 +25,28 @@ function ExtraPlaylistConverter({route}) {
 		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			try {
+				let tracks = [];
+				if(selectedIllusiPlaylist == 'Library'){
+					tracks = [...GLOBALS.SQLTracks]
+				}else{
+					tracks = await SQLActions.getPlaylistTracks(selectedIllusiPlaylist.replaceAll(' ','_'));
+				}
+				tracks = tracks.filter(item => item.youtube)
+
 				let playlistURL = data.get(selectedServicePlaylist)
-				await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.SQLTracks]);
+				
+				if(selectedSegmentedServiceValue == "YouTube"){
+					let playlistId = getYTPlaylistIdFromURL(playlistURL);
+					await insertIntoYouTubePlaylist(selectedServicePlaylist, tracks);
+				} else if(selectedSegmentedServiceValue == "Spotify"){
+
+				}
+				else if(selectedSegmentedServiceValue == "Amazon"){
+					
+				}
+
+
+				// await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.SQLTracks]);
 				// let playlistId = getYTPlaylistIdFromURL(playlistURL)
 				// await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.SQLTracks].map(({video_id}) => (video_id)));
 			} catch (error) {
@@ -45,8 +65,7 @@ function ExtraPlaylistConverter({route}) {
 			setIllusiPlaylistData(pushData)
 			let segmentedServiceValuesData = [];
 			if(Prefs.hasYouTubeCookies()) segmentedServiceValuesData.push("YouTube");
-			if(Prefs.hasYouTubeMusicCookies()) segmentedServiceValuesData.push("YT Music");
-			if(Prefs.hasSpotifyCookies()) segmentedServiceValuesData.push("Spotify");
+			// if(Prefs.hasSpotifyCookies()) segmentedServiceValuesData.push("Spotify");
 			if(Prefs.hasAmazonCookies()) segmentedServiceValuesData.push("Amazon");
 			setSegmentedServiceValues(segmentedServiceValuesData);
 		})()
@@ -55,11 +74,9 @@ function ExtraPlaylistConverter({route}) {
 	async function getServicePlaylistData(val){
 		switch(val){
 			case("YouTube"):
-				// let dat = await getAllYoutubePlaylistsFromAccount();
-				// setServicePlaylistData([...dat.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
-				// setData(dat)
-				break;
-			case("YTMusic"):
+				let youtubedata = await getAllYoutubePlaylistsFromAccount();
+				setServicePlaylistData([...youtubedata.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
+				setData(youtubedata)
 				break;
 			case("Spotify"):
 				break;
@@ -103,7 +120,7 @@ function ExtraPlaylistConverter({route}) {
 					<Text style={styles.descriptiontxt}>Select service to convert playlist to</Text>
 					<SegmentedControl 
 						values={segmentedServiceValues}
-						selectedIndex={0}
+						selectedIndex={undefined}
 						onChange={async(event) => {setSelectedSegmentedServiceValue(event.nativeEvent.value); await getServicePlaylistData(event.nativeEvent.value)}}
 					/>
 					<View style={{height: 15}}/>
