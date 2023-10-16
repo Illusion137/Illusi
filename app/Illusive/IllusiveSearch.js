@@ -75,8 +75,14 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		
 		let ytInitialData = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,'').replaceAll('\n',''))
      
-		let contents = ytInitialData.contents.sectionListRenderer.contents[0].itemSectionRenderer.contents
-		// console.log(JSON.stringify(contents))
+		let itemSectionRendererIndex = 0;
+
+		for(const contentIndex in ytInitialData.contents.sectionListRenderer.contents){
+			if(ytInitialData.contents.sectionListRenderer.contents[contentIndex]['itemSectionRenderer'] != undefined){
+				itemSectionRendererIndex = contentIndex
+			}
+		}
+		let contents = ytInitialData.contents.sectionListRenderer.contents[itemSectionRendererIndex].itemSectionRenderer.contents
 		ytInitialData.apikey = apikey
 		let apiKey = ytInitialData.apiKey
 		// let searchData = [...JSON.stringify(ytInitialData).matchAll(/"videoId":"(.+?)",.+?TimeStatusRenderer":.+?\[{"text":"(.+?)"}.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago/g)]
@@ -116,7 +122,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		return {data: pushData}
 	}
 	catch(error){
-		// console.log(error)
+		console.log(error)
 		return {data: []}
 	}
 	// let data = await usetube.searchVideo(searchTerms)
@@ -172,7 +178,6 @@ async function ContinueYouTubeSearch(continueData){
 		let newToken = innerJSON[1].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
 
 		let data = []
-
 		for(const track of innerJSON[0].itemSectionRenderer.contents){
 			data.push({
 				"video_duration": durationToInt(track.compactVideoRenderer.lengthText.runs[0].text.split(':')),

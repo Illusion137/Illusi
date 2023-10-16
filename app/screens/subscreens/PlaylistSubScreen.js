@@ -178,7 +178,7 @@ function PlaylistSubScreen({route}){
                             {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {
                                 navigation.navigate('Add To Playlist', {writePlaylist: route.params.title })
                             }}>
-                                <Ionicons name="add" size={35} color={colors.primary}/>
+                                <Ionicons name="add" size={35} color={colors.primary} style={{left:1}}/>
                             </TouchableOpacity>}
                             {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {}}>
                                 <MaterialCommunityIcons name="pencil" size={25} color={colors.primary}/>

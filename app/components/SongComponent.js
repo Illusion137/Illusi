@@ -80,14 +80,20 @@ function SongComponent(props) {
 		return
 	}
 	function play(data){
-		if(Prefs.prefs.settings.only_play_downloaded){
-			data = data.filter((item) => item.downloaded || item.imported)
+		if(!GLOBALS.ableToPlayAgainMutex || props.imported || props.downloaded){
+			GLOBALS.ableToPlayAgainMutex = true
+			if(Prefs.prefs.settings.only_play_downloaded){
+				data = data.filter((item) => item.downloaded || item.imported)
+			}
+			if(data.length !== 0)
+				if(Prefs.prefs.settings.always_shuffle)
+					playShuffle(data)
+				else
+					playOrder(data)
+			GLOBALS.ableToPlayAgainMutex = false;
+		} else{
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 		}
-		if(data.length !== 0)
-			if(Prefs.prefs.settings.always_shuffle)
-				playShuffle(data)
-			else
-				playOrder(data)
 	}
 	let interval;
 	useEffect(() => {

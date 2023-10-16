@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@react-navigation/native';
+import { useNavigationState, useTheme } from '@react-navigation/native';
 
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import PlayVideoScreen from './PlayVideoScreen';
@@ -36,6 +36,10 @@ function PlayingSong (props) {
 		onEffect();
 		
 	}, []);
+	useEffect(() => {
+
+	}, []);
+
 
 	return (
 		<View style={styles.container} >			

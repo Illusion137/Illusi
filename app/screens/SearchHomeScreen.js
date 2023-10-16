@@ -19,23 +19,24 @@ function SearchHomeScreen(props){
         // await axios
     },[])
 
-    React.useEffect(() => {
-        const onTabPress = navigation.addListener('tabPress', (e) => {
-            if(navigation.isFocused()){
-                toggle = !toggle;
-                setSearchScreenState(toggle)
-            }
-        });
+    // React.useEffect(() => {
+    //     const onTabPress = navigation.addListener('tabPress', (e) => {
+    //         if(navigation.isFocused()){
+    //             toggle = !toggle;
+    //             setSearchScreenState(toggle)
+    //         }
+    //     });
 
-        return onTabPress;
-    }, [navigation]);
+    //     return onTabPress;
+    // }, [navigation]);
     
     //artistName={item.artistName} genre={item.genre} backgroundImage={item.backgroundImage} profilePicture={item.profilePicture}
     // const renderItem = useCallback(;
     return(
         <>
-            {!searchScreenState && <SearchScreen setPlaying={props.route.params.setPlaying}></SearchScreen>}
-            {searchScreenState && <View style={styles.topContainer}>
+            {/* {!searchScreenState && <SearchScreen setPlaying={props.route.params.setPlaying}></SearchScreen>} */}
+            <SearchScreen setPlaying={props.route.params.setPlaying}></SearchScreen>
+            {/* {searchScreenState && <View style={styles.topContainer}>
                 <View style={styles.wrapper}>
                     <TextInput onPressIn={() => {toggle = !toggle; setSearchScreenState(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
                 </View>
@@ -45,7 +46,7 @@ function SearchHomeScreen(props){
                     </ScrollView> 
                 </View>
                 
-            </View>}
+            </View>} */}
         </>
     );
 }

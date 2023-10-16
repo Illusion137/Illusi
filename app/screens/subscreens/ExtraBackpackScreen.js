@@ -64,37 +64,50 @@ function ExtraBackpackScreen(props) {
 	}, []);
 	const renderHeader = () => (
 		<>
-			<ExtrasSectionButton showArrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
-				let proxies = getProxyList();
-				async function searchYT(title, artist, oldUID, proxy = null){
-					let search_query = toCleanedQuery(title, artist)
-					let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
-					let results = ytSearchResult.data
-					for(let i = 0; i < results.length; i++){						
-						results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
-						results[i]['oldUID'] = oldUID;
-						results[i]['disabled'] = false;
-					}
-					return results.slice(0,10)
-				}
-				let tracks = data;
-				const ytTracks = [];
-				for(let i = 0; i < tracks.length; i++){
-					ytTracks.push(
-						searchYT(tracks[i].video_name, tracks[i].video_creator, tracks[i].uid, proxies[getRandomIndex(proxies.length)])
-					)
-				}
-				let results = await Promise.all(ytTracks)
-				restoredDataAll = results				
-				setRestoredData(results.map( (item) => item[0] ))
-				restoredIndex = 0;
-				setIndex(1);
-			})}}/>
-			<ExtrasSectionButton showArrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
-				await SQLActions.clearBackpack();
-				setData([])
-			})}}/>
-			<SegmentedControl 
+				{restoredData.length == 0 && <View>
+					<ExtrasSectionButton showArrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
+						let proxies = getProxyList();
+						async function searchYT(title, artist, oldUID, proxy = null){
+							let search_query = toCleanedQuery(title, artist)
+							let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
+							let results = ytSearchResult.data
+							for(let i = 0; i < results.length; i++){						
+								results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
+								results[i]['oldUID'] = oldUID;
+								results[i]['disabled'] = false;
+							}
+							return results.slice(0,10)
+						}
+						let tracks = data;
+						const ytTracks = [];
+						for(let i = 0; i < tracks.length; i++){
+							ytTracks.push(
+								searchYT(tracks[i].video_name, tracks[i].video_creator, tracks[i].uid, proxies[getRandomIndex(proxies.length)])
+							)
+						}
+						let results = await Promise.all(ytTracks)
+						restoredDataAll = results				
+						setRestoredData(results.map( (item) => item[0] ))
+						restoredIndex = 0;
+						setIndex(1);
+					})}}/>
+					<ExtrasSectionButton showArrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
+						await SQLActions.clearBackpack();
+						setData([])
+					})}}/>
+				</View>}
+				<View style={{height: 50}}/>
+		</>
+	)
+	const renderItem = ({item}) => (
+		<>
+			<SongComponentBackpack disabled={item.disabled || false} oldUID={item.oldUID} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} artwork={item.artwork} video_duration={item.video_duration}/>
+		</>
+	)
+
+	return(
+		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+						<SegmentedControl 
 				values={["View Backpack","View Conversion"]}
 				selectedIndex={index}
 				onChange={async(event) => {setIndex(event.nativeEvent.selectedSegmentIndex);}}
@@ -123,19 +136,8 @@ function ExtraBackpackScreen(props) {
 				}
 				}><Text style={{color: 'white', fontWeight: '200'}}>Next</Text></TouchableOpacity>
 			</View>}
-			<View style={{height: 30}}/>
-		</>
-	)
-	const renderItem = ({item}) => (
-		<>
-			<SongComponentBackpack disabled={item.disabled || false} oldUID={item.oldUID} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} artwork={item.artwork} video_duration={item.video_duration}/>
-		</>
-	)
-
-	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
 			{index == 0 && <FlatList data={data} renderItem={renderItem} ListHeaderComponent={renderHeader}/>}
-			{index == 1 && <FlatList data={restoredData} renderItem={renderItem} ListHeaderComponent={renderHeader}/>}
+			{index == 1 && <FlatList data={restoredData} renderItem={renderItem} ListHeaderComponent={() => (<View style={{height: 20}}/>)}/>}
 		</View>
 	);
 }

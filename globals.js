@@ -95,3 +95,7 @@ export let deletedCacheMutex = false
 export let initialPlaybackTrackChangedMutex = true;
 
 export let playingTracksIndex = 0;
+
+export let ableToPlayAgainMutex = false;
+
+export let selectedPlaylists = new Set();

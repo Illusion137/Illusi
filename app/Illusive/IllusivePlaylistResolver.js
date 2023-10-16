@@ -405,12 +405,14 @@ export async function getYoutubePlaylist(url){
             videos = videos.concat(continuedVideos);
         }
 
+        videos = videos.filter(item => item != undefined)
+
         for(let i = 0; i < videos.length; i++){
             videos[i]['saved'] = false;
             if(await SQLActions.checkIfVideoIdExists(videos[i].video_id))
                 videos[i]['saved'] = true;
         }
-
+    
         return {'data': videos, 'title': title};
 	}
 	catch(error){
@@ -589,7 +591,7 @@ async function getYoutubeMusicPlaylistContinuation(ogURL,client ,innertube_api_k
 //REQUIRES COOKIES
 export async function getYoutubeMusicPlaylist(url){
     if(!Prefs.hasYouTubeMusicCookies())
-        return undefined;
+        return  {'data': [], 'title': 'cnull'};
     try 
     {
         continue_ = true
@@ -674,11 +676,17 @@ export async function getYoutubeMusicPlaylist(url){
             }
         }
         if(continue_) 
-            tracks = tracks.concat(await getYoutubeMusicPlaylistContinuation(url,INNERTUBE_CONTEXT, INNERTUBE_API_KEY, CONTINUATION, TRACKING))
+            tracks = tracks.concat(await getYoutubeMusicPlaylistContinuation(url,INNERTUBE_CONTEXT, INNERTUBE_API_KEY, CONTINUATION, TRACKING));
+        
+        tracks = tracks.filter(item => item != undefined)
+        for(let i = 0; i < tracks.length; i++){
+            tracks[i]['saved'] = false;
+            if(await SQLActions.checkIfVideoIdExists(tracks[i].video_id))
+                tracks[i]['saved'] = true;
+        }
         return {'data': tracks, 'title': playlistTitle}
     } catch (error) {
-        // console.log('er', error);
-        return undefined;
+        return  {'data': [], 'title': 'null'};
     }
 
 }
@@ -776,7 +784,6 @@ export async function getSpotifyPlaylist(url){
                 "Cookies": Prefs.prefs.external_services.spotify_cookies
             }})).data;
             let trackItems = playlistData.data.me.library.tracks.items;
-    
             for(let i = 0; i < trackItems.length; i++){
                 tracks.push({
                     'video_name': trackItems[i].track.data.name,
@@ -800,6 +807,13 @@ export async function getSpotifyPlaylist(url){
             )
         }
         let results = await Promise.all(ytTracks)
+        results = results.filter(item => item != undefined)
+
+        for(let i = 0; i < results.length; i++){
+            results[i]['saved'] = false;
+            if(await SQLActions.checkIfVideoIdExists(results[i].video_id))
+                results[i]['saved'] = true;
+        }
 
         return {
             'data': results,
@@ -859,7 +873,13 @@ export async function getAmazonMusicPlaylist(url){
             )
         }
         let results = await Promise.all(ytTracks)
-    
+
+        results = results.filter(item => item != undefined)
+        for(let i = 0; i < results.length; i++){
+            results[i]['saved'] = false;
+            if(await SQLActions.checkIfVideoIdExists(results[i].video_id))
+                results[i]['saved'] = true;
+        }
         return {data: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
       } catch (error) {
         return {data: [], title: null}

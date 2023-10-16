@@ -15,7 +15,12 @@ import { GenerateNewUID, decodeHex, parseYTDuration } from '../Illusive/Illusive
 function SongComponentSearch(props) {
 		
 	const [saved, isSaved] = useState(props.saved);
-
+	
+	function setSaved(){
+		isSaved(true)
+		props.addFrom(false, null)
+	}
+	
 	function durationToString(){
 		let duration = props.video_duration;
 		let subLength = 50;
@@ -61,44 +66,67 @@ function SongComponentSearch(props) {
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 			}
 		}} onPress={async() => {
-			let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
-			try {
-				let response = (await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
-					'Access-Control-Allow-Origin' : '*',
-					'x-youtube-client-name': 1,
-					'x-youtube-client-version': '2.20200911.04.00',
-					'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-				}})).data;
-				let ytInitialData = JSON.parse(((/ytInitialData ?= ?'(.+?})'/s).exec(decodeHex(response))[1]).replaceAll(/\n\s+/g,''))
+			if(!GLOBALS.ableToPlayAgainMutex){
+				GLOBALS.ableToPlayAgainMutex = true
+				let currentTrack = new SQLActions.Track({
+					'youtube': true,
+					'video_name': props.video_name || "", 
+					'video_creator': props.video_creator || "", 
+					'video_duration':props.video_duration || 0, 
+					'video_id':props.video_id || "", 
+					'uid': props.uid || "",
+				})
+				currentTrack['successful'] = false;
+				currentTrack['added'] = false;
 
-				let tracks = []
-				for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
-					try {						
-						let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
-						let t = new SQLActions.Track({
-							'video_id': track.playlistPanelVideoRenderer.videoId,
-							'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
-							'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
-							'video_duration': parseYTDuration(track.playlistPanelVideoRenderer.lengthText.runs[0].text),
-							'youtube': true,
-							'uid': uid,
-						})
-						t['successful'] = false;
-						t['added'] = false;
-						tracks.push(t);
-					} catch (error) {
-						console.log(error)
-					}
-				}
-				props.setPlaying(tracks, "YouTube Mix");
+				props.setPlaying([currentTrack], "YouTube Mix");
 				
-			} catch (error) {
-				console.log(error)
+				let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
+				try {
+					let response = (await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
+						'Access-Control-Allow-Origin' : '*',
+						'x-youtube-client-name': 1,
+						'x-youtube-client-version': '2.20200911.04.00',
+						'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
+					}})).data;
+					let ytInitialData = JSON.parse(((/ytInitialData ?= ?'(.+?})'/s).exec(decodeHex(response))[1]).replaceAll(/\n\s+/g,''))
+	
+					let tracks = []
+					for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
+						try {						
+							let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
+							let t = new SQLActions.Track({
+								'video_id': track.playlistPanelVideoRenderer.videoId,
+								'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
+								'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
+								'video_duration': parseYTDuration(track.playlistPanelVideoRenderer.lengthText.runs[0].text),
+								'youtube': true,
+								'uid': uid,
+							})
+							t['successful'] = false;
+							t['added'] = false;
+							tracks.push(t);
+						} catch (error) {
+							console.log(error)
+						}
+					}
+					tracks.splice(0,1);
+					GLOBALS.playingTracks = GLOBALS.playingTracks.concat(tracks);
+
+				} catch (error) {
+					console.log(error)
+				}
+				GLOBALS.ableToPlayAgainMutex = false;
+			} else{
+				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 			}
 		}}>
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
 					<Image source={{uri:`https://img.youtube.com/vi/${props.video_id}/mqdefault.jpg`}} style={styles.image}></Image>
+					{Prefs.prefs.settings.show_track_duration && props.video_duration !== undefined && <View style={{position: 'absolute', left: durationToString()[0], bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
+						<Text style={{color:'white', fontSize:10}}>{durationToString()[1]}</Text>
+					</View>}
 				</View>
 				<View style={styles.text}>				
 					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
@@ -107,12 +135,14 @@ function SongComponentSearch(props) {
 				<TouchableOpacity disabled={saved} style={{justifyContent: 'center'}} onPress={async()=>{
 						if(Prefs.prefs.settings.ask_where_to_save){
 							if(props.addFrom !== undefined){
-								props.addFrom(
+								props.addFrom( true,
 									{
 										'video_name': props.video_name,
 										'video_creator': props.video_creator,
 										'video_id': props.video_id,
+										'video_duration': props.video_duration,
 										'uid': props.uid,
+										'callback': setSaved.bind(this)
 									});
 								return;
 							} 

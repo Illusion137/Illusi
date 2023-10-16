@@ -117,6 +117,7 @@ export class Tabs extends Component {
 				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
+					unmountOnBlur: false,
 				}}
 				/>
 				<Tab.Screen name="Extras" component={ExtrasStackScreen}
@@ -245,7 +246,7 @@ export default class App extends Component{
 					startDownloadState(true)
 
 				let newUri = FileSystem.documentDirectory + uid + '.m4a'
-				ffmpeg.RNFFmpeg.executeAsync(`-i ${downloadURI} ${newUri}`, async() => {
+				ffmpeg.RNFFmpeg.executeAsync(`-y -i ${downloadURI} ${newUri}`, async() => {
 					try {						
 						let soundTemp = new Audio.Sound();
 						await soundTemp.loadAsync({uri: newUri});

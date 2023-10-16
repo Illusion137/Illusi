@@ -194,7 +194,7 @@ export async function pinUnpinPlaylist(playlistName, pin) {
 }
 
 export async function getPlaylistTracks(playlistName) {
-    let playlist = await GLOBALS.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlistName} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
+    let playlist = await GLOBALS.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlistName.replaceAll(' ', '_')} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
     let data = playlist[0].rows
     for(let i = 0; i < data.length; i++){
         data[i].video_name = String(data[i].video_name)
@@ -344,7 +344,7 @@ export async function getRecentlyPlayedData(){
     return data;
 }
 export async function insertTrackIntoRecentlyPlayed(track){
-    await GLOBALS.db.execAsync([{'sql': "DELETE FROM recently_played_tracks where uid = ?", 'args':[track.uid]}],false)
+    await GLOBALS.db.execAsync([{'sql': "DELETE FROM recently_played_tracks where video_id = ?", 'args':[track.video_id]}],false)
     await GLOBALS.db.execAsync([{sql: 'INSERT INTO recently_played_tracks (uid, video_id, video_name, video_creator, video_duration, media_URI, thumbnail_URI, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, longvid, exid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
 }
 export async function cleanupRecentlyPlayed(){

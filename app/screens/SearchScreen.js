@@ -6,13 +6,14 @@ import { useTheme } from '@react-navigation/native';
 // import searchVideo from '../usetube';
 // import SearchYouTube, { ContinueYouTubeSearch } from '../Illusive/IllusiveSearch';
 import { useNavigation } from '@react-navigation/native';
-import SearchYouTube from '../Illusive/IllusiveSearch';
+import SearchYouTube, { GenerateNewUID } from '../Illusive/IllusiveSearch';
 import * as SQLActions from '../../SQLActions'
+import * as GLOBALS from '../../globals';
 import * as Prefs from '../../Preferences'
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import TextTicker from 'react-native-text-ticker';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
-import SelectPlaylist from '../components/SelectPlaylist';
+import AddToPlaylistsModal from './subscreens/AddToPlaylistsModal';
 
 const SearchScreen = (props) => {
 	const [data, setData] = useState('');
@@ -23,11 +24,10 @@ const SearchScreen = (props) => {
 	const [continueData, setContinueData] = useState();
 	const navigation = useNavigation()
 
-	const [modalData, setModalData] = useState({'show':false, 'track_data': null})
-	const [playlistsData, setPlaylistsData] = useState([])
 	const inputRef = useRef();
 
-	[isUsingRecentSearches, setIsUsingRecentSearches] = useState(true);
+	const [isUsingRecentSearches, setIsUsingRecentSearches] = useState(true);
+    const [modalData, setModalData] = useState({'show':false, 'track_data': null})
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
@@ -35,32 +35,12 @@ const SearchScreen = (props) => {
 	useEffect(() => {
 		(async function() { 
 			inputRef.current?.focus();
-			let playlists = await SQLActions.getAllPlaylists();
-	
-			for(let i = 0; i < playlists.length; i++){
-				let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name.replaceAll(' ', '_'));
-	
-				playlists[i]['track_count'] = playlistTracks.length;
-				playlists[i]['four_track'] = playlistTracks.slice(0,4);
-				playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name) == 0 ? false : true
-			}
-			let orderedPlaylists = []
-			for(let i = 0; i < playlists.length; i++){
-				if(playlists[i].pinned)
-					orderedPlaylists.unshift(playlists[i])
-				else
-					orderedPlaylists.push(playlists[i])
-			}
-			setPlaylistsData(orderedPlaylists)
 		})()
 	}, []);
 
-	function addFrom(track){
-		setModalData({'show':true, 'track_data': track})
+	function addFrom(show, track){
+		setModalData({'show':show, 'track_data': track})
 	}
-	const renderPlaylistItem = ({item}) => (
-		<SelectPlaylist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} />
-	);
 
 	const renderSongSearchComponents = ({ item }) => (
 		<SongComponentSearch setPlaying={props.setPlaying} addFrom={addFrom.bind(this)} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
@@ -102,30 +82,7 @@ const SearchScreen = (props) => {
 				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
 				{!searchingMode && <FlatList style={styles.searchlist} data={data} renderItem={renderSongSearchComponents} /* onEndReached={async() => await ContinueSearch()} *//>}
 			</View>
-			<Modal
-				animationType="slide"
-				visible={modalData.show}
-				presentationStyle={'pageSheet'}
-				onRequestClose={() => {
-				setModalData({'show':false, 'track_data': null});
-				}}>
-					<View style={{flex: 1, backgroundColor: colors.background}}>
-						<View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
-							<Button color={colors.primary} title={'Cancel'} onPress={() => {
-								setModalData({'show':false, 'track_data': null});
-							}}/>
-							<Text style={{color: '#FFFFFF', fontWeight: 'bold', fontSize: 18}}>Add To Playlist</Text>
-						</View>
-						<Image source={modalData.track_data === null ? undefined : {uri: `https://img.youtube.com/vi/${modalData.track_data?.video_id}/mqdefault.jpg`}} resizeMode="cover" style={{
-							width: '100%',
-							height: '20%',
-						}}/>
-						<Text numberOfLines={1} style={{marginHorizontal: 20, bottom: 50, color: '#FFFFFF', fontWeight: 'bold', fontSize: 24}}>{modalData.track_data?.video_name || ""}</Text>
-						<Text style={{marginHorizontal: 20, bottom: 50, color: '#FFFFFF', fontSize: 14}}>{modalData.track_data?.video_creator || ""}</Text>
-						{/* <SegmentedControl /> */}
-						<FlatList style={{bottom: 50}} data={playlistsData} renderItem={renderPlaylistItem}/>
-					</View>
-			</Modal>
+			<AddToPlaylistsModal modalData={modalData}/>
 		</View>
 	);
 	function getPreviousSearches(){

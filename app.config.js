@@ -3,7 +3,7 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default{
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "13.0.0",
+    "version": "13.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

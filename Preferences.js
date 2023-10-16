@@ -163,8 +163,8 @@ function getDefaultPrefs(){
     return {
         'experimental_features':{
             'get_account_playlists_in_get_playlist': true,
-            'auto_cache_thumbnails': true,
-            'smart_remove_cached_thumbnails': true,
+            'auto_cache_thumbnails': false,
+            'smart_remove_cached_thumbnails': false,
         },
         'settings': {
             'default_playlists_size': 200,
