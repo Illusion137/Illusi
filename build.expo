@@ -1,4 +1,4 @@
-RUN DEV CLIENT: expo start --dev-client --tunnel
+RUN DEV CLIENT: npx expo start --dev-client --tunnel
 
 BUILD APP FOR TESTING: eas build --profile development --platform ios
 

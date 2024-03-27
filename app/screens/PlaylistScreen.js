@@ -87,9 +87,8 @@ function PlaylistScreen({ route }) {
 
 		setRecentPlayedData( (await SQLActions.getRecentlyPlayedData()).reverse() );
 	}
-
 	const renderItem = ({ item }) => (
-		<Playlist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} setPlaying={route.params?.setPlaying} refreshData={refreshData.bind(this)}/>
+		<Playlist title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} setPlaying={route.params?.setPlaying} refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>
 	);
 
 	function hide(){ addPlaylistPanelRef.current.hide(); }

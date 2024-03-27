@@ -72,7 +72,7 @@ function ExtraBackpackScreen(props) {
 							let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
 							let results = ytSearchResult.data
 							for(let i = 0; i < results.length; i++){						
-								results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
+								results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/maxresdefault.jpg`, 'cache': 'force-cache'}
 								results[i]['oldUID'] = oldUID;
 								results[i]['disabled'] = false;
 							}

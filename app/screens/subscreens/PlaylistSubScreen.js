@@ -4,7 +4,7 @@ import { AntDesign, Ionicons, MaterialCommunityIcons,FontAwesome } from "@expo/v
 import { useTheme } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SongComponent from '../../components/SongComponent';
+import SongComponent from '../../components/TrackComponent';
 import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 import * as Prefs from '../../../Preferences'
@@ -36,11 +36,12 @@ function PlaylistSubScreen({route}){
             // cancel action
         }else if (buttonIndex === 1) {
             let toggle = editMode
-            if(toggle == 0){
+            if(toggle == 0)
+                toggle = 1
+            else if(toggle == 1)
                 toggle = 2
-            }else{
-                toggle = 0
-            }
+            else if(toggle == 2)
+                toggle = 0 
             seteditMode(toggle)
         }
       }
@@ -124,7 +125,7 @@ function PlaylistSubScreen({route}){
         }
     } 
 	const renderTracks = ({ item }) => (
-		<SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (editMode !== 0)} artwork={item.artwork} imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} duration={item.video_duration} downloaded={item.downloaded} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)}/>
+		<SongComponent disabled={Prefs.prefs.settings.edit_mode_disables_playing && (editMode !== 0)} artwork={item.artwork} imported={item.imported} media_URI={item.media_URI} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} duration={item.video_duration} downloaded={item.downloaded} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} setPlaying={route.params?.setPlaying} from={route.params.title} editMode={editMode} playlistFrom={route.params.title} refreshData={refreshData.bind(this)} downloadVideo={route.params?.downloadVideo}/>
 	);
     function playShuffle(dat){
         let newData = [...dat]

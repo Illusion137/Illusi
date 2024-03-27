@@ -2,11 +2,11 @@ import axios from "axios"; //HTTP Request Library
 import * as Prefs from "../../Preferences";
 import { Alert } from "react-native";
 
-function decodeHex(hex) {
+function decodeHex(hex: string) {
 	return hex.replace(/\\x22/g, '"').replace(/\\x7b/g, '{').replace(/\\x7d/g, '}').replace(/\\x5b/g, '[').replace(/\\x5d/g, ']').replace(/\\x3b/g, ';').replace(/\\x3d/g, '=').replace(/\\x27/g, '\'').replace(/\\\\/g, 'doubleAntiSlash').replace(/\\/g, '').replace(/doubleAntiSlash/g, '\\')
   }
 
-export function getYTPlaylistIdFromURL(url){
+export function getYTPlaylistIdFromURL(url: string){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
     return url.replace(idRegex, '')
 }
@@ -19,11 +19,11 @@ export async function getAllYoutubePlaylistsFromAccount(){
         response = decodeHex(response);
 
         const ytInitialDataRegex = /var ytInitialData = (.+?);.+?<\/script>/gs;
-        let ytInitialData = ytInitialDataRegex.exec(response)[1]
-        ytInitialData = ytInitialData.replaceAll(/\n\s+/g,'')
-        ytInitialData = JSON.stringify(ytInitialData)
-        ytInitialData = ytInitialData.slice(2, ytInitialData.length - 2)
-        ytInitialData = JSON.parse(decodeHex(ytInitialData));
+        let ytInitialDataStr = ytInitialDataRegex.exec(response)[1]
+        ytInitialDataStr = ytInitialDataStr.replaceAll(/\n\s+/g,'')
+        ytInitialDataStr = JSON.stringify(ytInitialDataStr)
+        ytInitialDataStr = ytInitialDataStr.slice(2, ytInitialDataStr.length - 2)
+        const ytInitialData = JSON.parse(decodeHex(ytInitialDataStr));
         
         let playlistNamesData = ytInitialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[2].shelfRenderer.content.verticalListRenderer.items
         // console.log(JSON.stringify(playlistNamesData))
@@ -62,9 +62,8 @@ export async function getAllYTMusicPlaylistsFromAccount(){
     }
 }
 
-export async function getSpotifyInitialData(url){
+export async function getSpotifyInitialData(url: string){
     try {
-        
         let headers = {
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "accept-language": "en-US,en;q=0.9",
@@ -82,7 +81,7 @@ export async function getSpotifyInitialData(url){
             "Cookies": Prefs.prefs.external_services.spotify_cookies
         }
 
-        body = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
+        const body = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
 
         const sessionRegex = /<script id="session" data-testid="session" type="application\/json">(.+?)<\/script>/is
         let session = sessionRegex.exec(body)[1]
@@ -108,7 +107,7 @@ export async function getSpotifyInitialData(url){
                 "method": "POST"
         });
         clientToken = await clientToken.json();
-        return {'session': sessionJson, 'clientToken': clientToken};
+        return {'session': sessionJson, 'clientToken': clientToken as any};
     } catch (error) {
         Alert.alert("Spotify Initial Error:", error)
     }
@@ -161,7 +160,7 @@ export async function getAllSpotifyPlaylistsFromAccount(){
     }
 }
 
-export async function getAmazonMusicAmznMusicData(url){
+export async function getAmazonMusicAmznMusicData(url: string){
     try {
         let amznMusic = {};
         {
@@ -179,7 +178,7 @@ export async function getAmazonMusicAmznMusicData(url){
                 "upgrade-insecure-requests": "1",
                 "Cookies": Prefs.prefs.external_services.amazon_music_cookies
               }};
-            let configBody = (await axios({'method': 'GET', 'url': url, 'headers': headers})).data
+            let configBody = ( await axios.get(url, {"headers": headers as any}) ).data
            
             const amznMusicRegex = /window.amznMusic = ({.+});/s
     
@@ -203,7 +202,7 @@ export async function getAmazonMusicAmznMusicData(url){
     }
 }
 
-export async function getAmazonMusicShowHomeData(amznMusic, url){
+export async function getAmazonMusicShowHomeData(amznMusic: any, url: string){
     try {
         let trimmedURL = url.replace("https://",'').replace("music.amazon.com",'')
         let deeplink = {
@@ -267,13 +266,13 @@ export async function getAmazonMusicShowHomeData(amznMusic, url){
         console.log(error)
     }
 }
-export function getXAmznAuth(amznMusic){
+export function getXAmznAuth(amznMusic: any){
     return {
         "interface": "ClientAuthenticationInterface.v1_0.ClientTokenElement",
         "accessToken": amznMusic.appConfig.accessToken
     }
 } 
-export function getAmznCsrf(amznMusic){
+export function getAmznCsrf(amznMusic: any){
     return {
         "interface": "CSRFInterface.v1_0.CSRFHeaderElement",
         "token": amznMusic.appConfig.csrf.token,
@@ -281,7 +280,7 @@ export function getAmznCsrf(amznMusic){
         "rndNonce": amznMusic.appConfig.csrf.rnd
     }
 }
-export function getAmznVideoPlayerToken(authHeader){
+export function getAmznVideoPlayerToken(authHeader: any){
     return {
         "interface": authHeader.interface,
         "token": authHeader.token,
@@ -303,7 +302,7 @@ export function getAmznMusicHeaders(){
         "Referrer-Policy": "strict-origin-when-cross-origin",
     }
 }
-export function getAmznMusicRequestHeaders(xAmznAuth, amznMusic, xAmznCsrf, xAmznVideoPlayerToken, playlistURL = "https://music.amazon.com/my/library"){
+export function getAmznMusicRequestHeaders(xAmznAuth: any, amznMusic: any, xAmznCsrf: any, xAmznVideoPlayerToken: any, playlistURL = "https://music.amazon.com/my/library"){
     return {
         "x-amzn-authentication": JSON.stringify(xAmznAuth),
         "x-amzn-device-model": "WEBPLAYER",

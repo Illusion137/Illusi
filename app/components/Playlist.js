@@ -18,7 +18,7 @@ function Playlist(props) {
 
 	return(
         <>
-			<TouchableOpacity disabled={props.selectMode || false} style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {title: props.title, setPlaying: props.setPlaying }) } } onLongPress={async() => {Alert.alert(
+			<TouchableOpacity disabled={props.selectMode || false} style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {title: props.title, setPlaying: props.setPlaying, downloadVideo: props.downloadVideo }) } } onLongPress={async() => {Alert.alert(
 				"Playlist Edit",
 				"Pin or Delete a Playlist",
 				[

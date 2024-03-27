@@ -3,7 +3,7 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default{
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "13.0.1",
+    "version": "13.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -46,5 +46,8 @@ export default{
       "eas": {
         "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
 }

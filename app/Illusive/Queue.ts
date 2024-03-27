@@ -1,10 +1,14 @@
 export class Queue {
+    elements: any
+    head: number
+    tail: number
+
     constructor() {
       this.elements = {};
       this.head = 0;
       this.tail = 0;
     }
-    enqueue(element) {
+    enqueue(element): void {
       this.elements[this.tail] = element;
       this.tail++;
     }

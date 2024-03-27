@@ -11,8 +11,18 @@ import TrackPlayer from 'react-native-track-player';
 import * as Haptics from 'expo-haptics';
 import * as Prefs from '../../Preferences'
 import { GenerateNewUID, decodeHex, parseYTDuration } from '../Illusive/IllusiveSearch';
+import { Track } from '../../types';
 
-function SongComponentSearch(props) {
+function SongComponentSearch(props: 
+	{
+		saved: boolean, 
+		video_duration: number,
+		disabled: boolean,
+		video_name: string, 
+		video_creator: string, 
+		video_id: string, 
+		uid: string, 
+		addFrom: (show: boolean, track: Track) => void}) {
 		
 	const [saved, isSaved] = useState(props.saved);
 	
@@ -21,7 +31,7 @@ function SongComponentSearch(props) {
 		props.addFrom(false, null)
 	}
 	
-	function durationToString(){
+	function durationToString(): (string|number)[]{
 		let duration = props.video_duration;
 		let subLength = 50;
 		let stringDuration = '';
@@ -47,9 +57,9 @@ function SongComponentSearch(props) {
 	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
 		<TouchableOpacity disabled={props.disabled || false} onLongPress={async() => {
-			if(GLOBALS.IsPlaying){
+			if(GLOBALS.global_var.IsPlaying){
 				let trackIndex = await TrackPlayer.getCurrentTrack();
-				let track = new SQLActions.Track({
+				let track = new Track({
 					'youtube': true,
 					'video_name': props.video_name || "", 
 					'video_creator': props.video_creator || "", 
@@ -60,15 +70,15 @@ function SongComponentSearch(props) {
 				track['successful'] = false
 				track['added'] = false
 
-				GLOBALS.playingTracks.splice(trackIndex + 1 + GLOBALS.pQueue.length,0,track)
-				GLOBALS.pQueue.enqueue(track);
+				GLOBALS.global_var.playingTracks.splice(trackIndex + 1 + GLOBALS.global_var.playingQueue.length,0,track)
+				GLOBALS.global_var.playingQueue.enqueue(track);
 				await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 			}
 		}} onPress={async() => {
-			if(!GLOBALS.ableToPlayAgainMutex){
-				GLOBALS.ableToPlayAgainMutex = true
-				let currentTrack = new SQLActions.Track({
+			if(!GLOBALS.global_var.ableToPlayAgainMutex){
+				GLOBALS.global_var.ableToPlayAgainMutex = true
+				let currentTrack = new Track({
 					'youtube': true,
 					'video_name': props.video_name || "", 
 					'video_creator': props.video_creator || "", 
@@ -79,7 +89,7 @@ function SongComponentSearch(props) {
 				currentTrack['successful'] = false;
 				currentTrack['added'] = false;
 
-				props.setPlaying([currentTrack], "YouTube Mix");
+				GLOBALS.global_var.playTracks(currentTrack, [currentTrack], "YouTube Mix");
 				
 				let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
 				try {
@@ -95,7 +105,7 @@ function SongComponentSearch(props) {
 					for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
 						try {						
 							let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
-							let t = new SQLActions.Track({
+							let t = new Track({
 								'video_id': track.playlistPanelVideoRenderer.videoId,
 								'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
 								'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
@@ -111,12 +121,12 @@ function SongComponentSearch(props) {
 						}
 					}
 					tracks.splice(0,1);
-					GLOBALS.playingTracks = GLOBALS.playingTracks.concat(tracks);
+					GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
 
 				} catch (error) {
 					console.log(error)
 				}
-				GLOBALS.ableToPlayAgainMutex = false;
+				GLOBALS.global_var.ableToPlayAgainMutex = false;
 			} else{
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 			}
@@ -124,8 +134,8 @@ function SongComponentSearch(props) {
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
 					<Image source={{uri:`https://img.youtube.com/vi/${props.video_id}/mqdefault.jpg`}} style={styles.image}></Image>
-					{Prefs.prefs.settings.show_track_duration && props.video_duration !== undefined && <View style={{position: 'absolute', left: durationToString()[0], bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
-						<Text style={{color:'white', fontSize:10}}>{durationToString()[1]}</Text>
+					{Prefs.prefs.settings.show_track_duration && props.video_duration !== undefined && <View style={{position: 'absolute', left: durationToString()[0] as number, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
+						<Text style={{color:'white', fontSize:10}}>{durationToString()[1] as string}</Text>
 					</View>}
 				</View>
 				<View style={styles.text}>				
@@ -136,20 +146,20 @@ function SongComponentSearch(props) {
 						if(Prefs.prefs.settings.ask_where_to_save){
 							if(props.addFrom !== undefined){
 								props.addFrom( true,
-									{
+									new Track({
 										'video_name': props.video_name,
 										'video_creator': props.video_creator,
 										'video_id': props.video_id,
 										'video_duration': props.video_duration,
 										'uid': props.uid,
 										'callback': setSaved.bind(this)
-									});
+									}));
 								return;
 							} 
 						}
 						if(!saved){
 							try{
-								await SQLActions.insertTrackData(new SQLActions.Track({
+								await SQLActions.insertTrackData(new Track({
 									video_name: props.video_name || "-",
 									video_creator: props.video_creator || "-",
 									video_id: props.video_id || "0",
@@ -160,6 +170,7 @@ function SongComponentSearch(props) {
 								}));
 								isSaved(true)
 							}catch(e){
+								console.log(e)
 								return;
 							}
 						}

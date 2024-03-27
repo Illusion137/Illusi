@@ -5,13 +5,17 @@ import { useNavigationState, useTheme } from '@react-navigation/native';
 
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import PlayVideoScreen from './PlayVideoScreen';
+import { Track } from '../../../types';
 
-function PlayingSong (props) {
+function PlayingSong (props: {
+		tracks: Track[], 
+		playing_from: string
+	}) {
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const playVideoPanelRef = useRef()
-	const playVideoRef = useRef()
+	const playVideoPanelRef = useRef() as React.MutableRefObject<any>;
+	const playVideoRef = useRef()  as React.MutableRefObject<any>;
 
 	const [title, setTitle] = useState("");
 	const [artist, setArtist] = useState("");

@@ -59,7 +59,7 @@ function AddToPlaylistsModal(props) {
                     }}/>
                     <Text style={{color: '#FFFFFF', fontWeight: 'bold', fontSize: 18}}>Add To Playlist</Text>
                 </View>
-                <Image source={modalData.track_data === null ? undefined : {uri: `https://img.youtube.com/vi/${modalData.track_data?.video_id}/mqdefault.jpg`}} resizeMode="cover" style={{
+                <Image source={modalData.track_data === null ? undefined : {uri: `https://img.youtube.com/vi/${modalData.track_data?.video_id}/maxresdefault.jpg`}} resizeMode="cover" style={{
                     width: '100%',
                     height: '20%',
                 }}/>

@@ -4,7 +4,9 @@ import TrackPlayer, {
     AppKilledPlaybackBehavior,
     Capability,
     RepeatMode,
-    Event
+    Event,
+    Track,
+    TrackMetadataBase
   } from 'react-native-track-player';
 import * as globals from './globals';
 import * as SQLActions from './SQLActions'
@@ -67,29 +69,29 @@ import * as SQLActions from './SQLActions'
             // pnMutex = true;
             try {
                 let index = await TrackPlayer.getCurrentTrack();
-                if(index + 1 >= globals.playingTracks.length){
+                if(index + 1 >= globals.global_var.playingTracks.length){
                     pnMutex = false;
                     return
                 }
-                if(globals.playingTracks[index+1]['added']){
+                if(globals.global_var.playingTracks[index+1]['added']){
                   await TrackPlayer.skipToNext();
 
                   return;
                 }
-                globals.addTrackIntoQueueTracksMutex = true;
-                globals.playingTracksIndex++;
-                let rnTrack = await globals.playingTrackToRNTrack(globals.playingTracks[index + 1])
+                globals.global_var.addTrackIntoQueueTracksMutex = true;
+                globals.global_var.playingTracksIndex++;
+                let rnTrack = await globals.playingTrackToRNTrack(globals.global_var.playingTracks[index + 1])
                 if(rnTrack == null){
                   //handle dat
                   await TrackPlayer.add({url: require('./assets/placeholder.mp3'), 'title': 'NULL', 'artist': 'Sudo'}, index + 1 );
                 }
                 else{
-                  globals.playingTracks[index + 1]["successful"] = true
-                  globals.playingTracks[index + 1]["added"] = true
-                  await TrackPlayer.add(rnTrack, index + 1);
+                  globals.global_var.playingTracks[index + 1]["successful"] = true
+                  globals.global_var.playingTracks[index + 1]["added"] = true
+                  await TrackPlayer.add(rnTrack as Track, index + 1);
                 }
                 pnMutex = false;
-                globals.addTrackIntoQueueTracksMutex = false;
+                globals.global_var.addTrackIntoQueueTracksMutex = false;
                 await TrackPlayer.skipToNext();
             }
             catch(error){
@@ -102,7 +104,7 @@ import * as SQLActions from './SQLActions'
             pnMutex = true;
             try {
                 let index = await TrackPlayer.getCurrentTrack();
-                if(globals.playingTracks[index - 1]['successful'] == false){
+                if(globals.global_var.playingTracks[index - 1]['successful'] == false){
                     prevMutex = true
                     await TrackPlayer.skipToPrevious()
                     await TrackPlayer.skipToPrevious()
@@ -129,37 +131,37 @@ import * as SQLActions from './SQLActions'
     })
     TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async() => {
       try {
-        if(!globals.initialPlaybackTrackChangedMutex && !changedMutex){
+        if(!globals.global_var.initialPlaybackTrackChangedMutex && !changedMutex){
             changedMutex = true;
-          if(!globals.pQueue.isEmpty){
-            globals.pQueue.dequeue();
+          if(!globals.global_var.pQueue.isEmpty){
+            globals.global_var.pQueue.dequeue();
           }
-          globals.pQueue.elements = {}
-          globals.pQueue.head = 0
-          globals.pQueue.tail = 0
+          globals.global_var.pQueue.elements = {}
+          globals.global_var.pQueue.head = 0
+          globals.global_var.pQueue.tail = 0
           let index = (await TrackPlayer.getCurrentTrack()) || 0;
-          let track = globals.playingTracks[index];
+          let track = globals.global_var.playingTracks[index];
 
-          if(index != 0 && globals.playingTracks[index]['successful'] == false && !prevMutex){
-                await TrackPlayer.pause(c);
-                let newTrack = await globals.playingTrackToRNTrack(globals.playingTracks[index]);
+          if(index != 0 && globals.global_var.playingTracks[index]['successful'] == false && !prevMutex){
+                await TrackPlayer.pause();
+                let newTrack = await globals.playingTrackToRNTrack(globals.global_var.playingTracks[index]);
                 if(newTrack == null){
                     await TrackPlayerNext();
                 }else{
-                    globals.playingTracks[index + 1]["added"] = true
-                    await TrackPlayer.updateMetadataForTrack(newTrack)
+                    globals.global_var.playingTracks[index + 1]["added"] = true
+                    await TrackPlayer.updateMetadataForTrack(await TrackPlayer.getCurrentTrack(), newTrack as TrackMetadataBase)
                 }
               await TrackPlayer.play();
           }
           index = (await TrackPlayer.getCurrentTrack()) || 0;
-          track = globals.playingTracks[index];
+          track = globals.global_var.playingTracks[index];
 
           if(!track.imported){
             track['saved']=true
-            await SQLActions.insertTrackIntoRecentlyPlayed(new SQLActions.Track(track))
+            await SQLActions.insertTrackIntoRecentlyPlayed(track)
           }
         }else{
-          globals.initialPlaybackTrackChangedMutex = false;
+          globals.global_var.initialPlaybackTrackChangedMutex = false;
         }
         } catch (error) {
             // console.log(error)
@@ -176,21 +178,21 @@ import * as SQLActions from './SQLActions'
     });
   
     TrackPlayer.addEventListener(Event.RemoteNext, async() => {
-        globals.mutex = true;
+        globals.global_var.mutex = true;
         try {
             await TrackPlayerNext();
         } catch (error) {
         }
-        globals.mutex = false;
+        globals.global_var.mutex = false;
     });
   
     TrackPlayer.addEventListener(Event.RemotePrevious, async() => {
-      globals.mutex = true;
+      globals.global_var.mutex = true;
       try {
         await TrackPlayerPrev();
       } catch (error) {
       }
-      globals.mutex = false;
+      globals.global_var.mutex = false;
     });
     TrackPlayer.addEventListener(Event.RemoteSeek, async(position) => {
       await TrackPlayer.seekTo(position.position)
@@ -200,24 +202,25 @@ import * as SQLActions from './SQLActions'
         try {
             let curTrack = await TrackPlayer.getTrack(data.track || 0);
             //data.position + 5 > curTrack.duration
-            if(globals.playingTracks[data.track + 1]["added"] === false && !globals.addTrackIntoQueueTracksMutex && globals.playingTracks[data.track + 1]["successful"] === false){
-                globals.playingTracks[data.track + 1]["added"] = true
+            if(globals.global_var.playingTracks[data.track + 1]["added"] === false && !globals.global_var.addTrackIntoQueueTracksMutex && globals.global_var.playingTracks[data.track + 1]["successful"] === false){
+                globals.global_var.playingTracks[data.track + 1]["added"] = true
                 pnMutex = true;
-                globals.addTrackIntoQueueTracksMutex = true;
-                globals.playingTracksIndex++;
-                let rnTrack = await globals.playingTrackToRNTrack(globals.playingTracks[data.track + 1])
+                globals.global_var.addTrackIntoQueueTracksMutex = true;
+                globals.global_var.playingTracksIndex++;
+                globals.global_var.playingTracksIndex++;
+                let rnTrack = await globals.playingTrackToRNTrack(globals.global_var.playingTracks[data.track + 1])
                 if(rnTrack == null){
                   //handle dat
                   await TrackPlayer.add({url: require('./assets/placeholder.mp3'), 'title': 'NULL', 'artist': 'Sudo'}, data.track + 1 );
                 }
                 else if(rnTrack == 'skip'){
-                  globals.playingTracks.splice(data.track + 1, 1)
+                  globals.global_var.playingTracks.splice(data.track + 1, 1)
                 }
                 else{
-                  globals.playingTracks[data.track + 1]["successful"] = true
-                  await TrackPlayer.add(rnTrack, data.track + 1);
+                  globals.global_var.playingTracks[data.track + 1]["successful"] = true
+                  await TrackPlayer.add(rnTrack as Track, data.track + 1);
                 }
-                globals.addTrackIntoQueueTracksMutex = false;
+                globals.global_var.addTrackIntoQueueTracksMutex = false;
                 pnMutex = false;
             }
 

@@ -34,7 +34,7 @@ const SearchScreen = (props) => {
 
 	useEffect(() => {
 		(async function() { 
-			inputRef.current?.focus();
+			// inputRef.current?.focus();
 		})()
 	}, []);
 
@@ -43,7 +43,7 @@ const SearchScreen = (props) => {
 	}
 
 	const renderSongSearchComponents = ({ item }) => (
-		<SongComponentSearch setPlaying={props.setPlaying} addFrom={addFrom.bind(this)} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
+		<SongComponentSearch addFrom={addFrom.bind(this)} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={item.uid}/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
@@ -76,7 +76,10 @@ const SearchScreen = (props) => {
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
 				<TextInput ref={inputRef} value={searchQuery} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
-					onFocus={() => {getPreviousSearches()}} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query); if(query.replaceAll(/\s/g,'') != ''){setIsUsingRecentSearches(false)} else{setIsUsingRecentSearches(true)} }} onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}/>
+					onFocus={() => {getPreviousSearches()}} onChangeText={async (query) => {setSearchQuery(query); await GetSuggestions(query); if(query.replaceAll(/\s/g,'') != ''){setIsUsingRecentSearches(false)} else{setIsUsingRecentSearches(true)} }} 
+					onEndEditing=   {async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}} 
+					// onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}
+					/>
 			</View>
 			<View style={styles.searchview}>
 				{searchingMode && <FlatList style={styles.searchinglist} data={searchingData} renderItem={renderQueryItems}/>}
@@ -89,6 +92,8 @@ const SearchScreen = (props) => {
 		setSearchingData(Prefs.prefs.search.recent_searches);
 	}
 	async function Search(query) {
+		setData([]);
+
 		if(query.replaceAll(/\s/g,'') == ''){
 			return null;
 		}
@@ -122,6 +127,7 @@ const SearchScreen = (props) => {
 		if(data == null){
 			return;
 		}
+		setSearchingMode(false)
   	}
 	async function ContinueSearch() {
 		let search = await ContinueYouTubeSearch(continueData)

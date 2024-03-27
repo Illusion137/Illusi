@@ -1,4 +1,4 @@
-import axios from "axios"; //HTTP Request Library
+import axios, { AxiosRequestConfig } from "axios"; //HTTP Request Library
 import SearchYouTube, { GenerateNewUID, decodeHex, durationToInt } from "./IllusiveSearch";
 import * as SQLActions from "../../SQLActions";
 import * as Prefs from "../../Preferences";
@@ -6,12 +6,12 @@ import req from "./Req";
 import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getSpotifyInitialData } from "./IllusiveAccountPlaylistFinder";
 import { getYouTubeSapisidHashAuth } from "./IllusiveHelper";
 
-function getYTPlaylistIdFromURL(url){
+function getYTPlaylistIdFromURL(url: string){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
     return url.replace(idRegex, '')
 }
 
-export function getRandomIndex(max) {
+export function getRandomIndex(max: number) {
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - 0) + 0); // The maximum is exclusive and the minimum is inclusive
 }
@@ -36,7 +36,7 @@ export async function getProxyList(){
     }
 }
 
-export async function getMusiPlaylist(url){
+export async function getMusiPlaylist(url: string){
     const playlistParam = url.replace('https://feelthemusi.com/playlist/','')
     const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
     
@@ -86,7 +86,7 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
 			}
 		  };
 
-        const response = await axios(config);
+        const response = await axios(config as AxiosRequestConfig);
         const responseData = response.data;
 
         const INNERTUBE_API_KEY = innertubeApiKeyRegex.exec(responseData)[1]
@@ -181,7 +181,7 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
     }
 }
 
-async function getYoutubePlaylistContinuation(innertube_api_key, continuationKey, context, url, trackingParams){
+async function getYoutubePlaylistContinuation(innertube_api_key: string, continuationKey: string, context: any, url: string, trackingParams: any){
     try {
         let videos = [];
 
@@ -430,7 +430,7 @@ function parseYTMusicDuration(textDur){
     }
     return duration
 }
-async function getYoutubeMusicPlaylistContinuation(ogURL,client ,innertube_api_key, continuation, itct){
+async function getYoutubeMusicPlaylistContinuation(ogURL: string, client: any ,innertube_api_key: string, continuation: string, itct: string){
     try {
         let videos = [];
         let postURL = `https://music.youtube.com/youtubei/v1/browse?ctoken=${continuation}&continuation=${continuation}&type=next&itct=${itct}&key=${innertube_api_key}&prettyPrint=false`
@@ -579,7 +579,7 @@ async function getYoutubeMusicPlaylistContinuation(ogURL,client ,innertube_api_k
         }
 
         if(continuationTokenGood){
-            videos = videos.concat(await getYoutubeMusicPlaylistContinuation(ogURL, client, innertube_api_key, continutationToken));
+            videos = videos.concat(await getYoutubeMusicPlaylistContinuation(ogURL, client, innertube_api_key, continutationToken, ""));
         }
         return videos
 
@@ -594,7 +594,7 @@ export async function getYoutubeMusicPlaylist(url){
         return  {'data': [], 'title': 'cnull'};
     try 
     {
-        continue_ = true
+        let continue_ = true
         let response = (await axios({"method": 'GET', 'url': url,
             'headers': { 
                 'authority': 'music.youtube.com', 

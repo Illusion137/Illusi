@@ -42,7 +42,7 @@ export function parseYTDuration(textDur){
 
 async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns first video
 	if(searchTerms.trim === ''){
-		return 0
+		return {data: []}
 	}
 	let body;
 	try{
@@ -50,18 +50,16 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 
 		const videos = []
 		
-		headers = {
-			headers: {
-				'Access-Control-Allow-Origin' : '*',
-				'x-youtube-client-name': 1,
-				'x-youtube-client-version': '2.20200911.04.00',
-				'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-			}
+		const headers = {
+			'Access-Control-Allow-Origin' : '*',
+			'x-youtube-client-name': 1,
+			'x-youtube-client-version': '2.20200911.04.00',
+			'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36'
 		}
 		const dataRegex  = /var\ ytInitialData\ \=\ \'(.*)\'\;<\/script>/
 		const apiRegex  = /"innertubeApiKey":"(.*?)"/
 		if(proxy == null){
-			body = (await axios({'url':urlstring, 'headers':headers })).data
+			body = (await axios({'url':urlstring, 'headers': headers })).data
 		}
 		else{
 			body = (await axios({'url':urlstring, 'headers':headers, 'proxy': {
@@ -77,9 +75,9 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
      
 		let itemSectionRendererIndex = 0;
 
-		for(const contentIndex in ytInitialData.contents.sectionListRenderer.contents){
+		for(const contentIndex in ytInitialData.contents.sectionListRenderer.contents as object[]){
 			if(ytInitialData.contents.sectionListRenderer.contents[contentIndex]['itemSectionRenderer'] != undefined){
-				itemSectionRendererIndex = contentIndex
+				itemSectionRendererIndex = contentIndex as unknown as number
 			}
 		}
 		let contents = ytInitialData.contents.sectionListRenderer.contents[itemSectionRendererIndex].itemSectionRenderer.contents
@@ -104,61 +102,14 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 			}
 		}
 
-		// for (const id of searchData) {
-		// 	try {				
-		// 		let uid = GenerateNewUID(id[3].replaceAll('\\', ''))
-		// 		pushData.push({
-		// 		'video_id': id[1] || '',
-		// 		'video_name': id[3].replaceAll('\\', '') || '',
-		// 		'video_creator': id[4].replaceAll('\\', '') || '',
-		// 		'video_duration': parseYTDuration(id[2]) || 0,
-		// 		'uid': uid
-		// 		})
-		// 	} catch (error) {
-		// 		console.log(error)
-		// 	}
-		// }
-
 		return {data: pushData}
 	}
 	catch(error){
 		console.log(error)
 		return {data: []}
 	}
-	// let data = await usetube.searchVideo(searchTerms)
-	// const reData = []
-	// for(const video of data.videos){
-	// 	let uid = GenerateNewUID()
-	// 	reData.push(
-	// 		{ // Returns video JSON
-	// 			"video_duration": video.duration || 0,
-	// 			"video_name": video.title || "",
-	// 			"video_creator": video.artist || "",
-	// 			"video_id": video.id || "",
-	// 			"saved": false,
-	// 			"downloaded": false,
-	// 			"uid": uid
-	// 		}
-	// 	)
-	// }
-	// return {continueData: {	
-	// 		apiKey: data.apikey,
-	// 		token: data.token, 
-	// 	},data: reData}
 }
-/*clientVersion 2.20221122.06.00
-DEFAULT_CONTEXT = {
-  client: {
-    utcOffsetMinutes: 0,
-    gl: 'US',
-    hl: 'en',
-    clientName: 'WEB',
-    clientVersion: '2.20221122.06.00',
-  },
-  user: {},
-  request: {},
-}*/
-//apiKey, token, clientVersion, options
+
 async function ContinueYouTubeSearch(continueData){
 	try {
 		let response = await axios.post(`https://www.youtube.com/youtubei/v1/search?key=${continueData.apiKey}`,{context : {

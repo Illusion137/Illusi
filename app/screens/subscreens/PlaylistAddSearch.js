@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import SongComponent from '../../components/SongComponent';
+import SongComponent from '../../components/TrackComponent';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -71,6 +71,46 @@ function PlaylistAddSearch(){
 
 	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
 
+	const [nextPlaylist, setNextPlaylist] = useState("Recently Added");
+	const [nextIndex, setNextIndex] = useState(0);
+	const headerComponent = () => <TouchableOpacity onPress={async() => 
+		{
+			let next = nextPlaylist;
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.writePlaylist);
+
+			if(next == "Recently Added"){
+				let t = [...GLOBALS.SQLTracks]
+				let trackData = t.reverse();
+				for(let i = 0; i< trackData.length; i++){
+					trackData[i].saved = playlistTracks.findIndex((item) => item.uid == trackData[i].uid) == -1 ? false : true;
+				}
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0})
+
+				setAllData({charData: [], dataMask: [trackData], baseData: trackData, numTracks: trackData.length})
+				let playlists = await SQLActions.getAllPlaylists();
+				setNextPlaylist(playlists[nextIndex].playlist_name)
+			}else{
+				let trackData = await SQLActions.getPlaylistTracks(nextPlaylist);
+				for(let i = 0; i< trackData.length; i++){
+					trackData[i].saved = playlistTracks.findIndex((item) => item.uid == trackData[i].uid) == -1 ? false : true;
+				}
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0})
+				setAllData({charData: [], dataMask: [trackData], baseData: trackData, numTracks: trackData.length})
+				let playlists = await SQLActions.getAllPlaylists();
+				let i = nextIndex;
+				i++;
+				if(i < playlists.length){
+					setNextIndex(i);
+					setNextPlaylist(playlists[i].playlist_name);
+				} else{
+					setNextIndex(0);
+					setNextPlaylist("Recently Added");
+				}
+			}
+		}} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}>
+		<Text style={{fontWeight: '500', fontSize: 18}}>Goto {nextPlaylist}</Text>
+		</TouchableOpacity>
+
     return(
         <View style={{backgroundColor: 'black', width: '100%', height: '100%'}}>
 			<BigList 
@@ -81,6 +121,8 @@ function PlaylistAddSearch(){
 				sectionHeaderHeight={30}
 				ref={listRef}
 				itemHeight={61}
+				renderHeader={headerComponent}
+				headerHeight={90}
 				onScrollToIndexFailed={() => {}}
 			/>
 			<View style={{backgroundColor: '#121212',
@@ -117,7 +159,7 @@ function PlaylistAddSearch(){
 					Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
 				} }
 				>
-				{allData.charData.map((element, i) => (
+				{allData.charData.length > 0 && allData.charData.map((element, i) => (
 					<View a={allData.charData.length} key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
 						<Text style={{color: colors.primary, fontSize: 14}}>{element}</Text>
 					</View>

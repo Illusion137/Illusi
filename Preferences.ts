@@ -4,6 +4,16 @@ import CookieManager from '@react-native-community/cookies';
 
 export let prefs = getDefaultPrefs();
 export class LinkedPlaylist{
+    service_from: string
+    service_to: string
+    playlist_name_from: string
+    playlist_name_to: string
+    url_from: string
+    url_to: string
+    use_service_cookies: boolean
+    auto_fetch_on_startup: boolean
+    auto_fetch_on_startup_only_on_wifi: boolean
+
     constructor(p){
         this.service_from = p.service_from || "";
         this.service_to = p.service_to || "";
@@ -129,7 +139,7 @@ export async function setSettingsToggle(preKey, key, value){
     prefs[preKey][plainTextToSnakeCase(key)] = value
     await AsyncStorage.setItem('Prefs', JSON.stringify(prefs));
 }
-export function getExperimentalFeatureEnabled(feature){
+export function getExperimentalFeatureEnabled(feature: string): boolean{
     return prefs.settings.enable_experimental_features && prefs.experimental_features[feature]
 }
 
@@ -220,7 +230,7 @@ export async function savePrefs(){
 }
 
 function recUpdatePrefsSchema(obj, prevObjs = []){
-    let prefCopy = pref;
+    let prefCopy = prefs;
 
 	let entries = Object.entries(obj);
 	for(const entry of entries){

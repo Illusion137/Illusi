@@ -7,15 +7,15 @@ import * as SQLActions from '../../SQLActions'
 import * as Haptics from 'expo-haptics';
 import { getYouTubeInitialData } from "./IllusivePlaylistResolver";
 import { getYouTubeSapisidHashAuth } from "./IllusiveHelper";
+import { Track } from "../../types";
 
-export function getYTPlaylistIdFromURL(url){
+export function getYTPlaylistIdFromURL(url: string){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
     return url.replace(idRegex, '')
 }
 
-export async function insertIntoYouTubePlaylist(playlistName, tracks){
+export async function insertIntoYouTubePlaylist(playlistName: string, tracks: Track[]){
     try {
-
         let baseData = await getYouTubeInitialData('https://youtube.com');
         try {
             let body = {
@@ -53,8 +53,6 @@ export async function insertIntoYouTubePlaylist(playlistName, tracks){
                 "x-goog-visitor-id": "CgtVbmR5bk9HMFZ1ayjaiYmpBjIICgJVUxICGgA%3D",
                 "x-origin": "https://www.youtube.com",
                 "x-youtube-bootstrap-logged-in": "true",
-                "x-youtube-client-name": "1",
-                "x-youtube-client-version": "2.20231003.02.02",
                 "Referer": "https://www.youtube.com/",
                 "Referrer-Policy": "strict-origin-when-cross-origin"
             }
@@ -64,7 +62,7 @@ export async function insertIntoYouTubePlaylist(playlistName, tracks){
             });
             // console.log(ban.data)
         } catch (error) {
-            Alert.alert('Error', tracks[i].video_id + ' - ' + error)
+            Alert.alert('Error', error)
         }
         Alert.alert("Finished Transfering Playlist")
     } catch (error) {
@@ -72,11 +70,11 @@ export async function insertIntoYouTubePlaylist(playlistName, tracks){
     }
 }
 
-export function formatQuery(query){
-    return query.replaceAll(/oficial audio/gi).replaceAll(/\(lyrics\).+/gi, '').replaceAll(/\(.+?\)/g, '').replaceAll(/\[.+?\]/g, '')
+export function formatQuery(query: string){
+    return query.replaceAll(/oficial audio/gi, '').replaceAll(/\(lyrics\).+/gi, '').replaceAll(/\(.+?\)/g, '').replaceAll(/\[.+?\]/g, '')
 }
 
-export async function insertIntoAmazonMusicPlaylist(playlistURL, playlistTitle, tracks){
+export async function insertIntoAmazonMusicPlaylist(playlistURL: string, playlistTitle: string, tracks: Track[]){
     try {
         let amznTracks = [];
         for(const track of tracks){

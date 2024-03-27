@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LogBox, Button ,ActionSheetIOS, Alert, Appearance, Image } from 'react-native';
+import { LogBox, Button ,ActionSheetIOS, Alert, Appearance, Image, View } from 'react-native';
 import { Ionicons, Entypo } from '@expo/vector-icons';
 
 import LibraryScreen from './app/screens/LibraryScreen';
@@ -42,6 +42,8 @@ import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
 // const sha1 = require('js-sha1');
 
 import * as ffmpeg from 'react-native-ffmpeg'
+import { DownloadTrackResult, SetState, Track } from './types';
+import { swapItems } from './app/Illusive/Utils';
 
 // import RNFetchBlob from "rn-fetch-blob";
 
@@ -54,7 +56,7 @@ import * as ffmpeg from 'react-native-ffmpeg'
 // ]);
 LogBox.ignoreLogs([
 	'Non-serializable values were found in the navigation state',
-]);  
+  ]);
 LogBox.ignoreAllLogs();
 
 const Tab  = createBottomTabNavigator();
@@ -62,10 +64,10 @@ const Stack = createNativeStackNavigator();
 
 const ExtrasStack = createNativeStackNavigator();
 
-function ExtrasStackScreen(props) {
-  return (
-	<ExtrasStack.Navigator options={{headerShown: false}}>
-	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}} initialParams={{downloadVideo: props.route.params.downloadVideo}} />
+function ExtrasStackScreen(props){
+	return (
+	<ExtrasStack.Navigator screenOptions={{headerShown: false}}>
+	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}}/>
 	  <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
 	  <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
 	  <ExtrasStack.Screen name="Experimental Features" component={ExtraSettingsExperimentalFeatures} />
@@ -82,12 +84,14 @@ const PlaylistsStack = createNativeStackNavigator();
 
 function PlaylistsStackScreen(props) {
   return (
-	<PlaylistsStack.Navigator options={{headerShown: false}}>
-	  <PlaylistsStack.Screen initialParams={{setPlaying: props.route.params.setPlaying}} options={{headerShown: false}} name="Playlist" component={PlaylistScreen} />
+	<PlaylistsStack.Navigator screenOptions={{headerShown: false}}>
+	  <PlaylistsStack.Screen options={{headerShown: false}} name="Playlist" component={PlaylistScreen} />
 	  <PlaylistsStack.Screen options={{headerShown: false}} name="PlaylistSubScreen" component={PlaylistSubScreen} />
 	</PlaylistsStack.Navigator>
   );
 }
+
+
 export class Tabs extends Component {
 	constructor (props){
 		super(props);
@@ -95,11 +99,10 @@ export class Tabs extends Component {
 	render(){
 		return (
 			<Tab.Navigator initialRouteName={'Library'} 
-			screenOptions={{headerShown: false, animation:'none', tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
+			screenOptions={{headerShown: false, tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
 			tabBarActiveBackgroundColor:Prefs.darkThemeDefault.colors.background, tabBarInactiveBackgroundColor: Prefs.darkThemeDefault.colors.background, tabBarStyle:{backgroundColor:Prefs.darkThemeDefault.colors.background, height: 90, zIndex:1}}} 
-			unmountInactiveScreens={true} detachInactiveScreens={true}>
+			detachInactiveScreens={true}>
 				<Tab.Screen name="My Library" component={LibraryScreen}
-				initialParams={{setPlaying: this.props.route.params.setPlaying, downloadVideo: this.props.route.params.downloadVideo}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
 					unmountOnBlur: false,
@@ -107,21 +110,18 @@ export class Tabs extends Component {
 				
 				/>
 				<Tab.Screen name="Playlists" component={PlaylistsStackScreen}
-				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
 					unmountOnBlur: true,
 				}}
 				/>
 				<Tab.Screen name="Search" component={SearchHomeScreen}
-				initialParams={{setPlaying: this.props.route.params.setPlaying}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
 					unmountOnBlur: false,
 				}}
 				/>
 				<Tab.Screen name="Extras" component={ExtrasStackScreen}
-				initialParams={{downloadVideo: this.props.route.params.downloadVideo}}
 				options={{
 					tabBarIcon: ({ color }) => ( <Entypo name="dots-three-horizontal" size={25} color={color}/>),
 				}}
@@ -133,24 +133,29 @@ export class Tabs extends Component {
 
 
 export default class App extends Component{
+	constructor (props){
+		super(props);
+	}
 	state = {
-		isPlaying: false,
-		isPlayingRestart: false,
-		data: [],
-		playlistName: '',
-		isLoading: false
+		is_playing: false,
+		is_playing_restart: false,
+		tracks: [] as Track[],
+		playing_from: "",
+		is_loading: false
 	}
 	async componentDidMount() {
 		try {
+			GLOBALS.global_var.playTracks = this.playTracks;
+			GLOBALS.global_var.downloadTrack = this.downloadTrack;
 			ffmpeg.RNFFmpegConfig.setLogLevel(ffmpeg.LogLevel.AV_LOG_QUIET)
-			statisticsCallback = (statistics) => {
-				let index = GLOBALS.DOWNLOADING.findIndex(item => item.executionId == statistics.executionId )
+			const statisticsCallback = (statistics) => {
+				let index = GLOBALS.DOWNLOADING.findIndex(item => item.execution_id == statistics.executionId )
 				if(index == -1)
 					return;
 				const progress = Math.floor(statistics.time/1000) / GLOBALS.DOWNLOADING[index].duration 
 				GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-				if(GLOBALS.DOWNLOADING[index].progressUpdater != undefined){
-					GLOBALS.DOWNLOADING[index].progressUpdater(GLOBALS.DOWNLOADING[index].progress)
+				if(GLOBALS.DOWNLOADING[index].progress_updater != undefined){
+					GLOBALS.DOWNLOADING[index].progress_updater(GLOBALS.DOWNLOADING[index].progress)
 				}
 			};
 			ffmpeg.RNFFmpegConfig.enableStatisticsCallback(statisticsCallback);
@@ -169,18 +174,50 @@ export default class App extends Component{
 		} catch (error) {
 			Alert.alert("Error", error)
 		} finally {
-			this.setState({isLoading: true})
+			this.setState({is_loading: true})
 			if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
 				await SQLActions.refreshCache()
 		}
 	}
-	playVideo(data, playlistName){
-		this.setState({isPlaying: false}, () => {
-			this.setState({data: data})
-			this.setState({playlistName: playlistName})
-			this.setState({isPlaying: false})
-			this.setState({isPlaying: true})
-			GLOBALS.IsPlaying = true}
+	playTracks(first_track: Track, tracks: Track[], playlist_name: string){
+		if(tracks.length === 0) return;
+		if(!GLOBALS.global_var.ableToPlayAgainMutex || first_track.imported || first_track.downloaded){
+			GLOBALS.global_var.ableToPlayAgainMutex = true
+			if(Prefs.prefs.settings.only_play_downloaded){
+				tracks = tracks.filter((item) => item.downloaded || item.imported)
+			}
+			if(tracks.length > 0)
+				if(Prefs.prefs.settings.always_shuffle) { // PLAY SHUFFLE
+					let current_index = tracks.length;
+					let random_index: number;
+			
+					while (current_index != 0) {
+						random_index = Math.floor(Math.random() * current_index);
+						current_index--;
+			
+						[tracks[current_index], tracks[random_index]] = [
+						tracks[random_index], tracks[current_index]];
+					}
+					
+					const this_index = tracks.findIndex((item) => item.uid == first_track.uid);
+					tracks = swapItems(tracks, 0, this_index);
+				}
+				else { // PLAY ORDER
+					const this_index = tracks.findIndex((item) => item.uid == first_track.uid);
+					tracks = swapItems(tracks, 0, this_index);
+				}
+			GLOBALS.global_var.ableToPlayAgainMutex = false;
+		} else{
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+			return;
+		}
+		this.setState({is_playing: false}, () => {
+			this.setState({'tracks': tracks})
+			this.setState({playing_from: playlist_name})
+			this.setState({is_playing: false})
+			this.setState({is_playing: true})
+			GLOBALS.global_var.IsPlaying = true
+		}
 		)
 	}
 	waitFor(conditionFunction) {
@@ -191,7 +228,7 @@ export default class App extends Component{
 		
 		return new Promise(poll);
 	}
-	async downloadVideo(uid, video_id, duration, progressUpdater, startDownloadState, setFinishedDownloadedState = undefined){
+	async downloadTrack(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded: SetState = undefined): Promise<DownloadTrackResult>{
 		function isInDownloadRange(uid, downloadQueueMaxLength){
 			for(let i = 0; i < downloadQueueMaxLength; i++){
 				if(GLOBALS.DOWNLOADING[i]?.uid === uid)
@@ -199,23 +236,12 @@ export default class App extends Component{
 			}
 			return false;
 		}
-		// function callback(downloadProgress){
-		// 	const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-		// 	let index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-		// 	if(index !== -1)
-		// 		if(GLOBALS.DOWNLOADING[index].progress < progress * 100 + 1){
-		// 			GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-		// 			if(progressUpdater != undefined && GLOBALS.DOWNLOADING[index].progress < 95 ){
-		// 				progressUpdater(GLOBALS.DOWNLOADING[index].progress)
-		// 			}
-		// 		}
-		// }
 		
-		GLOBALS.DOWNLOADING.push({'uid': uid, 'progress': 0, 'progressUpdater': progressUpdater, 'duration': duration})
+		GLOBALS.DOWNLOADING.push({'uid': track.uid, 'progress': 0, 'progress_updater': progress_updater, 'duration': track.video_duration})
 		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
-		this.waitFor(() => isInDownloadRange(uid,downloadQueueMaxLength))
+		this.waitFor(() => isInDownloadRange(track.uid, downloadQueueMaxLength))
 		.then(async() => {
-			  const youtubeURL = 'http://www.youtube.com/watch?v=' + video_id;
+			  const youtubeURL = 'http://www.youtube.com/watch?v=' + track.video_id;
 			  
 			  let downloadURI;
 			  //140
@@ -227,25 +253,23 @@ export default class App extends Component{
 					}}
 				}
 				  downloadURI = await ytdl(youtubeURL, { 'quality': 'lowestaudio', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
-				//   console.log(downloadURI)
-				//   downloadURI = await ytdl(youtubeURL, { quality: '18' }); // Low:18 - Med:22 - High:37
 				  downloadURI = downloadURI[0].url;
 			  } catch (error) {
 				  if(String(error).includes("Video unavailable")){
-					SQLActions.addToBackpack(uid);
+					SQLActions.addToBackpack(track.uid);
 				  }
-				if(startDownloadState != undefined)
-					startDownloadState(false)
-				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+				if(start_download != undefined)
+					start_download(false)
+				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
 				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-				Alert.alert("Coudln't find the file", uid + ' : ' + error)
-				return
+				Alert.alert("Coudln't find the file", track.uid + ' : ' + error)
+				return "ERROR";
 			  }
 			try {
-				if(startDownloadState != undefined)
-					startDownloadState(true)
+				if(start_download != undefined)
+					start_download(true)
 
-				let newUri = FileSystem.documentDirectory + uid + '.m4a'
+				let newUri = FileSystem.documentDirectory + track.uid + '.m4a'
 				ffmpeg.RNFFmpeg.executeAsync(`-y -i ${downloadURI} ${newUri}`, async() => {
 					try {						
 						let soundTemp = new Audio.Sound();
@@ -262,9 +286,9 @@ export default class App extends Component{
 							await soundTemp.unloadAsync();
 						}
 				
-						await SQLActions.setTrackAsDownloaded(uid, uid + '.m4a');
+						await SQLActions.setTrackAsDownloaded(track.uid, track.uid + '.m4a');
 		
-						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
 						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 						
 						await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
@@ -272,46 +296,47 @@ export default class App extends Component{
 						if(GLOBALS.DOWNLOADING.length === 0){
 							Alert.alert("Finished Download Enqueued Tracks")
 						}
-						if(startDownloadState != undefined)
-							startDownloadState(false)
-						if(setFinishedDownloadedState != undefined)
-							setFinishedDownloadedState(true)
+						if(start_download != undefined)
+							start_download(false)
+						if(set_finished_downloaded != undefined)
+							set_finished_downloaded(true)
 					} catch (error) {
-						if(startDownloadState != undefined)
-						startDownloadState(false)
-						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ error);
-						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+						if(start_download != undefined)
+							start_download(false)
+						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(track.uid) + ":\n"+ error);
+						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
 						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 						if(GLOBALS.DOWNLOADING.length === 0){
 							Alert.alert("Finished Download Playlist")
 						}
 					}
 				}).then(executionId => {
-					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
-					GLOBALS.DOWNLOADING[itemIndex]['executionId'] = executionId;
+					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
+					GLOBALS.DOWNLOADING[itemIndex]['execution_id'] = executionId;
 				})
 
 			  	} catch (e) {
-				//   setIsDownloading(false)
-					if(startDownloadState != undefined)
-						startDownloadState(false)
-					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(uid) + ":\n"+ e);
-					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == uid)
+					if(start_download != undefined)
+						start_download(false)
+					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(track.uid) + ":\n"+ e);
+					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
 					GLOBALS.DOWNLOADING.splice(itemIndex, 1)
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}
 			  	}
-		});
+				return "GOOD";
+			});
+		return "GOOD";
 	}
 	render(){
 		return (
 			// <Provider store={store}>
 				<NavigationContainer theme={Prefs.darkThemeDefault}>
-						{this.state.isPlaying && <PlayingSong data={this.state.data} playlist={this.state.playlistName}/>}
-						{!this.state.isLoading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
-						{this.state.isLoading && <Stack.Navigator>
-							<Stack.Screen name="Tabs" component={Tabs} initialParams={{setPlaying: this.playVideo.bind(this), downloadVideo: this.downloadVideo.bind(this)}} options={{headerShown: false, zIndex: 1}}/>
+						{this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>}
+						{!this.state.is_loading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
+						{this.state.is_loading && <Stack.Navigator>
+							<Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}}/>
 							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
