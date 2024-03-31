@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -39,7 +39,7 @@ import axios from 'axios';
 import { searchAmazonMusic } from './app/Illusive/IllusiveSearch';
 import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
 // const sha1 = require('js-sha1');
-
+import useStateWithCallback from 'use-state-with-callback';
 import * as ffmpeg from 'react-native-ffmpeg'
 import { DownloadTrackResult, SetState, Track } from './types';
 import { swapItems } from './app/Illusive/Utils';
@@ -131,54 +131,58 @@ export class Tabs extends Component {
 	}
 }
 
-export default class App extends Component {
-	constructor (props){
-		super(props);
-	}
-	state = {
-		is_playing: false,
-		is_playing_restart: false,
-		tracks: [] as Track[],
-		playing_from: "",
-		is_loading: false
-	}
-	async componentDidMount() {
-		try {
-			GLOBALS.global_var.playTracks = this.playTracks;
-			GLOBALS.global_var.downloadTrack = this.downloadTrack;
-			ffmpeg.RNFFmpegConfig.setLogLevel(ffmpeg.LogLevel.AV_LOG_QUIET)
-			const statisticsCallback = (statistics) => {
-				let index = GLOBALS.DOWNLOADING.findIndex(item => item.execution_id == statistics.executionId )
-				if(index == -1)
-					return;
-				const progress = Math.floor(statistics.time/1000) / GLOBALS.DOWNLOADING[index].duration 
-				GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-				if(GLOBALS.DOWNLOADING[index].progress_updater != undefined){
-					GLOBALS.DOWNLOADING[index].progress_updater(GLOBALS.DOWNLOADING[index].progress)
-				}
-			};
-			ffmpeg.RNFFmpegConfig.enableStatisticsCallback(statisticsCallback);
-			let allPromises = []
-			await SQLActions.recreateAllTables();
-			await Prefs.fetchPrefs();
-			await SQLActions.fixToNewUpdate();
-			await SQLActions.fetchTrackData();
-			allPromises.push(SQLActions.cleanupRecentlyPlayed())
-			if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails'))
-				allPromises.push(SQLActions.cleanCache())
-			allPromises.push(activateKeepAwakeAsync());
-			allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
-			allPromises.push(Prefs.fetchAutoLinkedPlaylists());
-			await Promise.all(allPromises)
-		} catch (error) {
-			Alert.alert("Error", error)
-		} finally {
-			this.setState({is_loading: true})
-			if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
-				await SQLActions.refreshCache()
+export default function App() {
+	let playing_tracks = [] as Track[];
+	let playing_from = "";
+	const [isLoading, setIsLoading] = useState(true);
+	const [isPlaying, setIsPlaying] = useState(false);
+	
+	useEffect(() => {
+		(async function() {
+			try {
+				GLOBALS.global_var.playTracks = playTracks;
+				GLOBALS.global_var.downloadTrack = downloadTrack;
+				ffmpeg.RNFFmpegConfig.setLogLevel(ffmpeg.LogLevel.AV_LOG_QUIET)
+				const statisticsCallback = (statistics) => {
+					let index = GLOBALS.DOWNLOADING.findIndex(item => item.execution_id == statistics.executionId )
+					if(index == -1)
+						return;
+					const progress = Math.floor(statistics.time/1000) / GLOBALS.DOWNLOADING[index].duration 
+					GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
+					if(GLOBALS.DOWNLOADING[index].progress_updater != undefined){
+						GLOBALS.DOWNLOADING[index].progress_updater(GLOBALS.DOWNLOADING[index].progress)
+					}
+				};
+				ffmpeg.RNFFmpegConfig.enableStatisticsCallback(statisticsCallback);
+				let allPromises = []
+				await SQLActions.recreateAllTables();
+				await Prefs.fetchPrefs();
+				await SQLActions.fixToNewUpdate();
+				await SQLActions.fetchTrackData();
+				allPromises.push(SQLActions.cleanupRecentlyPlayed())
+				if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails'))
+					allPromises.push(SQLActions.cleanCache())
+				allPromises.push(activateKeepAwakeAsync());
+				allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
+				allPromises.push(Prefs.fetchAutoLinkedPlaylists());
+				await Promise.all(allPromises)
+			} catch (error) {
+				Alert.alert("Error", error)
+			} finally {
+				setIsLoading(false);
+				if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
+					await SQLActions.refreshCache()
+			}
+		})();
+	},[]);
+	useEffect(() => {
+		if(isPlaying == false){
+			setIsPlaying(true);
+			GLOBALS.global_var.IsPlaying = true;
 		}
-	}
-	playTracks(first_track: Track, tracks: Track[], playlist_name: string){
+	}, [isPlaying])
+
+	function playTracks(first_track: Track, tracks: Track[], playlist_name: string){
 		if(tracks.length === 0) return;
 		if(!GLOBALS.global_var.ableToPlayAgainMutex || first_track.imported || first_track.downloaded){
 			GLOBALS.global_var.ableToPlayAgainMutex = true
@@ -212,19 +216,14 @@ export default class App extends Component {
 		}
 		try 
 		{
-			console.log(this.state)
-			this.setState({is_playing: false}, () => {
-				this.setState({'tracks': tracks})
-				this.setState({playing_from: playlist_name})
-				this.setState({is_playing: false})
-				this.setState({is_playing: true})
-				GLOBALS.global_var.IsPlaying = true
-			});
+			playing_tracks = tracks;
+			playing_from = playlist_name;
+			setIsPlaying(false);
 		} catch (error) {
 			console.log("error", error);
 		}
 	}
-	waitFor(conditionFunction) {
+	function waitFor(conditionFunction) {
 		const poll = resolve => {
 			if(conditionFunction()) resolve();
 			else setTimeout(_ => poll(resolve), 400);
@@ -232,7 +231,7 @@ export default class App extends Component {
 		
 		return new Promise(poll);
 	}
-	async downloadTrack(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded: SetState = undefined): Promise<DownloadTrackResult>{
+	async function downloadTrack(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded: SetState = undefined): Promise<DownloadTrackResult>{
 		function isInDownloadRange(uid, downloadQueueMaxLength){
 			for(let i = 0; i < downloadQueueMaxLength; i++){
 				if(GLOBALS.DOWNLOADING[i]?.uid === uid)
@@ -243,7 +242,7 @@ export default class App extends Component {
 		
 		GLOBALS.DOWNLOADING.push({'uid': track.uid, 'progress': 0, 'progress_updater': progress_updater, 'duration': track.video_duration})
 		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length ?? 1
-		this.waitFor(() => isInDownloadRange(track.uid, downloadQueueMaxLength))
+		waitFor(() => isInDownloadRange(track.uid, downloadQueueMaxLength))
 		.then(async() => {
 			  const youtubeURL = 'http://www.youtube.com/watch?v=' + track.video_id;
 			  
@@ -333,54 +332,52 @@ export default class App extends Component {
 			});
 		return "GOOD";
 	}
-	render(){
-		return (
-			// <Provider store={store}>
-				<NavigationContainer theme={Prefs.darkThemeDefault}>
-						{this.state.is_playing && <AudioPlayer tracks={this.state.tracks} playing_from={this.state.playing_from}/> }
-						{/* {this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>} */}
-						{!this.state.is_loading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
-						{this.state.is_loading && <Stack.Navigator>
-							<Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}}/>
-							<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
-							<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
-							<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-							<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Prefs.darkThemeDefault.colors.primary,
-									headerRight: () => (
-										<Button
-											color='#808080'
-											onPress={() => {}}
-											title="Next"
-										/>
-										),
-									})} />
-							<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
-									headerRight: () => (
-										<Button
-											color='#1313ff'
-											onPress={() => ActionSheetIOS.showActionSheetWithOptions(
-												{
-												options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
-												cancelButtonIndex: 0,
-												userInterfaceStyle: 'dark',
-												
-												},
-												(buttonIndex) => {
-												if (buttonIndex === 0) {
-												} else if (buttonIndex === 1) {
-												} else if (buttonIndex === 2) {
-												}
-												}
-											)
-										}
-											title="Save"
-										/>
-										),
-									})}/>
-						</Stack.Navigator>}
-				</NavigationContainer>
-			// </Provider>
-		);
-	}
+	return (
+		// <Provider store={store}>
+			<NavigationContainer theme={Prefs.darkThemeDefault}>
+					{isPlaying && <AudioPlayer tracks={playing_tracks} playing_from={playing_from}/> }
+					{/* {this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>} */}
+					{isLoading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
+					{!isLoading && <Stack.Navigator>
+						<Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}}/>
+						<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
+						<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
+						<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
+						<Stack.Screen name="AddPlaylistFrom" component={AddPlaylistFrom}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Prefs.darkThemeDefault.colors.primary,
+								headerRight: () => (
+									<Button
+										color='#808080'
+										onPress={() => {}}
+										title="Next"
+									/>
+									),
+								})} />
+						<Stack.Screen name="GetAddPlaylistFrom" component={GetAddPlaylistFrom} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+								headerRight: () => (
+									<Button
+										color='#1313ff'
+										onPress={() => ActionSheetIOS.showActionSheetWithOptions(
+											{
+											options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'],
+											cancelButtonIndex: 0,
+											userInterfaceStyle: 'dark',
+											
+											},
+											(buttonIndex) => {
+											if (buttonIndex === 0) {
+											} else if (buttonIndex === 1) {
+											} else if (buttonIndex === 2) {
+											}
+											}
+										)
+									}
+										title="Save"
+									/>
+									),
+								})}/>
+					</Stack.Navigator>}
+			</NavigationContainer>
+		// </Provider>
+	);
 }
 //headerShown: true, headerStyle: {backgroundColor: '#121212',},headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'
