@@ -24,8 +24,8 @@ function TrackComponent(props: {
 		refreshData: () => void
 	}) {
 	const [isDownloading, setIsDownloading] = useState( GLOBALS.DOWNLOADING.findIndex((item) => item.uid == props.track_data.uid) != -1)
-	const [isDownloaded, setIsDownloaded] = useState(props.track_data.downloaded || false)
-	const [playlistSaved, setPlaylistSaved] = useState(props.track_data.saved || false)
+	const [isDownloaded, setIsDownloaded] = useState(props.track_data.downloaded ?? false)
+	const [playlistSaved, setPlaylistSaved] = useState(props.track_data.saved ?? false)
 	const [downloadingProgress, setDownloadingProgress] = useState(0)
 	
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
@@ -55,7 +55,7 @@ function TrackComponent(props: {
 	let interval;
 	useEffect(() => {
 		let index = -1;
-		let depth = Prefs.prefs?.settings?.download_queue_max_length || 1;
+		let depth = Prefs.prefs?.settings?.download_queue_max_length ?? 1;
 		for(let i = 0; i < depth; i++){
 			if(GLOBALS?.DOWNLOADING[i]?.uid === props.track_data.uid)
 				index = i;
@@ -66,7 +66,7 @@ function TrackComponent(props: {
 			setDownloadingProgress(GLOBALS?.DOWNLOADING[index]?.progress)
 			interval = setInterval(() => {
 				let in_index = -1;
-				let in_depth = Prefs.prefs?.settings?.download_queue_max_length || 1;
+				let in_depth = Prefs.prefs?.settings?.download_queue_max_length ?? 1;
 				for(let i = 0; i < in_depth; i++){
 					if(GLOBALS?.DOWNLOADING[i]?.uid === props.track_data.uid)
 					in_index = i;
@@ -177,15 +177,15 @@ function TrackComponent(props: {
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.video_name}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.track_data.video_creator}</Text>
 					<View style={{flexDirection: 'row'}}>
-						{(props.track_data.youtube || false) && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
-						{(props.track_data.imported || false) && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}
-						{(props.track_data.amazonmusic || false) && <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.spotify || false) && <MaterialCommunityIcons name="spotify" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.soundcloud || false) && <MaterialCommunityIcons name="soundcloud" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.applemusic || false) && <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon}/>}
+						{(props.track_data.youtube ?? false) && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
+						{(props.track_data.imported ?? false) && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}
+						{(props.track_data.amazonmusic ?? false) && <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon}/>}
+						{(props.track_data.spotify ?? false) && <MaterialCommunityIcons name="spotify" size={15} color={colors.secondary} style={styles.icon}/>}
+						{(props.track_data.soundcloud ?? false) && <MaterialCommunityIcons name="soundcloud" size={15} color={colors.secondary} style={styles.icon}/>}
+						{(props.track_data.applemusic ?? false) && <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon}/>}
 						{(isDownloaded) && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
 						{(isDownloading) && <Ionicons name="download" size={15} color={colors.secondary} style={styles.icon}/>}
-						{((props.track_data.thumbnail_uri || "") !== "") && <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/>}
+						{((props.track_data.thumbnail_uri ?? "") !== "") && <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/>}
 					</View>
 				</View>
 				{props.write_playlist != undefined && 

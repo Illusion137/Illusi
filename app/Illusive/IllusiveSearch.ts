@@ -68,8 +68,8 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 				port: proxy.port,
 			}})).data
 		}
-		const raw = dataRegex.exec(body)?.[1] || '{}'
-		const apikey = apiRegex.exec(body)[1] || ''
+		const raw = dataRegex.exec(body)?.[1] ?? '{}'
+		const apikey = apiRegex.exec(body)[1] ?? ''
 		
 		let ytInitialData = JSON.parse(decodeHex(raw).replaceAll(/\n\s+/g,'').replaceAll('\n',''))
      

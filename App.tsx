@@ -30,7 +30,6 @@ import * as Haptics from 'expo-haptics';
 
 import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
-import PlayingSong from './app/screens/subscreens/PlayingSong';
 import ExternalServicesScreen from './app/screens/subscreens/ExtraExternalServicesScreen';
 import ExtraLinkerScreen from './app/screens/subscreens/ExtraLinkerScreen';
 import ExtraBatchDownloaderScreen from './app/screens/subscreens/ExtraBatchDownloaderScreen';
@@ -44,6 +43,7 @@ import ExtraBackpackScreen from './app/screens/subscreens/ExtraBackpackScreen';
 import * as ffmpeg from 'react-native-ffmpeg'
 import { DownloadTrackResult, SetState, Track } from './types';
 import { swapItems } from './app/Illusive/Utils';
+import AudioPlayer from './app/screens/subscreens/AudioPlayer';
 
 // import RNFetchBlob from "rn-fetch-blob";
 
@@ -131,8 +131,7 @@ export class Tabs extends Component {
 	}
 }
 
-
-export default class App extends Component{
+export default class App extends Component {
 	constructor (props){
 		super(props);
 	}
@@ -211,14 +210,19 @@ export default class App extends Component{
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 			return;
 		}
-		this.setState({is_playing: false}, () => {
-			this.setState({'tracks': tracks})
-			this.setState({playing_from: playlist_name})
-			this.setState({is_playing: false})
-			this.setState({is_playing: true})
-			GLOBALS.global_var.IsPlaying = true
+		try 
+		{
+			console.log(this.state)
+			this.setState({is_playing: false}, () => {
+				this.setState({'tracks': tracks})
+				this.setState({playing_from: playlist_name})
+				this.setState({is_playing: false})
+				this.setState({is_playing: true})
+				GLOBALS.global_var.IsPlaying = true
+			});
+		} catch (error) {
+			console.log("error", error);
 		}
-		)
 	}
 	waitFor(conditionFunction) {
 		const poll = resolve => {
@@ -238,7 +242,7 @@ export default class App extends Component{
 		}
 		
 		GLOBALS.DOWNLOADING.push({'uid': track.uid, 'progress': 0, 'progress_updater': progress_updater, 'duration': track.video_duration})
-		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length || 1
+		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length ?? 1
 		this.waitFor(() => isInDownloadRange(track.uid, downloadQueueMaxLength))
 		.then(async() => {
 			  const youtubeURL = 'http://www.youtube.com/watch?v=' + track.video_id;
@@ -333,7 +337,8 @@ export default class App extends Component{
 		return (
 			// <Provider store={store}>
 				<NavigationContainer theme={Prefs.darkThemeDefault}>
-						{this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>}
+						{this.state.is_playing && <AudioPlayer tracks={this.state.tracks} playing_from={this.state.playing_from}/> }
+						{/* {this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>} */}
 						{!this.state.is_loading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
 						{this.state.is_loading && <Stack.Navigator>
 							<Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}}/>

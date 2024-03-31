@@ -817,7 +817,7 @@ export async function getSpotifyPlaylist(url){
 
         return {
             'data': results,
-            'title': playlistData.data?.albumUnion?.name || playlistData.data?.playlistV2?.name
+            'title': playlistData.data?.albumUnion?.name ?? playlistData.data?.playlistV2?.name
         }
 
     } catch (error) {

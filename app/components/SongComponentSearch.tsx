@@ -56,16 +56,16 @@ function SongComponentSearch(props:
 
 	// const [downloaded, isDownloaded] = useState(props.downloaded);
 	return (
-		<TouchableOpacity disabled={props.disabled || false} onLongPress={async() => {
+		<TouchableOpacity disabled={props.disabled ?? false} onLongPress={async() => {
 			if(GLOBALS.global_var.IsPlaying){
 				let trackIndex = await TrackPlayer.getCurrentTrack();
 				let track = new Track({
 					'youtube': true,
-					'video_name': props.video_name || "", 
-					'video_creator': props.video_creator || "", 
-					'video_duration':props.video_duration || 0, 
-					'video_id':props.video_id || "", 
-					'uid': props.uid || "",
+					'video_name': props.video_name ?? "", 
+					'video_creator': props.video_creator ?? "", 
+					'video_duration':props.video_duration ?? 0, 
+					'video_id':props.video_id ?? "", 
+					'uid': props.uid ?? "",
 				});
 				track['successful'] = false
 				track['added'] = false
@@ -80,11 +80,11 @@ function SongComponentSearch(props:
 				GLOBALS.global_var.ableToPlayAgainMutex = true
 				let currentTrack = new Track({
 					'youtube': true,
-					'video_name': props.video_name || "", 
-					'video_creator': props.video_creator || "", 
-					'video_duration':props.video_duration || 0, 
-					'video_id':props.video_id || "", 
-					'uid': props.uid || "",
+					'video_name': props.video_name ?? "", 
+					'video_creator': props.video_creator ?? "", 
+					'video_duration':props.video_duration ?? 0, 
+					'video_id':props.video_id ?? "", 
+					'uid': props.uid ?? "",
 				})
 				currentTrack['successful'] = false;
 				currentTrack['added'] = false;
@@ -160,10 +160,10 @@ function SongComponentSearch(props:
 						if(!saved){
 							try{
 								await SQLActions.insertTrackData(new Track({
-									video_name: props.video_name || "-",
-									video_creator: props.video_creator || "-",
-									video_id: props.video_id || "0",
-									video_duration: props.video_duration || 0,
+									video_name: props.video_name ?? "-",
+									video_creator: props.video_creator ?? "-",
+									video_id: props.video_id ?? "0",
+									video_duration: props.video_duration ?? 0,
 									saved: true,
 									youtube: true,
 									uid: props.uid,

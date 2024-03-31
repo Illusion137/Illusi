@@ -1,4 +1,4 @@
-export type Artwork = string | number | {'uri': string, 'cache': string};
+export type Artwork = string | number | {uri: string, cache?: string};
 
 export type EditMode = "NONE" | "DOWNLOAD" | "DELETE" | "EDIT";
 export type DownloadTrackResult = "GOOD" | "ERROR";
@@ -58,24 +58,24 @@ export class Track{
         callback?: () => void
     }){
         this.uid = t.uid;
-        this.video_id = t.video_id || "";
-        this.video_name = t.video_name || "";
-        this.video_creator = t.video_creator || "";;
-        this.video_duration = t.video_duration || -1;
-        this.media_uri = t.media_uri || "";
-        this.thumbnail_uri = t.thumbnail_uri || "";
-        this.saved = t.saved || false;
-        this.imported = t.imported || false;
-        this.downloaded = t.downloaded || false;
-        this.youtube = t.youtube || false;
-        this.soundcloud = t.soundcloud || false;
-        this.spotify = t.spotify || false;
-        this.amazonmusic = t.amazonmusic || false;
-        this.applemusic = t.applemusic || false;
-        this.exid = t.exid || "";
-        this.artwork = t.artwork || ""
-        this.disabled = t.disabled || false
-        this.callback = t.callback || null
+        this.video_id = t.video_id ?? "";
+        this.video_name = t.video_name ?? "";
+        this.video_creator = t.video_creator ?? "";;
+        this.video_duration = t.video_duration ?? -1;
+        this.media_uri = t.media_uri ?? "";
+        this.thumbnail_uri = t.thumbnail_uri ?? "";
+        this.saved = t.saved ?? false;
+        this.imported = t.imported ?? false;
+        this.downloaded = t.downloaded ?? false;
+        this.youtube = t.youtube ?? false;
+        this.soundcloud = t.soundcloud ?? false;
+        this.spotify = t.spotify ?? false;
+        this.amazonmusic = t.amazonmusic ?? false;
+        this.applemusic = t.applemusic ?? false;
+        this.exid = t.exid ?? "";
+        this.artwork = t.artwork ?? 0
+        this.disabled = t.disabled ?? false
+        this.callback = t.callback ?? null
     }
 
     toSQLInsert(): any[]{
@@ -116,11 +116,11 @@ export class SmallTrack {
         video_creator: string
         video_duration: number
     }) {
-        this.uid = t.uid || "";
-        this.video_id = String(t.video_id) || "";
-        this.video_name = String(t.video_name) || "";
-        this.video_creator = String(t.video_creator) || "";
-        this.video_duration = t.video_duration || 0;
+        this.uid = t.uid ?? "";
+        this.video_id = String(t.video_id) ?? "";
+        this.video_name = String(t.video_name) ?? "";
+        this.video_creator = String(t.video_creator) ?? "";
+        this.video_duration = t.video_duration ?? 0;
     }
     toSQLInsert(){
         const toArray = [];

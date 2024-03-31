@@ -15,18 +15,18 @@ export class LinkedPlaylist{
     auto_fetch_on_startup_only_on_wifi: boolean
 
     constructor(p){
-        this.service_from = p.service_from || "";
-        this.service_to = p.service_to || "";
+        this.service_from = p.service_from ?? "";
+        this.service_to = p.service_to ?? "";
 
-        this.playlist_name_from = p.playlist_name_from || "";
-        this.playlist_name_to = p.playlist_name_to || "";
+        this.playlist_name_from = p.playlist_name_from ?? "";
+        this.playlist_name_to = p.playlist_name_to ?? "";
 
-        this.url_from = p.url_from || "";
-        this.url_to = p.url_to || "";
+        this.url_from = p.url_from ?? "";
+        this.url_to = p.url_to ?? "";
 
-        this.use_service_cookies = p.use_service_cookies || false;
-        this.auto_fetch_on_startup = p.auto_fetch_on_startup || true;
-        this.auto_fetch_on_startup_only_on_wifi = p.auto_fetch_on_startup_only_on_wifi || true;
+        this.use_service_cookies = p.use_service_cookies ?? false;
+        this.auto_fetch_on_startup = p.auto_fetch_on_startup ?? true;
+        this.auto_fetch_on_startup_only_on_wifi = p.auto_fetch_on_startup_only_on_wifi ?? true;
     }
 }
 

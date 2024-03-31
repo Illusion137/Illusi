@@ -133,13 +133,13 @@ import * as SQLActions from './SQLActions'
       try {
         if(!globals.global_var.initialPlaybackTrackChangedMutex && !changedMutex){
             changedMutex = true;
-          if(!globals.global_var.pQueue.isEmpty){
-            globals.global_var.pQueue.dequeue();
+          if(!globals.global_var.playingQueue.isEmpty){
+            globals.global_var.playingQueue.dequeue();
           }
-          globals.global_var.pQueue.elements = {}
-          globals.global_var.pQueue.head = 0
-          globals.global_var.pQueue.tail = 0
-          let index = (await TrackPlayer.getCurrentTrack()) || 0;
+          globals.global_var.playingQueue.elements = {}
+          globals.global_var.playingQueue.head = 0
+          globals.global_var.playingQueue.tail = 0
+          let index = (await TrackPlayer.getCurrentTrack()) ?? 0;
           let track = globals.global_var.playingTracks[index];
 
           if(index != 0 && globals.global_var.playingTracks[index]['successful'] == false && !prevMutex){
@@ -153,7 +153,7 @@ import * as SQLActions from './SQLActions'
                 }
               await TrackPlayer.play();
           }
-          index = (await TrackPlayer.getCurrentTrack()) || 0;
+          index = (await TrackPlayer.getCurrentTrack()) ?? 0;
           track = globals.global_var.playingTracks[index];
 
           if(!track.imported){
@@ -200,7 +200,7 @@ import * as SQLActions from './SQLActions'
     TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async(data) => {
         // console.log(data)
         try {
-            let curTrack = await TrackPlayer.getTrack(data.track || 0);
+            let curTrack = await TrackPlayer.getTrack(data.track ?? 0);
             //data.position + 5 > curTrack.duration
             if(globals.global_var.playingTracks[data.track + 1]["added"] === false && !globals.global_var.addTrackIntoQueueTracksMutex && globals.global_var.playingTracks[data.track + 1]["successful"] === false){
                 globals.global_var.playingTracks[data.track + 1]["added"] = true

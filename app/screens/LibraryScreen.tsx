@@ -28,7 +28,8 @@ const LibraryScreen = ({ navigation, route }) => {
 	
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
-	const scroll_bar_animation = useRef(new Animated.Value(93)).current;
+
+	const scroll_bar_animated = useRef(new Animated.Value(93)).current;
 	const biglist_ref = useRef();
     const is_focused = useIsFocused();
 
@@ -67,7 +68,7 @@ const LibraryScreen = ({ navigation, route }) => {
 					)
 					sectionChars.push(value[0])
 				}
-				setAllData({char_data: sectionChars, track_mask: sections, num_tracks: GLOBALS.global_var.SQLTracks.length, edit_mode: allData.edit_mode || "NONE" })
+				setAllData({char_data: sectionChars, track_mask: sections, num_tracks: GLOBALS.global_var.SQLTracks.length, edit_mode: allData.edit_mode ?? "NONE" })
 			})();
 	}, [is_focused]);
 		
@@ -101,7 +102,7 @@ const LibraryScreen = ({ navigation, route }) => {
 			)
 			section_chars.push(value[0])
 		}
-		setAllData({char_data: section_chars, track_mask: sections, num_tracks: tracks.length, edit_mode: allData.edit_mode || "NONE"})
+		setAllData({char_data: section_chars, track_mask: sections, num_tracks: tracks.length, edit_mode: allData.edit_mode ?? "NONE"})
 	}
 
 	function setEditMode(mode: EditMode){
@@ -124,15 +125,15 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		setEditMode(current_edit_mode);
 		if(current_edit_mode === "NONE") {
-			Animated.timing(scroll_bar_animation, {
-				'useNativeDriver': false,
+			Animated.timing(scroll_bar_animated, {
+				'useNativeDriver': true,
 				'toValue': 93,
 				'duration': 300
 			}).start();
 		}
 		else {
-			Animated.timing(scroll_bar_animation, {
-				'useNativeDriver': false,
+			Animated.timing(scroll_bar_animated, {
+				'useNativeDriver': true,
 				'toValue': 100,
 				'duration': 300
 			}).start();
@@ -186,7 +187,7 @@ const LibraryScreen = ({ navigation, route }) => {
 			)
 			section_chars.push(value[0])
 		}
-		setAllData({char_data: section_chars, track_mask: sections, num_tracks: filtered_tracks.length, edit_mode: allData.edit_mode || "NONE"});
+		setAllData({char_data: section_chars, track_mask: sections, num_tracks: filtered_tracks.length, edit_mode: allData.edit_mode ?? "NONE"});
 	}
 	async function uploadFile() {
 		try {
@@ -197,7 +198,7 @@ const LibraryScreen = ({ navigation, route }) => {
 
 			for(const audio_file of audio_files){	
 				all_file_copy_tracks.push(audio_file.fileCopyUri)
-				let fileName = audio_file.name.replace(/\..+/, '') || ""						
+				let fileName = audio_file.name.replace(/\..+/, '') ?? ""						
 				let uid = GenerateNewUID(fileName)
 				let newFileURI = encodeURI(uid + audio_file.fileCopyUri.match(/\..+/)[0])
 				await FileSystem.moveAsync({from: audio_file.fileCopyUri, to: FileSystem.documentDirectory + newFileURI})
@@ -211,7 +212,7 @@ const LibraryScreen = ({ navigation, route }) => {
 					"video_id": "0",
 					"video_name": fileName,
 					"video_creator": "Sudo",
-					"video_duration": Math.round(meta_data.durationMillis/1000) || 0,
+					"video_duration": Math.round(meta_data.durationMillis/1000) ?? 0,
 					"media_uri": newFileURI,
 					"imported": true,
 					"saved": true,
@@ -288,7 +289,7 @@ const LibraryScreen = ({ navigation, route }) => {
 			/>
 			<Animated.View style={{backgroundColor: colors.background,
 					position: 'absolute',
-					left: scroll_bar_animation.interpolate({
+					left: scroll_bar_animated.interpolate({
 						'inputRange': [0, 100],
 						'outputRange': ["0%", "100%"],
 					}),
