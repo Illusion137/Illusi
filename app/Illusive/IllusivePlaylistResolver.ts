@@ -5,6 +5,7 @@ import * as Prefs from "../../Preferences";
 import req from "./Req";
 import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getSpotifyInitialData } from "./IllusiveAccountPlaylistFinder";
 import { getYouTubeSapisidHashAuth } from "./IllusiveHelper";
+import { MusicServiceImport } from "../../types";
 
 function getYTPlaylistIdFromURL(url: string){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
@@ -36,7 +37,7 @@ export async function getProxyList(){
     }
 }
 
-export async function getMusiPlaylist(url: string){
+export async function getMusiPlaylist(url: string): Promise<MusicServiceImport>{
     const playlistParam = url.replace('https://feelthemusi.com/playlist/','')
     const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
     
@@ -343,7 +344,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
     }
 }
 
-export async function getYoutubePlaylist(url){
+export async function getYoutubePlaylist(url: string): Promise<MusicServiceImport>{
     try{
         let body;
         let continue_ = true;
@@ -413,11 +414,11 @@ export async function getYoutubePlaylist(url){
                 videos[i]['saved'] = true;
         }
     
-        return {'data': videos, 'title': title};
+        return {'tracks': videos, 'title': title};
 	}
 	catch(error){
         // console.log(error)
-        return {'data': [], 'title': null};
+        return {'tracks': [], 'title': null};
 	}
 }
 function parseYTMusicDuration(textDur){
@@ -589,9 +590,9 @@ async function getYoutubeMusicPlaylistContinuation(ogURL: string, client: any ,i
 }
 
 //REQUIRES COOKIES
-export async function getYoutubeMusicPlaylist(url){
+export async function getYoutubeMusicPlaylist(url: string): Promise<MusicServiceImport>{
     if(!Prefs.hasYouTubeMusicCookies())
-        return  {'data': [], 'title': 'cnull'};
+        return  {'tracks': [], 'title': 'cnull'};
     try 
     {
         let continue_ = true
@@ -684,14 +685,14 @@ export async function getYoutubeMusicPlaylist(url){
             if(await SQLActions.checkIfVideoIdExists(tracks[i].video_id))
                 tracks[i]['saved'] = true;
         }
-        return {'data': tracks, 'title': playlistTitle}
+        return {'tracks': tracks, 'title': playlistTitle}
     } catch (error) {
-        return  {'data': [], 'title': 'null'};
+        return  {'tracks': [], 'title': 'null'};
     }
 
 }
 
-export async function getSpotifyPlaylist(url){
+export async function getSpotifyPlaylist(url: string): Promise<MusicServiceImport>{
     try {
         const playlistUID = url.replace(/https:\/\/open\.spotify\.com\/(album|playlist)\//,'')
 
@@ -816,17 +817,17 @@ export async function getSpotifyPlaylist(url){
         }
 
         return {
-            'data': results,
+            'tracks': results,
             'title': playlistData.data?.albumUnion?.name ?? playlistData.data?.playlistV2?.name
         }
 
     } catch (error) {
-        return { 'data': [], 'title': undefined }
+        return { 'tracks': [], 'title': undefined }
     }
 
 }
 
-export async function getAmazonMusicPlaylist(url){
+export async function getAmazonMusicPlaylist(url: string): Promise<MusicServiceImport>{
     try {
         let amznMusic = await getAmazonMusicAmznMusicData(url);
                             
@@ -880,8 +881,8 @@ export async function getAmazonMusicPlaylist(url){
             if(await SQLActions.checkIfVideoIdExists(results[i].video_id))
                 results[i]['saved'] = true;
         }
-        return {data: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
+        return {tracks: results, title: playlistData.methods[templateListIndex].template.headerImageAltText}
       } catch (error) {
-        return {data: [], title: null}
+        return {tracks: [], title: null}
       }
 }

@@ -1,14 +1,33 @@
 export type Artwork = string | number | {uri: string, cache?: string};
 
+export type Route<T> = {"key": string, "name": string, "params": T, path: string};
+
+export type SQLType = "INTEGER" | "STRING" | "BOOLEAN";
+export type SQLAlter = {"table": string, "action": "DROP",   'column_name': string} | 
+                       {"table": string, "action": "RENAME", 'column_name': string, 'new_column_name': string} |
+                       {"table": string, "action": "ADD",    'column_name': string, 'type': SQLType}
+export type PlayingState = "OFF" | "LOADING" | "ON";
 export type EditMode = "NONE" | "DOWNLOAD" | "DELETE" | "EDIT";
 export type DownloadTrackResult = "GOOD" | "ERROR";
 export type SetState = React.Dispatch<React.SetStateAction<any>>;
+
+export type MusicServiceType = "Illusi" | "Musi" | "YouTube" | "YouTube Music" | "Spotify" | "Amazon Music" | "Apple Music" | "SoundCloud" | "API";
+export type MusicServiceImport = {tracks: Track[], title: string};
+
+export interface SQLTable {
+    name: string
+    rootpage: number
+    sql: string
+    tbl_name: string
+    type: string
+}
 
 export interface Playlist {
     id: number,
     playlist_name: string,
     pinned: boolean,
     thumbnail_uri: string,
+    sort: string,
     public: boolean,
     public_uid: string,
     inherited_playlists_json: string,
@@ -37,11 +56,11 @@ export class Track{
     callback: () => void
 
     constructor(t: {
-        uid: string
+        uid?: string
         video_id?: string
-        video_name: string
-        video_creator: string
-        video_duration: number
+        video_name?: string
+        video_creator?: string
+        video_duration?: number
         media_uri?: string
         thumbnail_uri?: string
         saved?: boolean
@@ -132,5 +151,29 @@ export class SmallTrack {
         toArray.push(this.video_duration)
         
         return toArray;
+    }
+}
+
+type MusicServicePlaylistTitle = string;
+type MusicServicePlaylistURL = string;
+export class MusicService {
+    link_text: string
+    valid_playlist_url_regex: RegExp
+    has_credentials: () => boolean
+    get_playlists_list: () => Promise<Map<MusicServicePlaylistTitle, MusicServicePlaylistURL>>
+    get_playlist_import: (url: string) => Promise<MusicServiceImport>
+    
+    constructor(s: {
+        link_text: string,
+        valid_playlist_url_regex: RegExp,
+        has_credentials: () => boolean,
+        get_playlists_list: () => Promise<Map<MusicServicePlaylistTitle, MusicServicePlaylistURL>>,
+        get_playlist_import: (url: string) => Promise<MusicServiceImport>
+    }){
+        this.valid_playlist_url_regex = s.valid_playlist_url_regex;
+        this.get_playlists_list = s.get_playlists_list;
+        this.has_credentials = s.has_credentials;
+        this.link_text = s.link_text;
+        this.get_playlist_import = s.get_playlist_import;
     }
 }

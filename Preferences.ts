@@ -73,7 +73,7 @@ export function hasYouTubeMusicCookies(){
 export function hasSpotifyCookies(){
     return prefs.external_services.spotify_cookies.includes('sp_dc')
 } 
-export function hasAmazonCookies(){
+export function hasAmazonMusicCookies(){
     return prefs.external_services.amazon_music_cookies.includes('at-main')
 } 
 

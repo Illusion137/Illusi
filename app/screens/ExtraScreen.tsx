@@ -3,7 +3,7 @@ import { Ionicons, Entypo } from '@expo/vector-icons';
 import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler, Modal, Pressable} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
-import { useNavigation, useTheme } from '@react-navigation/native';
+import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
 import { SelectList } from 'react-native-dropdown-select-list';
@@ -19,22 +19,22 @@ import SegmentedControl from '@react-native-segmented-control/segmented-control'
 import CookieManager from '@react-native-community/cookies';
 
 function ExtraScreen({route}) {
-	const navigation = useNavigation();
+	const navigation: NavigationProp<any, any> = useNavigation();
 
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 	
-	let keepPrefs = false;
+	let keep_prefs = false;
 
 	const confirmDeleteDataAlert = () =>
     Alert.alert(
       "Clear All Data",
       "Are you sure?",
-      [ { text: "Cancel", onPress: () => {keepPrefs = false}},
+      [ { text: "Cancel", onPress: () => {keep_prefs = false}},
         { text: "OK", onPress: async() => {
-			await GLOBALS.db.closeAsync();
-			await GLOBALS.db.deleteAsync();
-			GLOBALS.db = SQLite.openDatabase('illusi-db.sqlite3')
+			await GLOBALS.global_var.db.closeAsync();
+			await GLOBALS.global_var.db.deleteAsync();
+			GLOBALS.global_var.db = SQLite.openDatabase('illusi-db.sqlite3')
 			deleteAllTables();
 			
 			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
@@ -49,12 +49,12 @@ function ExtraScreen({route}) {
 			await SQLActions.deleteCacheDirs();
 			await SQLActions.createCacheDirs();
 			await recreateAllTables();
-			if(!keepPrefs){
+			if(!keep_prefs){
 				await CookieManager.clearAll();
 				await Prefs.resetPrefs();
-				keepPrefs=false;
+				keep_prefs=false;
 			}
-			GLOBALS.SQLTracks = []
+			GLOBALS.global_var.SQLTracks = []
 			// BackHandler.exitApp() 
 		} } ]
     );
@@ -79,17 +79,17 @@ function ExtraScreen({route}) {
 
 	async function zipData(){
 		const UTI = 'public.item';
-		await Sharing.shareAsync(FileSystem.documentDirectory, {UTI});
+		await Sharing.shareAsync(FileSystem.documentDirectory, { UTI });
 	}
 
 	const [battery, setBattery] = React.useState(0.0);
 
 	useEffect(() => {
-		const intervalId = setInterval(async() => {  //assign interval to a variable to clear it.
-			setBattery(await Battery.getBatteryLevelAsync())
+		const interval_id = setInterval(async() => {  //assign interval to a variable to clear it.
+			setBattery(await Battery.getBatteryLevelAsync());
 		}, 1000)
 	  
-		return () => clearInterval(intervalId); //This is important
+		return () => clearInterval(interval_id); //This is important
 	   
 	}, [])
 
@@ -101,17 +101,17 @@ function ExtraScreen({route}) {
 				</View>
 			</View>
 			<ScrollView>
-				{/* <View style={styles.linelong}/>
+				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
 				<View style={styles.linelong}/>
 
-				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text> */}
+				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
 				
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
 					<View style={styles.lineshort}/>	
-					{/* <ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	 */}
+					<ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>
 					<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.linelong}/>
 
@@ -120,13 +120,11 @@ function ExtraScreen({route}) {
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
 					<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
-					{/* <View style={styles.lineshort}/>	 */}
-					{/* <ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/> */}
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
 				<View style={styles.linelong}/>
 
-				{/* <Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text> */}
-
-				<Text style={styles.descriptiontxt}>Transfer playlists back to other Music Services.</Text>
+				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
 
 				<View style={styles.linelong}/>
 					<ExtrasSectionButton showArrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
@@ -135,8 +133,8 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
 
 				<View style={styles.linelong}/>
-					{/* <ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>	 */}
+					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>
 					<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
 					<View style={styles.lineshort}/>
 					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={confirmResetPrefsAlert}/>
@@ -147,7 +145,7 @@ function ExtraScreen({route}) {
 					{Prefs.prefs.settings.enable_dev_features && 
 						<>
 							<View style={styles.lineshort}/>
-							<ExtrasSectionButton showArrow={false} text='Clear All Data; Keep Preferences' icon='trash-outline' onPress={() => { keepPrefs=true;confirmDeleteDataAlert();}}/>
+							<ExtrasSectionButton showArrow={false} text='Clear All Data; Keep Preferences' icon='trash-outline' onPress={() => { keep_prefs=true; confirmDeleteDataAlert();}}/>
 						</>
 					}
 				<View style={styles.linelong}/>

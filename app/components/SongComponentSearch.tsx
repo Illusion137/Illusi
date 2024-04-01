@@ -76,60 +76,7 @@ function SongComponentSearch(props:
 				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 			}
 		}} onPress={async() => {
-			if(!GLOBALS.global_var.ableToPlayAgainMutex){
-				GLOBALS.global_var.ableToPlayAgainMutex = true
-				let currentTrack = new Track({
-					'youtube': true,
-					'video_name': props.video_name ?? "", 
-					'video_creator': props.video_creator ?? "", 
-					'video_duration':props.video_duration ?? 0, 
-					'video_id':props.video_id ?? "", 
-					'uid': props.uid ?? "",
-				})
-				currentTrack['successful'] = false;
-				currentTrack['added'] = false;
 
-				GLOBALS.global_var.playTracks(currentTrack, [currentTrack], "YouTube Mix");
-				
-				let youtubeMixUrl = `https://www.youtube.com/watch?v=${props.video_id}&start_radio=1&list=RD${props.video_id}`
-				try {
-					let response = (await axios({'url': youtubeMixUrl, 'method': 'GET', 'headers': {
-						'Access-Control-Allow-Origin' : '*',
-						'x-youtube-client-name': 1,
-						'x-youtube-client-version': '2.20200911.04.00',
-						'User-Agent': 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36',
-					}})).data;
-					let ytInitialData = JSON.parse(((/ytInitialData ?= ?'(.+?})'/s).exec(decodeHex(response))[1]).replaceAll(/\n\s+/g,''))
-	
-					let tracks = []
-					for(const track of ytInitialData.contents.singleColumnWatchNextResults.playlist.playlist.contents){
-						try {						
-							let uid = GenerateNewUID(track.playlistPanelVideoRenderer.title.runs[0].text)
-							let t = new Track({
-								'video_id': track.playlistPanelVideoRenderer.videoId,
-								'video_name': track.playlistPanelVideoRenderer.title.runs[0].text,
-								'video_creator': track.playlistPanelVideoRenderer.shortBylineText.runs[0].text,
-								'video_duration': parseYTDuration(track.playlistPanelVideoRenderer.lengthText.runs[0].text),
-								'youtube': true,
-								'uid': uid,
-							})
-							t['successful'] = false;
-							t['added'] = false;
-							tracks.push(t);
-						} catch (error) {
-							console.log(error)
-						}
-					}
-					tracks.splice(0,1);
-					GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
-
-				} catch (error) {
-					console.log(error)
-				}
-				GLOBALS.global_var.ableToPlayAgainMutex = false;
-			} else{
-				await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-			}
 		}}>
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>

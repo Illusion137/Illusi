@@ -27,7 +27,7 @@ export async function getAllYoutubePlaylistsFromAccount(){
         
         let playlistNamesData = ytInitialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[2].shelfRenderer.content.verticalListRenderer.items
         // console.log(JSON.stringify(playlistNamesData))
-        let playlistNames = new Map();
+        let playlistNames = new Map<string, string>();
         for(const playlistName of playlistNamesData){
             try {
                 playlistNames.set(playlistName.compactPlaylistRenderer.title.runs[0].text, playlistName.compactPlaylistRenderer.shareUrl)
@@ -47,7 +47,7 @@ export async function getAllYoutubePlaylistsFromAccount(){
 export async function getAllYTMusicPlaylistsFromAccount(){
     try {        
         let dataMap = await getAllYoutubePlaylistsFromAccount();
-        let newMap = new Map();
+        let newMap = new Map<string, string>();
         const keys = [...dataMap.keys()];
         for(const key of keys){
             let value = `https://music.youtube.com/playlist?list=${getYTPlaylistIdFromURL(dataMap.get(key))}`;
@@ -349,7 +349,7 @@ export async function getAllAmazonMusicPlaylistsFromAccount(){
             'data': requestPayload
         })).data;
         let playlists = showLibraryData.methods[0].template.widgets[1].items
-        let mappedData = new Map();
+        let mappedData = new Map<string, string>();
         for(let i = 0; i < playlists.length-1; i++){
             try {
                 mappedData.set(
@@ -364,6 +364,6 @@ export async function getAllAmazonMusicPlaylistsFromAccount(){
         return mappedData;
       } catch (error) {
         Alert.alert("Amazon Playlist Finder Error", error)
-        return {data: [], title: null}
+        return new Map<string, string>();
       }
 }

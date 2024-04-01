@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Modal, Image, ImageSourcePropType, PanResponder, Dimensions, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Modal, Image, ImageSourcePropType, PanResponder, Dimensions, Keyboard, TouchableHighlight } from 'react-native';
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { useNavigationState, useTheme } from '@react-navigation/native';
 import { Slider } from '@miblanchard/react-native-slider';
 import * as FileSystem from 'expo-file-system';
-import * as TrackPlayer from 'react-native-track-player';
+import TrackPlayer, { State, Track } from 'react-native-track-player';
 import { setupPlayer, addTracks, TrackPlayerNext, TrackPlayerPrev } from '../../../trackPlayerServices';
 import ytdl from "react-native-ytdl";
 import * as Sharing from 'expo-sharing';
@@ -16,13 +16,13 @@ import TextTicker from 'react-native-text-ticker'
 import YouTube from 'react-native-youtube';
 import * as SQLActions from '../../../SQLActions'
 import { getLyrics } from "../../Illusive/IllusiveLyrics";
-import { Artwork, Track } from '../../../types';
+import * as IllusiveType from '../../../types';
 import { darkThemeDefault } from "../../../Preferences";
 
 interface PlayerStateType {
 	title?: string,
 	artist?: string,
-	artwork?: Artwork,
+	artwork?: IllusiveType.Artwork,
 	duration?: number,
 	elapsed_time?: number,
 	duration_remaining?: number,
@@ -32,41 +32,39 @@ interface PlayerStateType {
 	is_visible?: boolean,
 	is_ready?: boolean,
 	loop_track?: boolean,
-	queue_data?: Track[],
+	queue_data?: IllusiveType.Track[],
 	now_playing_visible?: boolean,
 	settings_visible?: boolean
 };
 
 function AudioPlayer (props: {
-		tracks: Track[], 
+		tracks: IllusiveType.Track[], 
 		playing_from: string
 	}) {
     const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	const panel_ref = useRef<SlidingUpPanel>();
-	
 	let is_visible = true;
 	const [playerState, setPlayerState] = useState({
-		title: "",
-		artist: "",
-		artwork: {uri: '', cache: 'force-cache'} as Artwork,
-		duration: 0,
+		title: props.tracks[0]?.video_name,
+		artist: props.tracks[0]?.video_creator,
+		artwork: props.tracks[0]?.artwork,
+		duration: props.tracks[0]?.video_duration ?? 0,
 		elapsed_time: 0,
-		duration_remaining: 0,
-		volume: 0,
-		rate: 0,
+		duration_remaining: props.tracks[0]?.video_duration ?? 0,
+		volume: 1,
+		rate: 1,
 		is_playing: false,
-		is_visible: false,
+		is_visible: true,
 		is_ready: false,
 		loop_track: false,
-		queue_data: [] as Track[],
+		queue_data: props.tracks as IllusiveType.Track[],
 		now_playing_visible: false,
 		settings_visible: false,
 	});
 
 	const arrow_rotation_animated = useRef(new Animated.Value(0)).current;
 	const opacity_animated = useRef(new Animated.Value(1)).current;
-	// const arrow_rotation_animated = useRef(new Animated.Value(0)).current;
 
 	function updatePlayerState(updated_state: PlayerStateType){
 		const player_state_copy = playerState;
@@ -92,7 +90,7 @@ function AudioPlayer (props: {
 		is_visible = show;
 		updatePlayerState({'is_visible': is_visible});
 		if(show) {
-			panel_ref.current.show();
+			panel_ref.current?.show();
 			Animated.parallel([
 				Animated.timing(arrow_rotation_animated, {
 					useNativeDriver: true,
@@ -107,7 +105,7 @@ function AudioPlayer (props: {
 			]).start();
 		}
 		else {
-			panel_ref.current.hide();
+			panel_ref.current?.hide();
 			Animated.parallel([
 				Animated.timing(arrow_rotation_animated, {
 					useNativeDriver: true,
@@ -129,8 +127,8 @@ function AudioPlayer (props: {
 		async function setup() {
 			setPanelState(true);
 			const is_setup = await setupPlayer();
-			await TrackPlayer.default.reset();
-			const queue = await TrackPlayer.default.getQueue();
+			await TrackPlayer.reset();
+			const queue = await TrackPlayer.getQueue();
 			if(is_setup && queue.length <= 0) {
 				globals.global_var.playingTracksIndex = 0; 
 				globals.global_var.playingTracks = props.tracks;
@@ -147,23 +145,26 @@ function AudioPlayer (props: {
 					track = await globals.playingTrackToRNTrack(globals.global_var.playingTracks[0])
 					track_misses++;
 				}
-				await TrackPlayer.default.add(track as TrackPlayer.Track);
+				if(track != 'skip'){
+					console.log(track)
+					await TrackPlayer.add(track);
+				}
 			}
 			playerState.is_ready = is_setup;
-			TrackPlayer.default.play();
+			await TrackPlayer.play();
 
 	  	}
 	  setup();
 	}, []);
 
 	const togglePlaying = useCallback(async() => {
-		const player_state = await TrackPlayer.default.getState();
+		const player_state = await TrackPlayer.getState();
 		
 		const player_state_copy = playerState;
 		updatePlayerState({is_playing: !player_state_copy.is_playing});
 
-		if(player_state == TrackPlayer.State.Playing) await TrackPlayer.default.pause();
-		else await TrackPlayer.default.play();
+		if(player_state == State.Playing) await TrackPlayer.pause();
+		else await TrackPlayer.play();
 	}, []);
 
 	return (
@@ -186,26 +187,28 @@ function AudioPlayer (props: {
 				<>
 				<Animated.View pointerEvents={'none'} style={{backgroundColor: colors.playScreen, height: 45,  opacity: opacity_animated}}/>
 				{/* HEADER ---------------------------------------------------- */}
-				<View style={styles.header}>
-					<Animated.View style={{
-							left: 25,
-							transform: [
-								{ rotate: arrow_rotation_animated.interpolate({'inputRange': [0, 180], 'outputRange': ['0deg', '180deg'], 'extrapolate': 'clamp' }) },
-							] }}>
-						<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} onPress={async() => setPanelState(!is_visible)}>
-							<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
+				<TouchableHighlight disabled={playerState.is_visible} style={styles.header} onPress={() => { setPanelState(true); }}>
+					<>
+						<Animated.View style={{
+								left: 25,
+								transform: [
+									{ rotate: arrow_rotation_animated.interpolate({'inputRange': [0, 180], 'outputRange': ['0deg', '180deg'], 'extrapolate': 'clamp' }) },
+								] }}>
+							<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} onPress={async() => setPanelState(!is_visible)}>
+								<Ionicons name="chevron-down-sharp" size={20} color='#808080'/>
+							</TouchableOpacity>
+						</Animated.View>
+						<View style={{alignItems: 'center'}}>
+							<Text style={{ color: '#808080', fontSize: 12, top: playerState.is_visible ? -4 : 19 }}>PLAYING FROM {props.playing_from}</Text>
+							<Text style={{ color: '#FFFFFF', fontWeight: 'bold', top: playerState.is_visible ? -2 : -15 }}>{playerState.title}</Text>
+						</View>
+						<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={ async() => {} }>
+							<Fontisto name="play-list" size={15} color={colors.primary}/>
 						</TouchableOpacity>
-					</Animated.View>
-					<View style={{alignItems: 'center'}}>
-						<Text style={{ color: '#808080', fontSize: 12, top: playerState.is_visible ? -4 : 19 }}>PLAYING FROM {props.playing_from}</Text>
-						<Text style={{ color: '#FFFFFF', fontWeight: 'bold', top: playerState.is_visible ? -2 : -15 }}>{playerState.title}</Text>
-					</View>
-					<TouchableOpacity hitSlop={{'left': 20, 'top': 20, 'bottom': 20, 'right': 20}} style={{top:28}} onPress={ async() => {} }>
-						<Fontisto name="play-list" size={15} color={colors.primary}/>
-					</TouchableOpacity>
-				</View>
+					</>
+				</TouchableHighlight>
 				<Animated.View style={{ flex: 1, backgroundColor: colors.playScreen, opacity: opacity_animated } }>
-					<Image source={{uri: 'https://img.youtube.com/vi/wdUCRDvFv3Q/maxresdefault.jpg'}} height={220} style={{width: "auto", opacity: 0.5}}/>
+					<Image source={playerState.artwork as number} height={220} style={{width: "auto", opacity: 0.5}}/>
 					{/* <Image source={playerState.artwork as ImageSourcePropType} height={220} style={{width: "auto", opacity: 0.5}}/> */}
 					{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 					<View style={styles.timestampslidercontainer}>

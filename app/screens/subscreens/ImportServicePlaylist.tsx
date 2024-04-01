@@ -2,7 +2,7 @@
 import React,  { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableHighlight, Image, FlatList, ActionSheetIOS } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongComponentSearch from '../../components/SongComponentSearch';
 import ProgressBar from '../../components/ProgressBar';
@@ -10,14 +10,17 @@ import { GenerateNewUID } from '../../Illusive/IllusiveSearch';
 import * as SQLActions from '../../../SQLActions';
 import * as Illusive from '../../Illusive/IllusivePlaylistResolver';
 import BigList from 'react-native-big-list';
+import { Track } from '../../../types';
+import TrackComponent from '../../components/TrackComponent';
+import { MusicServices } from '../../../MusicServices';
 
-function GetAddPlaylistFrom({route}) {
+export default function ImportServicePlaylist({route}) {
 	const inputRef = useRef()
-	const navigation = useNavigation();
+	const navigation: NavigationProp<any, any> = useNavigation();
 	
 	const [progress, setProgress] = useState(0);
 	const [isDoneSearching, setDoneSearching] = useState(false)
-	const [data, setData] = useState([])
+	const [tracks, setTracks] = useState([])
 	let serviceT = "";
 	let serviceTEx = "";
 	// const [title, setTitle] = useState('')
@@ -45,7 +48,7 @@ function GetAddPlaylistFrom({route}) {
 						let allPromiseTracks = []
 						for(const track of header_data){
 							let uid = GenerateNewUID(track.video_name)
-							let t = new SQLActions.Track({
+							let t = new Track({
 								"video_duration": track.video_duration,
 								"video_name": track.video_name,
 								"video_creator": track.video_creator,
@@ -59,10 +62,10 @@ function GetAddPlaylistFrom({route}) {
 							})
 							if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
 								allPromiseTracks.push(SQLActions.insertTrackData(t));
-								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(t, playlist_name));
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(t.uid, playlist_name));
 							} else{
-								let videoIDUIDTrack = await SQLActions.getExistingVideoIdUID(track.video_id);
-								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack, playlist_name));	
+								const videoIDUIDTrack = await SQLActions.getExistingVideoIdUID(track.video_id);
+								allPromiseTracks.push(SQLActions.insertTrackIntoPlaylist(videoIDUIDTrack.uid, playlist_name));	
 							}
 						}
 						await Promise.all(allPromiseTracks)
@@ -73,7 +76,7 @@ function GetAddPlaylistFrom({route}) {
 					for(const track of header_data){
 						let uid = GenerateNewUID(track.video_name)
 						if(!(await SQLActions.checkIfVideoIdExists(track.video_id))){
-							allPromiseTracks.push(SQLActions.insertTrackData(new SQLActions.Track({
+							allPromiseTracks.push(SQLActions.insertTrackData(new Track({
 								"video_duration": track.video_duration,
 								"video_name": track.video_name,
 								"video_creator": track.video_creator,
@@ -100,45 +103,18 @@ function GetAddPlaylistFrom({route}) {
 	useEffect(() => {
 		(async function() {
 				try {
-					switch(service){
-						case('Musi'):
-							let musiData = await Illusive.getMusiPlaylist(url);
-							serviceT = 'YouTube'
-							setData(musiData.data);
-							setDoneSearching(true);
-							setHeader(musiData.data, musiData.title)
-							break;
-						case('YouTube'):
-							let youTubeData = await Illusive.getYoutubePlaylist(url);
-							serviceT = 'YouTube'
-							setData(youTubeData.data);
-							setDoneSearching(true);
-							setHeader(youTubeData.data, youTubeData.title)
-							break;
-						case('YTMusic'):
-							let youTubeMusicData = await Illusive.getYoutubeMusicPlaylist(url);
-							serviceT = 'YouTube'
-							setData(youTubeMusicData.data);
-							setDoneSearching(true);
-							setHeader(youTubeMusicData.data, youTubeMusicData.title)
-							break;
-						case('Spotify'):
-						 	let spotifyData = await Illusive.getSpotifyPlaylist(url);
-							serviceT = 'YouTube'
-							serviceTEx = 'Spotify'
-							setData(spotifyData.data);
-							setDoneSearching(true);
-							setHeader(spotifyData.data, spotifyData.title)
-							break;
-						case('Amazon'):
-							let amazonMusicData = await Illusive.getAmazonMusicPlaylist(url);
-							serviceT = 'YouTube'
-							serviceTEx = 'Amazon'
-						   	setData(amazonMusicData.data);
-						   	setDoneSearching(true);
-						   	setHeader(amazonMusicData.data, amazonMusicData.title)
-						   	break;
+					const music_service_import = await MusicServices.music_service.get(service).get_playlist_import(url);
+					for(let i = 0; i < music_service_import.tracks.length; i++) {
+						music_service_import.tracks[i].uid = GenerateNewUID(music_service_import.tracks[i].video_name);
+						music_service_import.tracks[i].disabled = true;
+						music_service_import.tracks[i].saved = false;
+						if(await SQLActions.checkIfVideoIdExists(music_service_import.tracks[i].video_id))
+							music_service_import.tracks[i]['saved'] = true;
 					}
+
+					serviceT = 'YouTube';
+					setDoneSearching(true);
+					setHeader(music_service_import.tracks, music_service_import.title);
 				}
 				catch(error){
 					console.log(error)
@@ -147,7 +123,8 @@ function GetAddPlaylistFrom({route}) {
 	}, []);
 
 	const renderItem = ({ item }) => (
-		<SongComponentSearch disabled={true} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={GenerateNewUID(item.video_name)}/>
+		<TrackComponent track_data={item as Track}/>
+		// <SongComponentSearch disabled={true} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} video_duration={item.video_duration} saved={item.saved} downloaded={item.downloaded} uid={GenerateNewUID(item.video_name)}/>
 	);
 
 	return(
@@ -155,7 +132,7 @@ function GetAddPlaylistFrom({route}) {
 			{badRequest && <Text style={styles.badRequestText}>Bad Request check the url again</Text>}
 			{/* { !isDoneSearching && <ProgressBar progressPercent={progress}/>} */}
 			{ isDoneSearching && <View style={styles.searchview}>
-				<BigList data={data} renderItem={renderItem} itemHeight={61} removeClippedSubviews={true} initialNumToRender={1}/>
+				<BigList data={tracks} renderItem={renderItem} itemHeight={61} removeClippedSubviews={true} renderFooter={null} renderHeader={null}/>
 			</View>}
 		</View>
 	);
@@ -195,4 +172,3 @@ const styles = StyleSheet.create({
 		fontSize: 40
 	}
 });
-export default GetAddPlaylistFrom;

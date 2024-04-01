@@ -2,14 +2,23 @@ import React, {useEffect,useState} from 'react';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, Alert } from 'react-native';
-import { useNavigation,useTheme } from '@react-navigation/native';
+import { NavigationProp, useNavigation,useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
 import * as SQLActions from '../../SQLActions';
+import FourTrackArtwork from './FourTrackArtwork';
+import { Track } from '../../types';
 
 
-function Playlist(props) {
-	const navigation = useNavigation();
+export default function PlaylistComponent(props: {
+	title:string 
+	pinned: boolean 
+	four_track: Track[] 
+	track_count: number
+	select_mode?: boolean
+	refreshData: () => void
+}) {
+	const navigation: NavigationProp<any, any> = useNavigation();
 
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
@@ -18,7 +27,7 @@ function Playlist(props) {
 
 	return(
         <>
-			<TouchableOpacity disabled={props.selectMode || false} style={styles.button} onPress={async() => { navigation.navigate('PlaylistSubScreen', {title: props.title, setPlaying: props.setPlaying, downloadVideo: props.downloadVideo }) } } onLongPress={async() => {Alert.alert(
+			<TouchableOpacity disabled={props.select_mode || false} style={styles.button} onPress={async() => { navigation.navigate('Playlist', {title: props.title}) } } onLongPress={async() => {Alert.alert(
 				"Playlist Edit",
 				"Pin or Delete a Playlist",
 				[
@@ -56,22 +65,12 @@ function Playlist(props) {
 				]
 				); await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}}>
                 <>
-					{props.four_track.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-					{props.four_track.length != 0 && props.four_track.length < 4 && <Image source={props.four_track[0].artwork} style={styles.notfound}/>}
-						{props.four_track.length >= 4 &&<View>
-							<View style={{flexDirection: 'row'}}>
-								{props.four_track[0] != undefined && <Image source={props.four_track[0].artwork} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
-								{props.four_track[1] != undefined && <Image source={props.four_track[1].artwork} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
-							</View>
-							<View style={{flexDirection: 'row'}}>
-								{props.four_track[2] != undefined && <Image source={props.four_track[2].artwork} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
-								{props.four_track[3] != undefined && <Image source={props.four_track[3].artwork} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
-							</View>
-						</View>}
+					<View style={{width: 15}}/>
+					<FourTrackArtwork four_track={props.four_track} size={35}/>
 					<View style={{flexDirection: 'column', left: 25}}>
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
-							{pinned && <MaterialIcons name="push-pin" size={22} color={colors.primary} style={styles.icon}/>}
+							{pinned && <MaterialIcons name="push-pin" size={22} color={colors.primary}/>}
 							<Text style={{color: '#AAAAAA'}}>{props.track_count} Tracks</Text>
 						</View>
 					</View>
@@ -85,8 +84,7 @@ const themeStyles = (colors) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 80, 
-		alignItems: 'flex-start',
-        alignItems: 'center',
+		alignItems: 'center',
         backgroundColor: colors.track,
         flexDirection: 'row'
 	},
@@ -97,4 +95,3 @@ const themeStyles = (colors) => StyleSheet.create({
         left: 15
 	}
 });
-export default Playlist;

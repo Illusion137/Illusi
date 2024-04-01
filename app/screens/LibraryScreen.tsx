@@ -17,7 +17,7 @@ import TrackComponent from '../components/TrackComponent';
 
 
 const LibraryScreen = ({ navigation, route }) => {
-	const [allData, setAllData] = useState({char_data: [], track_mask: [], num_tracks: 0, edit_mode: "NONE" as EditMode})
+	const [allData, setAllData] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0, edit_mode: "NONE" as EditMode})
 	const [searchQuery, setSearchQuery] = useState("")
 
 	const alphabet_scroll = {
@@ -34,49 +34,22 @@ const LibraryScreen = ({ navigation, route }) => {
     const is_focused = useIsFocused();
 
 	useEffect( () => {
-		(async function() {
-			await SQLActions.fetchTrackData();
-
-			if (GLOBALS.global_var.SQLTracks == null || GLOBALS.global_var.SQLTracks.length === 0){
-				setAllData({char_data: [], track_mask: [], num_tracks: 0, edit_mode: allData.edit_mode || "NONE"});
-				return;
-			}
-			let dat = [...GLOBALS.global_var.SQLTracks]
-			if(searchQuery != ""){
-				dat = dat.filter(track => (track.video_creator.toUpperCase().includes(searchQuery.toUpperCase()) || track.video_name.toUpperCase().includes(searchQuery.toUpperCase())))
-			}
-
-			let sectionsMap = new Map();
-			for(const track of dat){
-				let char = track.video_name[0].toUpperCase();
-				if(!(/[A-Z]/).test(char)){ char = '#' }
-				if( !sectionsMap.has(char) ){
-					sectionsMap.set(char, [track])
-				}
-				else{
-					let newTracks = sectionsMap.get(char)
-					newTracks.push(track)
-					sectionsMap.set(char, newTracks)
-				}
-			}
-			let sections = []
-			let sectionChars = []
-			let sortedSectionsMap = [...sectionsMap].sort()
-			for(const value of sortedSectionsMap){ 
-				sections.push(
-					value[1]
-					)
-					sectionChars.push(value[0])
-				}
-				setAllData({char_data: sectionChars, track_mask: sections, num_tracks: GLOBALS.global_var.SQLTracks.length, edit_mode: allData.edit_mode ?? "NONE" })
-			})();
+		if(is_focused){
+			refreshData();
+		}
 	}, [is_focused]);
 		
-	async function refreshData(){
+	async function refreshData(search_query: string = undefined){
+		if(search_query !== undefined)
+			setSearchQuery(search_query);
 		await SQLActions.fetchTrackData();
 		
 		let tracks = [...GLOBALS.global_var.SQLTracks]
-		if(searchQuery != ""){
+		
+		if(search_query){
+			tracks = tracks.filter(track => (track.video_creator.toUpperCase().includes(search_query.toUpperCase()) || track.video_name.toUpperCase().includes(search_query.toUpperCase())))
+		}
+		else if(searchQuery){
 			tracks = tracks.filter(track => (track.video_creator.toUpperCase().includes(searchQuery.toUpperCase()) || track.video_name.toUpperCase().includes(searchQuery.toUpperCase())))
 		}
 
@@ -102,7 +75,7 @@ const LibraryScreen = ({ navigation, route }) => {
 			)
 			section_chars.push(value[0])
 		}
-		setAllData({char_data: section_chars, track_mask: sections, num_tracks: tracks.length, edit_mode: allData.edit_mode ?? "NONE"})
+		setAllData({char_data: section_chars, track_mask: [...sections], num_tracks: tracks.length, edit_mode: allData.edit_mode ?? "NONE"})
 	}
 
 	function setEditMode(mode: EditMode){
@@ -126,14 +99,14 @@ const LibraryScreen = ({ navigation, route }) => {
 		setEditMode(current_edit_mode);
 		if(current_edit_mode === "NONE") {
 			Animated.timing(scroll_bar_animated, {
-				'useNativeDriver': true,
+				'useNativeDriver': false,
 				'toValue': 93,
 				'duration': 300
 			}).start();
 		}
 		else {
 			Animated.timing(scroll_bar_animated, {
-				'useNativeDriver': true,
+				'useNativeDriver': false,
 				'toValue': 100,
 				'duration': 300
 			}).start();
@@ -160,34 +133,7 @@ const LibraryScreen = ({ navigation, route }) => {
 		GLOBALS.global_var.playTracks(tracks[0], tracks, 'My Library');
 	}
 	function updateSearchQuery(query: string) {
-		setSearchQuery(query);
-		let filtered_tracks = GLOBALS.global_var.SQLTracks;
-
-		filtered_tracks = filtered_tracks.filter(track => (track.video_creator.toUpperCase().includes(query.toUpperCase()) || track.video_name.toUpperCase().includes(query.toUpperCase())))
-
-		const sections_map = new Map<string, Track[]>();
-		for(const track of filtered_tracks){
-			let char = track.video_name[0].toUpperCase();
-			if(!(/[A-Z]/).test(char)){ char = '#' }
-			if( !sections_map.has(char) ){
-				sections_map.set(char, [track])
-			}
-			else{
-				const new_tracks = sections_map.get(char);
-				new_tracks.push(track);
-				sections_map.set(char, new_tracks);
-			}
-		}
-		let sections = []
-		let section_chars = []
-		let sorted_sections_map = [...sections_map].sort()
-		for(const value of sorted_sections_map){
-			sections.push(
-				value[1]
-			)
-			section_chars.push(value[0])
-		}
-		setAllData({char_data: section_chars, track_mask: sections, num_tracks: filtered_tracks.length, edit_mode: allData.edit_mode ?? "NONE"});
+		refreshData(query);
 	}
 	async function uploadFile() {
 		try {
@@ -267,14 +213,15 @@ const LibraryScreen = ({ navigation, route }) => {
 						<MaterialCommunityIcons name="pencil" size={25} color={allData.edit_mode === "NONE"  ? colors.inactive : (allData.edit_mode === "DOWNLOAD" ? colors.primary : colors.red) }/>
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
-					<TextInput value={searchQuery} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={updateSearchQuery}></TextInput>
+					<TextInput autoCorrect={false} value={searchQuery} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={async(search_query) => refreshData(search_query)}></TextInput>
 					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={uploadFile}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>
 			</View>
 
-			<BigList style={{height: '71%'}} sections={allData.track_mask}
+			<BigList style={{height: '71%'}} 
+				sections={allData.track_mask}
 				renderItem={renderTrack}
 				keyExtractor={(item, index) => item.uid}
 				renderFooter={sectionFooter}

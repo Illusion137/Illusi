@@ -14,14 +14,17 @@ import * as Prefs from '../../Preferences';
 import { DownloadTrackResult, EditMode, SetState, Track } from '../../types';
 import { darkThemeDefault } from '../../Preferences';
 import { swapItems } from '../Illusive/Utils';
+import axios from 'axios';
+import { decodeHex } from '../Illusive/IllusiveSearch';
+import getYouTubeMixTracks from '../Illusive/IllusiveYTMix';
 
 function TrackComponent(props: {
 		track_data: Track
-		write_playlist?: string,
+		write_playlist?: "LIBRARY" | string,
 		playlist_from?: string,
 		from?: string,
 		edit_mode?: EditMode,
-		refreshData: () => void
+		refreshData?: () => void
 	}) {
 	const [isDownloading, setIsDownloading] = useState( GLOBALS.DOWNLOADING.findIndex((item) => item.uid == props.track_data.uid) != -1)
 	const [isDownloaded, setIsDownloaded] = useState(props.track_data.downloaded ?? false)
@@ -99,9 +102,32 @@ function TrackComponent(props: {
 			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 		}
 	}
+	async function playYouTubeMix(){
+		if(!GLOBALS.global_var.ableToPlayAgainMutex){
+			GLOBALS.global_var.ableToPlayAgainMutex = true
+			props.track_data['successful'] = false;
+			props.track_data['added'] = false;
+
+			GLOBALS.global_var.playTracks(props.track_data, [props.track_data], props.from);
+			
+			try {
+				const tracks = await getYouTubeMixTracks(props.track_data.video_id);
+				GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
+			} catch (error) {
+				console.log(error)
+			}
+			GLOBALS.global_var.ableToPlayAgainMutex = false;
+		} else{
+			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+		}
+	}
 	async function play() {
 		let tracks: Track[] = [];
 		if(GLOBALS.global_var.playTracks == undefined){ return; }
+		else if(props.from == "YouTube Mix"){
+			playYouTubeMix();
+			return;
+		}
 		else if(props.from == 'Downloads'){
 			tracks = [...GLOBALS.global_var.SQLTracks];
 			tracks = tracks.filter(item=>item.downloaded || item.imported).slice(0, Prefs.prefs.settings.default_playlists_size);
@@ -123,7 +149,10 @@ function TrackComponent(props: {
 
 	async function insertIntoWritePlaylist() {
 		if(!playlistSaved){
-			await SQLActions.insertTrackIntoPlaylist(props.track_data.uid, props.write_playlist);
+			if(props.write_playlist === "LIBRARY")
+				await SQLActions.insertTrackData(props.track_data);
+			else
+				await SQLActions.insertTrackIntoPlaylist(props.track_data.uid, props.write_playlist);
 			setPlaylistSaved(true);
 		} else{
 			await SQLActions.deleteTrackInPlaylist(props.write_playlist, props.track_data.uid);
@@ -160,8 +189,8 @@ function TrackComponent(props: {
 
 	return (
 		<TouchableOpacity 
-			disabled={props.track_data.disabled || false || props.write_playlist != undefined} 
-			style={{backgroundColor: colors.track, opacity: props.write_playlist != undefined && playlistSaved ? 0.5 : 1}} 
+			disabled={props.track_data.disabled ?? false} 
+			style={{backgroundColor: colors.track, opacity: props.write_playlist != undefined && props.write_playlist !== "LIBRARY" && playlistSaved ? 0.5 : 1}} 
 			onLongPress={pushThisToPlayingQueue} 
 			onPress={play}>
 			<View style={styles.songbox}>

@@ -67,7 +67,7 @@ function PlaylistAddSearch(){
 	}, []);
 	// const renderItem = ({item}) =><SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_duration={item.video_duration} video_creator={item.video_creator} downloaded={item.downloaded} thumbnailURI={item.thumbnailURI} uid={item.uid} saved={item.saved} writePlaylist={route.params.writePlaylist}/>;
 
-	const renderItem = ({item}) => <SongComponent artwork={item.artwork} media_URI={item.media_URI} saved={item.saved} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_URI={item.thumbnail_URI} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} writePlaylist={route.params.writePlaylist}/>
+	const renderItem = ({item}) => <SongComponent artwork={item.artwork} media_uri={item.media_uri} saved={item.saved} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_uri={item.thumbnail_uri} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} writePlaylist={route.params.writePlaylist}/>
 
 	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
 
