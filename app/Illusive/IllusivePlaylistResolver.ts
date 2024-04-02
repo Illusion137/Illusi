@@ -5,7 +5,7 @@ import * as Prefs from "../../Preferences";
 import req from "./Req";
 import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getSpotifyInitialData } from "./IllusiveAccountPlaylistFinder";
 import { getYouTubeSapisidHashAuth } from "./IllusiveHelper";
-import { MusicServiceImport } from "../../types";
+import { MusicServiceImport, MusiTrack, Track } from "../../types";
 
 function getYTPlaylistIdFromURL(url: string){
     const idRegex = /(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=/
@@ -42,14 +42,10 @@ export async function getMusiPlaylist(url: string): Promise<MusicServiceImport>{
     const response = await fetch(`https://feelthemusi.com/api/v4/playlists/fetch/${playlistParam}`);
     
     const json = await response.json();
-    let parsed = JSON.parse(json.success.data)
-    
-    for(let i = 0; i < parsed.data.length; i++){
-        parsed.data[i]['saved'] = false;
-        if(await SQLActions.checkIfVideoIdExists(parsed.data[i].video_id))
-            parsed.data[i]['saved'] = true;
-    }
-    return parsed;
+    const parsed: {data: MusiTrack[], title: string} = JSON.parse(json.success.data)
+    console.log(parsed);
+    return {tracks: 
+        parsed.data.map(t => new Track( { 'video_id': t.video_id, 'video_name': t.video_name, 'video_creator': t.video_creator, 'video_duration': t.video_duration }) ), title: parsed.title};
 }
 
 export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
@@ -407,12 +403,6 @@ export async function getYoutubePlaylist(url: string): Promise<MusicServiceImpor
         }
 
         videos = videos.filter(item => item != undefined)
-
-        for(let i = 0; i < videos.length; i++){
-            videos[i]['saved'] = false;
-            if(await SQLActions.checkIfVideoIdExists(videos[i].video_id))
-                videos[i]['saved'] = true;
-        }
     
         return {'tracks': videos, 'title': title};
 	}

@@ -14,7 +14,7 @@ function ImportServiceComponent(props: {
     
     function navigateOrAlert(){
         if(!props.disabled)
-            props.navigation.navigate('SelectImportServicePlaylist' , {title: `Import ${props.service_name} Playlist`});
+            props.navigation.navigate('SelectImportMusicServicePlaylist' , {title: `Import ${props.service_name} Playlist`});
         else Alert.alert("Authorization Error", "You are missing the required authorization to use this feature\n Or this feature is still under development");
     }
 

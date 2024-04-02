@@ -5,9 +5,10 @@ import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import * as SQLActions from '../../../SQLActions';
 import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
+import { darkThemeDefault } from '../../../Preferences';
 
 function ExtraBatchDownloaderScreen({route}) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	const [downloadingTracksData, setDownloadingTracksData] = React.useState([...GLOBALS.DOWNLOADING]);
@@ -20,18 +21,19 @@ function ExtraBatchDownloaderScreen({route}) {
         { text: "OK", onPress: async() => {
 			if(selected === ""){return}
 			if(selected === "Library"){
-				let filteredData = GLOBALS.SQLTracks.filter(item=>!(item.downloaded || item.imported))
+				let filteredData = GLOBALS.global_var.SQLTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
+					GLOBALS.global_var.downloadTrack(filteredData[i], undefined, undefined, undefined);
 				}
 			}
 			else{
 				let selected_playlist = selected;
-				let playlistTracks = await SQLActions.getPlaylistTracks(selected_playlist.replaceAll(' ', '_'));
+				let playlistTracks = await SQLActions.getPlaylistTracks(selected_playlist);
 				
 				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
-					await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
+					GLOBALS.global_var.downloadTrack(filteredData[i], undefined, undefined, undefined);
+					// await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
 				}
 			}
 		} } ]
@@ -49,13 +51,13 @@ function ExtraBatchDownloaderScreen({route}) {
 		})()
 		const interval = setInterval(() => {
 			setDownloadingTracksData([...GLOBALS.DOWNLOADING]);
-        }, 200);
+        }, 100);
   
         //Clearing the interval
         return () => clearInterval(interval);
 	}, []);
 	const [selected, setSelected] = React.useState("");
-	const [playlistDownloadData, setPlaylistDownloadData] = React.useState("");
+	const [playlistDownloadData, setPlaylistDownloadData] = React.useState([] as {key: string, value: string}[]);
 	
 	
 	const renderHeaderItem = ({item}) => <>
@@ -81,7 +83,7 @@ function ExtraBatchDownloaderScreen({route}) {
 
 
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
 					setSelected={(val) => setSelected(val)}
 					data={playlistDownloadData} 

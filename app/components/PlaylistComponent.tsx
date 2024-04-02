@@ -11,7 +11,7 @@ import { Track } from '../../types';
 
 
 export default function PlaylistComponent(props: {
-	title:string 
+	title: string 
 	pinned: boolean 
 	four_track: Track[] 
 	track_count: number
@@ -23,7 +23,7 @@ export default function PlaylistComponent(props: {
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const [pinned, setPinned] =  useState(props.pinned);
+	const [pinned, setPinned] = useState(props.pinned);
 
 	return(
         <>

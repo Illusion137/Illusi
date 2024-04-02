@@ -11,8 +11,8 @@ import SearchScreen from './app/screens/SearchScreen';
 import ExtraScreen from './app/screens/ExtraScreen';
 import SearchHomeScreen from './app/screens/SearchHomeScreen'
 
-import SelectImportServicePlaylist from './app/screens/subscreens/SelectImportServicePlaylist';
-import ImportServicePlaylist from './app/screens/subscreens/ImportServicePlaylist';
+import SelectImportMusicServicePlaylist from './app/screens/subscreens/SelectImportMusicServicePlaylist';
+import ImportMusicServicePlaylist from './app/screens/subscreens/ImportMusicServicePlaylist';
 import Playlist from './app/screens/subscreens/Playlist'
 import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
@@ -338,7 +338,7 @@ export default function App() {
 						<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />
 						<Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen}/>
 						<Stack.Screen name="Settings" component={ExtraSettingsScreen}/>
-						<Stack.Screen name="SelectImportServicePlaylist" component={SelectImportServicePlaylist}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Prefs.darkThemeDefault.colors.primary,
+						<Stack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist}  options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: Prefs.darkThemeDefault.colors.primary,
 								headerRight: () => (
 									<Button
 										color='#808080'
@@ -347,7 +347,7 @@ export default function App() {
 									/>
 									),
 								})} />
-						<Stack.Screen name="ImportServicePlaylist" component={ImportServicePlaylist} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
+						<Stack.Screen name="ImportMusicServicePlaylist" component={ImportMusicServicePlaylist} options={({ navigation }) => ({ headerShown: true, headerStyle: {backgroundColor: Prefs.darkThemeDefault.colors.background,} ,headerTitleStyle: {fontWeight: '500',color: '#FFFFFF'}, headerTintColor: 'blue',
 								headerRight: () => (
 									<Button
 										color='#1313ff'

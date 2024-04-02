@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-na
 import { useTheme } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import * as GLOBALS from '../../globals';
 import * as Haptics from 'expo-haptics';
@@ -33,7 +32,6 @@ function TrackComponent(props: {
 	
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
-	
 	function durationToString(): {left: number, duration: string}{
 		let left: number = 50;
 		let duration: string = "";
@@ -55,7 +53,7 @@ function TrackComponent(props: {
 		}
 		return {'left': left, 'duration': duration};
 	}
-	let interval;
+	let interval: NodeJS.Timeout;
 	useEffect(() => {
 		let index = -1;
 		let depth = Prefs.prefs?.settings?.download_queue_max_length ?? 1;
@@ -155,8 +153,12 @@ function TrackComponent(props: {
 				await SQLActions.insertTrackIntoPlaylist(props.track_data.uid, props.write_playlist);
 			setPlaylistSaved(true);
 		} else{
+			// await SQLActions.deleteTrack(props.track_data.uid);
+			// else
+		if(props.write_playlist !== "LIBRARY"){
 			await SQLActions.deleteTrackInPlaylist(props.write_playlist, props.track_data.uid);
 			setPlaylistSaved(false);
+		}
 		}
 	}
 	async function downloadTrack(){
@@ -197,8 +199,8 @@ function TrackComponent(props: {
 				<View style={{justifyContent: 'center'}}>
 					<Image source={props.track_data.artwork as {'uri': string}} style={styles.image}></Image>
 					{Prefs.prefs.settings.show_track_duration && props.track_data.video_duration !== undefined && 
-						<View style={{position: 'absolute', left: durationToString()[0], bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
-							<Text style={{color:'white', fontSize:10}}>{durationToString()[1]}</Text>
+						<View style={{position: 'absolute', left: durationToString().left, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
+							<Text style={{color:'white', fontSize:10}}>{durationToString().duration}</Text>
 						</View>
 					}
 				</View>
@@ -206,15 +208,15 @@ function TrackComponent(props: {
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.video_name}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.track_data.video_creator}</Text>
 					<View style={{flexDirection: 'row'}}>
-						{(props.track_data.youtube ?? false) && <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/>}
-						{(props.track_data.imported ?? false) && <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/>}
-						{(props.track_data.amazonmusic ?? false) && <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.spotify ?? false) && <MaterialCommunityIcons name="spotify" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.soundcloud ?? false) && <MaterialCommunityIcons name="soundcloud" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(props.track_data.applemusic ?? false) && <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon}/>}
-						{(isDownloaded) && <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/>}
-						{(isDownloading) && <Ionicons name="download" size={15} color={colors.secondary} style={styles.icon}/>}
-						{((props.track_data.thumbnail_uri ?? "") !== "") && <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/>}
+						{(props.track_data.youtube ?? false) ? <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon}/> : null}
+						{(props.track_data.imported ?? false) ? <Ionicons name="cloud-upload" size={15} color={colors.primary} style={styles.icon}/> : null}
+						{(props.track_data.amazonmusic ?? false) ? <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon}/> : null}
+						{(props.track_data.spotify ?? false) ? <MaterialCommunityIcons name="spotify" size={15} color={colors.secondary} style={styles.icon}/> : null}
+						{(props.track_data.soundcloud ?? false) ? <MaterialCommunityIcons name="soundcloud" size={15} color={colors.secondary} style={styles.icon}/> : null}
+						{(props.track_data.applemusic ?? false) ? <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon}/> : null}
+						{(isDownloaded) ? <Ionicons name="save-outline" size={15} color={colors.primary} style={styles.icon}/> : null}
+						{(isDownloading) ? <Ionicons name="download" size={15} color={colors.secondary} style={styles.icon}/> : null}
+						{((props.track_data.thumbnail_uri ?? "") !== "") ? <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon}/> : null}
 					</View>
 				</View>
 				{props.write_playlist != undefined && 

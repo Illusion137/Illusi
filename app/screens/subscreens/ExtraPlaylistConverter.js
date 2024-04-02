@@ -27,7 +27,7 @@ function ExtraPlaylistConverter({route}) {
 			try {
 				let tracks = [];
 				if(selectedIllusiPlaylist == 'Library'){
-					tracks = [...GLOBALS.SQLTracks]
+					tracks = [...GLOBALS.global_var.SQLTracks]
 				}else{
 					tracks = await SQLActions.getPlaylistTracks(selectedIllusiPlaylist.replaceAll(' ','_'));
 				}
@@ -46,9 +46,9 @@ function ExtraPlaylistConverter({route}) {
 				}
 
 
-				// await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.SQLTracks]);
+				// await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.global_var.SQLTracks]);
 				// let playlistId = getYTPlaylistIdFromURL(playlistURL)
-				// await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.SQLTracks].map(({video_id}) => (video_id)));
+				// await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.global_var.SQLTracks].map(({video_id}) => (video_id)));
 			} catch (error) {
 				console.log(error)
 			}

@@ -11,8 +11,17 @@ export type EditMode = "NONE" | "DOWNLOAD" | "DELETE" | "EDIT";
 export type DownloadTrackResult = "GOOD" | "ERROR";
 export type SetState = React.Dispatch<React.SetStateAction<any>>;
 
+export type SortType = "ALPHABETICAL" | "NEWEST" | "OLDEST"
+
 export type MusicServiceType = "Illusi" | "Musi" | "YouTube" | "YouTube Music" | "Spotify" | "Amazon Music" | "Apple Music" | "SoundCloud" | "API";
 export type MusicServiceImport = {tracks: Track[], title: string};
+
+export interface MusiTrack {
+    video_id: string,
+    video_name: string,
+    video_creator: string,
+    video_duration: number,
+}
 
 export interface SQLTable {
     name: string
@@ -27,7 +36,7 @@ export interface Playlist {
     playlist_name: string,
     pinned: boolean,
     thumbnail_uri: string,
-    sort: string,
+    sort: SortType,
     public: boolean,
     public_uid: string,
     inherited_playlists_json: string,

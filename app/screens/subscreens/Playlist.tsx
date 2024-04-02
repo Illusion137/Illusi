@@ -10,7 +10,7 @@ import { useIsFocused } from '@react-navigation/native';
 import * as Prefs from '../../../Preferences'
 import * as GLOBALS from '../../../globals';
 import * as SQLActions from '../../../SQLActions';
-import { EditMode, Route } from '../../../types';
+import { EditMode, Route, Track } from '../../../types';
 import FourTrackArtwork from '../../components/FourTrackArtwork';
 
 export default function Playlist({route}){
@@ -20,7 +20,7 @@ export default function Playlist({route}){
     const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-    const [data, setData] = useState([]);
+    const [tracks, setTracks] = useState([] as Track[]);
     const [block, setBlock] = useState(false);
     const [editMode, seteditMode] = useState("NONE" as EditMode);
     const [duration, setDuration] = useState("");
@@ -56,28 +56,31 @@ export default function Playlist({route}){
         }
 	}, [is_focused]);
     async function refreshData(){
-        let trackData = [];
+        let playlist_tracks = [] as Track[];
         if(ts_route.params.title == "Recently Added"){
-            let t = [...GLOBALS.global_var.SQLTracks]
-            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+            const t = [...GLOBALS.global_var.SQLTracks]
+            playlist_tracks = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
         }
         else if(ts_route.params.title == "Downloads"){
-            let t = [...GLOBALS.global_var.SQLTracks].filter(item=>item.downloaded || item.imported)
-            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+            const t = [...GLOBALS.global_var.SQLTracks].filter(item=>item.downloaded || item.imported)
+            playlist_tracks = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
         }
         else if(ts_route.params.title == "Recently Played"){
-            let t = await SQLActions.getRecentlyPlayedData();
-            trackData = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
+            const t = await SQLActions.getRecentlyPlayedData();
+            playlist_tracks = t.reverse().slice(0,Prefs.prefs.settings.default_playlists_size);
         }
         else{
-            trackData = await SQLActions.getPlaylistTracks(ts_route.params.title.replaceAll(' ','_'));
+            playlist_tracks = await SQLActions.getPlaylistTracks(ts_route.params.title);
             setBlock(true);
         }
-        setData(trackData);
+        setTracks(playlist_tracks);
 
         try {
-            if(trackData.length == 0){setDuration("> 1m"); return}
-            let duration = trackData.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
+            if(playlist_tracks.length === 0){ 
+                setDuration("> 1m"); 
+                return; 
+            }
+            const duration = playlist_tracks.map(({video_duration}) => video_duration).reduce(function(prev, cur) {
                 return prev + cur;
             })
             if(duration/3600 >= 1){
@@ -112,14 +115,14 @@ export default function Playlist({route}){
 	}
 
 	const renderTracks = ({ item }) => (
-		<SongComponent  track_data={item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData.bind(this)}/>
+		<SongComponent track_data={item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData.bind(this)}/>
 	);
 	const headerComponent = () => (
 		<View style={styles.playlistListHeader}>
-            <FourTrackArtwork four_track={data} size={75}/>
+            <FourTrackArtwork four_track={tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
                 <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{ts_route.params.title}</Text>
-                <Text style={{color: '#808080', fontSize: 12}}>{data.length} tracks • {duration}</Text>
+                <Text style={{color: '#808080', fontSize: 12}}>{tracks.length} tracks • {duration}</Text>
             </View>
             <View style={styles.playlistButtonsContainer}>
                 {block && <TouchableOpacity style={styles.playlistButton} onPress={() => {
@@ -135,7 +138,7 @@ export default function Playlist({route}){
                 </TouchableOpacity>}
             </View>
             <TouchableOpacity onPress={async() => {
-                playShuffle(data)
+                playShuffle(tracks);
             }} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
             <Text style={{fontWeight: '500', fontSize: 15}}>Shuffle Play</Text></TouchableOpacity>
         </View>	
@@ -153,13 +156,12 @@ export default function Playlist({route}){
                 <TouchableOpacity onPress={actions}>
                     <Ionicons name="ellipsis-horizontal-outline" size={40} color={colors.primary}/>
                 </TouchableOpacity>
-                {/* <Ionicons name="search" size={22} color='#808080' style={styles.icon}/> */}
             </View>
             <View style={{height: '94%'}}>                
                 <BigList style={{backgroundColor: colors.background}} 
                 headerHeight={400} 
                 renderHeader={headerComponent} 
-                data={data} 
+                data={tracks}
                 renderItem={renderTracks} 
                 itemHeight={61} 
                 renderFooter={footerComponent} 

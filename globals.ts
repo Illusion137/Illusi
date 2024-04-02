@@ -44,7 +44,7 @@ export let global_var = {
     "ableToPlayAgainMutex": false,
     "selectedPlaylist": new Set(),
     "playTracks": (first_track: Track, tracks: Track[], playlist_name: string) => {},
-    "downloadTrack": (track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded?: SetState): any => {}
+    "downloadTrack": async(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded?: SetState): Promise<any> => {}
 };
 
 export async function playingTrackToRNTrack(track): Promise< 'skip' | TrackPlayer.Track >{
@@ -67,6 +67,8 @@ export async function playingTrackToRNTrack(track): Promise< 'skip' | TrackPlaye
                 }}
             }
             const yt_urls = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
+            // console.log(yt_urls)
+            // const a = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`)
             url = yt_urls[0].url;
         }
         return {
@@ -76,7 +78,7 @@ export async function playingTrackToRNTrack(track): Promise< 'skip' | TrackPlaye
             'duration': track.video_duration as number, 
             'id': track.uid as string, 
             'artwork': artwork as string,
-            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'video/mp4' : undefined
+            'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4' : undefined
             // 'contentType': (track.youtube && !track.downloaded && !track.imported) ? 'audio/mp4' : undefined
         }
     } catch (error) {

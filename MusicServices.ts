@@ -15,7 +15,7 @@ export namespace MusicServices {
 
     const musi = new MusicService(
         {
-            'valid_playlist_url_regex': /(https?:\/\/)(www\.)?music\.youtube\.com\/playlist\?list=.+/i,
+            'valid_playlist_url_regex': /(https?:\/\/)feelthemusi\.com\/playlist\/.+/i,
             'link_text': 'https://feelthemusi.com/playlist/...',
             'has_credentials': undefined,
             'get_playlists_list': undefined,

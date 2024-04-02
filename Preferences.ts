@@ -204,7 +204,7 @@ function getDefaultPrefs(){
             'linked_playlists': []
         },
         'search': {
-            'recent_searches': []
+            'recent_searches': [] as string[]
         }
     }
 } 

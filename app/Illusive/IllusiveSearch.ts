@@ -2,6 +2,8 @@ import axios from "axios"; //HTTP Request Library
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as usetube from 'usetube'
 import { getAmazonMusicAmznMusicData, getAmazonMusicShowHomeData, getAmazonMusicUserHash, getAmznCsrf, getAmznMusicHeaders, getAmznMusicRequestHeaders, getAmznVideoPlayerToken, getXAmznAuth } from "./IllusiveAccountPlaylistFinder";
+import { Track } from "../../types";
+import { getTrackArtwork, getTrackArtworkRP } from "../../SQLActions";
 
 function GenerateNewUID(prefixName) {
 	return prefixName.replaceAll(/[^a-zA-Z0-9]/g,'') + '-' + new Date().getTime().toString(36).substring(2, 15) +
@@ -85,19 +87,20 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 		let apiKey = ytInitialData.apiKey
 		// let searchData = [...JSON.stringify(ytInitialData).matchAll(/"videoId":"(.+?)",.+?TimeStatusRenderer":.+?\[{"text":"(.+?)"}.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago/g)]
 //"videoId":"(.+?)",.+?accessibilityData":{"label":"([^{}]+) by ([^{}]+) [0-9,]+ views?.+?ago.+?lengthText.+?simpleText":"(.+?)"
-		const pushData = []
+		const pushData: Track[] = []
 		
 		for (const video of contents) {
 			try {				
 				let uid = GenerateNewUID(video.videoWithContextRenderer.headline.runs[0].text)
-				pushData.push({
+				pushData.push(new Track({
 				'video_id': video.videoWithContextRenderer.videoId,
 				'video_name': video.videoWithContextRenderer.headline.runs[0].text,
 				'video_creator': video.videoWithContextRenderer.shortBylineText.runs[0].text,
 				'video_duration': parseYTDuration(video.videoWithContextRenderer.lengthText.runs[0].text),
 				'youtube': true,
 				'uid': uid
-				})
+				}))
+				pushData[pushData.length - 1].artwork = getTrackArtworkRP(pushData[pushData.length - 1]);
 			} catch (error) {
 			}
 		}
@@ -110,7 +113,7 @@ async function SearchYouTube(searchTerms, limit = 0, proxy = null){ //returns fi
 	}
 }
 
-async function ContinueYouTubeSearch(continueData){
+export async function ContinueYouTubeSearch(continueData){
 	try {
 		let response = await axios.post(`https://www.youtube.com/youtubei/v1/search?key=${continueData.apiKey}`,{context : {
 				client: {

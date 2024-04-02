@@ -72,14 +72,14 @@ export async function setTrackAsDownloaded(uid: string, media_uri: string) {
 }
 
 export function getTrackArtwork(track: Track){
-    if(track.imported || false)
+    if(track.imported ?? false)
         return GLOBALS.importedIcon;
-    else if((track.thumbnail_uri || "") !== "")
+    else if((track.thumbnail_uri ?? "") !== "")
         return {'uri': GLOBALS.thumbnailsCacheDir + track.thumbnail_uri};
-    else if(track.youtube || false)
+    else if(track.youtube ?? false)
         return {'uri': `https://img.youtube.com/vi/${track.video_id}/0.jpg`, 'cache': 'force-cache'}
         // return {'uri': `https://img.youtube.com/vi/${track.video_id}/mqdefault.jpg`, 'cache': 'force-cache'}
-    return {'uri': `https://img.youtube.com/vi/${"lol"}/0.jpg`, 'cache': 'force-cache'}
+    return {'uri': `https://img.youtube.com/vi/${"null"}/0.jpg`, 'cache': 'force-cache'}
 }
 export function getTrackArtworkRP(track: Track){
     return {'uri': `https://img.youtube.com/vi/${track.video_id}/0.jpg`, 'cache': 'force-cache'}
@@ -116,8 +116,8 @@ export async function pinUnpinPlaylist(playlist_name: string, pin: boolean) {
 }
 
 export async function getPlaylistTracks(playlist_name: string) {
-    let playlist = await GLOBALS.global_var.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlist_name.replaceAll(' ', '_')} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
-    let tracks: Track[] = (playlist[0] as ResultSet).rows as Track[]
+    const playlist = await GLOBALS.global_var.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlist_name.replaceAll(' ', '_')} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
+    const tracks: Track[] = (playlist[0] as ResultSet).rows as Track[]
     for(let i = 0; i < tracks.length; i++){
         tracks[i].video_name = String(tracks[i].video_name)
         tracks[i].video_creator = String(tracks[i].video_creator)
@@ -236,10 +236,12 @@ export async function updateTrackExid(uid: string, newExid: string, service: str
 }
 
 export async function insertTrackData(track: Track) {
+    if( await checkIfVideoIdExists(track.video_id) ) return;
     if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails') && track.youtube){
-        downloadTrackThumbnail(track)
+        downloadTrackThumbnail(track);
     }
-    GLOBALS.global_var.SQLTracks.push(track)
+    GLOBALS.global_var.SQLTracks.push(track);
+        
     await GLOBALS.global_var.db.execAsync([{sql: 'INSERT INTO tracks (uid, video_id, video_name, video_creator, video_duration, media_uri, thumbnail_uri, saved, imported, downloaded, youtube, soundcloud, spotify, amazonmusic, applemusic, exid) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', args: track.toSQLInsert()}], false);
 }
 

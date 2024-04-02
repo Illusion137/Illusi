@@ -9,7 +9,7 @@ import * as Prefs from '../../../Preferences';
 import { MusicService, MusicServiceType, Route } from '../../../types';
 import { MusicServices } from '../../../MusicServices';
 
-function SelectImportServicePlaylist({route}) {
+export default function SelectImportMusicServicePlaylist({route}) {
 	const ts_route = route as Route<{title: string}>;
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
@@ -21,7 +21,7 @@ function SelectImportServicePlaylist({route}) {
 	const [inputValue, setInputValue] = React.useState("");
 
 	const [selected, setSelected] = React.useState("");
-	const [playlistNameData, setPlaylistNameData] = React.useState(undefined);
+	const [playlistNameData, setPlaylistNameData] = React.useState(new Map<string, string>());
 	const [playlistNames, setPlaylistNames] = React.useState([] as string[]);
 
 	const music_service_from = ts_route.params.title.replace('Import ', '').replace(' Playlist', '') as MusicServiceType;
@@ -55,7 +55,7 @@ function SelectImportServicePlaylist({route}) {
 		if(isValidImportURL(url)){ 
 			setDisabled(false); 
 			navigation.setOptions({ headerRight: () => (
-				<Button color='blue' onPress={() => navigation.navigate('GetAddPlaylistFrom', {'url': url, 'title': route.params.title})} title="Next" />
+				<Button color='blue' onPress={() => navigation.navigate('ImportMusicServicePlaylist', {'url': url, 'title': ts_route.params.title})} title="Next" />
 			)}) 
 		} 
 		else if(!isNextDisabled){
@@ -69,7 +69,7 @@ function SelectImportServicePlaylist({route}) {
 		setInputValue(playlistNameData.get(selected_url)); 
 		setDisabled(false);
 		navigation.setOptions({ headerRight: () => (
-			<Button color='blue' onPress={() => navigation.navigate('ImportServicePlaylist', {url: playlistNameData.get(selected_url), title: route.params.title})} title="Next"
+			<Button color='blue' onPress={() => navigation.navigate('ImportMusicServicePlaylist', {url: playlistNameData.get(selected_url), title: ts_route.params.title})} title="Next"
 			/>
 		)}) 
 	}
@@ -83,7 +83,7 @@ function SelectImportServicePlaylist({route}) {
 			<Text style={styles.looksliketext}>A {music_service_from} playlist link usually looks like the following:</Text>
 			<Text style={styles.exlinktext}> - {music_service.link_text}</Text>
 			<View style={{height: 20}}/>
-			{playlistNames != undefined && <SelectList 
+			{playlistNames.length > 0 && <SelectList 
 					setSelected={onSetSelectedURL}
 					data={playlistNames} 
 					save="value"
@@ -122,4 +122,3 @@ const themeStyles = (colors) => StyleSheet.create({
 		marginHorizontal: 10
 	}
 });
-export default SelectImportServicePlaylist;

@@ -25,7 +25,7 @@ function PlaylistAddSearch(){
     useEffect( () => {
 		(async function() {
 			await SQLActions.fetchTrackData();
-			let tracks = GLOBALS.SQLTracks;
+			let tracks = GLOBALS.global_var.SQLTracks;
 			if (tracks == null || tracks == []){
 				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
 				return;
@@ -79,7 +79,7 @@ function PlaylistAddSearch(){
 			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.writePlaylist);
 
 			if(next == "Recently Added"){
-				let t = [...GLOBALS.SQLTracks]
+				let t = [...GLOBALS.global_var.SQLTracks]
 				let trackData = t.reverse();
 				for(let i = 0; i< trackData.length; i++){
 					trackData[i].saved = playlistTracks.findIndex((item) => item.uid == trackData[i].uid) == -1 ? false : true;
