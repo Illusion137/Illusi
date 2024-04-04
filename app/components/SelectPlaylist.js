@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, Alert } from 'react-native';
 import { useNavigation,useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import * as GLOBALS from '../../globals';
 
 import * as SQLActions from '../../SQLActions';
 
@@ -15,22 +16,28 @@ function SelectPlaylist(props) {
 	const styles = themeStyles(colors);
 
 	const [pinned, setPinned] =  useState(props.pinned);
-	const [selected, setSelected] =  useState(false);
+	const [selected, setSelected] =  useState(GLOBALS.selectedPlaylists.has(props.title));
 
 	return(
         <>      
-            <TouchableOpacity style={styles.button} onPress={() => {let _selected = selected; setSelected(!_selected); props.selectedCallback(!_selected)}}>
+            <TouchableOpacity style={styles.button} onPress={() => {let _selected = !selected; setSelected(_selected); 
+                if(_selected){
+                    GLOBALS.selectedPlaylists.add(props.title)
+                }else{
+                    GLOBALS.selectedPlaylists.delete(props.title)
+                }
+                }}>
                 <>
                     {props.four_track.length == 0 && <Image source={require('../../assets/notfound.png')} style={styles.notfound}/>}
-                    {props.four_track.length != 0 && props.four_track.length < 4 && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[0].video_id}/mqdefault.jpg`}} style={styles.notfound}/>}
+                    {props.four_track.length != 0 && props.four_track.length < 4 && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[0].video_id}/maxresdefault.jpg`}} style={styles.notfound}/>}
                     {props.four_track.length >= 4 &&<View>
 							<View style={{flexDirection: 'row'}}>
-								{props.four_track[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[0].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
-								{props.four_track[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[1].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
+								{props.four_track[0]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[0].video_id}/maxresdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopLeftRadius: 5}}/>}
+								{props.four_track[1]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[1].video_id}/maxresdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderTopRightRadius: 5}}/>}
 							</View>
 							<View style={{flexDirection: 'row'}}>
-								{props.four_track[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[2].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
-								{props.four_track[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[3].video_id}/mqdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
+								{props.four_track[2]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[2].video_id}/maxresdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomLeftRadius: 5}}/>}
+								{props.four_track[3]?.video_id != undefined && <Image source={{uri: `https://img.youtube.com/vi/${props.four_track[3].video_id}/maxresdefault.jpg`}} style={{width: 35, height: 35, left: 15, borderBottomRightRadius: 5}}/>}
 							</View>
 						</View>}
                         <View style={{flexDirection: 'column', left: 25}}>

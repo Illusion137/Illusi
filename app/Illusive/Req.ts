@@ -4,9 +4,9 @@ import * as Prefs from '../../Preferences'
 export default async function req(config: import("axios").AxiosRequestConfig, service = 'youtube_cookies'){
     try {
         let response = await axios(config);
-        let key_values: String[][] = [];
+        let key_values: string[][] = [];
         try {            
-            let json_cookies = Prefs.cookiesToJson(Prefs.prefs.external_services[service]);
+            let json_cookies = Prefs.cookiesToJson(Prefs.prefs.external_services[service]) as {[key: string]: number | string}[];
             for(const set_cookie of response?.headers["set-cookie"]){
                 let key_value_set_cookie = set_cookie.split(';')
                 let main_key_value_set_cookie = key_value_set_cookie[0];
@@ -14,7 +14,7 @@ export default async function req(config: import("axios").AxiosRequestConfig, se
                 key_values.push(key_value);
             }
             for(const key_value of key_values){
-                json_cookies[key_value[0]] = key_value[1];
+                json_cookies[ key_value[0] ] = key_value[1];
             }
             await Prefs.setCookiesJson(json_cookies, service);
             response['new-cookies'] = Prefs.prefs.external_services[service];

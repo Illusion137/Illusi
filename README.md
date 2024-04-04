@@ -7,12 +7,15 @@ Any requested features please email me @ raygoza.d@hotmail.com
 
 For Version Release: The Version is the date that the release was released
 ## Table of Contents
-- [Features](#features)
-- [Roadmap](#roadmap)
-- [Preview](#preview)
-- [Installation](#installation)
-- [Development](#development)
-- [Contributing](#contributing)
+- [Illusi](#illusi)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Roadmap](#roadmap)
+  - [Preview](#preview)
+  - [Installation](#installation)
+  - [Development](#development)
+  - [Contributing](#contributing)
+  - [Extended Features List](#extended-features-list)
 ## Features
 
 ## Roadmap 
@@ -30,11 +33,11 @@ For Version Release: The Version is the date that the release was released
 
 - [x] Downloading tracks
 - [x] Import tracks from Spotify 
-- [ ] Import tracks from Amazon-Music
+- [x] Import tracks from Amazon-Music
 - [x] Export Tracks to YouTube
 - [x] Add tracks from local files
 - [ ] Audiobook-Mode
 - [ ] Widgets
 - [ ] Suggested Music / Quick Add
-- [ ] Offload Unavailable Songs
-- [ ] Re-search Unavailable Songs
+- [x] Offload Unavailable Songs
+- [x] Re-search Unavailable Songs

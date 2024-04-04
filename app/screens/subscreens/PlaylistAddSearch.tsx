@@ -1,0 +1,233 @@
+import React, {useState, useEffect, useRef} from 'react';
+import TrackComponent from '../../components/TrackComponent';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRoute, useTheme } from '@react-navigation/native';
+import BigList from 'react-native-big-list';
+import * as Haptics from 'expo-haptics';
+import * as SQLActions from '../../../SQLActions';
+import * as GLOBALS from '../../../globals';
+import { Route } from '../../../types';
+
+function PlaylistAddSearch(){
+
+	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
+	const listRef = useRef<BigList>();
+
+	let allAlphabetFastScrollLocations = [];
+	let currentPosition = 0;
+	let topScroll = 0;
+
+	const { colors } = useTheme();
+	const styles = themeStyles(colors);
+
+	const route = useRoute() as Route<{write_playlist: string}>;
+    useEffect( () => {
+		(async function() {
+			await SQLActions.fetchTrackData();
+			let tracks = GLOBALS.global_var.SQLTracks;
+			if (tracks == null || tracks.length === 0){
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
+				return;
+			}
+			
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.write_playlist.replaceAll(' ', '_'));
+			
+			let sectionsMap = new Map();
+			for(const track of tracks){
+				let char = track.video_name[0].toUpperCase()
+
+				if(!(/[A-Z]/).test(char)){ char = '#' }
+				if( !sectionsMap.has(char) ){
+					sectionsMap.set(char, [track])
+				}
+				else{
+					let newTracks = sectionsMap.get(char)
+					newTracks.push(track)
+					sectionsMap.set(char, newTracks)
+				}
+			}
+			let sections = []
+			let sectionChars = []
+			let sortedSectionsMap = [...sectionsMap].sort()
+			for(const value of sortedSectionsMap){
+				sections.push(value[1])
+				sectionChars.push(value[0])
+			}
+
+			if(playlistTracks.length !== 0){
+				for(let i = 0; i < sections.length; i++){
+					for(let j = 0; j < sections[i].length; j++){
+						sections[i][j].saved = playlistTracks.findIndex((item) => item.uid == sections[i][j].uid) == -1 ? false : true;
+					}
+				}
+			}
+			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
+		})();
+	}, []);
+	const renderItem = ({item}) => <TrackComponent track_data={item} write_playlist={route.params.write_playlist}/>
+
+	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
+
+	const [nextPlaylist, setNextPlaylist] = useState("Recently Added");
+	const [nextIndex, setNextIndex] = useState(0);
+	const headerComponent = () => <TouchableOpacity onPress={async() => 
+		{
+			let next = nextPlaylist;
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.write_playlist);
+
+			if(next == "Recently Added"){
+				let t = [...GLOBALS.global_var.SQLTracks]
+				let trackData = t.reverse();
+				for(let i = 0; i< trackData.length; i++){
+					trackData[i].saved = playlistTracks.findIndex((item) => item.uid == trackData[i].uid) == -1 ? false : true;
+				}
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0})
+
+				setAllData({charData: [], dataMask: [trackData], baseData: trackData, numTracks: trackData.length})
+				let playlists = await SQLActions.getAllPlaylists();
+				setNextPlaylist(playlists[nextIndex].playlist_name)
+			}else{
+				let trackData = await SQLActions.getPlaylistTracks(nextPlaylist);
+				for(let i = 0; i< trackData.length; i++){
+					trackData[i].saved = playlistTracks.findIndex((item) => item.uid == trackData[i].uid) == -1 ? false : true;
+				}
+				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0})
+				setAllData({charData: [], dataMask: [trackData], baseData: trackData, numTracks: trackData.length})
+				let playlists = await SQLActions.getAllPlaylists();
+				let i = nextIndex;
+				i++;
+				if(i < playlists.length){
+					setNextIndex(i);
+					setNextPlaylist(playlists[i].playlist_name);
+				} else{
+					setNextIndex(0);
+					setNextPlaylist("Recently Added");
+				}
+			}
+		}} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}>
+		<Text style={{fontWeight: '500', fontSize: 18}}>Goto {nextPlaylist}</Text>
+		</TouchableOpacity>
+
+    return(
+        <View style={{backgroundColor: 'black', width: '100%', height: '100%'}}>
+			<BigList 
+				sections={allData.dataMask}
+				renderItem={renderItem}
+				keyExtractor={(item, index) => String(index)}
+				renderSectionHeader={sectionHeader}
+				sectionHeaderHeight={30}
+				ref={listRef}
+				itemHeight={61}
+				renderHeader={headerComponent}
+				headerHeight={90}
+				renderFooter={undefined}
+			/>
+			<View style={{backgroundColor: '#121212',
+					position: 'absolute',
+					left: '93%',
+					top: 280-(7*allData.charData.length),
+					justifyContent: 'center',
+					alignItems: 'center',
+					borderRadius: 10,
+					width: 25
+				}}
+				hitSlop={{left: 20}}
+				onStartShouldSetResponder={(ev) => true}
+				onTouchStart={(e) => {
+					topScroll = 400-(7*allData.charData.length);
+				}}
+				onResponderMove={(e) => {
+					if(allData.charData.length === 0){return}
+					if(!(allData.charData.length === allAlphabetFastScrollLocations.length)){						
+						allAlphabetFastScrollLocations = [];
+						for(let i = 0; i < allData.charData.length; i++){
+							allAlphabetFastScrollLocations.push((17*i) + topScroll)
+						}
+					}
+					let target = Math.floor(e.nativeEvent.pageY);
+					var closest = allAlphabetFastScrollLocations.reduce(function(prev, curr) {
+						return (Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev);
+					});
+					if(currentPosition == closest){
+						return
+					}
+					currentPosition = closest;
+					listRef.current?.scrollToLocation({ animated: false, index: 0, section: allAlphabetFastScrollLocations.indexOf(closest) }); 
+					Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+				} }
+				>
+				{allData.charData.length > 0 && allData.charData.map((element, i) => (
+					<View key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
+						<Text style={{color: colors.primary, fontSize: 14}}>{element}</Text>
+					</View>
+				))}
+			</View>
+        </View>
+    );
+}
+
+const themeStyles = (colors) => StyleSheet.create({
+	topcontainer:{
+		backgroundColor: colors.background,
+		flex: 1,
+		justifyContent: 'flex-start'
+	},
+	header:{
+		backgroundColor: colors.card,
+		width: '100%',
+		height: '18%',
+		// position: 'absolute',
+		top: 0,
+		justifyContent: 'flex-end',
+		alignItems: 'center',
+	},
+	toptext:{
+		bottom: 20,
+		color: colors.text,
+		fontSize: 18,
+		fontWeight: '500'
+	},
+	searchinput:{
+		backgroundColor: '#303030',
+		color: 'white',
+		width: '80%',
+		bottom: 10,
+		padding: 10,
+		borderTopRightRadius: 10,// Top Right Corner
+		borderBottomRightRadius: 10, // Bottom Right Corner
+	},
+	searchcontainer:{
+		justifyContent: 'center',
+		height: '24%',
+		left:-5,
+		width: '100%',
+		flexDirection: 'row'
+	},
+	icon:{
+		overflow: 'hidden',
+		backgroundColor: '#303030',
+		paddingTop: 5,
+		paddingLeft: 5,
+		paddingRight: 5,
+		bottom: 10,
+		left: 10,
+		borderRadius:10,
+		zIndex: 1
+	},
+	sectionHeader:{
+		width: '100%',
+		height: 30,
+		backgroundColor: '#121212',
+		justifyContent: 'center'
+	},
+	sectionText:{
+		color: colors.text,
+		fontSize: 18,
+		fontWeight: 'bold',
+		marginHorizontal: 10
+	},
+});
+
+export default PlaylistAddSearch;
