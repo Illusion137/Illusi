@@ -1,5 +1,5 @@
 import React, { Component, useEffect, useState } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LogBox, Button ,ActionSheetIOS, Alert, Appearance, Image, View } from 'react-native';
@@ -44,6 +44,7 @@ import * as ffmpeg from 'react-native-ffmpeg'
 import { DownloadTrackResult, PlayingState, SetState, Track } from './types';
 import { swapItems } from './app/Illusive/Utils';
 import AudioPlayer from './app/screens/subscreens/AudioPlayer';
+import ExtraDeveloperScreen from './app/screens/subscreens/ExtraDeveloperScreen';
 
 // import RNFetchBlob from "rn-fetch-blob";
 
@@ -76,6 +77,7 @@ function ExtrasStackScreen(props){
 	  <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
 	  <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
 	  <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
+	  <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
 	</ExtrasStack.Navigator>
   );
 }
@@ -85,7 +87,7 @@ const PlaylistsStack = createNativeStackNavigator();
 function PlaylistsStackScreen(props) {
   return (
 	<PlaylistsStack.Navigator screenOptions={{headerShown: false}}>
-	  <PlaylistsStack.Screen options={{headerShown: false}} name="Playlists" component={PlaylistScreen} />
+	  <PlaylistsStack.Screen options={{headerShown: false}} name="PlaylistScreen" component={PlaylistScreen} />
 	  <PlaylistsStack.Screen options={{headerShown: false}} name="Playlist" component={Playlist} />
 	</PlaylistsStack.Navigator>
   );
@@ -101,7 +103,8 @@ export class Tabs extends Component {
 			<Tab.Navigator initialRouteName={'Library'} 
 			screenOptions={{headerShown: false, tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
 			tabBarActiveBackgroundColor:Prefs.darkThemeDefault.colors.background, tabBarInactiveBackgroundColor: Prefs.darkThemeDefault.colors.background, tabBarStyle:{backgroundColor:Prefs.darkThemeDefault.colors.background, height: 90, zIndex:1}}} 
-			detachInactiveScreens={true}>
+			detachInactiveScreens={true}
+			>
 				<Tab.Screen name="My Library" component={LibraryScreen}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
@@ -109,7 +112,7 @@ export class Tabs extends Component {
 				}}
 				
 				/>
-				<Tab.Screen name="PlaylistsStack" component={PlaylistsStackScreen}
+				<Tab.Screen name="Playlists" component={PlaylistsStackScreen}
 				options={{
 					tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
 					unmountOnBlur: true,
@@ -330,9 +333,9 @@ export default function App() {
 	return (
 		// <Provider store={store}>
 			<NavigationContainer theme={Prefs.darkThemeDefault}>
-					{isPlaying == "ON" && <AudioPlayer tracks={playingTracks} playing_from={playingFrom}/> }
 					{/* {this.state.is_playing && <PlayingSong tracks={this.state.tracks} playing_from={this.state.playing_from}/>} */}
 					{isLoading && <Image style={{flex:1, backgroundColor: 'black', width: '100%', height: '100%'}} source={require('./assets/splash.png')}/>}
+					{isPlaying == "ON" && <AudioPlayer tracks={playingTracks} playing_from={playingFrom}/> }
 					{!isLoading && <Stack.Navigator>
 						<Stack.Screen name="Tabs" component={Tabs} options={{headerShown: false}}/>
 						<Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{headerShown: true}} />

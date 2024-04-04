@@ -198,7 +198,6 @@ import * as SQLActions from './SQLActions'
       await TrackPlayer.seekTo(position.position)
     })
     TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async(data) => {
-        // console.log(data)
         try {
             let curTrack = await TrackPlayer.getTrack(data.track ?? 0);
             //data.position + 5 > curTrack.duration

@@ -2,12 +2,13 @@ import React,  { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { useNavigation, useTheme } from '@react-navigation/native';
+import { darkThemeDefault } from '../../../Preferences';
 
 function ExtraRecoveryScreen(props) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 
 		</View>
 	);

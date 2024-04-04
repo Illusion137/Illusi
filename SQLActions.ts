@@ -236,7 +236,7 @@ export async function updateTrackExid(uid: string, newExid: string, service: str
 }
 
 export async function insertTrackData(track: Track) {
-    if( await checkIfVideoIdExists(track.video_id) ) return;
+    if( !track.imported && await checkIfVideoIdExists(track.video_id) ) return;
     if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails') && track.youtube){
         downloadTrackThumbnail(track);
     }
@@ -341,9 +341,11 @@ async function alterSQL(alter: SQLAlter){
     else if(alter.action === 'DROP' && column_props !== undefined){
         await GLOBALS.global_var.db.execAsync([{sql: `ALTER TABLE ${alter.table} ${alter.action} COLUMN ${alter.column_name}`, args: []}], false);
     }
-    else if(alter.action === 'RENAME' && column_props !== undefined && column_props.column_name !== alter.column_name){
+    else if(alter.action === 'RENAME' && column_props !== undefined && column_props.column_name !== alter.new_column_name){
         await GLOBALS.global_var.db.execAsync([{sql: `ALTER TABLE ${alter.table} ${alter.action} COLUMN ${alter.column_name} TO ${alter.new_column_name}`, args: []}], false);
     }
+    else return;
+    Alert.alert("Altered SQL Table: ", `Changes ${JSON.stringify(alter)}`)
 }
 export async function recreateAllTables(){
     await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_uri STRING, thumbnail_uri STRING, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, exid STRING)', args: []}], false);

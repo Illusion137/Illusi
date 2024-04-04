@@ -1,15 +1,15 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet,Text, FlatList } from 'react-native';
 import * as SQLActions from '../../../SQLActions';
-import { useNavigation, useTheme } from '@react-navigation/native';
+import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import * as Prefs from '../../../Preferences';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
 
 function ExtraSettingsScreen(props) {
-	const navigation = useNavigation();
+	const navigation: NavigationProp<any, any> = useNavigation();
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	const [settingsData, setSettingsData] = useState(Object.entries(Prefs.prefs.settings)); 
@@ -19,15 +19,15 @@ function ExtraSettingsScreen(props) {
 		{item.index !== settingsData.length-1 && <View style={styles.lineshort}/>}
 	</>;
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			<FlatList data={settingsData} renderItem={renderItem} ListHeaderComponent={<View style={styles.linelong}/>} ListFooterComponent={
 				<>
 					<View style={styles.linelong}/>
 					<View style={{height: 30}}/>
-					<ExtrasSectionButton showArrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
+					<ExtrasSectionButton show_arrow={true} text='Experimental Features' icon='build-outline' onPress={async () => navigation.navigate('Experimental Features') }/>
 					<View style={{height: 30}}/>
-					<ExtrasSectionButton showArrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.refreshCache}/>
-					<ExtrasSectionButton showArrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clearCache}/>
+					<ExtrasSectionButton show_arrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.refreshCache}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clearCache}/>
 					<View style={{height: 100}}/>
 				</>
 			}/>

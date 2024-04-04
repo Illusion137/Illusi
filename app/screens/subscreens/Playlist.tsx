@@ -4,7 +4,7 @@ import { AntDesign, Ionicons, MaterialCommunityIcons,FontAwesome } from "@expo/v
 import { NavigationProp, useTheme } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SongComponent from '../../components/TrackComponent';
+import TrackComponent from '../../components/TrackComponent';
 import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 import * as Prefs from '../../../Preferences'
@@ -115,7 +115,7 @@ export default function Playlist({route}){
 	}
 
 	const renderTracks = ({ item }) => (
-		<SongComponent track_data={item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData.bind(this)}/>
+		<TrackComponent track_data={item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData.bind(this)}/>
 	);
 	const headerComponent = () => (
 		<View style={styles.playlistListHeader}>

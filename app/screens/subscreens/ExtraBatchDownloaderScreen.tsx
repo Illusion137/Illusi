@@ -97,7 +97,7 @@ function ExtraBatchDownloaderScreen({route}) {
 					dropdownStyles={{backgroundColor: colors.track}}
 					dropdownTextStyles={{color: 'white'}}
 				/>
-				<ExtrasSectionButton showArrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
+				<ExtrasSectionButton show_arrow={false} text='Download all From Playlist' icon='archive-outline' onPress={confirmDownloadPlaylistAlert}/>
 				<View style={{height: 15}}/>
 				<FlatList 
 					data={downloadingTracksData} 

@@ -90,7 +90,6 @@ function ExtraScreen({route}) {
 		}, 1000)
 	  
 		return () => clearInterval(interval_id); //This is important
-	   
 	}, [])
 
 	return (
@@ -102,53 +101,59 @@ function ExtraScreen({route}) {
 			</View>
 			<ScrollView>
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
+					<ExtrasSectionButton show_arrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
 				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
 				
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
+					<ExtrasSectionButton show_arrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
 					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
+					<ExtrasSectionButton show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
 					<View style={styles.lineshort}/>
-					<ExtrasSectionButton showArrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
+					<ExtrasSectionButton show_arrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
-					<ExtrasSectionButton showArrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
+					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
+					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.lineshort}/>
-					<ExtrasSectionButton showArrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
+					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
 				<View style={styles.linelong}/>
 
 				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
+					<ExtrasSectionButton show_arrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
 				<View style={styles.linelong}/>
 				
 				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton showArrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
 					<View style={styles.lineshort}/>
-					<ExtrasSectionButton showArrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
+					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zipData()}/>
 					<View style={styles.lineshort}/>
-					<ExtrasSectionButton showArrow={false} text='Reset Settings' icon='sync' onPress={confirmResetPrefsAlert}/>
+					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={confirmResetPrefsAlert}/>
 					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={confirmDeletePlaylistDataAlert}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={confirmDeletePlaylistDataAlert}/>
 					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton showArrow={false} text='Clear All Data' icon='trash-outline' onPress={confirmDeleteDataAlert}/>
-					{Prefs.prefs.settings.enable_dev_features && 
-						<>
-							<View style={styles.lineshort}/>
-							<ExtrasSectionButton showArrow={false} text='Clear All Data; Keep Preferences' icon='trash-outline' onPress={() => { keep_prefs=true; confirmDeleteDataAlert();}}/>
-						</>
-					}
+					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={confirmDeleteDataAlert}/>
 				<View style={styles.linelong}/>
+				<Text style={styles.descriptiontxt}>Manage your data; clear your data or export it back to your files app</Text>
+
+				{Prefs.prefs.settings.enable_dev_features ?				
+					<>
+					<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear All Data; Keep Preferences' icon='trash-outline' onPress={() => { keep_prefs=true; confirmDeleteDataAlert();}}/>
+					<View style={styles.linelong}/>
+					<Text style={styles.descriptiontxt}>Developer Options :3</Text>
+					</>
+					: null
+				}
 				
 				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version} Beta</Text>
 				<Text style={styles.descriptiontxt}>Battery Level: {battery}</Text>

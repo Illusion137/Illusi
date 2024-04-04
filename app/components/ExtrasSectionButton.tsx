@@ -2,17 +2,24 @@ import React from 'react';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { darkThemeDefault } from '../../Preferences';
+import { Icon } from '@expo/vector-icons/build/createIconSet';
 
-function ExtrasSectionButton({showArrow = true, ...props}) {	
-	const { colors } = useTheme();
+function ExtrasSectionButton(props: {
+		onPress: () => void,
+		show_arrow: true | boolean, 
+		text: string,
+		icon: string
+	}) {	
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	return(
 		<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={props.onPress}>
 			<View style={styles.sectionContainer}>
-				<Ionicons name={props.icon} size={25} color={colors.primary} style={{left: 10}}/>
+				<Ionicons name={props.icon as any} size={25} color={colors.primary} style={{left: 10}}/>
 				<Text style={styles.btnsectionText}>{props.text}</Text>
-				{ showArrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: 340}}/>}
+				{ props.show_arrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: 340}}/>}
 			</View>
 		</TouchableHighlight>
 	);

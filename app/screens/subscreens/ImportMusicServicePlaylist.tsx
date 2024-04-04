@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableH
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SongComponentSearch from '../../components/SongComponentSearch';
 import ProgressBar from '../../components/ProgressBar';
 import { GenerateNewUID } from '../../Illusive/IllusiveSearch';
 import * as SQLActions from '../../../SQLActions';
@@ -27,10 +26,10 @@ export default function ImportMusicServicePlaylist({route}) {
 	const service_type = ts_route.params.title.replace('Import ', '').replace(' Playlist', '') as MusicServiceType;
 
 	async function addTracksToLibrary(tracks: Track[]){
-		const promised_tracks = [];
-		for(const track of tracks)
-				promised_tracks.push( SQLActions.insertTrackData(track) );
-		await Promise.all(promised_tracks);
+			const promised_tracks = [];
+			for(const track of tracks)
+					promised_tracks.push( SQLActions.insertTrackData(track) );
+			await Promise.all(promised_tracks);
 	}
 
 	async function saveToPlaylist(tracks: Track[], imported_playlist_name: string){

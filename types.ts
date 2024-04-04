@@ -16,6 +16,11 @@ export type SortType = "ALPHABETICAL" | "NEWEST" | "OLDEST"
 export type MusicServiceType = "Illusi" | "Musi" | "YouTube" | "YouTube Music" | "Spotify" | "Amazon Music" | "Apple Music" | "SoundCloud" | "API";
 export type MusicServiceImport = {tracks: Track[], title: string};
 
+export interface QueueTrack {
+    artwork: Artwork, 
+    video_creator: string
+    video_name: string
+}
 export interface MusiTrack {
     video_id: string,
     video_name: string,

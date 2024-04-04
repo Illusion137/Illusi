@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import SongComponent from '../../components/TrackComponent';
+import TrackComponent from '../../components/TrackComponent';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,11 +8,12 @@ import BigList from 'react-native-big-list';
 import * as Haptics from 'expo-haptics';
 import * as SQLActions from '../../../SQLActions';
 import * as GLOBALS from '../../../globals';
+import { Route } from '../../../types';
 
 function PlaylistAddSearch(){
 
 	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
-	const listRef = useRef();
+	const listRef = useRef<BigList>();
 
 	let allAlphabetFastScrollLocations = [];
 	let currentPosition = 0;
@@ -21,17 +22,17 @@ function PlaylistAddSearch(){
 	const { colors } = useTheme();
 	const styles = themeStyles(colors);
 
-	const route = useRoute();
+	const route = useRoute() as Route<{write_playlist: string}>;
     useEffect( () => {
 		(async function() {
 			await SQLActions.fetchTrackData();
 			let tracks = GLOBALS.global_var.SQLTracks;
-			if (tracks == null || tracks == []){
+			if (tracks == null || tracks.length === 0){
 				setAllData({charData: [], dataMask: [], baseData: [], numTracks: 0});
 				return;
 			}
 			
-			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.writePlaylist.replaceAll(' ', '_'));
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.write_playlist.replaceAll(' ', '_'));
 			
 			let sectionsMap = new Map();
 			for(const track of tracks){
@@ -55,7 +56,7 @@ function PlaylistAddSearch(){
 				sectionChars.push(value[0])
 			}
 
-			if(playlistTracks != []){
+			if(playlistTracks.length !== 0){
 				for(let i = 0; i < sections.length; i++){
 					for(let j = 0; j < sections[i].length; j++){
 						sections[i][j].saved = playlistTracks.findIndex((item) => item.uid == sections[i][j].uid) == -1 ? false : true;
@@ -65,9 +66,7 @@ function PlaylistAddSearch(){
 			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
 		})();
 	}, []);
-	// const renderItem = ({item}) =><SongComponent uri={item.uri} video_id={item.video_id} video_name={item.video_name} video_duration={item.video_duration} video_creator={item.video_creator} downloaded={item.downloaded} thumbnailURI={item.thumbnailURI} uid={item.uid} saved={item.saved} writePlaylist={route.params.writePlaylist}/>;
-
-	const renderItem = ({item}) => <SongComponent artwork={item.artwork} media_uri={item.media_uri} saved={item.saved} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} downloaded={item.downloaded} imported={item.imported} thumbnail_uri={item.thumbnail_uri} youtube={item.youtube} amazonmusic={item.amazonmusic} spotify={item.spotify} soundcloud={item.soundcloud} uid={item.uid} duration={item.video_duration} writePlaylist={route.params.writePlaylist}/>
+	const renderItem = ({item}) => <TrackComponent track_data={item} write_playlist={route.params.write_playlist}/>
 
 	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
 
@@ -76,7 +75,7 @@ function PlaylistAddSearch(){
 	const headerComponent = () => <TouchableOpacity onPress={async() => 
 		{
 			let next = nextPlaylist;
-			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.writePlaylist);
+			let playlistTracks = await SQLActions.getPlaylistTracks(route.params.write_playlist);
 
 			if(next == "Recently Added"){
 				let t = [...GLOBALS.global_var.SQLTracks]
@@ -116,14 +115,14 @@ function PlaylistAddSearch(){
 			<BigList 
 				sections={allData.dataMask}
 				renderItem={renderItem}
-				keyExtractor={(item, index) => index}
+				keyExtractor={(item, index) => String(index)}
 				renderSectionHeader={sectionHeader}
 				sectionHeaderHeight={30}
 				ref={listRef}
 				itemHeight={61}
 				renderHeader={headerComponent}
 				headerHeight={90}
-				onScrollToIndexFailed={() => {}}
+				renderFooter={undefined}
 			/>
 			<View style={{backgroundColor: '#121212',
 					position: 'absolute',
@@ -155,12 +154,12 @@ function PlaylistAddSearch(){
 						return
 					}
 					currentPosition = closest;
-					listRef.current?.scrollToLocation({ animated: false, itemIndex: 0, sectionIndex: allAlphabetFastScrollLocations.indexOf(closest) }); 
+					listRef.current?.scrollToLocation({ animated: false, index: 0, section: allAlphabetFastScrollLocations.indexOf(closest) }); 
 					Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
 				} }
 				>
 				{allData.charData.length > 0 && allData.charData.map((element, i) => (
-					<View a={allData.charData.length} key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
+					<View key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >
 						<Text style={{color: colors.primary, fontSize: 14}}>{element}</Text>
 					</View>
 				))}

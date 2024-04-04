@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight, TouchableOpacity, Modal, Button, ImageBackground, Easing, Image, Alert } from 'react-native';
-import SongComponentSearch from '../components/SongComponentSearch';
 import { useTheme } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import SearchYouTube, { ContinueYouTubeSearch, GenerateNewUID } from '../Illusive/IllusiveSearch';
@@ -44,8 +43,9 @@ const SearchScreen = (props) => {
 	function getPreviousSearches(){
 		setSearchingData(Prefs.prefs.search.recent_searches);
 	}
-	async function Search(query) {
+	async function Search(query: string) {
 		setTracks([]);
+		// setSearchingMode(false);
 
 		if(query.replaceAll(/\s/g,'') == ''){
 			return null;
@@ -128,18 +128,24 @@ const SearchScreen = (props) => {
 		if(await Search(searchQuery) == null){return;} setSearchingMode(false)
 	}
 	async function onTextUpdate(search_query: string){
-		setSearchQuery(search_query); if(search_query.replaceAll(/\s/g,'') != ''){setIsUsingRecentSearches(false)} else{setIsUsingRecentSearches(true)} 
+		setSearchQuery(search_query); 
+		if(search_query.replaceAll(/\s/g,'') != '')
+			setIsUsingRecentSearches(false);
+		else setIsUsingRecentSearches(true);
 	}
 	async function getSuggestions(search_query: string){
 		try {
-			if(search_query && search_query.trim()){
+			if(search_query != null && !search_query.trim()){
+				setSearchingData(Prefs.prefs.search.recent_searches);
+				return;
+			}
+			else if(search_query == null){
 				setSearchingData(Prefs.prefs.search.recent_searches);
 				return;
 			}
 			setSearchingMode(true)
 			const response = await fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${search_query}`);
-			const json = await response.json();
-			console.log(json)
+			const json: any[][] = await response.json();
 			setSearchingData(json[1]);
 		} catch (error) {
 			console.log(error)
@@ -152,7 +158,7 @@ const SearchScreen = (props) => {
 
 
 	const renderSongSearchComponents = ({ item }) => (
-		<TrackComponent track_data={item} write_playlist='LIBRARY'/>
+		<TrackComponent track_data={item} write_playlist='LIBRARY' from='YouTube Mix'/>
 	);
 	const renderQueryItems = ({ item }) => (
 		<>
@@ -170,7 +176,7 @@ const SearchScreen = (props) => {
 
 						setSearchingData(Prefs.prefs.search.recent_searches);
 						await Prefs.savePrefs();
-						setSearchingMode(true)
+						setSearchingMode(true);
 					}}>
 							<Octicons name={'x'} color={colors.red} size={24} style={{left: 50, padding: 10, paddingRight: 40}} />
 						</TouchableOpacity> }
@@ -192,8 +198,8 @@ const SearchScreen = (props) => {
 					/>
 			</View>
 			<View style={styles.searchview}>
-				{searchingMode && <FlatList style={styles.searchlist} data={searchingData} renderItem={renderQueryItems}/>}
-				{!searchingMode && <FlatList style={styles.searchlist} data={tracks} renderItem={renderSongSearchComponents} /* onEndReached={async() => await ContinueSearch()} *//>}
+				{searchingMode ? <FlatList style={styles.searchlist} data={searchingData} renderItem={renderQueryItems}/> : null }
+				{!searchingMode ? <FlatList style={styles.searchlist} data={tracks} renderItem={renderSongSearchComponents}/> : null }
 			</View>
 			<AddToPlaylistsModal modalData={modalData}/>
 		</View>

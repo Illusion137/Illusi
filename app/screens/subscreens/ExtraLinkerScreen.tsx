@@ -1,15 +1,16 @@
 import React,  { useState } from 'react';
-import { View, StyleSheet, Modal, Pressable, Text } from 'react-native';
+import { View, StyleSheet, Modal, Pressable, Text, Alert } from 'react-native';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import Link from '../../components/Link';
+import { darkThemeDefault } from '../../../Preferences';
 
 function ExtraLinkerScreen(props) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	const [modalVisible, setModalVisible] = useState(false);
 
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			<Modal
 				animationType="slide"
 				transparent={true}

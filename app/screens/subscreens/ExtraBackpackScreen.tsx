@@ -9,12 +9,13 @@ import SegmentedControl from '@react-native-segmented-control/segmented-control'
 import SongComponentBackpack from '../../components/SongComponentBackpack';
 import { getProxyList, getRandomIndex } from '../../Illusive/IllusivePlaylistResolver';
 import SearchYouTube from '../../Illusive/IllusiveSearch';
+import { darkThemeDefault } from '../../../Preferences';
 
 let restoredDataAll = []
 let restoredIndex = 0;
 
 function ExtraBackpackScreen(props) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	const [data, setData] = useState([]);
@@ -65,18 +66,18 @@ function ExtraBackpackScreen(props) {
 	const renderHeader = () => (
 		<>
 				{restoredData.length == 0 && <View>
-					<ExtrasSectionButton showArrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
-						let proxies = getProxyList();
+					<ExtrasSectionButton show_arrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
+						let proxies = await getProxyList();
 						async function searchYT(title, artist, oldUID, proxy = null){
-							let search_query = toCleanedQuery(title, artist)
-							let ytSearchResult = await SearchYouTube(search_query, 0, proxy)
+							let search_query = toCleanedQuery(title, artist);
+							let ytSearchResult = await SearchYouTube(search_query, 0, proxy);
 							let results = ytSearchResult.data
 							for(let i = 0; i < results.length; i++){						
 								results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/maxresdefault.jpg`, 'cache': 'force-cache'}
 								results[i]['oldUID'] = oldUID;
 								results[i]['disabled'] = false;
 							}
-							return results.slice(0,10)
+							return results.slice(0,10);
 						}
 						let tracks = data;
 						const ytTracks = [];
@@ -91,7 +92,7 @@ function ExtraBackpackScreen(props) {
 						restoredIndex = 0;
 						setIndex(1);
 					})}}/>
-					<ExtrasSectionButton showArrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
+					<ExtrasSectionButton show_arrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
 						await SQLActions.clearBackpack();
 						setData([])
 					})}}/>
@@ -106,7 +107,7 @@ function ExtraBackpackScreen(props) {
 	)
 
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 						<SegmentedControl 
 				values={["View Backpack","View Conversion"]}
 				selectedIndex={index}

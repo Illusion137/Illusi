@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import SongComponent from '../components/TrackComponent';
+import TrackComponent from '../components/TrackComponent';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, GestureResponderEvent, Animated } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useIsFocused, useTheme } from '@react-navigation/native';
@@ -13,7 +13,6 @@ import * as SQLActions from '../../SQLActions';
 import * as GLOBALS from '../../globals';
 import * as Prefs from '../../Preferences';
 import { EditMode, Track } from '../../types';
-import TrackComponent from '../components/TrackComponent';
 
 
 const LibraryScreen = ({ navigation, route }) => {
@@ -135,7 +134,7 @@ const LibraryScreen = ({ navigation, route }) => {
 	function updateSearchQuery(query: string) {
 		refreshData(query);
 	}
-	async function uploadFile() {
+	async function uploadFiles() {
 		try {
 			const audio_files = await DocumentPicker.pickMultiple({type: [DocumentPicker.types.audio, DocumentPicker.types.video], copyTo: 'documentDirectory'})
 
@@ -214,7 +213,7 @@ const LibraryScreen = ({ navigation, route }) => {
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
 					<TextInput autoCorrect={false} value={searchQuery} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={async(search_query) => refreshData(search_query)}></TextInput>
-					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={uploadFile}>
+					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={uploadFiles}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>

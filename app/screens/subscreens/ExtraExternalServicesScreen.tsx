@@ -2,12 +2,12 @@ import React,  { useState } from 'react';
 import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'react-native';
 import CookieManager from '@react-native-community/cookies';
 import { useNavigation, useTheme } from '@react-navigation/native';
-import WebView from 'react-native-webview';
+import WebView, { WebViewNavigation } from 'react-native-webview';
 import * as Prefs from '../../../Preferences';
 import { Ionicons } from '@expo/vector-icons';
 
 function ExternalServicesScreen(props) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	const [YTCookiesEnabled, setYTCookiesEnabled] = useState(Prefs.prefs.external_services.youtube_cookies !== '')
@@ -16,9 +16,8 @@ function ExternalServicesScreen(props) {
 	const [amazonCookiesEnabled, setAmazonCookiesEnabled] = useState(Prefs.prefs.external_services.amazon_music_cookies !== '')
 
 	const [url, setUrl] = useState(null);
-	navChange = e => {
-		// this.setState({ loading: e.loading });
-		switch(e.url){
+	function navChange(event: WebViewNavigation) {
+		switch(event.url){
 			case('https://m.youtube.com/'):
 				CookieManager.get('https://m.youtube.com/').then(async(res) => { await Prefs.setCookies(res, 'youtube_cookies'); setYTCookiesEnabled(true) });
 				break;
@@ -34,14 +33,14 @@ function ExternalServicesScreen(props) {
 		}
 	  };
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			{ url != null && <View style={{height: 500}}>
 				<WebView source={{ uri: url }} 
 						style={{ flex: 1 }}
 						javaScriptEnabled={true}
 						sharedCookiesEnabled={true}
 						thirdPartyCookiesEnabled={true}
-						onNavigationStateChange={this.navChange}
+						onNavigationStateChange={navChange}
 						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
 						// applicationNameForUserAgent='Illusi'
 						contentMode="mobile"

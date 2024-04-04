@@ -11,9 +11,12 @@ import { getAllAmazonMusicPlaylistsFromAccount, getAllYoutubePlaylistsFromAccoun
 import { getYTPlaylistIdFromURL, insertIntoAmazonMusicPlaylist, insertIntoYouTubePlaylist } from '../../Illusive/IllusiveInsertIntoPlaylist';
 import axios from 'axios';
 // import * as AVExpo from 'expo-av'
+import { MusicServiceType } from '../../../types';
+
+type KeyValue = {key: string, value: string};
 
 function ExtraPlaylistConverter({route}) {
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	let cachedData = {};
@@ -56,17 +59,17 @@ function ExtraPlaylistConverter({route}) {
 	);
 	useEffect(() => {
 		(async function() {
-			let playlists_names = await SQLActions.getAllPlaylists();
-			let pushData = []
-			pushData.push({key: '0', value: 'Library'})
+			const playlists_names = await SQLActions.getAllPlaylists();
+			const push_data: KeyValue[] = []
+			push_data.push({key: '0', value: 'Library'})
 			for (let i = 0; i < playlists_names.length; i++) {
-				pushData.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
+				push_data.push({key: (i+1).toString(), value: playlists_names[i].playlist_name})
 			}
-			setIllusiPlaylistData(pushData)
-			let segmentedServiceValuesData = [];
+			setIllusiPlaylistData(push_data)
+			let segmentedServiceValuesData: MusicServiceType[] = [];
 			if(Prefs.hasYouTubeCookies()) segmentedServiceValuesData.push("YouTube");
-			// if(Prefs.hasSpotifyCookies()) segmentedServiceValuesData.push("Spotify");
-			if(Prefs.hasAmazonCookies()) segmentedServiceValuesData.push("Amazon");
+			if(Prefs.hasSpotifyCookies()) segmentedServiceValuesData.push("Spotify");
+			if(Prefs.hasAmazonMusicCookies()) segmentedServiceValuesData.push("Amazon Music");
 			setSegmentedServiceValues(segmentedServiceValuesData);
 		})()
 	}, []);
@@ -88,19 +91,19 @@ function ExtraPlaylistConverter({route}) {
 		}
 	}
 
-	const [data,setData] = useState([]);
+	const [data, setData] = useState(new Map<string, string>());
 
 	const [selectedIllusiPlaylist, setSelectedIllusiPlaylist] = React.useState("");
-	const [illusiPlaylistData, setIllusiPlaylistData] = React.useState("");
+	const [illusiPlaylistData, setIllusiPlaylistData] = React.useState([] as KeyValue[]);
 
 	const [segmentedServiceValues, setSegmentedServiceValues] = React.useState([]);
 	const [selectedSegmentedServiceValue, setSelectedSegmentedServiceValue] = React.useState("");
 
 	const [selectedServicePlaylist, setSelectedServicePlaylist] = React.useState("");
-	const [servicePlaylistData, setServicePlaylistData] = React.useState("");
+	const [servicePlaylistData, setServicePlaylistData] = React.useState([] as KeyValue[]);
 
 	return(
-		<View style={{backgroundColor: colors.backgroundColor, width: '100%', flex: 1,}}>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
 					setSelected={(val) => setSelectedIllusiPlaylist(val)}
 					data={illusiPlaylistData} 
@@ -138,7 +141,7 @@ function ExtraPlaylistConverter({route}) {
 						dropdownTextStyles={{color: 'white'}}
 					/>
 					<View style={{height: 15}}/>
-					{selectedServicePlaylist != undefined && selectedServicePlaylist != "" && <ExtrasSectionButton showArrow={false} text='Convert Playlist' icon='swap-horizontal' onPress={confirmConvertPlaylistAlert}/>}
+					{selectedServicePlaylist != undefined && selectedServicePlaylist != "" && <ExtrasSectionButton show_arrow={false} text='Convert Playlist' icon='swap-horizontal' onPress={confirmConvertPlaylistAlert}/>}
 				</>}
 				
 		</View>

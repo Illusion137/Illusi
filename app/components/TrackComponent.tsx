@@ -101,27 +101,21 @@ function TrackComponent(props: {
 		}
 	}
 	async function playYouTubeMix(){
-		if(!GLOBALS.global_var.ableToPlayAgainMutex){
-			GLOBALS.global_var.ableToPlayAgainMutex = true
+		try {
 			props.track_data['successful'] = false;
 			props.track_data['added'] = false;
 
 			GLOBALS.global_var.playTracks(props.track_data, [props.track_data], props.from);
-			
-			try {
-				const tracks = await getYouTubeMixTracks(props.track_data.video_id);
-				GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
-			} catch (error) {
-				console.log(error)
-			}
-			GLOBALS.global_var.ableToPlayAgainMutex = false;
-		} else{
-			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+		
+			const tracks = await getYouTubeMixTracks(props.track_data.video_id);
+			GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
+		} catch (error) {
+			Alert.alert("Error", error);
 		}
 	}
 	async function play() {
 		let tracks: Track[] = [];
-		if(GLOBALS.global_var.playTracks == undefined){ return; }
+		if(GLOBALS.global_var.playTracks === undefined){ return; }
 		else if(props.from == "YouTube Mix"){
 			playYouTubeMix();
 			return;

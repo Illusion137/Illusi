@@ -180,7 +180,7 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
 
 async function getYoutubePlaylistContinuation(innertube_api_key: string, continuationKey: string, context: any, url: string, trackingParams: any){
     try {
-        let videos = [];
+        let videos: Track[] = [];
 
         let postURL = `https://www.youtube.com/youtubei/v1/browse?key=${innertube_api_key}&prettyPrint=false`
         let postData = {
@@ -246,33 +246,6 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
         let SAPISID = Prefs.cookiesToJson(Prefs.prefs.external_services.youtube_cookies)['SAPISID']
         let SAPISIDHASH = getYouTubeSapisidHashAuth(SAPISID);
 
-        // let headers = { 
-        //     'authority': 'www.youtube.com', 
-        //     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        //     'Cookies': Prefs.prefs.external_services.youtube_cookies,
-        //     'Authorization': SAPISIDHASH,
-        //     'accept-language': 'en-US,en;q=0.9', 
-        //     'cache-control': 'max-age=0', 
-        //     'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"', 
-        //     'sec-ch-ua-arch': '"x86"', 
-        //     'sec-ch-ua-bitness': '"64"', 
-        //     'sec-ch-ua-full-version': '"117.0.5938.92"', 
-        //     'sec-ch-ua-full-version-list': '"Google Chrome";v="117.0.5938.92", "Not;A=Brand";v="8.0.0.0", "Chromium";v="117.0.5938.92"', 
-        //     'sec-ch-ua-mobile': '?0', 
-        //     'sec-ch-ua-model': '""', 
-        //     'sec-ch-ua-platform': '"Windows"', 
-        //     'sec-ch-ua-platform-version': '"15.0.0"', 
-        //     'sec-ch-ua-wow64': '?0', 
-        //     'sec-fetch-dest': 'document', 
-        //     'sec-fetch-mode': 'navigate', 
-        //     'sec-fetch-site': 'none', 
-        //     'sec-fetch-user': '?1', 
-        //     'service-worker-navigation-preload': 'true', 
-        //     'upgrade-insecure-requests': '1', 
-        //     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36', 
-        //     'x-client-data': 'CKS1yQEIh7bJAQiitskBCKmdygEI6NTKAQiQ+soBCJahywEI85jNAQiFoM0BCNy9zQEI38TNAQi5ys0BCMXRzQEI1NTNAQjM1s0BCOLWzQEI+cDUFRi60s0BGOuNpRc='
-        // };
-
         let headers = {
             "accept": "*/*",
             'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36,gzip(gfe)", 
@@ -299,7 +272,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
             "Cookies": Prefs.prefs.external_services.youtube_cookies,
             "Referer": url,
         }
-          
+        
         let body = await axios({'method': 'POST', 'url': postURL, 'headers': headers, 'data': postData})
         let contents = body.data;
         // console.log(JSON.stringify(contents))
@@ -311,6 +284,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
             continutationToken = continuationItems[continuationItems.length-1].continuationItemRenderer.continuationEndpoint.continuationCommand.token;
             continuationTokenGood = true;
         } catch (error) {
+            console.log(error);
         }
 
         let playlistVideoRenderers = continuationItems.slice(0,continuationItems.length-1)
@@ -318,13 +292,14 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
         for (let i = 0; i < playlistVideoRenderers.length-1; i++){
             try {
                 let video = playlistVideoRenderers[i];
-                videos.push({
+                videos.push(new Track({
                     'video_id': video.playlistVideoRenderer.videoId,
 					'video_name': video.playlistVideoRenderer.title.runs[0].text,
 					'video_creator': video.playlistVideoRenderer.shortBylineText.runs[0].text,
 					'video_duration': durationToInt(video.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
-                })
+                }))
             } catch (error) {
+                console.log(error);
             }
         }
 
@@ -332,10 +307,10 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
             videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken, context, url, trackingParams));
         }
 
-        return videos
+        return videos;
 
     } catch (error) {
-        // console.log(error)
+        console.log(error)
         return []
     }
 }
@@ -345,7 +320,7 @@ export async function getYoutubePlaylist(url: string): Promise<MusicServiceImpor
         let body;
         let continue_ = true;
 
-		let videos = []
+		let videos: Track[] = []
 		
         let initialData = await getYouTubeInitialData(url);
         if(initialData === null){
@@ -387,18 +362,19 @@ export async function getYoutubePlaylist(url: string): Promise<MusicServiceImpor
         for (let i = 0; i < playlistVideoRenderers.length-1; i++){
             try {
                 let parsedVideo = JSON.parse(playlistVideoRenderers[i][1])
-                videos.push({
+                videos.push(new Track({
                     'video_id': parsedVideo.playlistVideoRenderer.videoId,
 					'video_name': parsedVideo.playlistVideoRenderer.title.runs[0].text,
 					'video_creator': parsedVideo.playlistVideoRenderer.shortBylineText.runs[0].text,
 					'video_duration': durationToInt(parsedVideo.playlistVideoRenderer.lengthText.accessibility.accessibilityData.label),
-                })
+                }))
             } catch (error) {
             }
         }
         
         if(continue_){
             let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey, url, trackingParamsRegex.exec(raw)[1]);
+            console.log(continuedVideos)
             videos = videos.concat(continuedVideos);
         }
 
