@@ -3,7 +3,7 @@ import { View, Animated, Text, StyleSheet, Image, TouchableOpacity, TextInput, T
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-import SlidingUpPanel from 'rn-sliding-up-panel';
+import SlidingUpPanel, { SlidingUpPanelProps } from 'rn-sliding-up-panel';
 import NewPlaylist from './subscreens/NewPlaylist';
 import PlaylistComponent from '../components/PlaylistComponent';
 import * as SQLActions from '../../SQLActions';
@@ -11,19 +11,22 @@ import * as GLOBALS from '../../globals';
 
 import { useIsFocused } from '@react-navigation/native';
 import DefaultPlaylistComponent from '../components/DefaultPlaylistComponent';
+import { darkThemeDefault } from '../../Preferences';
+import { Playlist, Track } from '../../types';
 
-function PlaylistScreen({ route }) {
+let search_query = "";
+function PlaylistScreen() {
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	const navigation: NavigationProp<any, any> = useNavigation();
     const is_focused = useIsFocused();
 
-	const [playlists, setPlaylists] = useState([]);
-	const [recentAddData, setRecentAddData] = useState([]);
-	const [downloadData, setDownloadData] = useState([]);
-	const [recentPlayedData, setRecentPlayedData] = useState([]);
+	const [playlists, setPlaylists] = useState([] as Playlist[]);
+	const [recentAddData, setRecentAddData] = useState([] as Track[]);
+	const [downloadData, setDownloadData] = useState([] as Track[]);
+	const [recentPlayedData, setRecentPlayedData] = useState([] as Track[]);
 	
 	const panel_ref = useRef<SlidingUpPanel>();
 	const new_playlist_ref = useRef<{ focusInput: () => void }>();
@@ -34,10 +37,12 @@ function PlaylistScreen({ route }) {
 		}
 	}, [is_focused]);
 
-	async function refreshData(search_query: string = undefined){
+	async function refreshData(query: (string|undefined) = undefined){
+		search_query = query ?? "";
 		let playlists = await SQLActions.getAllPlaylists();
+
 		if(search_query)
-			playlists = playlists.filter(item => item.playlist_name.toLowerCase().includes(search_query.toLowerCase()))
+			playlists = playlists.filter(item => item.playlist_name.toLowerCase().includes(search_query.toLowerCase()));
 
 		for(let i = 0; i < playlists.length; i++){
 			const playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].playlist_name.replaceAll(' ', '_'));
@@ -46,7 +51,7 @@ function PlaylistScreen({ route }) {
 			playlists[i]['four_track'] = playlistTracks.slice(0,4);
 			playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].playlist_name);
 		}
-		let ordered_playlists = []
+		const ordered_playlists = []
 		for(let i = 0; i < playlists.length; i++){
 			if(playlists[i].pinned)
 				ordered_playlists.unshift(playlists[i]);
@@ -56,10 +61,9 @@ function PlaylistScreen({ route }) {
 		setPlaylists([])
 		setPlaylists(ordered_playlists)
 
-		let t = [...GLOBALS.global_var.SQLTracks].reverse()
+		const t = [...GLOBALS.global_var.SQLTracks].reverse()
 		setRecentAddData(t.slice(0,4))
-		setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4))
-
+		setDownloadData(t.filter(item=>item.downloaded || item.imported).slice(0,4));
 		setRecentPlayedData( (await SQLActions.getRecentlyPlayedData()).reverse() );
 	}
 
@@ -70,8 +74,8 @@ function PlaylistScreen({ route }) {
 		});
 	 }
 
-	const renderItem = ({ item }) => (
-		<PlaylistComponent title={item.playlist_name} pinned={item.pinned} four_track={item.four_track} track_count={item.track_count} refreshData={refreshData.bind(this)}/>
+	const renderItem = (item: {item: Playlist}) => (
+		<PlaylistComponent playlist_data={item.item} refreshData={refreshData}/>
 	);
 
 	function hide(){ panel_ref.current?.hide(); }
@@ -99,15 +103,15 @@ function PlaylistScreen({ route }) {
 			</View>
 			<View style={{width: '100%', height: 1, backgroundColor: '#808080', marginLeft: 30, marginRight: 30}}/>
 			<FlatList style={{height: '71%'}} data={playlists} renderItem={renderItem} ListFooterComponent={(<View style={{height:100}}></View>)}/>
-			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={panel_ref} animatedValue={new Animated.Value(0)}>
-				<NewPlaylist ref={new_playlist_ref} close_panel={hide.bind(this)} refresh_playlists_data={refreshData.bind(this)}/>
+			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={panel_ref as any} animatedValue={new Animated.Value(0)}>
+				<NewPlaylist ref={new_playlist_ref as any} close_panel={hide} refresh_playlists_data={refreshData}/>
 			</SlidingUpPanel>
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	topcontainer:{
-		backgroundColor: colors.backgroundColor,
+		backgroundColor: colors.background,
 		flex: 1,
 	},
 	header:{

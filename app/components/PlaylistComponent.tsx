@@ -7,38 +7,36 @@ import * as Haptics from 'expo-haptics';
 
 import * as SQLActions from '../../SQLActions';
 import FourTrackArtwork from './FourTrackArtwork';
-import { Track } from '../../types';
+import { Playlist, Track } from '../../types';
+import { darkThemeDefault } from '../../Preferences';
 
 
 export default function PlaylistComponent(props: {
-	title: string 
-	pinned: boolean 
-	four_track: Track[] 
-	track_count: number
+	playlist_data: Playlist
 	select_mode?: boolean
 	refreshData: () => void
 }) {
 	const navigation: NavigationProp<any, any> = useNavigation();
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
-	const [pinned, setPinned] = useState(props.pinned);
+	const [pinned, setPinned] = useState(props.playlist_data.pinned);
 
 	return(
         <>
-			<TouchableOpacity disabled={props.select_mode || false} style={styles.button} onPress={async() => { navigation.navigate('Playlist', {title: props.title}) } } onLongPress={async() => {Alert.alert(
+			<TouchableOpacity disabled={props.select_mode || false} style={styles.button} onPress={async() => { navigation.navigate('Playlist', {title: props.playlist_data.playlist_name}) } } onLongPress={async() => {Alert.alert(
 				"Playlist Edit",
 				"Pin or Delete a Playlist",
 				[
 					{
-					text: props.pinned ? "Unpin" : "Pin",
+					text: props.playlist_data.pinned ? "Unpin" : "Pin",
 					onPress: async() => {
-							if(!await SQLActions.getIsPlaylistsPinned(props.title)){
-								await SQLActions.pinUnpinPlaylist(props.title, true)
+							if(!await SQLActions.getIsPlaylistsPinned(props.playlist_data.playlist_name)){
+								await SQLActions.pinUnpinPlaylist(props.playlist_data.playlist_name, true)
 							}
 							else{
-								await SQLActions.pinUnpinPlaylist(props.title, false)
+								await SQLActions.pinUnpinPlaylist(props.playlist_data.playlist_name, false)
 							}
 							await props.refreshData();
 						}
@@ -48,7 +46,7 @@ export default function PlaylistComponent(props: {
 									{
 										text: "Confirm Delete",
 										onPress: async() => {
-											await SQLActions.deletePlaylist(props.title)
+											await SQLActions.deletePlaylist(props.playlist_data.playlist_name)
 											await props.refreshData();
 										}
 										},
@@ -66,12 +64,12 @@ export default function PlaylistComponent(props: {
 				); await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}}>
                 <>
 					<View style={{width: 15}}/>
-					<FourTrackArtwork four_track={props.four_track} size={35}/>
+					<FourTrackArtwork four_track={props.playlist_data.four_track ?? []} size={35}/>
 					<View style={{flexDirection: 'column', left: 25}}>
-						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.title}</Text>
+						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.playlist_name}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
 							{pinned && <MaterialIcons name="push-pin" size={22} color={colors.primary}/>}
-							<Text style={{color: '#AAAAAA'}}>{props.track_count} Tracks</Text>
+							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.track_count} Tracks</Text>
 						</View>
 					</View>
                 </> 
@@ -80,7 +78,7 @@ export default function PlaylistComponent(props: {
         </>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 80, 

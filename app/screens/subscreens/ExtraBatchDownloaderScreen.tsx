@@ -7,11 +7,13 @@ import * as GLOBALS from '../../../globals';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { darkThemeDefault } from '../../../Preferences';
 
-function ExtraBatchDownloaderScreen({route}) {
+function ExtraBatchDownloaderScreen() {
 	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	const [downloadingTracksData, setDownloadingTracksData] = React.useState([...GLOBALS.DOWNLOADING]);
+	const [selected, setSelected] = React.useState("");
+	const [playlistDownloadData, setPlaylistDownloadData] = React.useState([] as {key: string, value: string}[]);
 	
 	const confirmDownloadPlaylistAlert = () =>
     Alert.alert(
@@ -33,7 +35,6 @@ function ExtraBatchDownloaderScreen({route}) {
 				let filteredData = playlistTracks.filter(item=>!(item.downloaded || item.imported))
 				for (let i = 0; i < filteredData.length; i++) {
 					GLOBALS.global_var.downloadTrack(filteredData[i], undefined, undefined, undefined);
-					// await route.params?.downloadVideo(filteredData[i].uid, filteredData[i].video_id, filteredData[i].video_duration, undefined, undefined)
 				}
 			}
 		} } ]
@@ -56,25 +57,22 @@ function ExtraBatchDownloaderScreen({route}) {
         //Clearing the interval
         return () => clearInterval(interval);
 	}, []);
-	const [selected, setSelected] = React.useState("");
-	const [playlistDownloadData, setPlaylistDownloadData] = React.useState([] as {key: string, value: string}[]);
 	
-	
-	const renderHeaderItem = ({item}) => <>
+	const renderHeaderItem = (item: {item: any}) => <>
 		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloadingTracksData.length} Tracks Remaining</Text>
 		<View style={{height: 8}}/>
 		<View style={styles.linelong}/>
 		<View style={{height: 30}}/>
 	</>;
-	const renderItem = ({item}) => 
+	const renderItem = (item: {item: {uid: string, progress: number}}) => 
 	<>
 		<View style={{height:8}}/>
 		<View style={{flexDirection: 'row'}}>
 			<Text numberOfLines={1} style={{color: '#aaaaaa', width: '88%'}}>
-				{item.uid.replace(/-.+/,'')}: 
+				{item.item.uid.replace(/-.+/,'')}: 
 			</Text>
 			<Text style={{color: 'white', alignSelf: 'flex-end'}}>
-				{item.progress}%
+				{item.item.progress}%
 			</Text>
 		</View>
 		<View style={{height:8}}/>
@@ -85,7 +83,7 @@ function ExtraBatchDownloaderScreen({route}) {
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
-					setSelected={(val) => setSelected(val)}
+					setSelected={(value: string) => setSelected(value)}
 					data={playlistDownloadData} 
 					save="value"
 					arrowicon={<></>}
@@ -107,7 +105,7 @@ function ExtraBatchDownloaderScreen({route}) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
     descriptiontxt:{
 		color: '#A0A0A0',
 		marginTop: 10,

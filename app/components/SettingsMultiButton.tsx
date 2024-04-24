@@ -4,14 +4,18 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, TouchableHighlight, Te
 import { useTheme } from '@react-navigation/native';
 import * as Prefs from '../../Preferences'
 
-function SettingsMultiButton(props) {
-    const { colors } = useTheme();
+function SettingsMultiButton(props: {
+	settings_key: string
+	settings_value: boolean
+	pre_key: string
+}) {
+    const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 
-	const [settingsKey, setSettingsKey] = useState(Prefs.snakeCaseToPlainText(props.settingsKey));
-	const [settingsValue, setSettingsValue] = useState(props.settingsValue)
+	const [settingsKey, setSettingsKey] = useState(Prefs.snakeCaseToPlainText(props.settings_key));
+	const [settingsValue, setSettingsValue] = useState(props.settings_value)
 	
-	const [numSettingsValue, setNumSettingsValue] = useState(String(props.settingsValue))
+	const [numSettingsValue, setNumSettingsValue] = useState(String(props.settings_value))
 
 	return(
 		<View style={styles.sectionContainer}>
@@ -24,7 +28,7 @@ function SettingsMultiButton(props) {
 				}
 				{typeof(settingsValue) === 'boolean' && 
 					<Switch value={settingsValue} 
-							onValueChange={val => {setSettingsValue(val); Prefs.setSettingsToggle(props.preKey, settingsKey,val)}} 
+							onValueChange={(value: boolean) => {setSettingsValue(value); Prefs.setSettingsToggle(props.pre_key, settingsKey, value)}} 
 							thumbColor={'#ffffff'} 
 							trackColor={{false: '#ffffff', true: colors.primary}}
 							ios_backgroundColor={'#ffffff'}/>
@@ -33,7 +37,7 @@ function SettingsMultiButton(props) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
 		height: 50, 

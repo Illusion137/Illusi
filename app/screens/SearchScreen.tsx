@@ -13,8 +13,9 @@ import SegmentedControl from '@react-native-segmented-control/segmented-control'
 import AddToPlaylistsModal from './subscreens/AddToPlaylistsModal';
 import { darkThemeDefault } from '../../Preferences';
 import TrackComponent from '../components/TrackComponent';
+import { Track } from '../../types';
 
-const SearchScreen = (props) => {
+function SearchScreen() {
 	const [tracks, setTracks] = useState([]);
 	const [searchingData, setSearchingData] = useState([] as string[]);
 	const [searchingMode, setSearchingMode] = useState(true);
@@ -37,7 +38,7 @@ const SearchScreen = (props) => {
 		})()
 	}, []);
 
-	function addFrom(show, track){
+	function addFrom(show: boolean, track: null){
 		setModalData({'show':show, 'track_data': track})
 	}
 	function getPreviousSearches(){
@@ -157,19 +158,19 @@ const SearchScreen = (props) => {
 
 
 
-	const renderSongSearchComponents = ({ item }) => (
-		<TrackComponent track_data={item} write_playlist='LIBRARY' from='YouTube Mix'/>
+	const renderSongSearchComponents = (item: {item: Track}) => (
+		<TrackComponent track_data={item.item} write_playlist='LIBRARY' from='YouTube Mix'/>
 	);
-	const renderQueryItems = ({ item }) => (
+	const renderQueryItems = (item: {item: string}) => (
 		<>
-			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item); setSearchingMode(false); await Search(item)}}>
+			<TouchableHighlight style={styles.queryItems} onPress={async () => {setSearchQuery(item.item); setSearchingMode(false); await Search(item.item)}}>
 				<>
 					{isUsingRecentSearches && <Ionicons name={'time-outline'} color={'#808080'} size={24} style={{left: 20,}} />}
-					<Text style={styles.queryItemsText} numberOfLines={1}>{item}</Text>
+					<Text style={styles.queryItemsText} numberOfLines={1}>{item.item}</Text>
 					<View style={{flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end', right: 50}}>
 					{isUsingRecentSearches &&< TouchableOpacity onPress={async () => {
 						setSearchingMode(false)
-						let recentSearchIndex = Prefs.prefs.search.recent_searches.findIndex(el => el == item);
+						let recentSearchIndex = Prefs.prefs.search.recent_searches.findIndex(el => el == item.item);
 						if(recentSearchIndex !== -1){
 							Prefs.prefs.search.recent_searches.splice(recentSearchIndex, 1);
 						}

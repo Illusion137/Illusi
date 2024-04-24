@@ -90,31 +90,29 @@ function TrackComponent(props: {
 	async function pushThisToPlayingQueue() {
 		if(GLOBALS.global_var.IsPlaying){
 			const track_index = await TrackPlayer.getCurrentTrack();
-			const track = props.track_data;
-			track['successful'] = false;
-			track['added'] = false;
+			if(track_index === null) return;
+			const track = new Track(props.track_data);
 
-			GLOBALS.global_var.playingTracks.splice(track_index + 1 + GLOBALS.global_var.playingQueue.length,0,track)
+			GLOBALS.global_var.playingTracks.splice(track_index + 1 + GLOBALS.global_var.playingQueue.length, 0, track);
 			GLOBALS.global_var.playingQueue.enqueue(track);
-			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
-			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
 	}
 	async function playYouTubeMix(){
 		try {
-			props.track_data['successful'] = false;
-			props.track_data['added'] = false;
-
+			if(props.from === undefined) throw "Track props.from is undefined";
 			GLOBALS.global_var.playTracks(props.track_data, [props.track_data], props.from);
 		
 			const tracks = await getYouTubeMixTracks(props.track_data.video_id);
 			GLOBALS.global_var.playingTracks = GLOBALS.global_var.playingTracks.concat(tracks);
 		} catch (error) {
-			Alert.alert("Error", error);
+			Alert.alert("YTMix Error", String(error));
 		}
 	}
 	async function play() {
 		let tracks: Track[] = [];
+		if(props.from === undefined) { Alert.alert("Play Tracks Error", "Track props.from is undefined"); return; }
 		if(GLOBALS.global_var.playTracks === undefined){ return; }
 		else if(props.from == "YouTube Mix"){
 			playYouTubeMix();
@@ -127,12 +125,12 @@ function TrackComponent(props: {
 		else if(props.from == 'Recently Added'){
 			tracks = [...GLOBALS.global_var.SQLTracks];
 			tracks.reverse();
-			tracks = tracks.slice(0,Prefs.prefs.settings.default_playlists_size);
+			tracks = tracks.slice(0, Prefs.prefs.settings.default_playlists_size);
 		}
 		else if(props.from == 'Recently Played'){
 			tracks = await SQLActions.getRecentlyPlayedData();
 			tracks.reverse();
-			tracks = tracks.slice(0,Prefs.prefs.settings.default_playlists_size);
+			tracks = tracks.slice(0, Prefs.prefs.settings.default_playlists_size);
 		}
 		else if(props.from != 'My Library') tracks = await SQLActions.getPlaylistTracks(props.from); //From Playlist 
 		else tracks = [...GLOBALS.global_var.SQLTracks];
@@ -140,6 +138,7 @@ function TrackComponent(props: {
 	}
 
 	async function insertIntoWritePlaylist() {
+		if(props.write_playlist === undefined) { Alert.alert("Write Playlist Error", "Track props.write_playlist is undefined"); return; }
 		if(!playlistSaved){
 			if(props.write_playlist === "LIBRARY")
 				await SQLActions.insertTrackData(props.track_data);
@@ -166,6 +165,7 @@ function TrackComponent(props: {
 		}
 	}
 	async function deleteTrack(){
+		if(props.refreshData === undefined) { Alert.alert("Refresh Data Error", "Track props.refreshData is undefined"); return; }
 		if(props.playlist_from === undefined){
 			if(props.track_data.media_uri != ""){
 				await FileSystem.deleteAsync(FileSystem.documentDirectory + props.track_data.media_uri);
@@ -185,7 +185,7 @@ function TrackComponent(props: {
 
 	return (
 		<TouchableOpacity 
-			disabled={props.track_data.disabled ?? false} 
+			disabled={(props.track_data.disabled ?? false) || Prefs.prefs.settings.edit_mode_disables_playing && props.edit_mode  !== "NONE"} 
 			style={{backgroundColor: colors.track, opacity: props.write_playlist != undefined && props.write_playlist !== "LIBRARY" && playlistSaved ? 0.5 : 1}} 
 			onLongPress={pushThisToPlayingQueue} 
 			onPress={play}>
@@ -237,7 +237,7 @@ function TrackComponent(props: {
 	);
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	songbox:{
 		width: '100%',
 		height: 60,

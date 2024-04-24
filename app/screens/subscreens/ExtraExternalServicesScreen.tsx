@@ -6,7 +6,7 @@ import WebView, { WebViewNavigation } from 'react-native-webview';
 import * as Prefs from '../../../Preferences';
 import { Ionicons } from '@expo/vector-icons';
 
-function ExternalServicesScreen(props) {
+function ExternalServicesScreen() {
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 
@@ -15,7 +15,7 @@ function ExternalServicesScreen(props) {
 	const [spotifyCookiesEnabled, setSpotifyCookiesEnabled] = useState(Prefs.prefs.external_services.spotify_cookies !== '')
 	const [amazonCookiesEnabled, setAmazonCookiesEnabled] = useState(Prefs.prefs.external_services.amazon_music_cookies !== '')
 
-	const [url, setUrl] = useState(null);
+	const [url, setUrl] = useState(null as string|null);
 	function navChange(event: WebViewNavigation) {
 		switch(event.url){
 			case('https://m.youtube.com/'):
@@ -31,7 +31,7 @@ function ExternalServicesScreen(props) {
 				CookieManager.get('https://music.amazon.com/').then(async(res) => { await Prefs.setCookies(res, 'amazon_music_cookies'); setAmazonCookiesEnabled(true) });
 				break;
 		}
-	  };
+	};
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			{ url != null && <View style={{height: 500}}>
@@ -100,7 +100,7 @@ function ExternalServicesScreen(props) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	importfrom:{
 		height: 45,
 		width: '100%',

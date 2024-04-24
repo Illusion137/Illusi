@@ -24,7 +24,7 @@ function ExtrasSectionButton(props: {
 		</TouchableHighlight>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
 		height: 50, 

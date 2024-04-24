@@ -2,6 +2,7 @@ import { NavigationProp, useTheme } from '@react-navigation/native';
 import { View, Text, TouchableHighlight, Image, StyleSheet, ImageSourcePropType, Alert } from "react-native";
 import { Track } from '../../types';
 import FourTrackArtwork from './FourTrackArtwork';
+import { darkThemeDefault } from '../../Preferences';
 
 export default function DefaultPlaylistComponent(props: {
     navigation: NavigationProp<any, any>,
@@ -9,7 +10,7 @@ export default function DefaultPlaylistComponent(props: {
     title: string,
 }) {
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
     
     async function navigate(){
@@ -26,7 +27,7 @@ export default function DefaultPlaylistComponent(props: {
     )
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	defaultPlaylistText:{
 		color:'#FFFFFF', 
 		fontSize: 18, 

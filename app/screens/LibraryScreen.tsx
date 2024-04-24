@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, MutableRefObject} from 'react';
 import TrackComponent from '../components/TrackComponent';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, GestureResponderEvent, Animated } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,13 +14,12 @@ import * as GLOBALS from '../../globals';
 import * as Prefs from '../../Preferences';
 import { EditMode, Track } from '../../types';
 
-
-const LibraryScreen = ({ navigation, route }) => {
+let search_query = "";
+export default function LibraryScreen() {
 	const [allData, setAllData] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0, edit_mode: "NONE" as EditMode})
-	const [searchQuery, setSearchQuery] = useState("")
 
 	const alphabet_scroll = {
-		all_alphabet_fast_scroll_locations: [],
+		all_alphabet_fast_scroll_locations: [] as number[],
 		current_position: 0,
 		top_scroll: 0
 	};
@@ -29,7 +28,7 @@ const LibraryScreen = ({ navigation, route }) => {
 	const styles = themeStyles(colors);
 
 	const scroll_bar_animated = useRef(new Animated.Value(93)).current;
-	const biglist_ref = useRef();
+	const biglist_ref = useRef<BigList>();
     const is_focused = useIsFocused();
 
 	useEffect( () => {
@@ -38,21 +37,17 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 	}, [is_focused]);
 		
-	async function refreshData(search_query: string = undefined){
-		if(search_query !== undefined)
-			setSearchQuery(search_query);
+	async function refreshData(query: (string|undefined) = undefined){
+		search_query = query ?? "";
 		await SQLActions.fetchTrackData();
 		
-		let tracks = [...GLOBALS.global_var.SQLTracks]
+		let tracks = [...GLOBALS.global_var.SQLTracks];
 		
 		if(search_query){
 			tracks = tracks.filter(track => (track.video_creator.toUpperCase().includes(search_query.toUpperCase()) || track.video_name.toUpperCase().includes(search_query.toUpperCase())))
 		}
-		else if(searchQuery){
-			tracks = tracks.filter(track => (track.video_creator.toUpperCase().includes(searchQuery.toUpperCase()) || track.video_name.toUpperCase().includes(searchQuery.toUpperCase())))
-		}
 
-		let sections_map = new Map();
+		const sections_map = new Map();
 		for(const track of tracks){
 			let char = track.video_name[0].toUpperCase();
 			if(!(/[A-Z]/).test(char)){ char = '#' }
@@ -65,16 +60,14 @@ const LibraryScreen = ({ navigation, route }) => {
 				sections_map.set(char, new_tracks)
 			}
 		}
-		let sections = []
-		let section_chars = []
-		let sorted_sections_map = [...sections_map].sort()
+		const sections = []
+		const section_chars = []
+		const sorted_sections_map = [...sections_map].sort()
 		for(const value of sorted_sections_map){ 
-			sections.push(
-				value[1]
-			)
+			sections.push( value[1] )
 			section_chars.push(value[0])
 		}
-		setAllData({char_data: section_chars, track_mask: [...sections], num_tracks: tracks.length, edit_mode: allData.edit_mode ?? "NONE"})
+		setAllData({char_data: section_chars, track_mask: [...sections], num_tracks: tracks.length, edit_mode: allData.edit_mode ?? "NONE"});
 	}
 
 	function setEditMode(mode: EditMode){
@@ -111,7 +104,7 @@ const LibraryScreen = ({ navigation, route }) => {
 			}).start();
 		}
 	}
-	function handleError(error) {
+	function handleError(error: unknown) {
 		if (DocumentPicker.isCancel(error)){} // User cancelled the picker, exit any dialogs or menus and move on
 		else if (DocumentPicker.isInProgress(error)){}
 		else throw error;
@@ -131,50 +124,57 @@ const LibraryScreen = ({ navigation, route }) => {
 		}
 		GLOBALS.global_var.playTracks(tracks[0], tracks, 'My Library');
 	}
-	function updateSearchQuery(query: string) {
-		refreshData(query);
-	}
 	async function uploadFiles() {
 		try {
-			const audio_files = await DocumentPicker.pickMultiple({type: [DocumentPicker.types.audio, DocumentPicker.types.video], copyTo: 'documentDirectory'})
+			const audio_files = await DocumentPicker.pickMultiple({type: [DocumentPicker.types.audio, DocumentPicker.types.video], copyTo: 'documentDirectory'});
 
-			let all_promise_tracks = []
-			let all_file_copy_tracks = []
+			const all_promise_tracks = [];
+			const all_file_copy_tracks = [];
 
-			for(const audio_file of audio_files){	
-				all_file_copy_tracks.push(audio_file.fileCopyUri)
-				let fileName = audio_file.name.replace(/\..+/, '') ?? ""						
-				let uid = GenerateNewUID(fileName)
-				let newFileURI = encodeURI(uid + audio_file.fileCopyUri.match(/\..+/)[0])
-				await FileSystem.moveAsync({from: audio_file.fileCopyUri, to: FileSystem.documentDirectory + newFileURI})
-
-				let sound_temp = new Audio.Sound();
-				await sound_temp.loadAsync({uri: FileSystem.documentDirectory + newFileURI});
-				let meta_data = await sound_temp.getStatusAsync() as AVPlaybackStatusSuccess;
-				await sound_temp.unloadAsync();
-				all_promise_tracks.push(SQLActions.insertTrackData(new Track({
-					"uid": uid,
-					"video_id": "0",
-					"video_name": fileName,
-					"video_creator": "Sudo",
-					"video_duration": Math.round(meta_data.durationMillis/1000) ?? 0,
-					"media_uri": newFileURI,
-					"imported": true,
-					"saved": true,
-				})));
+			for(const audio_file of audio_files){
+				try {
+					if(audio_file.copyError !== undefined) throw audio_file.copyError;
+					if(typeof(audio_file.name) !== "string") throw "Audio-file name is undefined";
+					if(typeof(audio_file.fileCopyUri) !== "string") throw "Audio-file copy-uri is undefined";
+	
+					all_file_copy_tracks.push(audio_file.fileCopyUri);
+					const file_name = audio_file.name.replace(/\..+/, ''); // FILE NAME WITHOUT EXTENSION
+					const uid = GenerateNewUID(file_name);
+					const file_extension_matches = audio_file.fileCopyUri.match(/\..+/);
+					if(file_extension_matches === null) throw "No file extensions found";
+					const new_file_uri = encodeURI(uid + file_extension_matches[0]);
+					const new_file_uri_full_path = FileSystem.documentDirectory + new_file_uri;
+					await FileSystem.moveAsync({from: audio_file.fileCopyUri, to: new_file_uri_full_path})
+	
+					const sound_temp = new Audio.Sound();
+					await sound_temp.loadAsync({uri: new_file_uri_full_path});
+					const meta_data = await sound_temp.getStatusAsync();
+					await sound_temp.unloadAsync();
+	
+					if(meta_data.isLoaded === false) throw "Unable to load audio metadata";
+					if(meta_data.durationMillis === undefined) throw "Unable to access audio metadata duration";
+	
+					all_promise_tracks.push(SQLActions.insertTrackData(new Track({
+						"uid": uid,
+						"video_name": file_name,
+						"video_creator": "Sudo",
+						"video_duration": Math.round(meta_data.durationMillis/1000) ?? 0,
+						"media_uri": new_file_uri,
+						"imported": true,
+						"saved": true,
+					})));
+				} catch (error) { Alert.alert("Document Error", String(error)); }
 			}
 			await Promise.all(all_promise_tracks);
 			await SQLActions.fetchTrackData();
 			await refreshData();
 			
-			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
+			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory ?? "")){
 				try {
 					if(!(file == 'CachedThumbnails' || file == 'RCTAsyncLocalStorage' || file == 'SQLite') && (await FileSystem.getInfoAsync(FileSystem.documentDirectory + file)).isDirectory){
 						await FileSystem.deleteAsync(FileSystem.documentDirectory+file, { idempotent: true });
 					}
-				} catch (error) {
-					Alert.alert("Document Error", error);
-				}
+				} catch (error) { Alert.alert("Document Reset Error", String(error)); }
 			}
 		} catch (error) { handleError(error); }
 	}
@@ -196,11 +196,11 @@ const LibraryScreen = ({ navigation, route }) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 	} 
 
-	const renderTrack = ({item}) => <TrackComponent track_data={ item as Track } from={"My Library"} edit_mode={allData.edit_mode} refreshData={refreshData.bind(this)}/>;
+	const renderTrack = (item: {item: Track}) => <TrackComponent track_data={ item.item } from={"My Library"} edit_mode={allData.edit_mode} refreshData={refreshData}/>;
 	const headerComponent = () => <TouchableOpacity onPress={playShuffle} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', bottom: 20, marginTop: 40}}><Ionicons name="shuffle" size={25} color='#000000' style={{}}/>
 	<Text style={{fontWeight: '500', fontSize: 18}}>Shuffle Play</Text></TouchableOpacity>;
 
-	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.char_data[num]}</Text></View>
+	const sectionHeader = (index: number) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.char_data[index]}</Text></View>
 	const sectionFooter = () => <View style={{alignItems: 'center',marginVertical: 24}}><Text style={{color: colors.subtext, fontSize: 25}}>{allData.num_tracks} Tracks</Text></View>
 
 	return (
@@ -212,13 +212,13 @@ const LibraryScreen = ({ navigation, route }) => {
 						<MaterialCommunityIcons name="pencil" size={25} color={allData.edit_mode === "NONE"  ? colors.inactive : (allData.edit_mode === "DOWNLOAD" ? colors.primary : colors.red) }/>
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
-					<TextInput autoCorrect={false} value={searchQuery} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={async(search_query) => refreshData(search_query)}></TextInput>
+					<TextInput autoCorrect={false} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.searchinput} onChangeText={async(query) => refreshData(query)}></TextInput>
 					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={uploadFiles}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>
 			</View>
-
+			
 			<BigList style={{height: '71%'}} 
 				sections={allData.track_mask}
 				renderItem={renderTrack}
@@ -229,7 +229,7 @@ const LibraryScreen = ({ navigation, route }) => {
 				sectionHeaderHeight={30}
 				headerHeight={90}
 				footerHeight={100}
-				ref={biglist_ref}
+				ref={biglist_ref as MutableRefObject<BigList>}
 				itemHeight={61}
 				stickySectionHeadersEnabled={false}
 			/>
@@ -260,7 +260,7 @@ const LibraryScreen = ({ navigation, route }) => {
 	);
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	topcontainer:{
 		backgroundColor: colors.background,
 		flex: 1,
@@ -321,5 +321,3 @@ const themeStyles = (colors) => StyleSheet.create({
 		marginHorizontal: 10
 	},
 });
-
-export default LibraryScreen;

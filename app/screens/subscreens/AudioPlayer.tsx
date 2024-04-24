@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Modal, Image, ImageSourcePropType, PanResponder, Dimensions, Keyboard, TouchableHighlight, Button } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Modal, Image, ImageSourcePropType, PanResponder, Dimensions, Keyboard, TouchableHighlight, Button, Alert } from 'react-native';
 import { Ionicons, Fontisto, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { useNavigationState, useTheme } from '@react-navigation/native';
 import { Slider } from '@miblanchard/react-native-slider';
@@ -39,7 +39,7 @@ function AudioPlayer (props: {
 	}) {
     const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
-	const panel_ref = useRef<SlidingUpPanel>();
+	const panel_ref = useRef<SlidingUpPanel>() as React.MutableRefObject<SlidingUpPanel>;
 
 
 	const [panelState, setPanelState] = useState({
@@ -96,15 +96,15 @@ function AudioPlayer (props: {
 	async function shareTrack(){
 		try {
 			const UTI = 'public.item';
-			const current_track =  await TrackPlayer.getTrack( await TrackPlayer.getCurrentTrack() );
-			const illusi_track = await SQLActions.fetchTrackDataFromUID( current_track.id );
+			const current_track =  await TrackPlayer.getTrack( await TrackPlayer.getCurrentTrack() as number );
+			const illusi_track = await SQLActions.fetchTrackDataFromUID( (current_track as Track).id );
 			if(illusi_track.media_uri)
 				await Sharing.shareAsync(FileSystem.documentDirectory + illusi_track.media_uri, {UTI} );
 			else if(illusi_track.youtube)
 				await Sharing.shareAsync( `https://www.youtube.com/watch?v=${illusi_track.video_id}` );
 
 		} catch (error) {
-			alert(error.message);
+			Alert.alert("error", String(error));
 		} 
 	}
 
@@ -164,7 +164,7 @@ function AudioPlayer (props: {
 
 	async function getUpdatedQueueItems(){
 		const current_track_index = await TrackPlayer.getCurrentTrack();
-		const track_player_queue = globals.global_var.playingTracks.slice(current_track_index);
+		const track_player_queue = globals.global_var.playingTracks.slice(current_track_index as number);
 		const queue_items: IllusiveType.QueueTrack[] = []
 		try {
 			for(let i = 0; i < track_player_queue.length; i++ ){
@@ -182,6 +182,7 @@ function AudioPlayer (props: {
 
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated], async event => {
 		const current_track = await TrackPlayer.getTrack(event.track);
+		if(current_track === null) return;
 		const player_state = await TrackPlayer.getState();
 		updatePlayerState({
 			title: current_track.title, 
@@ -196,7 +197,6 @@ function AudioPlayer (props: {
 			loop_track: await TrackPlayer.getRepeatMode() === RepeatMode.Track
 		})
 	})
-
 	useEffect(() => {
 		const interval = setInterval(async () => {
 			setPanelState({'is_visible': panel_animated_value > 181})
@@ -207,7 +207,7 @@ function AudioPlayer (props: {
 		};
 	}, );
 
-	const renderNowPlayingItem = ({item, index}) => <SongComponentQueue artwork={item.artwork} video_name={item.video_name} video_creator={item.video_creator}/>;
+	const renderNowPlayingItem = (item: {item: IllusiveType.QueueTrack}) => <SongComponentQueue track_data={item.item}/>;
 
 	return (
 		<SlidingUpPanel ref={panel_ref}
@@ -362,7 +362,7 @@ function AudioPlayer (props: {
 							renderHeader={() => 
 							<View style={{flex: 1, width: '100%', height: 140}}>
 								<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Now Playing</Text>
-								<SongComponentQueue artwork={nowPlayingState.queue_data[0].artwork} video_name={nowPlayingState.queue_data[0].video_name} video_creator={nowPlayingState.queue_data[0].video_creator}/>
+								<SongComponentQueue track_data={nowPlayingState.queue_data[0]}/>
 								<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Up Next</Text>
 							</View>}
 						/>
@@ -403,7 +403,7 @@ function AudioPlayer (props: {
 		</SlidingUpPanel>
 	)
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	topcontainer:{
 		flex: 1,
 		backgroundColor: colors.playScreen

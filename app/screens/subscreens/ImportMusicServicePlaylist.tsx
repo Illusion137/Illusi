@@ -13,8 +13,8 @@ import { MusicServiceType, Route, Track, Artwork } from '../../../types';
 import TrackComponent from '../../components/TrackComponent';
 import { MusicServices } from '../../../MusicServices';
 
-export default function ImportMusicServicePlaylist({route}) {
-	const ts_route = route as Route<{url: string, title: string}>
+export default function ImportMusicServicePlaylist(params: {route: any}) {
+	const ts_route = params.route as Route<{url: string, title: string}>
 
 	const navigation: NavigationProp<any, any> = useNavigation();
 	
@@ -46,7 +46,8 @@ export default function ImportMusicServicePlaylist({route}) {
 
 	async function fetchPlaylist() {
 		try {
-			const music_service_import = await MusicServices.music_service.get(service_type).get_playlist_import(api_url);
+			const music_service_import = await MusicServices.music_service.get(service_type)?.get_playlist_import(api_url);
+			if(music_service_import === undefined) throw "Something went wrong";
 			for(let i = 0; i < music_service_import.tracks.length; i++) {
 				music_service_import.tracks[i].uid = GenerateNewUID(music_service_import.tracks[i].video_name);
 				music_service_import.tracks[i].disabled = true;
@@ -66,7 +67,7 @@ export default function ImportMusicServicePlaylist({route}) {
 			setHeader(music_service_import.tracks, music_service_import.title);
 		}
 		catch(error){
-			Alert.alert("error", error);
+			Alert.alert("Import Error", String(error));
 		}
 	}
 
@@ -95,7 +96,7 @@ export default function ImportMusicServicePlaylist({route}) {
 		fetchPlaylist();
 	}, []);
 
-	const renderItem = ({ item }) => ( <TrackComponent track_data={item as Track} write_playlist='LIRBRARY'/> );
+	const renderItem = (item: {item: Track}) => ( <TrackComponent track_data={item.item} write_playlist='LIBRARY'/> );
 
 	return(
 		<View style={{backgroundColor: '#181818', width: '100%', flex: 1,}}>

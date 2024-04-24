@@ -374,7 +374,6 @@ export async function getYoutubePlaylist(url: string): Promise<MusicServiceImpor
         
         if(continue_){
             let continuedVideos = await getYoutubePlaylistContinuation(apikey, continuationToken, clientKey, url, trackingParamsRegex.exec(raw)[1]);
-            console.log(continuedVideos)
             videos = videos.concat(continuedVideos);
         }
 

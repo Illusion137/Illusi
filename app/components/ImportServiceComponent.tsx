@@ -1,6 +1,7 @@
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import { View, Text, TouchableHighlight, Image, StyleSheet, ImageSourcePropType, Alert } from "react-native";
 import { MusicServiceType } from '../../types';
+import { darkThemeDefault } from '../../Preferences';
 
 function ImportServiceComponent(props: {
     navigation: NavigationProp<any, any>,
@@ -9,7 +10,7 @@ function ImportServiceComponent(props: {
     disabled?: boolean
 }) {
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
     
     function navigateOrAlert(){
@@ -31,7 +32,7 @@ function ImportServiceComponent(props: {
     )
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	importfrom:{
 		height: 45,
 		width: '100%',

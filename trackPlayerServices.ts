@@ -10,6 +10,7 @@ import TrackPlayer, {
   } from 'react-native-track-player';
 import * as globals from './globals';
 import * as SQLActions from './SQLActions'
+import { Artwork } from './types';
   
   export async function setupPlayer() {
     let isSetup = false;
@@ -48,7 +49,7 @@ import * as SQLActions from './SQLActions'
     }
   }
 
-  export async function addTracks(url, title, artist, duration, id, artwork = null) {
+  export async function addTracks(url: string, title: string, artist: string, duration: number, id: string, artwork:Artwork|null = null) {
     await TrackPlayer.add([
       {
         url: url,
@@ -56,7 +57,7 @@ import * as SQLActions from './SQLActions'
         artist: artist,
         duration: duration,
         id: id,
-        artwork: artwork 
+        artwork: artwork as string
       }
     ]);
     await TrackPlayer.setRepeatMode(RepeatMode.Queue);
@@ -68,7 +69,7 @@ import * as SQLActions from './SQLActions'
         // if(!pnMutex){
             // pnMutex = true;
             try {
-                let index = await TrackPlayer.getCurrentTrack();
+                let index = await TrackPlayer.getCurrentTrack() as number;
                 if(index + 1 >= globals.global_var.playingTracks.length){
                     pnMutex = false;
                     return
@@ -103,7 +104,7 @@ import * as SQLActions from './SQLActions'
         if(!pnMutex){
             pnMutex = true;
             try {
-                let index = await TrackPlayer.getCurrentTrack();
+                let index = await TrackPlayer.getCurrentTrack() as number;
                 if(globals.global_var.playingTracks[index - 1]['successful'] == false){
                     prevMutex = true
                     await TrackPlayer.skipToPrevious()
@@ -149,7 +150,7 @@ import * as SQLActions from './SQLActions'
                     await TrackPlayerNext();
                 }else{
                     globals.global_var.playingTracks[index + 1]["added"] = true
-                    await TrackPlayer.updateMetadataForTrack(await TrackPlayer.getCurrentTrack(), newTrack as TrackMetadataBase)
+                    await TrackPlayer.updateMetadataForTrack((await TrackPlayer.getCurrentTrack()) as number, newTrack as TrackMetadataBase)
                 }
               await TrackPlayer.play();
           }
@@ -164,7 +165,7 @@ import * as SQLActions from './SQLActions'
           globals.global_var.initialPlaybackTrackChangedMutex = false;
         }
         } catch (error) {
-            // console.log(error)
+
         }
       changedMutex = false;
     })
@@ -224,7 +225,7 @@ import * as SQLActions from './SQLActions'
             }
 
         } catch (error) {
-            // console.log(error)
+            console.log(error)
         }
     })
   }

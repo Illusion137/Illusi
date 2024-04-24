@@ -65,7 +65,7 @@ const Stack = createNativeStackNavigator();
 
 const ExtrasStack = createNativeStackNavigator();
 
-function ExtrasStackScreen(props){
+function ExtrasStackScreen(){
 	return (
 	<ExtrasStack.Navigator screenOptions={{headerShown: true}}>
 	  <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{headerShown: false}}/>
@@ -84,7 +84,7 @@ function ExtrasStackScreen(props){
 
 const PlaylistsStack = createNativeStackNavigator();
 
-function PlaylistsStackScreen(props) {
+function PlaylistsStackScreen() {
   return (
 	<PlaylistsStack.Navigator screenOptions={{headerShown: false}}>
 	  <PlaylistsStack.Screen options={{headerShown: false}} name="PlaylistScreen" component={PlaylistScreen} />
@@ -94,44 +94,38 @@ function PlaylistsStackScreen(props) {
 }
 
 
-export class Tabs extends Component {
-	constructor (props){
-		super(props);
-	}
-	render(){
-		return (
-			<Tab.Navigator initialRouteName={'Library'} 
-			screenOptions={{headerShown: false, tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
-			tabBarActiveBackgroundColor:Prefs.darkThemeDefault.colors.background, tabBarInactiveBackgroundColor: Prefs.darkThemeDefault.colors.background, tabBarStyle:{backgroundColor:Prefs.darkThemeDefault.colors.background, height: 90, zIndex:1}}} 
-			detachInactiveScreens={true}
-			>
-				<Tab.Screen name="My Library" component={LibraryScreen}
-				options={{
-					tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
-					unmountOnBlur: false,
-				}}
-				
-				/>
-				<Tab.Screen name="Playlists" component={PlaylistsStackScreen}
-				options={{
-					tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
-					unmountOnBlur: true,
-				}}
-				/>
-				<Tab.Screen name="Search" component={SearchHomeScreen}
-				options={{
-					tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
-					unmountOnBlur: false,
-				}}
-				/>
-				<Tab.Screen name="Extras" component={ExtrasStackScreen}
-				options={{
-					tabBarIcon: ({ color }) => ( <Entypo name="dots-three-horizontal" size={25} color={color}/>),
-				}}
-				/>
-		  	</Tab.Navigator>
-		);
-	}
+function Tabs() {
+	return (
+		<Tab.Navigator initialRouteName={'My Library'} 
+		screenOptions={{headerShown: false, tabBarActiveTintColor: Prefs.darkThemeDefault.colors.primary, tabBarInactiveTintColor: Prefs.darkThemeDefault.colors.tabInactive, 
+		tabBarActiveBackgroundColor:Prefs.darkThemeDefault.colors.background, tabBarInactiveBackgroundColor: Prefs.darkThemeDefault.colors.background, tabBarStyle:{backgroundColor:Prefs.darkThemeDefault.colors.background, height: 90, zIndex:1}}} 
+		detachInactiveScreens={true}
+		>
+		<Tab.Screen name="My Library" component={LibraryScreen}
+			options={{
+				tabBarIcon: ({ color }) => ( <Ionicons name="library-sharp" size={30} color={color}/> ),
+				unmountOnBlur: false,
+			}}
+		/>
+		<Tab.Screen name="Playlists" component={PlaylistsStackScreen}
+			options={{
+				tabBarIcon: ({ color }) => ( <Ionicons name="musical-notes" size={25} color={color}/>),
+				unmountOnBlur: true,
+			}}
+			/>
+		<Tab.Screen name="Search" component={SearchHomeScreen}
+			options={{
+				tabBarIcon: ({ color }) => ( <Ionicons name="search" size={25} color={color}/>),
+				unmountOnBlur: false,
+			}}
+			/>
+		<Tab.Screen name="Extras" component={ExtrasStackScreen}
+			options={{
+				tabBarIcon: ({ color }) => ( <Entypo name="dots-three-horizontal" size={25} color={color}/>),
+			}}
+		/>
+		</Tab.Navigator>
+	)
 }
 
 export default function App() {
@@ -146,31 +140,31 @@ export default function App() {
 				GLOBALS.global_var.playTracks = playTracks;
 				GLOBALS.global_var.downloadTrack = downloadTrack;
 				ffmpeg.RNFFmpegConfig.setLogLevel(ffmpeg.LogLevel.AV_LOG_QUIET)
-				const statisticsCallback = (statistics) => {
+				const statisticsCallback = (statistics: ffmpeg.Statistics) => {
 					let index = GLOBALS.DOWNLOADING.findIndex(item => item.execution_id == statistics.executionId )
 					if(index == -1)
 						return;
 					const progress = Math.floor(statistics.time/1000) / GLOBALS.DOWNLOADING[index].duration 
 					GLOBALS.DOWNLOADING[index].progress = Math.floor(progress*100)
-					if(GLOBALS.DOWNLOADING[index].progress_updater != undefined){
-						GLOBALS.DOWNLOADING[index].progress_updater(GLOBALS.DOWNLOADING[index].progress)
+					if(GLOBALS.DOWNLOADING[index].progress_updater !== undefined){
+						(GLOBALS.DOWNLOADING[index].progress_updater as SetState)(GLOBALS.DOWNLOADING[index].progress);
 					}
 				};
 				ffmpeg.RNFFmpegConfig.enableStatisticsCallback(statisticsCallback);
-				let allPromises = []
+				const all_promises = []
 				await SQLActions.recreateAllTables();
 				await Prefs.fetchPrefs();
 				await SQLActions.fixToNewUpdate();
 				await SQLActions.fetchTrackData();
-				allPromises.push(SQLActions.cleanupRecentlyPlayed())
+				all_promises.push(SQLActions.cleanupRecentlyPlayed())
 				if(Prefs.getExperimentalFeatureEnabled('smart_remove_cached_thumbnails'))
-					allPromises.push(SQLActions.cleanCache())
-				allPromises.push(activateKeepAwakeAsync());
-				allPromises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
-				allPromises.push(Prefs.fetchAutoLinkedPlaylists());
-				await Promise.all(allPromises)
+					all_promises.push(SQLActions.cleanCache())
+				all_promises.push(activateKeepAwakeAsync());
+				all_promises.push(Prefs.deepComparePrefsSchemaAndUpdatePrefsSchema());
+				all_promises.push(Prefs.fetchAutoLinkedPlaylists());
+				await Promise.all(all_promises)
 			} catch (error) {
-				Alert.alert("Error", error)
+				Alert.alert("Error", String(error));
 			} finally {
 				setIsLoading(false);
 				if(Prefs.getExperimentalFeatureEnabled('auto_cache_thumbnails'))
@@ -189,7 +183,7 @@ export default function App() {
 		if(tracks.length === 0) return;
 		if(!GLOBALS.global_var.ableToPlayAgainMutex || first_track.imported || first_track.downloaded){
 			GLOBALS.global_var.ableToPlayAgainMutex = true
-			if(Prefs.prefs.settings.only_play_downloaded){
+			if(Prefs.prefs.settings.only_play_downloaded && playlist_name !== "YouTube Mix"){
 				tracks = tracks.filter((item) => item.downloaded || item.imported)
 			}
 			if(tracks.length > 0)
@@ -217,21 +211,22 @@ export default function App() {
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 			return;
 		}
+		if(tracks.length === 0) return;
 		setPlayingTracks(tracks);
 		setPlayingFrom(playlist_name);
 		setIsPlaying("LOADING");
 	}
-	function waitFor(conditionFunction) {
-		const poll = resolve => {
-			if(conditionFunction()) resolve();
+	function waitFor(condition_function: () => boolean) {
+		const poll = (resolve: any) => {
+			if(condition_function()) resolve();
 			else setTimeout(_ => poll(resolve), 400);
 		}
 		
 		return new Promise(poll);
 	}
-	async function downloadTrack(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded: SetState = undefined): Promise<DownloadTrackResult>{
-		function isInDownloadRange(uid, downloadQueueMaxLength){
-			for(let i = 0; i < downloadQueueMaxLength; i++){
+	async function downloadTrack(track: Track, progress_updater: SetState|undefined, start_download: SetState|undefined, set_finished_downloaded: SetState | undefined = undefined): Promise<DownloadTrackResult>{
+		function isInDownloadRange(uid: string, download_queue_max_length: number){
+			for(let i = 0; i < download_queue_max_length; i++){
 				if(GLOBALS.DOWNLOADING[i]?.uid === uid)
 					return true;
 			}
@@ -239,74 +234,70 @@ export default function App() {
 		}
 		
 		GLOBALS.DOWNLOADING.push({'uid': track.uid, 'progress': 0, 'progress_updater': progress_updater, 'duration': track.video_duration})
-		let downloadQueueMaxLength = Prefs.prefs?.settings?.download_queue_max_length ?? 1
-		waitFor(() => isInDownloadRange(track.uid, downloadQueueMaxLength))
+		const download_queue_max_length = Prefs.prefs?.settings?.download_queue_max_length ?? 1
+		waitFor(() => isInDownloadRange(track.uid, download_queue_max_length))
 		.then(async() => {
-			  const youtubeURL = 'http://www.youtube.com/watch?v=' + track.video_id;
-			  
-			  let downloadURI;
-			  //140
-			  try {
-				let requestOptions = {}
-				if(Prefs.prefs.settings.use_cookies_on_download){
-					requestOptions = {'headers': {
-						'Cookies': Prefs.prefs.external_services.youtube_cookies
-					}}
-				}
-				  downloadURI = await ytdl(youtubeURL, { 'quality': 'lowestaudio', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
-				  downloadURI = downloadURI[0].url;
-			  } catch (error) {
-				  if(String(error).includes("Video unavailable")){
-					SQLActions.addToBackpack(track.uid);
-				  }
-				if(start_download != undefined)
-					start_download(false)
-				let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
-				GLOBALS.DOWNLOADING.splice(itemIndex, 1)
-				Alert.alert("Coudln't find the file", track.uid + ' : ' + error)
-				return "ERROR";
-			  }
+			const youtube_url = `http://www.youtube.com/watch?v=${track.video_id}`;
+			let download_uri;
+			//140
+			try {
+			let requestOptions = {}
+			if(Prefs.prefs.settings.use_cookies_on_download){
+				requestOptions = {'headers': {
+					'Cookies': Prefs.prefs.external_services.youtube_cookies
+				}}
+			}
+			download_uri = await ytdl(youtube_url, { 'quality': 'lowestaudio', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
+			download_uri = download_uri[0].url;
+			} catch (error) {
+				if(String(error).includes("Video unavailable")){
+				SQLActions.addToBackpack(track.uid);
+			}
+			if(start_download != undefined)
+				start_download(false)
+			let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
+			GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+			Alert.alert("Coudln't find the file", track.uid + ' : ' + error)
+			return "ERROR";
+			}
 			try {
 				if(start_download != undefined)
 					start_download(true)
 
-				let newUri = FileSystem.documentDirectory + track.uid + '.m4a'
-				ffmpeg.RNFFmpeg.executeAsync(`-y -i ${downloadURI} ${newUri}`, async() => {
+				const new_uri = FileSystem.documentDirectory + track.uid + '.m4a'
+				ffmpeg.RNFFmpeg.executeAsync(`-y -i ${download_uri} ${new_uri}`, async() => {
 					try {						
-						let soundTemp = new Audio.Sound();
-						await soundTemp.loadAsync({uri: newUri});
-						let metaData = await soundTemp.getStatusAsync();
-						if(!metaData.isLoaded){
-							await soundTemp.unloadAsync();
+						const sound_temp = new Audio.Sound();
+						await sound_temp.loadAsync({uri: new_uri});
+						const meta_data = await sound_temp.getStatusAsync();
+						await sound_temp.unloadAsync();
+						if(meta_data.isLoaded === false){
 							throw new Error('No load');
-						} else if(Math.round(metaData.durationMillis/1000) < 3){
-							await soundTemp.unloadAsync();
-							throw new Error('Invalid Duration');
 						}
-						else{
-							await soundTemp.unloadAsync();
+						if(Math.round((meta_data.durationMillis ?? 0)/1000) < 3){
+							throw new Error('Invalid Duration');
 						}
 				
 						await SQLActions.setTrackAsDownloaded(track.uid, track.uid + '.m4a');
 		
-						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
-						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+						const item_index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid);
+						GLOBALS.DOWNLOADING.splice(item_index, 1);
 						
-						await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+						await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 						
 						if(GLOBALS.DOWNLOADING.length === 0){
-							Alert.alert("Finished Download Enqueued Tracks")
+							Alert.alert("Finished Download Enqueued Tracks");
 						}
 						if(start_download != undefined)
-							start_download(false)
+							start_download(false);
 						if(set_finished_downloaded != undefined)
-							set_finished_downloaded(true)
+							set_finished_downloaded(true);
 					} catch (error) {
 						if(start_download != undefined)
-							start_download(false)
+							start_download(false);
 						Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(track.uid) + ":\n"+ error);
-						let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
-						GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+						const item_index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid);
+						GLOBALS.DOWNLOADING.splice(item_index, 1)
 						if(GLOBALS.DOWNLOADING.length === 0){
 							Alert.alert("Finished Download Playlist")
 						}
@@ -320,8 +311,8 @@ export default function App() {
 					if(start_download != undefined)
 						start_download(false)
 					Alert.alert("Downloading Error","Failed To Download: " + JSON.stringify(track.uid) + ":\n"+ e);
-					let itemIndex = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
-					GLOBALS.DOWNLOADING.splice(itemIndex, 1)
+					const item_index = GLOBALS.DOWNLOADING.findIndex((item) => item.uid == track.uid)
+					GLOBALS.DOWNLOADING.splice(item_index, 1)
 					if(GLOBALS.DOWNLOADING.length === 0){
 						Alert.alert("Finished Download Playlist")
 					}

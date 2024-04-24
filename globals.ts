@@ -12,7 +12,7 @@ export let DOWNLOADING:
     {
         'uid': string, 
         'progress': number, 
-        'progress_updater': SetState, 
+        'progress_updater': SetState|undefined, 
         'duration': number,
         'execution_id'?: number
     }[] = [];
@@ -44,10 +44,10 @@ export let global_var = {
     "ableToPlayAgainMutex": false,
     "selectedPlaylist": new Set(),
     "playTracks": (first_track: Track, tracks: Track[], playlist_name: string) => {},
-    "downloadTrack": async(track: Track, progress_updater: SetState, start_download: SetState, set_finished_downloaded?: SetState): Promise<any> => {}
+    "downloadTrack": async(track: Track, progress_updater?: SetState, start_download?: SetState, set_finished_downloaded?: SetState): Promise<any> => {}
 };
 
-export async function playingTrackToRNTrack(track): Promise< 'skip' | TrackPlayer.Track >{
+export async function playingTrackToRNTrack(track: Track): Promise< 'skip' | TrackPlayer.Track >{
     try {
         let artwork = "";
         if(track.imported)
@@ -96,6 +96,6 @@ export async function playingTrackToRNTrack(track): Promise< 'skip' | TrackPlaye
             return 'skip'
         }
         Alert.alert("Error", err)
-        return null;
+        return 'skip';
     }
 }
