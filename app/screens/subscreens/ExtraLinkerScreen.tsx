@@ -4,7 +4,7 @@ import { useNavigation, useTheme } from '@react-navigation/native';
 import Link from '../../components/Link';
 import { darkThemeDefault } from '../../../Preferences';
 
-function ExtraLinkerScreen(props) {
+function ExtraLinkerScreen() {
 	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	const [modalVisible, setModalVisible] = useState(false);
@@ -41,7 +41,7 @@ function ExtraLinkerScreen(props) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
     centeredView: {
 		flex: 1,
 		justifyContent: 'center',

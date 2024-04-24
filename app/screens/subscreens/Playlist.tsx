@@ -13,11 +13,11 @@ import * as SQLActions from '../../../SQLActions';
 import { EditMode, Route, Track } from '../../../types';
 import FourTrackArtwork from '../../components/FourTrackArtwork';
 
-export default function Playlist({route}){
-    const ts_route = route as Route<{title: string}>
+export default function Playlist(params: {route: any}){
+    const ts_route = params.route as Route<{title: string}>
 
     const navigation: NavigationProp<any, any> = useNavigation();
-    const { colors } = useTheme();
+    const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 
     const [tracks, setTracks] = useState([] as Track[]);
@@ -91,31 +91,29 @@ export default function Playlist({route}){
                 setDuration("> 1m")
             }
         } catch (error) {
-            Alert.alert("Error",error)
+            Alert.alert("Error", String(error));
         }
     } 
 
-    function playShuffle(dat){
-        let newData = [...dat]
-		let currentIndex = newData.length, randomIndex;
+    function playShuffle(play_tracks: Track[]){
+        let cloned_tracks = [...play_tracks]
+		let current_index: number = cloned_tracks.length, random_index: number;
 
 		if(Prefs.prefs.settings.only_play_downloaded)
-            newData = newData.filter(item => item.downloaded || item.imported);
+            cloned_tracks = cloned_tracks.filter(item => item.downloaded || item.imported);
 
-        while (currentIndex != 0) {
-
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-
-            [newData[currentIndex], newData[randomIndex]] = [
-                newData[randomIndex], newData[currentIndex]];
+        while (current_index != 0) {
+            random_index = Math.floor(Math.random() * current_index);
+            current_index--;
+            [cloned_tracks[current_index], cloned_tracks[random_index]] = [
+                cloned_tracks[random_index], cloned_tracks[current_index]];
         }
         
-        GLOBALS.global_var.playTracks(newData[0], newData, ts_route.params.title);
+        GLOBALS.global_var.playTracks(cloned_tracks[0], cloned_tracks, ts_route.params.title);
 	}
 
-	const renderTracks = ({ item }) => (
-		<TrackComponent track_data={item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData.bind(this)}/>
+	const renderTracks = (item: {item: Track}) => (
+		<TrackComponent track_data={item.item} from={ts_route.params.title} edit_mode={editMode} playlist_from={ts_route.params.title} refreshData={refreshData}/>
 	);
 	const headerComponent = () => (
 		<View style={styles.playlistListHeader}>
@@ -172,7 +170,7 @@ export default function Playlist({route}){
     );
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
     topContainer:{
         flex: 1,
         backgroundColor: colors.background

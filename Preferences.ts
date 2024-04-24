@@ -3,32 +3,6 @@ import * as GLOBALS from './globals';
 import CookieManager from '@react-native-community/cookies';
 
 export let prefs = getDefaultPrefs();
-export class LinkedPlaylist{
-    service_from: string
-    service_to: string
-    playlist_name_from: string
-    playlist_name_to: string
-    url_from: string
-    url_to: string
-    use_service_cookies: boolean
-    auto_fetch_on_startup: boolean
-    auto_fetch_on_startup_only_on_wifi: boolean
-
-    constructor(p){
-        this.service_from = p.service_from ?? "";
-        this.service_to = p.service_to ?? "";
-
-        this.playlist_name_from = p.playlist_name_from ?? "";
-        this.playlist_name_to = p.playlist_name_to ?? "";
-
-        this.url_from = p.url_from ?? "";
-        this.url_to = p.url_to ?? "";
-
-        this.use_service_cookies = p.use_service_cookies ?? false;
-        this.auto_fetch_on_startup = p.auto_fetch_on_startup ?? true;
-        this.auto_fetch_on_startup_only_on_wifi = p.auto_fetch_on_startup_only_on_wifi ?? true;
-    }
-}
 
 export async function isPrefsEmpty(){
     let prefs = await AsyncStorage.getItem("Prefs");
@@ -208,11 +182,11 @@ function getDefaultPrefs(){
         }
     }
 } 
-function plainTextToSnakeCase(text){
+function plainTextToSnakeCase(text: string){
     text = text.replaceAll(' ','_').toLowerCase()
     return text
 }
-export function snakeCaseToPlainText(text){
+export function snakeCaseToPlainText(text: string){
     text = text.replaceAll('_',' ')
     const words = text.split(" ");
     for (let i = 0; i < words.length; i++) {

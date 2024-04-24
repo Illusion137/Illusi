@@ -18,10 +18,10 @@ import * as SQLActions from '../../SQLActions';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import CookieManager from '@react-native-community/cookies';
 
-function ExtraScreen({route}) {
+function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
 
-    const { colors } = useTheme();
+    const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	let keep_prefs = false;
@@ -37,7 +37,7 @@ function ExtraScreen({route}) {
 			GLOBALS.global_var.db = SQLite.openDatabase('illusi-db.sqlite3')
 			deleteAllTables();
 			
-			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory)){
+			for(const file of await FileSystem.readDirectoryAsync(FileSystem.documentDirectory ?? "")){
 				try {
 					if(!(file.includes("RCTAsyncLocalStorage") || file == 'SQLite' || file == '“RCTAsyncLocalStorage_V1”')){
 						await FileSystem.deleteAsync(FileSystem.documentDirectory+file, {idempotent:true});
@@ -79,7 +79,7 @@ function ExtraScreen({route}) {
 
 	async function zipData(){
 		const UTI = 'public.item';
-		await Sharing.shareAsync(FileSystem.documentDirectory, { UTI });
+		await Sharing.shareAsync(FileSystem.documentDirectory ?? "", { UTI });
 	}
 
 	const [battery, setBattery] = React.useState(0.0);
@@ -117,7 +117,7 @@ function ExtraScreen({route}) {
 				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
 
 				<View style={styles.linelong}/>
-					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader', {'downloadVideo': route.params?.downloadVideo.bind(this)})}/>
+					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
 					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.lineshort}/>
 					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
@@ -161,7 +161,7 @@ function ExtraScreen({route}) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	topcontainer:{
 		backgroundColor: colors.background,
 		flex: 1,

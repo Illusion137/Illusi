@@ -17,7 +17,7 @@ function NewPlaylist(props: {
 	
 	const navigation: NavigationProp<any, any> = useNavigation();
 	
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 		
 	const input_ref = useRef<TextInput>();
@@ -59,7 +59,7 @@ function NewPlaylist(props: {
 				{!isInvalidName && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
-			<TextInput maxLength={45} ref={input_ref} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={onNameUpdate}></TextInput>
+			<TextInput maxLength={45} ref={input_ref as any} placeholder='Playlist name' placeholderTextColor='#808080' style={styles.nameinput} onChangeText={onNameUpdate}></TextInput>
 			<View style={{height:40}}></View>
 			{/* <TouchableHighlight activeOpacity={0.6} underlayColor="#FFFFFF" onPress={() => navigation.navigate('AddPlaylistFrom' , {title: 'Import Illusi Playlist'})}>
 				<View style={styles.importfrom}>
@@ -80,7 +80,7 @@ function NewPlaylist(props: {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	nameinput:{
 		backgroundColor: '#121212',
 		height: 60,

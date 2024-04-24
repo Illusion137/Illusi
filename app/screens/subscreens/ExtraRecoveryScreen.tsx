@@ -4,7 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { darkThemeDefault } from '../../../Preferences';
 
-function ExtraRecoveryScreen(props) {
+function ExtraRecoveryScreen(props: {}) {
 	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 	return(
@@ -13,7 +13,7 @@ function ExtraRecoveryScreen(props) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
     
 });
 export default ExtraRecoveryScreen;

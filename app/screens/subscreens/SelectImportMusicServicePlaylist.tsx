@@ -9,8 +9,8 @@ import * as Prefs from '../../../Preferences';
 import { MusicService, MusicServiceType, Route } from '../../../types';
 import { MusicServices } from '../../../MusicServices';
 
-export default function SelectImportMusicServicePlaylist({route}) {
-	const ts_route = route as Route<{title: string}>;
+export default function SelectImportMusicServicePlaylist( params: {route: any} ) {
+	const ts_route = params.route as Route<{title: string}>;
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 
@@ -25,7 +25,7 @@ export default function SelectImportMusicServicePlaylist({route}) {
 	const [playlistNames, setPlaylistNames] = React.useState([] as string[]);
 
 	const music_service_from = ts_route.params.title.replace('Import ', '').replace(' Playlist', '') as MusicServiceType;
-	const music_service = MusicServices.music_service.get(music_service_from);
+	const music_service: MusicService = MusicServices.music_service.get(music_service_from) as MusicService;
 
 	function setHeader() {
 		navigation.setOptions({title: ts_route.params.title})
@@ -66,7 +66,7 @@ export default function SelectImportMusicServicePlaylist({route}) {
 	}
 	function onSetSelectedURL(selected_url: string){
 		setSelected(selected_url); 
-		setInputValue(playlistNameData.get(selected_url)); 
+		setInputValue(playlistNameData.get(selected_url) ?? ""); 
 		setDisabled(false);
 		navigation.setOptions({ headerRight: () => (
 			<Button color='blue' onPress={() => navigation.navigate('ImportMusicServicePlaylist', {url: playlistNameData.get(selected_url), title: ts_route.params.title})} title="Next"
@@ -76,7 +76,7 @@ export default function SelectImportMusicServicePlaylist({route}) {
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-			<TextInput autoCorrect={false} ref={inputRef} placeholder='Playlist Link' placeholderTextColor='#808080' style={styles.nameinput} 
+			<TextInput autoCorrect={false} ref={inputRef as any} placeholder='Playlist Link' placeholderTextColor='#808080' style={styles.nameinput} 
 				value={inputValue}
 				onChangeText={onURLUpdate}></TextInput>
 			<Text style={styles.enterittext}>Enter a link to a {music_service_from} Playlist to add it to your {music_service_from}.</Text>
@@ -99,7 +99,7 @@ export default function SelectImportMusicServicePlaylist({route}) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
 	nameinput:{
 		backgroundColor: colors.shelf,
 		height: 60,

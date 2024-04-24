@@ -3,7 +3,9 @@ import * as Prefs from './Preferences';
 import * as GLOBALS from './globals';
 import { Alert } from 'react-native';
 import { ResultSet, ResultSetError } from 'expo-sqlite';
-import { Playlist, SmallTrack, SQLAlter, SQLTable, SQLType, Track } from './types';
+import * as probe from 'probe-image-size';
+import { Playlist, SmallTrack, SQLAlter, SQLTable, SQLType, Track, TrackProps } from './types';
+import axios from 'axios';
 
 export async function swapFromBackpack(old_uid: string, new_track: Track){
     await deleteFromBackpack(old_uid);
@@ -20,7 +22,7 @@ export async function deleteFromBackpack(uid: string){
 
 export async function getBackpack(): Promise<Track[]>{
     const tracks_sql = await GLOBALS.global_var.db.execAsync([{sql: 'SELECT * FROM backpack', args: []}], false);
-    const tracks: Track[] = (tracks_sql[0] as ResultSet).rows as Track[]
+    const tracks: Track[] = (tracks_sql[0] as ResultSet).rows.map(t => new Track(t as TrackProps));
     for(let i = 0; i < tracks.length; i++){
         tracks[i].video_name = String(tracks[i].video_name)
         tracks[i].video_creator = String(tracks[i].video_creator)
@@ -63,7 +65,7 @@ export async function deleteAllTables(){
 
 export async function fetchTrackDataFromUID(uid: string): Promise<Track> {
     let track = await GLOBALS.global_var.db.execAsync([{sql: `SELECT * FROM tracks WHERE uid = (?)`, args: [uid]}], false);
-    return (track[0] as ResultSet).rows[0] as Track; 
+    return (track[0] as ResultSet).rows.map(t => new Track(t as TrackProps))[0]; 
 }
 
 export async function setTrackAsDownloaded(uid: string, media_uri: string) {
@@ -87,7 +89,7 @@ export function getTrackArtworkRP(track: Track){
 
 export async function fetchTrackData() {
     let tracks = await GLOBALS.global_var.db.execAsync([{sql: 'SELECT * FROM tracks', args: []}], false);
-    GLOBALS.global_var.SQLTracks = (tracks[0] as ResultSet).rows as Track[];
+    GLOBALS.global_var.SQLTracks = (tracks[0] as ResultSet).rows.map(t => new Track(t as TrackProps));
     for(let i = 0; i < GLOBALS.global_var.SQLTracks.length; i++){
         GLOBALS.global_var.SQLTracks[i].video_name = String(GLOBALS.global_var.SQLTracks[i].video_name)
         GLOBALS.global_var.SQLTracks[i].video_creator = String(GLOBALS.global_var.SQLTracks[i].video_creator)
@@ -117,7 +119,7 @@ export async function pinUnpinPlaylist(playlist_name: string, pin: boolean) {
 
 export async function getPlaylistTracks(playlist_name: string) {
     const playlist = await GLOBALS.global_var.db.execAsync([{sql: `SELECT * FROM tracks AS t JOIN ${playlist_name.replaceAll(' ', '_')} AS p ON p.track_uid = t.uid ORDER BY p.id`, args: []}], false);
-    const tracks: Track[] = (playlist[0] as ResultSet).rows as Track[]
+    const tracks: Track[] = (playlist[0] as ResultSet).rows.map(t => new Track(t as TrackProps))
     for(let i = 0; i < tracks.length; i++){
         tracks[i].video_name = String(tracks[i].video_name)
         tracks[i].video_creator = String(tracks[i].video_creator)
@@ -183,8 +185,26 @@ export async function readCacheDirs(){
     return await FileSystem.readDirectoryAsync(GLOBALS.thumbnailsCacheDir)
 }
 
+export async function getHighestQualityYouTubeThumbnailURI(video_id: string){
+    const uris_descending = [
+        `https://i.ytimg.com/vi/${video_id}/maxresdefault.jpg`,
+        `https://i.ytimg.com/vi/${video_id}/hq720.jpg`,
+        `https://i.ytimg.com/vi/${video_id}/sddefault.jpg`,
+        `https://i.ytimg.com/vi/${video_id}/hqdefault.jpg`,
+        `https://i.ytimg.com/vi/${video_id}/mqdefault.jpg`,
+        `https://i.ytimg.com/vi/${video_id}/default.jpg`,
+    ];
+    for(const uri of uris_descending){
+        try {
+            const result = await axios.get(uri, {"responseEncoding": "binary", "responseType": "arraybuffer"});
+            if(result.status === 200) return uri;
+        } catch (error) {}
+    }
+    return `https://img.youtube.com/vi/${video_id}/0.jpg`;
+}
+
 export async function downloadTrackThumbnail(track: Track){
-    const thumbnailDownload = FileSystem.createDownloadResumable(`https://img.youtube.com/vi/${track.video_id}/maxresdefault.jpg`,  GLOBALS.thumbnailsCacheDir + track.uid + ".jpg", {})
+    const thumbnailDownload = FileSystem.createDownloadResumable(await getHighestQualityYouTubeThumbnailURI(track.video_id),  GLOBALS.thumbnailsCacheDir + track.uid + ".jpg", {})
     await thumbnailDownload.downloadAsync();
     await GLOBALS.global_var.db.execAsync([{sql: `UPDATE tracks SET thumbnail_uri="${track.uid + ".jpg"}" WHERE uid="${track.uid}"`, args: []}], false);
 }
@@ -192,8 +212,10 @@ export async function downloadTrackThumbnail(track: Track){
 export async function refreshCache(){
     await fetchTrackData();
     for(const track of GLOBALS.global_var.SQLTracks){
-        if(!(track.imported || ((track.thumbnail_uri || "") !== "")))
+        if(!(track.imported || ((track.thumbnail_uri || "") !== ""))){
+            console.log(track)
             downloadTrackThumbnail(track)
+        }
     }
 }
 
@@ -250,7 +272,7 @@ export async function insertTrackIntoPlaylist(track_uid: string, playlistName: s
 }
 export async function getRecentlyPlayedData(){
     let recently_played_tracks = await GLOBALS.global_var.db.execAsync([{sql: 'SELECT * FROM recently_played_tracks', args: []}], false);
-    let tracks = ((recently_played_tracks[0] as ResultSet).rows) as Track[]
+    let tracks = ((recently_played_tracks[0] as ResultSet).rows).map(t => new Track(t as TrackProps))
     for(let i = 0; i < tracks.length; i++){
         let found_track_idx = GLOBALS.global_var.SQLTracks.findIndex((el) => el.video_id == tracks[i].video_id);
         if(found_track_idx != -1){
@@ -345,29 +367,26 @@ async function alterSQL(alter: SQLAlter){
         await GLOBALS.global_var.db.execAsync([{sql: `ALTER TABLE ${alter.table} ${alter.action} COLUMN ${alter.column_name} TO ${alter.new_column_name}`, args: []}], false);
     }
     else return;
-    Alert.alert("Altered SQL Table: ", `Changes ${JSON.stringify(alter)}`)
+    Alert.alert("Altered SQL Table: ", `Changes ${JSON.stringify(alter)}`);
 }
 export async function recreateAllTables(){
-    await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_uri STRING, thumbnail_uri STRING, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, exid STRING)', args: []}], false);
-    await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS recently_played_tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_uri STRING, thumbnail_uri STRING, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, exid STRING)', args: []}], false);
+    await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS tracks                 (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_uri STRING, thumbnail_uri STRING, views INTEGER, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, exid STRING)', args: []}], false);
+    await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS recently_played_tracks (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER, media_uri STRING, thumbnail_uri STRING, views INTEGER, saved BOOLEAN, imported BOOLEAN, downloaded BOOLEAN, youtube BOOLEAN, soundcloud BOOLEAN, spotify BOOLEAN, amazonmusic BOOLEAN, applemusic BOOLEAN, exid STRING)', args: []}], false);
     await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS backpack (id INTEGER PRIMARY KEY, uid STRING, video_id STRING, video_name STRING, video_creator STRING, video_duration INTEGER)', args: []}], false);
     await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS playlists (id INTEGER PRIMARY KEY, playlist_name STRING, pinned BOOLEAN, thumbnail_uri STRING, sort STRING, public BOOLEAN, public_uid STRING, inherited_playlists_json STRING, linked_playlists_json STRING)', args: []}], false);
     await GLOBALS.global_var.db.execAsync([{sql: 'CREATE TABLE IF NOT EXISTS audiobooks (id INTEGER PRIMARY KEY, uid STRING, title STRING, media_uri STRING, thumbnail_uri STRING, subtitle_uri STRING, chapters_json STRING, extra_json STRING)', args: []}], false);
     await createCacheDirs();
 }
 export async function fixToNewUpdate(){
-    await alterSQL({table: 'tracks', action: 'RENAME', column_name: 'thumbnail_URI', new_column_name: 'thumbnail_uri'}); 
-    await alterSQL({table: 'tracks', action: 'RENAME', column_name: 'media_URI',     new_column_name: 'media_uri'}); 
-    await alterSQL({table: 'tracks', action: 'DROP',   column_name: 'longvid'});
-    
-    await alterSQL({table: 'recently_played_tracks', action: 'RENAME', column_name: 'thumbnail_URI', new_column_name: 'thumbnail_uri'}); 
-    await alterSQL({table: 'recently_played_tracks', action: 'RENAME', column_name: 'media_URI',     new_column_name: 'media_uri'}); 
-    await alterSQL({table: 'recently_played_tracks', action: 'DROP',   column_name: 'longvid'});
-
-    await alterSQL({table: 'playlists', action: 'ADD', column_name: 'thumbnail_uri',            type: 'STRING'}); 
+    // UPDATE 13.0.4 BETA
+    await alterSQL({table: 'playlists', action: 'RENAME', column_name: 'thumbnail_URI',         new_column_name: 'thumbnail_uri'}); 
     await alterSQL({table: 'playlists', action: 'ADD', column_name: 'sort',                     type: 'STRING'}); 
     await alterSQL({table: 'playlists', action: 'ADD', column_name: 'public',                   type: "BOOLEAN"});
     await alterSQL({table: 'playlists', action: 'ADD', column_name: 'public_uid',               type: "STRING"});
     await alterSQL({table: 'playlists', action: 'ADD', column_name: 'inherited_playlists_json', type: "STRING"});
     await alterSQL({table: 'playlists', action: 'ADD', column_name: 'linked_playlists_json',    type: "STRING"});
+
+    // UPDATE 13.0.5 BETA
+    await alterSQL({table: 'tracks', action: 'ADD', column_name: 'views', type: "INTEGER"});
+    await alterSQL({table: 'recently_played_tracks', action: 'ADD', column_name: 'views', type: "INTEGER"});
 }

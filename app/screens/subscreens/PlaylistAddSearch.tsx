@@ -8,18 +8,19 @@ import BigList from 'react-native-big-list';
 import * as Haptics from 'expo-haptics';
 import * as SQLActions from '../../../SQLActions';
 import * as GLOBALS from '../../../globals';
-import { Route } from '../../../types';
+import { Route, Track } from '../../../types';
+import { darkThemeDefault } from '../../../Preferences';
 
 function PlaylistAddSearch(){
 
 	const [allData, setAllData] = useState({charData: [], dataMask: [], baseData: [], numTracks: 0})
 	const listRef = useRef<BigList>();
 
-	let allAlphabetFastScrollLocations = [];
+	let allAlphabetFastScrollLocations: number[] = [];
 	let currentPosition = 0;
 	let topScroll = 0;
 
-	const { colors } = useTheme();
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	const route = useRoute() as Route<{write_playlist: string}>;
@@ -66,9 +67,9 @@ function PlaylistAddSearch(){
 			setAllData({charData: sectionChars, dataMask: sections, baseData: tracks, numTracks: tracks.length})
 		})();
 	}, []);
-	const renderItem = ({item}) => <TrackComponent track_data={item} write_playlist={route.params.write_playlist}/>
+	const renderItem = (item: {item: Track}) => <TrackComponent track_data={item.item} write_playlist={route.params.write_playlist}/>
 
-	const sectionHeader = (num) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[num]}</Text></View>
+	const sectionHeader = (index: number) => <View style={styles.sectionHeader}><Text style={styles.sectionText}>{allData.charData[index]}</Text></View>
 
 	const [nextPlaylist, setNextPlaylist] = useState("Recently Added");
 	const [nextIndex, setNextIndex] = useState(0);
@@ -168,7 +169,7 @@ function PlaylistAddSearch(){
     );
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	topcontainer:{
 		backgroundColor: colors.background,
 		flex: 1,

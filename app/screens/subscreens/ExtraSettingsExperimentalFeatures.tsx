@@ -6,15 +6,15 @@ import * as Prefs from '../../../Preferences';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
 
-function ExtraSettingsExperimentalFeatures(props) {
+function ExtraSettingsExperimentalFeatures() {
 
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 	
 	const [settingsData, setSettingsData] = useState(Object.entries(Prefs.prefs.experimental_features)); 
-	const renderItem = (item) => 
+	const renderItem = (item: {item: any[], index: number}) => 
 	<>
-		<SettingsMultiButton settingsKey={item.item[0]} settingsValue={item.item[1]} preKey={'experimental_features'}/>
+		<SettingsMultiButton settings_key={item.item[0]} settings_value={item.item[1]} pre_key={'experimental_features'}/>
 		{item.index !== settingsData.length-1 && <View style={styles.lineshort}/>}
 	</>;
 	return(
@@ -25,7 +25,7 @@ function ExtraSettingsExperimentalFeatures(props) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
     linelong:{
 		width: "100%",
 		height: 0.4,

@@ -15,7 +15,7 @@ import { MusicServiceType } from '../../../types';
 
 type KeyValue = {key: string, value: string};
 
-function ExtraPlaylistConverter({route}) {
+function ExtraPlaylistConverter() {
 	const { colors } = useTheme() as typeof Prefs.darkThemeDefault;
 	const styles = themeStyles(colors);
 	
@@ -36,10 +36,10 @@ function ExtraPlaylistConverter({route}) {
 				}
 				tracks = tracks.filter(item => item.youtube)
 
-				let playlistURL = data.get(selectedServicePlaylist)
+				const playlist_url = data.get(selectedServicePlaylist)
 				
-				if(selectedSegmentedServiceValue == "YouTube"){
-					let playlistId = getYTPlaylistIdFromURL(playlistURL);
+				if(selectedSegmentedServiceValue == "YouTube" && playlist_url !== undefined){
+					let playlistId = getYTPlaylistIdFromURL(playlist_url);
 					await insertIntoYouTubePlaylist(selectedServicePlaylist, tracks);
 				} else if(selectedSegmentedServiceValue == "Spotify"){
 
@@ -74,16 +74,17 @@ function ExtraPlaylistConverter({route}) {
 		})()
 	}, []);
 
-	async function getServicePlaylistData(val){
-		switch(val){
+	async function getServicePlaylistData(service_type: MusicServiceType){
+		switch(service_type){
 			case("YouTube"):
 				let youtubedata = await getAllYoutubePlaylistsFromAccount();
+				if(youtubedata === undefined) break;
 				setServicePlaylistData([...youtubedata.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
 				setData(youtubedata)
 				break;
 			case("Spotify"):
 				break;
-			case("Amazon"):
+			case("Amazon Music"):
 				let amazondata = await getAllAmazonMusicPlaylistsFromAccount();
 				setServicePlaylistData([...amazondata.keys()].map((el, idx) => {return {'key':String(idx), 'value': el}}))
 				setData(amazondata)
@@ -96,7 +97,7 @@ function ExtraPlaylistConverter({route}) {
 	const [selectedIllusiPlaylist, setSelectedIllusiPlaylist] = React.useState("");
 	const [illusiPlaylistData, setIllusiPlaylistData] = React.useState([] as KeyValue[]);
 
-	const [segmentedServiceValues, setSegmentedServiceValues] = React.useState([]);
+	const [segmentedServiceValues, setSegmentedServiceValues] = React.useState([] as MusicServiceType[]);
 	const [selectedSegmentedServiceValue, setSelectedSegmentedServiceValue] = React.useState("");
 
 	const [selectedServicePlaylist, setSelectedServicePlaylist] = React.useState("");
@@ -105,7 +106,7 @@ function ExtraPlaylistConverter({route}) {
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
-					setSelected={(val) => setSelectedIllusiPlaylist(val)}
+					setSelected={(value: string) => setSelectedIllusiPlaylist(value)}
 					data={illusiPlaylistData} 
 					save="value"
 					arrowicon={<></>}
@@ -124,11 +125,11 @@ function ExtraPlaylistConverter({route}) {
 					<SegmentedControl 
 						values={segmentedServiceValues}
 						selectedIndex={undefined}
-						onChange={async(event) => {setSelectedSegmentedServiceValue(event.nativeEvent.value); await getServicePlaylistData(event.nativeEvent.value)}}
+						onChange={async(event) => {setSelectedSegmentedServiceValue(event.nativeEvent.value); await getServicePlaylistData(event.nativeEvent.value as MusicServiceType)}}
 					/>
 					<View style={{height: 15}}/>
 					<SelectList 
-						setSelected={(val) => {setSelectedServicePlaylist(val)}}
+						setSelected={(value: string) => {setSelectedServicePlaylist(value)}}
 						data={servicePlaylistData} 
 						save="value"
 						arrowicon={<></>}
@@ -147,7 +148,7 @@ function ExtraPlaylistConverter({route}) {
 		</View>
 	);
 }
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof Prefs.darkThemeDefault.colors) => StyleSheet.create({
     descriptiontxt:{
 		color: '#A0A0A0',
 		marginHorizontal: 6,

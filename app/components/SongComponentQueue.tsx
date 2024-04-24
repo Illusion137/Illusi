@@ -3,22 +3,24 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-na
 import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as GLOBALS from '../../globals';
+import { darkThemeDefault } from '../../Preferences';
+import { Artwork, QueueTrack, Track } from '../../types';
 
-function SongComponentQueue(props) {
-	const id = props.video_id;
-	
-	const { colors } = useTheme();
+function SongComponentQueue(props: {
+	track_data: QueueTrack
+}) {
+	const { colors } = useTheme() as typeof darkThemeDefault;
 	const styles = themeStyles(colors);
 
 	return (
 		<View style={{backgroundColor: colors.track}}  >
 			<View style={styles.songbox}>
 				<View style={{justifyContent: 'center'}}>
-					<Image source={props.artwork} style={styles.image}></Image>
+					<Image source={props.track_data.artwork as any} style={styles.image}></Image>
 				</View>
 				<View style={styles.text}>
-					<Text style={styles.title} numberOfLines={1} >{props.video_name}</Text>
-					<Text style={styles.artist} numberOfLines={1} >{props.video_creator}</Text>
+					<Text style={styles.title} numberOfLines={1} >{props.track_data.video_name}</Text>
+					<Text style={styles.artist} numberOfLines={1} >{props.track_data.video_creator}</Text>
 				</View>
             </View>
 			<View style={styles.line}/>
@@ -26,7 +28,7 @@ function SongComponentQueue(props) {
 	);
 }
 
-const themeStyles = (colors) => StyleSheet.create({
+const themeStyles = (colors: typeof darkThemeDefault.colors) => StyleSheet.create({
 	songbox:{
 		width: '100%',
 		height: 60,
