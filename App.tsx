@@ -18,7 +18,6 @@ import ExtraRecoveryScreen from './app/screens/subscreens/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/subscreens/ExtraSettingsScreen';
 import PlaylistAddSearch from './app/screens/subscreens/PlaylistAddSearch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ytdl from "react-native-ytdl"
 import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 
@@ -28,6 +27,7 @@ import * as Prefs from './Preferences'
 
 import * as Haptics from 'expo-haptics';
 
+import * as ytdl from './app/ytdl/lib/index'
 import { activateKeepAwakeAsync } from 'expo-keep-awake';
 import { Audio } from 'expo-av';
 import ExternalServicesScreen from './app/screens/subscreens/ExtraExternalServicesScreen';
@@ -219,7 +219,7 @@ export default function App() {
 	function waitFor(condition_function: () => boolean) {
 		const poll = (resolve: any) => {
 			if(condition_function()) resolve();
-			else setTimeout(_ => poll(resolve), 400);
+			else setTimeout((_: any) => poll(resolve), 400);
 		}
 		
 		return new Promise(poll);
@@ -237,18 +237,16 @@ export default function App() {
 		const download_queue_max_length = Prefs.prefs?.settings?.download_queue_max_length ?? 1
 		waitFor(() => isInDownloadRange(track.uid, download_queue_max_length))
 		.then(async() => {
-			const youtube_url = `http://www.youtube.com/watch?v=${track.video_id}`;
 			let download_uri;
 			//140
 			try {
-			let requestOptions = {}
-			if(Prefs.prefs.settings.use_cookies_on_download){
-				requestOptions = {'headers': {
-					'Cookies': Prefs.prefs.external_services.youtube_cookies
-				}}
-			}
-			download_uri = await ytdl(youtube_url, { 'quality': 'lowestaudio', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
-			download_uri = download_uri[0].url;
+				let requestOptions = {}
+				if(Prefs.prefs.settings.use_cookies_on_download){
+					requestOptions = {'headers': {
+						'cookie': Prefs.prefs.external_services.youtube_cookies
+					}}
+				}
+				download_uri = (await ytdl.ytdl(track.video_id, {"quality": "highestaudio", 'requestOptions': requestOptions})).url;
 			} catch (error) {
 				if(String(error).includes("Video unavailable")){
 				SQLActions.addToBackpack(track.uid);

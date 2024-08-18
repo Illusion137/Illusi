@@ -1,7 +1,7 @@
 const { Queue } = require("./app/Illusive/Queue");
 import * as SQLite from 'expo-sqlite'
 import * as FileSystem from 'expo-file-system';
-import ytdl from "react-native-ytdl"
+import * as ytdl from './app/ytdl/lib/index'
 import { Alert } from 'react-native';
 import { prefs } from './Preferences';
 import { Artwork, DownloadTrackResult, SetState, SmallTrack, Track } from './types';
@@ -66,10 +66,8 @@ export async function playingTrackToRNTrack(track: Track): Promise< 'skip' | Tra
                     'Cookies': prefs.external_services.youtube_cookies
                 }}
             }
-            const yt_urls = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
-            // console.log(yt_urls)
-            // const a = await ytdl(`https://www.youtube.com/watch?v=${track.video_id}`)
-            url = yt_urls[0].url;
+            const yt_urls = await ytdl.ytdl(`https://www.youtube.com/watch?v=${track.video_id}`, { quality: '18', 'requestOptions': requestOptions }); // Low:18 - Med:22 - High:37
+            url = yt_urls.url;
         }
         return {
             'url': url as string,

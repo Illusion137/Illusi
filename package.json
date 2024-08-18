@@ -10,6 +10,7 @@
     "ts:check": "tsc"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.14.4",
     "@expo/config-plugins": "~7.8.0",
     "@expo/metro-config": "~0.17.1",
     "@expo/vector-icons": "^14.0.0",
@@ -79,8 +80,10 @@
     "rn-fetch-blob": "^0.12.0",
     "rn-sliding-up-panel": "^2.4.6",
     "sha1-uint8array": "^0.10.7",
+    "stream": "^0.0.3",
     "use-state-with-callback": "^3.0.2",
-    "usetube": "^2.0.2"
+    "usetube": "^2.0.2",
+    "vm-browserify": "^1.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.19.3",

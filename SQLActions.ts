@@ -286,7 +286,7 @@ export async function getRecentlyPlayedData(){
             tracks[i].soundcloud = Boolean(GLOBALS.global_var.SQLTracks[j].soundcloud)
             tracks[i].spotify = Boolean(GLOBALS.global_var.SQLTracks[j].spotify)
             tracks[i].youtube = Boolean(GLOBALS.global_var.SQLTracks[j].youtube)
-            tracks[i].artwork = getTrackArtworkRP(GLOBALS.global_var.SQLTracks[j])
+            tracks[i].artwork = getTrackArtwork(GLOBALS.global_var.SQLTracks[j])
             tracks[i].media_uri = GLOBALS.global_var.SQLTracks[j].media_uri
             tracks[i].thumbnail_uri = GLOBALS.global_var.SQLTracks[j].thumbnail_uri
             tracks[i].uid = GLOBALS.global_var.SQLTracks[j].uid
