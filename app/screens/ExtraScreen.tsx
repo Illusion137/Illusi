@@ -1,0 +1,153 @@
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView} from 'react-native';
+import ExtrasSectionButton from '../components/ExtrasSectionButton';
+import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import appConfig from '../../app.config';
+import * as Sharing from 'expo-sharing';
+import * as Battery from 'expo-battery';
+import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import { Prefs } from '../../lib-origin/Illusive/src/prefs';
+import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+
+function ExtraScreen() {
+	const navigation: NavigationProp<any, any> = useNavigation();
+
+    const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const styles = theme_styles(colors);
+	
+	async function zip_data(){
+		const UTI = 'public.item';
+		await Sharing.shareAsync(FileSystem.documentDirectory ?? "", { UTI });
+	}
+
+	const [battery, set_battery] = React.useState(0.0);
+
+	useEffect(() => {
+		const interval_id = setInterval(async() => {  //assign interval to a variable to clear it.
+			set_battery(await Battery.getBatteryLevelAsync());
+		}, 2000)
+		return () => clearInterval(interval_id); //This is important
+	}, [])
+
+	return (
+		<View style={styles.topcontainer}>
+			<View style={styles.header}>
+				<View style={{flexDirection: 'row', bottom: 20, alignItems: 'center'}}>
+					<Text style={styles.toptext}>More</Text>
+				</View>
+			</View>
+			<ScrollView>
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
+				<View style={styles.linelong}/>
+
+				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
+				
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
+					<View style={styles.lineshort}/>	
+					<ExtrasSectionButton show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton show_arrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
+				<View style={styles.linelong}/>
+
+				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
+
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
+					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
+				<View style={styles.linelong}/>
+
+				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
+
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
+				<View style={styles.linelong}/>
+				
+				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
+
+				<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
+					<View style={styles.lineshort}/>
+					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", Prefs.reset_prefs)}/>
+					<View style={styles.lineshort}/>	
+					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLActions.delete_all_playlists)}/>
+					<View style={styles.lineshort}/>	
+					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLActions.delete_all_data)}/>
+				<View style={styles.linelong}/>
+				<Text style={styles.descriptiontxt}>Manage your data; clear your data or export it back to your files app</Text>
+
+				{/* {Prefs.get_pref('dev_mode') ? */}
+					<>
+					<View style={styles.linelong}/>
+					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<View style={styles.linelong}/>
+					<Text style={styles.descriptiontxt}>Developer Options :3</Text>
+					</>
+					{/* : null */}
+				{/* } */}
+				
+				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version} Beta</Text>
+				<Text style={styles.descriptiontxt}>Battery Level: {battery}</Text>
+			</ScrollView>
+		</View>
+	);
+}
+const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+	topcontainer:{
+		backgroundColor: colors.background,
+		flex: 1,
+	},
+	header:{
+		backgroundColor: colors.shelf,
+		width: '100%',
+		height: '13%',
+		top: 0,
+		justifyContent: 'flex-end',
+		alignItems: 'center',
+	},
+	toptext:{
+		color: '#FFFFFF',
+		fontSize: 18,
+		top:10,
+		fontWeight: '500'
+	},
+	descriptiontxt:{
+		color: '#A0A0A0',
+		marginTop: 10,
+		marginBottom: 20,
+		marginHorizontal: 12,
+		textAlign: 'left'
+	},
+	linelong:{
+		width: "100%",
+		height: 0.4,
+		opacity: 0.1,
+		backgroundColor: 'white',
+	},
+	lineshort:{
+		width: "100%",
+		height: 0.4,
+		opacity: 0.1,
+		backgroundColor: 'white',
+		marginLeft: 42
+	},
+	sectionContainer:{
+		width: '100%', 
+		height: 50, 
+		backgroundColor: colors.track, 
+		flexDirection: 'row', 
+		alignItems: 'center'
+	},
+	btnsectionText:{
+		color: '#FFFFFF',
+		fontSize: 16,
+		left:20
+	}
+});
+export default ExtraScreen;
