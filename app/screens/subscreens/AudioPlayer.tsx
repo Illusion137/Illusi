@@ -6,7 +6,7 @@ import { Slider } from '@miblanchard/react-native-slider';
 import * as FileSystem from 'expo-file-system';
 import TrackPlayer, { Event, RepeatMode, State, Track, useTrackPlayerEvents } from 'react-native-track-player';
 import { setupPlayer, addTracks, TrackPlayerNext, TrackPlayerPrev } from '../../../trackPlayerServices';
-import ytdl from "react-native-ytdl";
+import * as ytdl from '../../ytdl/lib/index'
 import * as Sharing from 'expo-sharing';
 import SongComponentQueue from '../../components/SongComponentQueue'
 import SlidingUpPanel from 'rn-sliding-up-panel';

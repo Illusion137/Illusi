@@ -178,8 +178,10 @@ export async function getYouTubeInitialData(url = 'https://www.youtube.com/'){
     }
 }
 
-async function getYoutubePlaylistContinuation(innertube_api_key: string, continuationKey: string, context: any, url: string, trackingParams: any){
+async function getYoutubePlaylistContinuation(innertube_api_key: string, continuationKey: string, context: any, url: string, trackingParams: any, callstack = 0){
     try {
+        const MAX_CALL_STACK_SIZE = 4;
+        if(callstack == 4) return [];
         let videos: Track[] = [];
 
         let postURL = `https://www.youtube.com/youtubei/v1/browse?key=${innertube_api_key}&prettyPrint=false`
@@ -304,7 +306,7 @@ async function getYoutubePlaylistContinuation(innertube_api_key: string, continu
         }
 
         if(continuationTokenGood){
-            videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken, context, url, trackingParams));
+            videos = videos.concat(await getYoutubePlaylistContinuation(innertube_api_key, continutationToken, context, url, trackingParams, callstack + 1));
         }
 
         return videos;
