@@ -1,7 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight, TouchableOpacity, Modal, Button, ImageBackground, Easing, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
 import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions'
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import AddToPlaylistsModal from './other/AddToPlaylistsModal';
@@ -12,6 +11,7 @@ import { Illusive } from '../../lib-origin/Illusive/src/illusive';
 import { is_empty } from '../../lib-origin/origin/src/utils/util';
 import CompactPlaylistComponent from '../components/CompactPlaylistComponent';
 import CompactArtistComponent from '../components/CompactArtistComponent';
+import { Constants } from '../../lib-origin/Illusive/src/constants';
 
 function SearchScreen() {
     const empty_search_result = {"tracks": [], "playlists": [], "artists": [], "albums": []};
@@ -29,8 +29,8 @@ function SearchScreen() {
 	const [is_searching, set_is_searching] = useState(true);
 	const [search_query_state, set_search_query_state] = useState('');
 	
-	const [continuation, set_continuation] = useState();
-	const navigation = useNavigation();
+	// const [continuation, set_continuation] = useState();
+	// const navigation = useNavigation();
 
 	const [is_using_recent_searches, set_is_using_recent_searches] = useState(true);
     const [modal_data, set_modal_data] = useState({'show':false, 'track_data': null});
@@ -115,7 +115,7 @@ function SearchScreen() {
     const render_misc_component = (item: {item: Track|CompactArtist|CompactPlaylist}) => { 
         return (
         "uid" in item.item ?
-            <TrackComponent track_data={item.item} write_playlist='LIBRARY' from='Illusi Mix'/>
+            <TrackComponent track_data={item.item} write_playlist_uuid={Constants.library_write_playlist} from='Illusi Mix'/>
                 : "artist" in item.item ? 
                     <CompactPlaylistComponent playlist_data={item.item}/>
                         : <CompactArtistComponent artist_data={item.item}/>

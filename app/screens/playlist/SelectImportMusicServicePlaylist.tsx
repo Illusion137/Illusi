@@ -6,9 +6,9 @@ import { SelectList } from 'react-native-dropdown-select-list';
 import { MusicService, MusicServiceType, Route } from '../../../lib-origin/Illusive/src/types';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { is_empty } from '../../../lib-origin/origin/src/utils/util';
-import { CookieJar } from '../../../lib-origin/origin/src/utils/cookie_util';
+import { is_empty, remove, url_to_id } from '../../../lib-origin/origin/src/utils/util';
 import { alert_errors } from '../../../lib-origin/Illusive/src/illusi/src/alert';
+import { create_uri, music_service_to_music_service_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
 export default function SelectImportMusicServicePlaylist( params: {route: any} ) {
 	const ts_route = params.route as Route<{title: string}>;
@@ -35,10 +35,8 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 			set_header();
 			if(Prefs.get_pref('get_account_playlists_in_get_playlist') || true){
 				if(music_service !== undefined){
-					if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
-                        console.log((Prefs.get_pref('youtube_cookie_jar') as CookieJar).toString())
+                    if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
                         const playlist_map = await music_service.user_playlists_map!();
-
 						if("error" in playlist_map && playlist_map.error !== undefined) alert_errors(playlist_map.error);
                         set_title_data(playlist_map.map);
 						set_titles([...playlist_map.map.keys()]);
@@ -48,29 +46,37 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 		})()
 	}, []);
 	
-
+    function make_uri(url: string){
+        if(music_service_from === "YouTube")
+            return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\&.+/ig))
+        else
+            return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\?.+/ig))
+    }
+    function set_nav_disabled(){
+        navigation.setOptions({ headerRight: () => (
+            <Button onPress={() => {}} title="Next" color='#808080' />
+        )})
+    }
+    function set_nav_enabled(url: string){
+        navigation.setOptions({ headerRight: () => (
+            <Button color='blue' onPress={() => navigation.navigate('Playlist', {'uri': make_uri(url)})} title="Next" />
+        )}) 
+    }
 	function on_url_update(url: string){
 		set_input_value(url); 
 		if(!is_empty(url.trim())){ 
-			set_is_next_disabled(false); 
-			navigation.setOptions({ headerRight: () => (
-				<Button color='blue' onPress={() => navigation.navigate('ImportMusicServicePlaylist', {'url': url, 'title': ts_route.params.title})} title="Next" />
-			)}) 
+			set_is_next_disabled(false);
+            set_nav_enabled(url);
 		} 
 		else if(!is_next_disabled){
-			navigation.setOptions({ headerRight: () => (
-				<Button onPress={() => {}} title="Next" color='#808080' />
-			)})
+            set_nav_disabled();
 		}
 	}
 	function on_set_selected_url(selected_url: string){
 		set_selected(selected_url); 
 		set_input_value(title_data.get(selected_url) ?? ""); 
 		set_is_next_disabled(false);
-		navigation.setOptions({ headerRight: () => (
-			<Button color='blue' onPress={() => navigation.navigate('ImportMusicServicePlaylist', {url: title_data.get(selected_url), title: ts_route.params.title})} title="Next"
-			/>
-		)}) 
+        set_nav_enabled(title_data.get(selected_url)!);
 	}
 
 	return(

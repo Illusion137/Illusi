@@ -6,7 +6,7 @@ import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
 import * as SQLActions from "../../lib-origin/Illusive/src/illusi/src/sql_actions";
 import TrackPlaceholderComponent from "./TrackPlaceholderComponent";
-import { EditMode, Track } from "../../lib-origin/Illusive/src/types";
+import { AlphabetScroll, EditMode, Track } from "../../lib-origin/Illusive/src/types";
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "../../lib-origin/Illusive/src/illusi/src/play";
 import { track_query_filter, track_section_map } from "../../lib-origin/Illusive/src/illusive_utilts";
@@ -18,6 +18,10 @@ import ShufflePlayButton from "./ShufflePlayButton";
 let search_query = "";
 function LibraryTrackList(props: {
     edit_mode: EditMode
+    write_playlist_uuid?: string
+    header_height?: number
+    header_item?: () => React.JSX.Element
+    adjusted_alphabet_scroll?: number
 }, ref: any){
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
@@ -25,7 +29,7 @@ function LibraryTrackList(props: {
 	const [all_data, set_all_data] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0});
 	const [edit_track_modal_data, _] = useState({visible: false, track: ExampleObj.track_example0});
 
-    const alphabet_scroll = {
+    const alphabet_scroll: AlphabetScroll = {
 		all_alphabet_fast_scroll_locations: [] as number[],
 		current_position: 0,
 		top_scroll: 0
@@ -71,7 +75,7 @@ function LibraryTrackList(props: {
 		}
     }
 
-	const render_track = (item: {item: Track}) => (<TrackComponent track_data={ item.item } track_callback={() => [...GLOBALS.global_var.sql_tracks]} from={"My Library"} edit_mode={props.edit_mode} refresh_data={async () => await refresh_data(search_query)}/>);
+	const render_track = (item: {item: Track}) => (<TrackComponent track_data={ item.item } track_callback={() => [...GLOBALS.global_var.sql_tracks]} from={"My Library"} edit_mode={props.edit_mode} write_playlist_uuid={props.write_playlist_uuid} refresh_data={async () => await refresh_data(search_query)}/>);
 	const header_component = () => <ShufflePlayButton on_press={() => play_shuffle(GLOBALS.global_var.sql_tracks, "My Library")} top={20}/>;
 
 	const section_header = (index: number) => <View style={styles.section_header}><Text style={styles.section_text}>{all_data.char_data[index]}</Text></View>
@@ -83,13 +87,13 @@ function LibraryTrackList(props: {
 				sections={all_data.track_mask}
 				renderItem={render_track}
 				keyExtractor={(item, _) => item.uid}
-				renderHeader={header_component}
+				renderHeader={props.header_item ?? header_component}
                 placeholder={true}
                 placeholderComponent={<TrackPlaceholderComponent/>}
 				renderSectionHeader={section_header}
 				renderFooter={section_footer}
 				sectionHeaderHeight={30}
-				headerHeight={90}
+				headerHeight={props.header_height ?? 90}
 				footerHeight={100}
 				ref={biglist_ref as MutableRefObject<BigList>}
 				itemHeight={61}
@@ -110,7 +114,7 @@ function LibraryTrackList(props: {
 				hitSlop={{left: props.edit_mode === "NONE" ? 20 : 0, right: 20}}
 				onStartShouldSetResponder={(_) => true}
 				onTouchStart={(_) => { alphabet_scroll.top_scroll = 380-(7*all_data.char_data.length); }}
-				onResponderMove={(e) => on_alphabet_scroll_update(alphabet_scroll, all_data.char_data, biglist_ref as any, e)}
+				onResponderMove={(e) => on_alphabet_scroll_update(alphabet_scroll, all_data.char_data, biglist_ref as any, e, props.adjusted_alphabet_scroll)}
 				>
 				{all_data.char_data.map((element, i) => (
 					<View key={i} style={{justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, height:17, width: 25}} >

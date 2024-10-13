@@ -31,75 +31,75 @@ function ExtraScreen() {
 	}, [])
 
 	return (
-		<View style={styles.topcontainer}>
+		<View style={styles.top_container}>
 			<View style={styles.header}>
 				<View style={{flexDirection: 'row', bottom: 20, alignItems: 'center'}}>
-					<Text style={styles.toptext}>More</Text>
+					<Text style={styles.top_text}>More</Text>
 				</View>
 			</View>
 			<ScrollView>
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 
-				<Text style={styles.descriptiontxt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
+				<Text style={styles.description_txt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
 				
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
-					<View style={styles.lineshort}/>	
-					<ExtrasSectionButton show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>
+					<View style={styles.line_short}/>	
+					<ExtrasSectionButton show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => navigation.navigate('Sleep Timer')}/>
+					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 
-				<Text style={styles.descriptiontxt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
+				<Text style={styles.description_txt}>Sign into external Music Services services such as YouTube, YouTube Music, Spotify and Amazon Music for extra features.</Text>
 
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
 					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
-					<View style={styles.lineshort}/>
+					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 
-				<Text style={styles.descriptiontxt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
+				<Text style={styles.description_txt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
 
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 				
-				<Text style={styles.descriptiontxt}>Restore unavailable videos from Backpack</Text>
+				<Text style={styles.description_txt}>Restore unavailable videos from Backpack</Text>
 
-				<View style={styles.linelong}/>
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
-					<View style={styles.lineshort}/>
+					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
-					<View style={styles.lineshort}/>
+					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", Prefs.reset_prefs)}/>
-					<View style={styles.lineshort}/>	
+					<View style={styles.line_short}/>	
 					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLActions.delete_all_playlists)}/>
-					<View style={styles.lineshort}/>	
+					<View style={styles.line_short}/>	
 					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLActions.delete_all_data)}/>
-				<View style={styles.linelong}/>
-				<Text style={styles.descriptiontxt}>Manage your data; clear your data or export it back to your files app</Text>
+				<View style={styles.line_long}/>
+				<Text style={styles.description_txt}>Manage your data; clear your data or export it back to your files app</Text>
 
 				{/* {Prefs.get_pref('dev_mode') ? */}
 					<>
-					<View style={styles.linelong}/>
+					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
-					<View style={styles.linelong}/>
-					<Text style={styles.descriptiontxt}>Developer Options :3</Text>
+					<View style={styles.line_long}/>
+					<Text style={styles.description_txt}>Developer Options :3</Text>
 					</>
 					{/* : null */}
 				{/* } */}
 				
-				<Text style={styles.descriptiontxt}>Illusi Version: {appConfig.version} Beta</Text>
-				<Text style={styles.descriptiontxt}>Battery Level: {battery}</Text>
+				<Text style={styles.description_txt}>Illusi Version: {appConfig.version} Beta</Text>
+				<Text style={styles.description_txt}>Battery Level: {battery}</Text>
 			</ScrollView>
 		</View>
 	);
 }
 const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
-	topcontainer:{
+	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,
 	},
@@ -111,41 +111,41 @@ const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.crea
 		justifyContent: 'flex-end',
 		alignItems: 'center',
 	},
-	toptext:{
-		color: '#FFFFFF',
+	top_text:{
+		color: colors.text,
 		fontSize: 18,
 		top:10,
 		fontWeight: '500'
 	},
-	descriptiontxt:{
-		color: '#A0A0A0',
+	description_txt:{
+		color: colors.subtext,
 		marginTop: 10,
 		marginBottom: 20,
 		marginHorizontal: 12,
 		textAlign: 'left'
 	},
-	linelong:{
+	line_long:{
 		width: "100%",
 		height: 0.4,
 		opacity: 0.1,
-		backgroundColor: 'white',
+		backgroundColor: colors.text,
 	},
-	lineshort:{
+	line_short:{
 		width: "100%",
 		height: 0.4,
 		opacity: 0.1,
-		backgroundColor: 'white',
+		backgroundColor: colors.text,
 		marginLeft: 42
 	},
-	sectionContainer:{
+	section_container:{
 		width: '100%', 
 		height: 50, 
 		backgroundColor: colors.track, 
 		flexDirection: 'row', 
 		alignItems: 'center'
 	},
-	btnsectionText:{
-		color: '#FFFFFF',
+	btn_section_text:{
+		color: colors.text,
 		fontSize: 16,
 		left:20
 	}

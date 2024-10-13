@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler, Modal, Pressable, FlatList} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import { useNavigation, useTheme } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
-import axios from 'axios';
 // import * as AVExpo from 'expo-av'
 import { MusicServiceType } from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
@@ -18,7 +17,7 @@ function ExtraPlaylistConverter() {
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
 	
-	let cachedData = {};
+	// let cachedData = {};
 
 	const confirmConvertPlaylistAlert = () =>
     Alert.alert(

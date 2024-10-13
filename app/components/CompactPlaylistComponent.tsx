@@ -1,37 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-import FourTrackArtwork from './FourTrackArtwork';
-import { CompactPlaylistData } from '../../lib-origin/Illusive/src/types';
+import { CompactPlaylist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-
+import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { MaterialIcons } from '@expo/vector-icons';
+import { best_thumbnail } from '../../lib-origin/Illusive/src/illusive_utilts';
 
 export default function CompactPlaylistComponent(props: {
-	playlist_data: CompactPlaylistData
-    on_press?: () => void|Promise<void>
+	playlist_data: CompactPlaylist
 }) {
-	// const navigation: NavigationProp<any, any> = useNavigation();
+    const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.thumbnail_uri!;
+	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
 
-    // async function navigate(){
-    //     if(is_empty(props.playlist_data.title.uri)) return;
-    //     navigation.navigate("Playlists", { screen: "Playlist", "params": {
-    //         "uri": props.playlist_data.title.uri
-    //     }});                
-    // }
+    async function navigate(){
+        if(is_empty(props.playlist_data.title.uri)) return;
+        navigation.navigate("Playlist", {"uri": props.playlist_data.title.uri, compact_playlist: props.playlist_data});
+    }
 
 	return(
         <>
-			<TouchableOpacity style={styles.button} onPress={props.on_press}>
+			<TouchableOpacity style={styles.button} onPress={navigate}>
                 <>
 					<View style={{width: 15}}/>
-                    <FourTrackArtwork four_track={props.playlist_data.four_track} size={26}/>
+                    <Image source={{uri: thumbnail_uri}} style={styles.image}/>
 					<View style={{flexDirection: 'column', left: 20}}>
-						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title}</Text>
+						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title.name}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
-							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.track_count} Tracks</Text>
+                            {((props.playlist_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
+							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.artist.map(artist => remove_topic(artist.name)).join(", ")}{props.playlist_data.date !== undefined ? " • " + props.playlist_data.date.getFullYear() : ""}</Text>
 						</View>
 					</View>
                 </>
@@ -47,6 +47,9 @@ const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.crea
 		alignItems: 'center',
         backgroundColor: colors.track,
         flexDirection: 'row'
+	},
+    icon_thin:{
+		marginRight: 5
 	},
     notfound:{
 		width:70,

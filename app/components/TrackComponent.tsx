@@ -15,17 +15,16 @@ import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
 
 function TrackComponent(props: {
 		track_data: Track
-		write_playlist?: typeof Constants.library_write_playlist | string,
+		write_playlist_uuid?: typeof Constants.library_write_playlist | string,
 		from?: string,
-        playlist_uid?: string
+        playlist_uuid?: string
 		edit_mode?: EditMode,
         track_callback?: () => Track[]
 		refresh_data?: () => void
 	}) {
-
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
-	const [playlist_saved, set_playlist_saved] = useState(props.track_data.downloading_data?.saved ?? false);
+	const [playlist_saved, set_playlist_saved] = useState((props.track_data.downloading_data?.playlist_saved ?? false) || (props.track_data.downloading_data?.saved ?? false));
 	const [downloading_progress, set_downloading_progress] = useState(0);
 	
     const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";
@@ -37,9 +36,10 @@ function TrackComponent(props: {
 	useEffect(check_download_status(props.track_data, set_is_downloading, set_is_downloaded, set_downloading_progress, 4000), []);
 
 	return (
-		<TouchableOpacity 
-			disabled={disabled_from_edit_mode}
-			style={{backgroundColor: colors.track, opacity: props.write_playlist !== undefined && props.write_playlist !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
+		<TouchableOpacity
+            activeOpacity={props.write_playlist_uuid !== undefined ? 0.9 : 0.2}
+			disabled={disabled_from_edit_mode || props.write_playlist_uuid !== undefined}
+			style={{backgroundColor: colors.track, opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
 			onLongPress={() => push_track_to_playing_queue(props.track_data)} 
 			onPress={() => {if(!disabled_from_full_queue && props.from !== undefined && props.track_callback !== undefined) play(props.track_data, props.from, props.track_callback)}}>
 			<View style={styles.track_box}>
@@ -51,7 +51,7 @@ function TrackComponent(props: {
 						</View>
 					}
 				</View>
-				<View style={{ width: props.write_playlist != undefined ? '60%' : '65%', top: 5, left: 20 }}>
+				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => artist.name).join(", ")}</Text>
                     { Prefs.get_pref('simple_tags') ? <View style={{flexDirection: 'row'}}>
@@ -76,19 +76,19 @@ function TrackComponent(props: {
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
 					</View> : null }
 				</View>
-				{props.write_playlist != undefined &&
-                    <IoniconsTouchableOpacity on_press={() => insert_into_write_playlist(props.track_data, props.write_playlist, playlist_saved, set_playlist_saved)} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
+				{props.write_playlist_uuid !== undefined &&
+                    <IoniconsTouchableOpacity on_press={() => insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data)} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
-				{props.edit_mode == "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
+				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
                     <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
 				}
 				{is_downloading && 
 					<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{downloading_progress}%</Text>
 				}
-				{props.edit_mode == "DELETE" && !is_downloading &&
-                    <IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist, props.refresh_data)} style={styles.centered} icon_name='trash-outline' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
+				{props.edit_mode === "DELETE" && !is_downloading &&
+                    <IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data)} style={styles.centered} icon_name='trash-outline' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
 				}
-                {props.edit_mode == "EDIT" && !is_downloading && 
+                {props.edit_mode === "EDIT" && !is_downloading && 
                     <IoniconsTouchableOpacity on_press={() => {}} style={styles.centered} icon_name='pencil-outline' icon_size={30} icon_color={colors.orange} icon_style={styles.else_icon}/>
 				}
 			</View>

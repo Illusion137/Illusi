@@ -11,21 +11,11 @@ import DefaultPlaylistComponent from '../components/DefaultPlaylistComponent';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Playlist, ResolvedDefaultPlaylist } from '../../lib-origin/Illusive/src/types';
 import { playlist_query_filter } from '../../lib-origin/Illusive/src/illusive_utilts';
-import { default_playlists } from '../../lib-origin/Illusive/src/illusi/src/default_playlists';
 import BigList from 'react-native-big-list';
 import NewPlaylist from './playlist/NewPlaylist';
+import { resolved_default_playlists, sort_playlists } from '../../lib-origin/Illusive/src/illusi/src/playlist';
 
 let search_query = "";
-// const CreatePlaylistStack = createNativeStackNavigator();
-// function CreatePlaylistStackScreen() {
-//     return (
-//         <CreatePlaylistStack.Navigator screenOptions={{ headerShown: true }}>
-//             <CreatePlaylistStack.Screen name="New Playlist" component={NewPlaylist as any} options={{ headerShown: false }} />
-//             <CreatePlaylistStack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist} options={{ headerShown: false }} />
-//         </CreatePlaylistStack.Navigator>
-//     );
-// }
-
 function PlaylistScreen() {
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
@@ -49,22 +39,11 @@ function PlaylistScreen() {
         try {
             search_query = query ?? "";
             const playlists = playlist_query_filter(await SQLActions.all_playlists_data(), search_query);
-            const ordered_playlists: Playlist[] = [];
-            for(let i = 0; i < playlists.length; i++){
-                if(playlists[i].pinned)
-                    ordered_playlists.unshift(playlists[i]);
-                else
-                    ordered_playlists.push(playlists[i]);
-            }
+            const ordered_playlists: Playlist[] = sort_playlists(playlists);
             set_playlists([]);
             set_playlists(ordered_playlists)
-            const resolved_default_playlists = await Promise.all(default_playlists.map(async(p) => {
-                return {
-                    "name": p.name,
-                    "tracks": (await p.track_function()).slice(0,4)
-                }
-            }));
-            set_default_playlists(resolved_default_playlists);
+            const rdefault_playlists = await resolved_default_playlists();
+            set_default_playlists(rdefault_playlists);
         } catch (error) {
             console.log(error)
         }

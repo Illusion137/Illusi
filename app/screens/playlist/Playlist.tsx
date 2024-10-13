@@ -1,5 +1,5 @@
 import React,  { useState, useEffect } from 'react';
-import { View, StyleSheet, ActionSheetIOS, Text } from "react-native";
+import { View, StyleSheet, ActionSheetIOS, Text, TextInput } from "react-native";
 import { NavigationProp, useTheme } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import TrackComponent from '../../components/TrackComponent';
@@ -14,16 +14,17 @@ import * as Types from '../../../lib-origin/Illusive/src/types';
 import FourTrackArtwork from '../../components/FourTrackArtwork';
 import { default_playlists } from '../../../lib-origin/Illusive/src/illusi/src/default_playlists';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
-import { music_service_uri_to_music_service, playlist_duration_to_string, split_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail, make_https, music_service_uri_to_music_service, playlist_duration_to_string, split_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { ExampleObj } from '../../../lib-origin/Illusive/src/illusi/src/example_objs';
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
-
+import { deserialize_track } from '../../../lib-origin/Illusive/src/track_parser';
+import LibraryTrackList from '../../components/LibraryTrackList';
 
 export default function Playlist(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{uuid: string}|{uri: string}|{default_playlist_title: string}|{write_uid: string, from_uid: string}>
+    const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>
 
     const navigation: NavigationProp<any, any> = useNavigation();
     const { colors } = useTheme() as typeof Prefs.dark_theme;
@@ -88,30 +89,42 @@ export default function Playlist(params: {route: Route<unknown>}){
                 set_tracks( await SQLActions.add_playback_saved_data_to_tracks(cached!.tracks) );
                 return;
             }
+            if(ts_route.params.compact_playlist !== undefined) {
+                const thumbnail_url = ts_route.params.compact_playlist.artwork_thumbnails !== undefined ? best_thumbnail(ts_route.params.compact_playlist.artwork_thumbnails!)?.url : ts_route.params.compact_playlist.thumbnail_uri;
+                set_playlist_data({title: ts_route.params.compact_playlist.title.name, creator: ts_route.params.compact_playlist.artist, thumbnail_uri: thumbnail_url, date: ts_route.params.compact_playlist.date, uuid: ""});
+            }
             const split = split_uri(ts_route.params.uri);
             let playlist: Types.MusicServicePlaylist;
             switch(split[0]){
+                case "musi": {
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
+                    break;
+                }
                 case "youtube": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(`https://www.youtube.com/playlist?list=${split[1]}`);
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https("www." + split[1]));
                     break;
                 }
                 case "soundcloud": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(`https://soundcloud.com/${split[1]}`);
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
                     break;
                 }
                 case "spotify": {
-                    // if(split[1] === "playlist") playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(`https://open.spotify.com/playlist/${split[2]}`);
-                    // else if(split[1] === "album") playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(`https://open.spotify.com/album/${split[2]}`);
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
                     break;
                 }
             }
             const id_continuation = playlist!.playlist_continuation;
+            console.log(id_continuation?.continuation)
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.thumbnail_uri, creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLActions.add_playback_saved_data_to_tracks(playlist!.tracks);
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
             set_tracks(id_tracks);
+            if("error" in playlist! && !is_empty(playlist.error)) return;
             GLOBALS.global_var.playlist_cache.add(ts_route.params.uri, {tracks: id_tracks, playlist_data: id_playlist_data, continuation: id_continuation});
+        }
+        else if("write_playlist_uuid" in ts_route.params){
+            set_playlist_data({title: ts_route.params.serialized_playlist_data.title, uuid: "", date: new Date()})
         }
     }
 
@@ -125,12 +138,17 @@ export default function Playlist(params: {route: Route<unknown>}){
         else if("uuid" in ts_route.params){
             playlist_tracks = await SQLActions.playlist_tracks(ts_route.params.uuid);
         }
+        else if("write_playlist_uuid" in ts_route.params){
+            playlist_tracks = await SQLActions.add_saved_data_to_write_playlist_tracks(ts_route.params.write_playlist_uuid, ts_route.params.serialized_playlist_data.tracks.map(deserialize_track));
+        }
         set_tracks(playlist_tracks);
     }
     async function try_continuation(){
         if(!is_empty(continuation) && "uri" in ts_route.params){
             const split = split_uri(ts_route.params.uri);
             const playlist_continuation = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist_continuation!(continuation);
+            console.log(playlist_continuation.error);
+            console.log(playlist_continuation.playlist_continuation);
             const o_playlist_data = playlist_data!;
             const n_tracks = tracks.concat( await SQLActions.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
             const n_continuation = playlist_continuation.playlist_continuation;
@@ -145,17 +163,20 @@ export default function Playlist(params: {route: Route<unknown>}){
         for(const track of tracks)
                 promised_tracks.push( SQLActions.insert_track(track) );
         await Promise.all(promised_tracks);
+        navigation.goBack();
     }
 
     async function save_to_playlist(tracks: Track[], new_playlist_title: string){
         await add_tracks_to_library(tracks);
-        const title = await SQLActions.create_playlist(new_playlist_title);
+        const playlist_uuid = await SQLActions.create_playlist(new_playlist_title);
         const promised_playlist_tracks: Types.Promises = [];
         for(const track of tracks){
-            const track_uid = await SQLActions.track_from_uid(track.uid);
-            promised_playlist_tracks.push( SQLActions.insert_track_playlist(track_uid.uid, title) );	
+            const track_uid = await SQLActions.track_from_service_id(track);
+            if(track_uid === null) continue;
+            promised_playlist_tracks.push( SQLActions.insert_track_playlist(playlist_uuid, track_uid.uid) );	
         }
         await Promise.all(promised_playlist_tracks);
+        navigation.goBack();
     } 
 
     function play_shuffle(play_tracks: Track[]){
@@ -164,11 +185,17 @@ export default function Playlist(params: {route: Route<unknown>}){
 	}
 
 	const render_track = (item: {item: Track}) => (
-		<TrackComponent playlist_uid={(ts_route.params as {uuid: string}).uuid} track_callback={() => [...tracks]} track_data={item.item} from={playlist_data?.title} edit_mode={edit_mode_state} write_playlist={"uri" in ts_route.params ? Constants.library_write_playlist : undefined} refresh_data={refresh_data}/>
+		<TrackComponent playlist_uuid={(ts_route.params as {uuid?: string}).uuid} 
+                        track_callback={() => [...tracks]} 
+                        track_data={item.item} 
+                        from={playlist_data?.title} 
+                        edit_mode={edit_mode_state} 
+                        write_playlist_uuid={"uri" in ts_route.params ? Constants.library_write_playlist : "write_playlist_uuid" in ts_route.params ? ts_route.params.write_playlist_uuid : undefined} 
+                        refresh_data={refresh_data}/>
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
-            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo"} • {playlist_data?.date?.getFullYear()}</Text>
+            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{[playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", playlist_data?.date?.getFullYear()].filter(item => item !== undefined).join(" • ")}</Text>
             <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
                 <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
@@ -186,7 +213,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                     </> 
                 : null}
             </View>
-            <ShufflePlayButton on_press={() => play_shuffle(tracks)} top={-40}/>
+            {!("write_playlist_uuid" in ts_route.params) ? <ShufflePlayButton on_press={() => play_shuffle(tracks)} top={-40}/> : null}
         </View>	
     );
     const footer_component = () => (
@@ -195,21 +222,30 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     return(
         <View style={styles.top_container}>
+            <TextInput/>
             <View style={styles.header}>
                 <AntDesignTouchableOpacity on_press={() => navigation.goBack()} style={{}} icon_name='left' icon_size={30} icon_color={colors.primary} icon_style={{}}/>
-                <IoniconsTouchableOpacity on_press={actions} style={{}} icon_name='ellipsis-horizontal-outline' icon_size={40} icon_color={colors.primary} icon_style={{}} hitslop={40}/>
+                {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={actions} style={{}} icon_name='ellipsis-horizontal-outline' icon_size={40} icon_color={colors.primary} icon_style={{}} hitslop={40}/> : null }
             </View>
-            <View style={{height: '94%'}}>                
-                <BigList style={{backgroundColor: colors.background}} 
-                    headerHeight={"uuid" in ts_route.params ? 425 : 385} 
-                    itemHeight={61} 
-                    footerHeight={50}
-                    renderHeader={header_component} 
-                    renderItem={render_track}
-                    renderFooter={footer_component}
-                    data={tracks}
-                    onEndReached={try_continuation}/>
-            </View>
+            <View style={{height: '94%'}}>
+                {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
+                    <LibraryTrackList 
+                        edit_mode='NONE' 
+                        write_playlist_uuid={ts_route.params.write_playlist_uuid}
+                        header_height={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 320 : 385}
+                        header_item={header_component}
+                        adjusted_alphabet_scroll={-35}/>
+                    : <BigList style={{backgroundColor: colors.background}} 
+                        headerHeight={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 320 : 385} 
+                        itemHeight={61} 
+                        footerHeight={50}
+                        renderHeader={header_component} 
+                        renderItem={render_track}
+                        renderFooter={footer_component}
+                        data={tracks}
+                        onEndReached={try_continuation}/>
+                }
+                </View>
         </View>
     );
 }
