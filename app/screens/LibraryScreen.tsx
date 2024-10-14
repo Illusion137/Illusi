@@ -40,7 +40,7 @@ export default function LibraryScreen() {
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
 					<TextInput autoCorrect={false} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={async(query) => { (library_ref.current as any)?.refresh_data(query)}}></TextInput>
-					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data())}>
+					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data)}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>

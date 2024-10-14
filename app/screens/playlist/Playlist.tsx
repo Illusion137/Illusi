@@ -104,6 +104,10 @@ export default function Playlist(params: {route: Route<unknown>}){
                     playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https("www." + split[1]));
                     break;
                 }
+                case "youtubemusic": {
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
+                    break;
+                }
                 case "soundcloud": {
                     playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
                     break;
@@ -114,7 +118,6 @@ export default function Playlist(params: {route: Route<unknown>}){
                 }
             }
             const id_continuation = playlist!.playlist_continuation;
-            console.log(id_continuation?.continuation)
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.thumbnail_uri, creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLActions.add_playback_saved_data_to_tracks(playlist!.tracks);
             set_continuation(id_continuation);
@@ -147,8 +150,6 @@ export default function Playlist(params: {route: Route<unknown>}){
         if(!is_empty(continuation) && "uri" in ts_route.params){
             const split = split_uri(ts_route.params.uri);
             const playlist_continuation = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist_continuation!(continuation);
-            console.log(playlist_continuation.error);
-            console.log(playlist_continuation.playlist_continuation);
             const o_playlist_data = playlist_data!;
             const n_tracks = tracks.concat( await SQLActions.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
             const n_continuation = playlist_continuation.playlist_continuation;
@@ -161,7 +162,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     async function add_tracks_to_library(tracks: Track[]){
         const promised_tracks: Types.Promises = [];
         for(const track of tracks)
-                promised_tracks.push( SQLActions.insert_track(track) );
+            promised_tracks.push( SQLActions.insert_track(track) );
         await Promise.all(promised_tracks);
         navigation.goBack();
     }
@@ -195,7 +196,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
-            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{[playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", playlist_data?.date?.getFullYear()].filter(item => item !== undefined).join(" • ")}</Text>
+            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{[playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", playlist_data?.date?.getFullYear()].filter(item => typeof item === "string" || (item !== undefined && !isNaN(item))).join(" • ")}</Text>
             <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
                 <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>

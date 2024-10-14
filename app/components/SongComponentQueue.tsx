@@ -14,11 +14,11 @@ function SongComponentQueue(props: {
         <View style={{backgroundColor: colors.track}}  >
             <View style={styles.songbox}>
                 <View style={{justifyContent: 'center'}}>
-                    <Image source={props.track_data.playback.artwork as any} style={styles.image}></Image>
+                    <Image source={props.track_data?.playback?.artwork as any} style={styles.image}></Image>
                 </View>
                 <View style={styles.text}>
-                    <Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
-                    <Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => artist.name).join(", ")}</Text>
+                    <Text style={styles.title} numberOfLines={1} >{props.track_data?.title}</Text>
+                    <Text style={styles.artist} numberOfLines={1} >{props.track_data?.artists.map(artist => artist.name).join(", ")}</Text>
                 </View>
             </View>
             <View style={styles.line}/>

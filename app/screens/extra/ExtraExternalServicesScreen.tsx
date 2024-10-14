@@ -9,12 +9,13 @@ import { CookieJar } from '../../../lib-origin/origin/src/utils/cookie_util';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/types';
 
+let current_service: MusicServiceType|null = null;
+
 function ServiceSwitcher(props: {
     service: MusicServiceType
     cookies_enabled: boolean
     url: string
     set_url: SetState
-    set_service: SetState
 }){
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
@@ -25,7 +26,7 @@ function ServiceSwitcher(props: {
                 activeOpacity={0.6} 
                 underlayColor="#FFFFFF" 
                 onPress={() => {
-                    props.set_service(props.service);
+                    current_service = props.service;
                     if(props.url === null) props.set_url(music_service.web_view_url); 
                     else props.set_url(null)
                 }}>
@@ -62,18 +63,15 @@ export default function ExternalServicesScreen() {
     })
 
 	const [url, set_url] = useState(null as string|null);
-    const [service, set_service] = useState<MusicServiceType>();
 	function web_view_navigation_change(event: WebViewNavigation) {
-        if(service === undefined) return;
-        // console.log(event.url)
-        // CookieManager.get(event.url).then(c => console.log(c));
-        const illusive_service = Illusive.music_service.get(service!)!;
+        if(current_service === null) return;
+        const illusive_service = Illusive.music_service.get(current_service!)!;
         CookieManager.get(event.url).then(
             async(res: Cookies) => { 
                 await Prefs.save_pref(illusive_service.pref_cookie_jar!, CookieJar.fromCookies(res as any)); 
                 const updated_cookies_enabled = {...external_services_cookies_enabled};
                 if(illusive_service.has_credentials())
-                    updated_cookies_enabled[service!] = true;
+                    updated_cookies_enabled[current_service!] = true;
                 set_external_services_cookies_enabled( updated_cookies_enabled );
             }
         );
@@ -97,7 +95,7 @@ export default function ExternalServicesScreen() {
                                 webview_ref.current?.reload();
                                 set_key(generate_random_key());
                             }
-                        }} 
+                        }}
                         source={{ uri: url }} 
 						style={{ flex: 1 }}
 						javaScriptEnabled={true}
@@ -105,6 +103,7 @@ export default function ExternalServicesScreen() {
 						thirdPartyCookiesEnabled={true}
 						onNavigationStateChange={web_view_navigation_change}
 						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+						// userAgent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
 						// applicationNameForUserAgent='Illusi'
                         originWhitelist={['http://', 'https://', 'about:']}
 						contentMode="mobile"
@@ -113,7 +112,7 @@ export default function ExternalServicesScreen() {
 			<ScrollView>
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
                 {illusive_external_service.map((service, i) => (
-                    <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} set_service={set_service} cookies_enabled={external_services_cookies_enabled[service]}/>
+                    <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} cookies_enabled={external_services_cookies_enabled[service]}/>
                 ))}
 			</ScrollView>
 		</View>
@@ -134,11 +133,11 @@ const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.crea
 	line:{
 		width: '100%',
 		height: 0.8,
-		backgroundColor: '#202020',
+		backgroundColor: colors.line,
 		marginHorizontal: 10,
 	},
 	descriptiontxt:{
-		color: '#A0A0A0',
+		color: colors.subtext,
 		marginTop: 10,
 		marginBottom: 20,
 		marginHorizontal: 12,

@@ -47,7 +47,8 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 	}, []);
 	
     function make_uri(url: string){
-        if(music_service_from === "YouTube")
+        const amp_services: MusicServiceType[] = ["YouTube", "YouTube Music"];
+        if(amp_services.includes(music_service_from))
             return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\&.+/ig))
         else
             return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\?.+/ig))

@@ -161,6 +161,7 @@ function AudioPlayer(props: {
 
     async function getUpdatedQueueItems() {
         const current_track_index = await TrackPlayer.getActiveTrackIndex();
+        if(current_track_index === undefined) return [];
         const track_player_queue = GLOBALS.global_var.playing_tracks.slice(current_track_index!);
         const queue_items: IllusiveType.QueueTrack[] = []
         try {
@@ -169,7 +170,8 @@ function AudioPlayer(props: {
                     {
                         'playback': track_player_queue[i].playback!,
                         'title': track_player_queue[i].title,
-                        'artists': track_player_queue[i].artists
+                        'artists': track_player_queue[i].artists,
+                        'uid': track_player_queue[i].uid
                     })
             }
         } catch (error) { }
@@ -177,14 +179,11 @@ function AudioPlayer(props: {
     }
 
     useTrackPlayerEvents([Event.PlaybackProgressUpdated], async event => {
-        const current_track = await TrackPlayer.getTrack(event.track);
-        if (is_empty(current_track)) return;
-
         const player_state = await TrackPlayer.getPlaybackState();
-        set_artist_data(GLOBALS.global_var.playing_tracks[GLOBALS.global_var.playing_track_index - 2].artists[0]);
+        set_artist_data(GLOBALS.global_var.playing_tracks[event.track].artists[0]);
         updatePlayerState({
-            title: current_track!.title,
-            artist: current_track!.artist,
+            title: GLOBALS.global_var.playing_tracks[event.track]!.title,
+            artist: GLOBALS.global_var.playing_tracks[event.track]!.artists?.[0].name,
             duration: event.duration,
             artwork: GLOBALS.global_var.playing_tracks[event.track].playback!.artwork,
             elapsed_time: event.position,
@@ -354,17 +353,27 @@ function AudioPlayer(props: {
                         <SwipeListView
                             data={nowPlayingState.queue_data.slice(1)}
                             renderItem={renderNowPlayingItem}
-                            renderSectionHeader={() =>
+                            ListHeaderComponent={() =>
                                 <View style={{ flex: 1, width: '100%', height: 140 }}>
                                     <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Now Playing</Text>
-                                    <SongComponentQueue track_data={nowPlayingState.queue_data[0]} />
+                                    <SongComponentQueue track_data={nowPlayingState.queue_data[0]}/>
                                     <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Up Next</Text>
                                 </View>
                             }
-                            renderHiddenItem={(_) => (
-                                <View style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
+                            renderHiddenItem={({item}) => (
+                                <TouchableOpacity onPress={async () => {
+                                    const current_track_index = await TrackPlayer.getActiveTrackIndex();
+                                    if(current_track_index === undefined) return;
+                                    const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
+                                    if(global_index !== -1)
+                                        GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
+                                    const tp_queue = await TrackPlayer.getQueue();
+                                    const tp_index = tp_queue.findIndex(track => track.title === item.title);
+                                    if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
+                                    setNowPlayingState({ 'now_playing_visible': true, 'queue_data': await getUpdatedQueueItems() });
+                                }} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
                                     <Ionicons name='trash-bin-outline' color={"white"} size={22} />
-                                </View>
+                                </TouchableOpacity>
                             )}
                             rightOpenValue={-75}
                             rightActionValue={-80}
