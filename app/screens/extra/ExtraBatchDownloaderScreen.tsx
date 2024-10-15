@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, Image, TouchableOpacity, TouchableHighlight, TextInput, Button, ScrollView , Alert, BackHandler, Modal, Pressable, FlatList} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import { useNavigation, useTheme } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { download_track_list } from '../../../lib-origin/Illusive/src/illusi/src/downloader';
 
 function ExtraBatchDownloaderScreen() {
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
@@ -20,18 +20,12 @@ function ExtraBatchDownloaderScreen() {
 	async function download_playlist(){
         if(selected === ""){return}
         if(selected === "Library"){
-            const filtered_data = GLOBALS.global_var.sql_tracks.filter(item => !is_empty(item.media_uri))
-            for (let i = 0; i < filtered_data.length; i++) {
-                GLOBALS.global_var.download_track(filtered_data[i], undefined, undefined, undefined);
-            }
+            download_track_list(GLOBALS.global_var.sql_tracks);
         }
         else{
             const selected_playlist = playlist_download_data.find(item => item.value === selected)!;
             const playlist_tracks = await SQLActions.playlist_tracks(selected_playlist.key);
-            const filtered_data = playlist_tracks.filter(item => !is_empty(item.media_uri))
-            for (let i = 0; i < filtered_data.length; i++) {
-                GLOBALS.global_var.download_track(filtered_data[i], undefined, undefined, undefined);
-            }
+            download_track_list(playlist_tracks);
         }
     }
 
@@ -52,7 +46,7 @@ function ExtraBatchDownloaderScreen() {
         return () => clearInterval(interval);
 	}, []);
 	
-	const render_header_item = (item: {item: any}) => <>
+	const render_header_item = (_: {item: any}) => <>
 		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining</Text>
 		<View style={{height: 8}}/>
 		<View style={styles.linelong}/>
@@ -101,7 +95,7 @@ function ExtraBatchDownloaderScreen() {
 }
 const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
     descriptiontxt:{
-		color: '#A0A0A0',
+		color: colors.subtext,
 		marginTop: 10,
 		marginBottom: 20,
 		marginHorizontal: 12,
@@ -111,7 +105,7 @@ const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.crea
 		width: "100%",
 		height: 0.4,
 		opacity: 0.2,
-		backgroundColor: 'white',
+		backgroundColor: colors.line,
 	},
 });
 export default ExtraBatchDownloaderScreen;

@@ -7,9 +7,9 @@ import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { EditMode, Track } from '../../lib-origin/Illusive/src/types';
-import { is_empty } from '../../lib-origin/origin/src/utils/util';
+import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { push_track_to_playing_queue, play } from '../../lib-origin/Illusive/src/illusi/src/play';
-import { check_download_status, delete_track, insert_into_write_playlist, download_track } from '../../lib-origin/Illusive/src/illusi/src/components/track';
+import { delete_track, insert_into_write_playlist, download_track } from '../../lib-origin/Illusive/src/illusi/src/components/track';
 import { Constants } from '../../lib-origin/Illusive/src/constants';
 import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
 
@@ -33,7 +33,30 @@ function TrackComponent(props: {
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);
 
-	useEffect(check_download_status(props.track_data, set_is_downloading, set_is_downloaded, set_downloading_progress, 4000), []);
+    let interval: NodeJS.Timeout;
+	useEffect(() => {
+        const depth = Prefs.get_pref('download_queue_max_length');
+        const index = GLOBALS.downloading.slice(0, depth).findIndex(item => item?.uid === props.track_data.uid);
+        const is_currently_downloading = index !== -1;
+        if(is_currently_downloading){
+            set_is_downloading(true);
+            set_downloading_progress(GLOBALS.downloading[index]?.progress);
+            interval = setInterval(() => {
+                const inner_depth = Prefs.get_pref('download_queue_max_length');
+                const inner_index = GLOBALS.downloading.slice(0, inner_depth).findIndex(item => item?.uid === props.track_data.uid);
+                if(inner_index === -1){
+                    set_is_downloading(false);
+                    clearInterval(interval);
+                    const idx = GLOBALS.global_var.sql_tracks.findIndex(item => item.uid === props.track_data.uid);
+                    if(idx !== -1 && !is_empty(GLOBALS.global_var.sql_tracks[idx].media_uri))
+                        set_is_downloaded(true);
+                    return;
+                }
+                set_downloading_progress(GLOBALS.downloading[index]?.progress);
+            }, 4000)
+        }
+        return () => clearInterval(interval);
+    }, []);
 
 	return (
 		<TouchableOpacity
@@ -53,7 +76,7 @@ function TrackComponent(props: {
 				</View>
 				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
-					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => artist.name).join(", ")}</Text>
+					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => remove_topic(artist.name)).join(", ")}</Text>
                     { Prefs.get_pref('simple_tags') ? <View style={{flexDirection: 'row'}}>
     					<Text style={styles.album} numberOfLines={1} >{props.track_data.album?.name ?? ""}</Text>
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}

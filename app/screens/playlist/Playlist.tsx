@@ -108,6 +108,14 @@ export default function Playlist(params: {route: Route<unknown>}){
                     playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
                     break;
                 }
+                case "applemusic": {
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
+                    break;
+                }
+                case "amazonmusic": {
+                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
+                    break;
+                }
                 case "soundcloud": {
                     playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
                     break;

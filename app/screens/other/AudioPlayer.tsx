@@ -380,19 +380,6 @@ function AudioPlayer(props: {
                             rightActivationValue={-80}
                             disableRightSwipe
                         />
-                        {/* <BigList style={{height: '71%'}} data={nowPlayingState.queue_data.slice(1)}
-							renderItem={renderNowPlayingItem}
-							keyExtractor={(item, index) => String(index)}
-							itemHeight={61}
-							headerHeight={140}
-							renderFooter={undefined}
-							renderHeader={() => 
-							<View style={{flex: 1, width: '100%', height: 140}}>
-								<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Now Playing</Text>
-								<SongComponentQueue track_data={nowPlayingState.queue_data[0]}/>
-								<Text style={{color: 'white', fontSize: 16, fontWeight: '700', padding: 10}}>Up Next</Text>
-							</View>}
-						/> */}
                     </View>
                 </Modal>
                 <Modal animationType="slide"
