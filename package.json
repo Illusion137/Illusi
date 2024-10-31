@@ -18,6 +18,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-clipboard/clipboard": "^1.12.1",
     "@react-native-community/cookies": "^5.0.1",
+    "@react-native-community/datetimepicker": "8.0.1",
     "@react-native-community/netinfo": "11.3.1",
     "@react-native-picker/picker": "2.7.5",
     "@react-native-segmented-control/segmented-control": "2.5.2",
@@ -62,6 +63,7 @@
     "react-native-element-dropdown": "^2.10.0",
     "react-native-ffmpeg": "^0.5.2",
     "react-native-gesture-handler": "^2.19.0",
+    "react-native-image-colors": "^2.4.0",
     "react-native-ios-kit": "^0.0.7",
     "react-native-paper": "^5.12.3",
     "react-native-path": "^0.0.5",
@@ -89,7 +91,8 @@
     "usetube": "^2.0.2",
     "uuid": "^10.0.0",
     "vm-browserify": "^1.1.2",
-    "@react-native-community/datetimepicker": "8.0.1"
+    "expo-network": "~6.0.1",
+    "expo-task-manager": "~11.8.2"
   },
   "devDependencies": {
     "@babel/core": "^7.19.3",

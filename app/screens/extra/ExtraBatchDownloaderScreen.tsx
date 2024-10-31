@@ -72,7 +72,7 @@ function ExtraBatchDownloaderScreen() {
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
 					setSelected={(value: string) => set_selected(value)}
-					data={playlist_download_data} 
+					data={playlist_download_data}
 					save="value"
 					arrowicon={<></>}
 					searchicon={<></>}

@@ -5,7 +5,7 @@ import { CompactPlaylist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
-import { best_thumbnail } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail, empty_join_dot } from '../../lib-origin/Illusive/src/illusive_utilts';
 
 export default function CompactPlaylistComponent(props: {
 	playlist_data: CompactPlaylist
@@ -31,7 +31,7 @@ export default function CompactPlaylistComponent(props: {
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title.name}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
                             {((props.playlist_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
-							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.artist.map(artist => remove_topic(artist.name)).join(", ")}{props.playlist_data.date !== undefined ? " • " + props.playlist_data.date.getFullYear() : ""}</Text>
+							<Text style={{color: '#AAAAAA'}}>{empty_join_dot([props.playlist_data.artist.map(artist => remove_topic(artist.name)).join(", "), props.playlist_data?.date?.getFullYear()])}</Text>
 						</View>
 					</View>
                 </>

@@ -24,7 +24,10 @@ function TrackComponent(props: {
 	}) {
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
-	const [playlist_saved, set_playlist_saved] = useState((props.track_data.downloading_data?.playlist_saved ?? false) || (props.track_data.downloading_data?.saved ?? false));
+	const [playlist_saved, set_playlist_saved] = useState(
+        ((props.track_data.downloading_data?.playlist_saved ?? false) 
+            && props.write_playlist_uuid !== Constants.library_write_playlist) 
+                || ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
 	const [downloading_progress, set_downloading_progress] = useState(0);
 	
     const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";

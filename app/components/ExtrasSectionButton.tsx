@@ -8,7 +8,7 @@ function ExtrasSectionButton(props: {
 		onPress: () => void,
 		show_arrow: true | boolean, 
 		text: string,
-		icon: string
+        icon: keyof (typeof Ionicons)["glyphMap"]
 	}) {	
 	const { colors } = useTheme() as typeof Prefs.dark_theme;
 	const styles = theme_styles(colors);

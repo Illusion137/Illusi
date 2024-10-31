@@ -6,7 +6,7 @@ import { SelectList } from 'react-native-dropdown-select-list';
 import { MusicService, MusicServiceType, Route } from '../../../lib-origin/Illusive/src/types';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { is_empty, remove, url_to_id } from '../../../lib-origin/origin/src/utils/util';
+import { is_empty, urlid } from '../../../lib-origin/origin/src/utils/util';
 import { alert_errors } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { create_uri, music_service_to_music_service_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
@@ -47,11 +47,7 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 	}, []);
 	
     function make_uri(url: string){
-        const amp_services: MusicServiceType[] = ["YouTube", "YouTube Music"];
-        if(amp_services.includes(music_service_from))
-            return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\&.+/ig))
-        else
-            return create_uri(music_service_to_music_service_uri(music_service_from), remove(url_to_id(url), /\?.+/ig))
+        return create_uri(music_service_to_music_service_uri(music_service_from), urlid(url));
     }
     function set_nav_disabled(){
         navigation.setOptions({ headerRight: () => (

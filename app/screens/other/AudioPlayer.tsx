@@ -4,20 +4,24 @@ import { useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Button, Dimensions, Easing, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Button, Dimensions, Easing, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, Track, useTrackPlayerEvents } from 'react-native-track-player';
 import SlidingUpPanel from 'rn-sliding-up-panel';
+import { getColors } from 'react-native-image-colors'
+import * as NetInfo from '@react-native-community/netinfo'
+import * as Network from 'expo-network'
 
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { is_empty } from '../../../lib-origin/origin/src/utils/util';
+import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
 import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
 import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
 import NavLink from '../../components/NavLink';
 import SongComponentQueue from '../../components/SongComponentQueue';
+import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 
 interface PlayerStateType {
     title?: string,
@@ -32,7 +36,6 @@ interface PlayerStateType {
     loop_track?: boolean,
 };
 
-let panel_animated_value = 0;
 function AudioPlayer(props: {
     tracks: IllusiveType.Track[],
     playing_from: string
@@ -41,19 +44,18 @@ function AudioPlayer(props: {
     const styles = theme_styles(colors);
     const panel_ref = useRef<SlidingUpPanel>() as React.MutableRefObject<SlidingUpPanel>;
 
-
-    const [panelState, setPanelState] = useState({
+    const [panel_state, set_panel_state] = useState({
         is_visible: true,
     });
-    const [nowPlayingState, setNowPlayingState] = useState({
+    const [now_playing_state, set_now_playing_state] = useState({
         now_playing_visible: false,
         queue_data: props.tracks as IllusiveType.QueueTrack[],
     });
-    const [settingsState, setSettingsState] = useState({
+    const [settings_state, set_settings_state] = useState({
         settings_visible: false,
     });
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
-    const [playerState, setPlayerState] = useState({
+    const [player_state, set_player_state] = useState({
         title: props.tracks[0]?.title,
         artist: props.tracks[0]?.artists.map(artist => artist.name).join(", "),
         artwork: props.tracks[0]?.playback!.artwork,
@@ -65,15 +67,22 @@ function AudioPlayer(props: {
         is_playing: false,
         loop_track: false,
     });
+    const [sample_artwork_color, set_sample_artwork_color] = useState<string>(Prefs.dark_theme.colors.background);
 
     const panel_min_height = 180;
     const panel_max_height = Dimensions.get('screen').height;
     const panel_animated = new Animated.Value(panel_min_height);
-    panel_animated.addListener(({ value }) => panel_animated_value = value);
+    panel_animated.addListener(({ value }) => {
+        const panel_transition_value = 181;
+        if(value > panel_transition_value && !panel_state.is_visible)
+            set_panel_state({ 'is_visible': true });
+        if(value <= panel_transition_value && panel_state.is_visible)
+            set_panel_state({ 'is_visible': false });
+    });
 
-    function updatePlayerState(updated_state: PlayerStateType) {
-        const player_state_copy = playerState;
-        setPlayerState({
+    function update_player_state(updated_state: PlayerStateType) {
+        const player_state_copy = player_state;
+        set_player_state({
             title: updated_state.title ?? player_state_copy.title,
             artist: updated_state.artist ?? player_state_copy.artist,
             artwork: updated_state.artwork ?? player_state_copy.artwork,
@@ -91,19 +100,16 @@ function AudioPlayer(props: {
         return panel_animated.interpolate({ 'inputRange': [panel_min_height, panel_max_height], 'outputRange': output_range, 'extrapolate': 'clamp' });
     }
 
-    async function shareTrack() {
-        try {
+    async function share_track() {
+        catch_function_async(async() => {
             const UTI = 'public.item';
-            const current_track = await TrackPlayer.getTrack(await TrackPlayer.getCurrentTrack() as number);
+            const current_track = await TrackPlayer.getActiveTrack();
             const illusi_track = await SQLActions.track_from_uid((current_track as Track).id);
             if (illusi_track.media_uri)
                 await Sharing.shareAsync(FileSystem.documentDirectory + illusi_track.media_uri, { UTI });
             else if (!is_empty(illusi_track.youtube_id))
                 await Sharing.shareAsync(`https://www.youtube.com/watch?v=${illusi_track.youtube_id}`);
-
-        } catch (error) {
-            Alert.alert("error", String(error));
-        }
+        });
     }
 
     useEffect(() => {
@@ -137,21 +143,22 @@ function AudioPlayer(props: {
         setup();
     }, []);
 
-    const togglePlaying = useCallback(async () => {
-        const player_state = await TrackPlayer.getState();
-        const player_state_copy = playerState;
-        updatePlayerState({ is_playing: !player_state_copy.is_playing });
+    const toggle_playing = useCallback(async () => {
+        const tp_state = await TrackPlayer.getPlaybackState();
+        const player_state_copy = player_state;
+        update_player_state({ is_playing: !player_state_copy.is_playing });
 
-        if (player_state == State.Playing) await TrackPlayer.pause();
+        if("error" in tp_state) return;
+        if (tp_state.state === State.Playing) await TrackPlayer.pause();
         else await TrackPlayer.play();
     }, []);
 
-    function togglePanel() {
-        if (panelState.is_visible) panel_ref.current.hide();
+    function toggle_panel() {
+        if (panel_state.is_visible) panel_ref.current.hide();
         else panel_ref.current.show();
     }
 
-    function timeToTimestamp(time_seconds: number): string {
+    function time_to_timestamp(time_seconds: number): string {
         const time_ms = Math.floor(time_seconds * 1000);
         const time_min = Math.floor(time_ms / 60000);
         const time_sec = Math.floor((time_ms - time_min * 60000) / 1000);
@@ -159,7 +166,7 @@ function AudioPlayer(props: {
         return String(time_min).padStart(2, '0') + ':' + String(time_sec).padStart(2, '0');
     }
 
-    async function getUpdatedQueueItems() {
+    async function updated_queue_items() {
         const current_track_index = await TrackPlayer.getActiveTrackIndex();
         if(current_track_index === undefined) return [];
         const track_player_queue = GLOBALS.global_var.playing_tracks.slice(current_track_index!);
@@ -178,14 +185,14 @@ function AudioPlayer(props: {
         return queue_items;
     }
 
-    useTrackPlayerEvents([Event.PlaybackProgressUpdated], async event => {
+    useTrackPlayerEvents([Event.PlaybackProgressUpdated], async(event) => {
         const player_state = await TrackPlayer.getPlaybackState();
         set_artist_data(GLOBALS.global_var.playing_tracks[event.track].artists[0]);
-        updatePlayerState({
-            title: GLOBALS.global_var.playing_tracks[event.track]!.title,
-            artist: GLOBALS.global_var.playing_tracks[event.track]!.artists?.[0].name,
+        update_player_state({
+            title: GLOBALS.global_var.playing_tracks[event.track]?.title,
+            artist: GLOBALS.global_var.playing_tracks[event.track]?.artists?.[0]?.name,
             duration: event.duration,
-            artwork: GLOBALS.global_var.playing_tracks[event.track].playback!.artwork,
+            artwork: GLOBALS.global_var.playing_tracks[event.track]?.playback!.artwork,
             elapsed_time: event.position,
             duration_remaining: event.duration - event.position,
             is_playing: player_state.state === State.Playing,
@@ -193,22 +200,20 @@ function AudioPlayer(props: {
             rate: await TrackPlayer.getRate(),
             loop_track: await TrackPlayer.getRepeatMode() === RepeatMode.Track
         })
-    })
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            setPanelState({ 'is_visible': panel_animated_value > 181 })
-        }, 100);
-
-        return () => {
-            clearInterval(interval);
-        };
-    },);
+    });
+    // useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async(event) => {
+    //     if(event.track?.artwork !== undefined){
+    //         const colors = await getColors(event.track.artwork);
+    //         if(colors.platform === "ios")
+    //             set_sample_artwork_color(colors.primary);
+    //     }
+    // });
 
     const renderNowPlayingItem = (item: { item: IllusiveType.QueueTrack }) => <SongComponentQueue track_data={item.item} />;
 
     return (
         <SlidingUpPanel ref={panel_ref}
-            allowDragging={!nowPlayingState.now_playing_visible}
+            allowDragging={!now_playing_state.now_playing_visible}
             showBackdrop={true}
             animatedValue={panel_animated}
             height={panel_max_height}
@@ -219,7 +224,7 @@ function AudioPlayer(props: {
         // containerStyle={{ left: 0, right: 0, display: 'flex', zIndex: 10, top: '100%' }}
         >
             <>
-                <Animated.View pointerEvents={panelState.is_visible ? 'auto' : 'none'} style={{ backgroundColor: colors.playScreen, height: 45, opacity: interpolatePanelPosition([0, 1]) }} />
+                <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ backgroundColor: colors.playScreen, height: 45, opacity: interpolatePanelPosition([0, 1]) }} />
                 {/* HEADER ---------------------------------------------------- */}
                 <View style={styles.header}>
                     <Animated.View style={{
@@ -228,34 +233,34 @@ function AudioPlayer(props: {
                             { rotate: interpolatePanelPosition(['180deg', '0deg']) },
                         ]
                     }}>
-                        <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} onPress={togglePanel}>
+                        <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} onPress={toggle_panel}>
                             <Ionicons name="chevron-down-sharp" size={20} color='#808080' />
                         </TouchableOpacity>
                     </Animated.View>
-                    <TouchableOpacity style={{ alignItems: 'center', justifyContent: 'center', width: 250 }} disabled={panelState.is_visible} onPress={() => panel_ref.current.show()}>
-                        <Text style={{ color: '#808080', fontSize: 12, top: panelState.is_visible ? -4 : 19 }}>{panelState.is_visible ? "PLAYING FROM" : playerState.artist}</Text>
-                        <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panelState.is_visible ? -2 : -15 }}> {panelState.is_visible ? props.playing_from : playerState.title}</Text>
+                    <TouchableOpacity style={{ alignItems: 'center', justifyContent: 'center', width: 250 }} disabled={panel_state.is_visible} onPress={() => panel_ref.current.show()}>
+                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }}>{panel_state.is_visible ? "PLAYING FROM" : player_state.artist}</Text>
+                        <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state.title}</Text>
                     </TouchableOpacity>
-                    {panelState.is_visible ?
+                    {panel_state.is_visible ?
                         <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={async () => {
-                            setNowPlayingState({ 'now_playing_visible': true, 'queue_data': await getUpdatedQueueItems() })
+                            set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() })
                         }}>
                             <Fontisto name="play-list" size={15} color={colors.primary} />
                         </TouchableOpacity> : null
                     }
-                    {!panelState.is_visible ?
-                        <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={togglePlaying}>
-                            <Ionicons name={playerState.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={colors.primary} />
+                    {!panel_state.is_visible ?
+                        <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={toggle_playing}>
+                            <Ionicons name={player_state.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={colors.primary} />
                         </TouchableOpacity> : null
                     }
                 </View>
-                <Animated.View pointerEvents={panelState.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
-                    <Image source={playerState.artwork as number} height={220} style={{ width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220 }} />
+                <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
+                    <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} />
                     {/* <Image source={playerState.artwork as ImageSourcePropType} height={220} style={{width: "auto", opacity: 0.5}}/> */}
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={styles.timestampslidercontainer}>
                         <Slider
-                            value={playerState.elapsed_time}
+                            value={player_state.elapsed_time}
                             onValueChange={async (val) => { await TrackPlayer.seekTo(val[0]); }}
                             thumbTintColor={colors.primary}
                             minimumTrackTintColor={colors.primary}
@@ -263,17 +268,17 @@ function AudioPlayer(props: {
                             thumbStyle={{ width: 8, height: 8 }}
                             thumbTouchSize={{ width: 40, height: 40 }}
                             minimumValue={0}
-                            maximumValue={playerState.duration}
+                            maximumValue={player_state.duration}
                         />
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30 }}>
-                        <Text style={{ color: '#808080', fontSize: 12 }}>{timeToTimestamp(playerState.elapsed_time)}</Text>
-                        <Text style={{ color: '#808080', fontSize: 12 }}>-{timeToTimestamp(playerState.duration_remaining)}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state.elapsed_time)}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state.duration_remaining)}</Text>
                     </View>
                     {/* TITLE & ARTIST ----------------------------------------------------*/}
                     <View style={styles.textcontainer}>
-                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{playerState.title}</TextTicker>
-                        <NavLink text_style={styles.artist} text={playerState.artist} uri={artist_data?.uri ?? ""} />
+                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state.title}</TextTicker>
+                        <NavLink text_style={styles.artist} text={remove_topic(player_state.artist)} uri={artist_data?.uri ?? ""} />
                     </View>
                     {/* PLAY CONTROLS ----------------------------------------------------*/}
                     <View style={{ bottom: 40 }}>
@@ -284,8 +289,8 @@ function AudioPlayer(props: {
                             <TouchableOpacity onPress={track_player_previous}>
                                 <Ionicons name="play-back-sharp" size={35} color={colors.primary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={togglePlaying}>
-                                <Ionicons name={playerState.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
+                            <TouchableOpacity onPress={toggle_playing}>
+                                <Ionicons name={player_state.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={track_player_next}>
                                 <Ionicons name="play-forward-sharp" size={35} color={colors.primary} />
@@ -299,7 +304,7 @@ function AudioPlayer(props: {
                             <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                             <View style={styles.volumeslidercontainer}>
                                 <Slider
-                                    value={playerState.volume}
+                                    value={player_state.volume}
                                     onValueChange={async (value) => { await TrackPlayer.setVolume(value[0] / 1); }}
                                     thumbTintColor={colors.primary}
                                     thumbStyle={{ width: 15, height: 15 }}
@@ -330,7 +335,7 @@ function AudioPlayer(props: {
                             }}>
                                 <Ionicons name="mic-outline" size={28} color={colors.primary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={shareTrack}>
+                            <TouchableOpacity onPress={share_track}>
                                 <Ionicons name="share-outline" size={28} color={colors.primary} />
                             </TouchableOpacity>
                         </View>
@@ -339,24 +344,24 @@ function AudioPlayer(props: {
                 <Modal animationType="slide"
                     transparent={false}
                     presentationStyle={'pageSheet'}
-                    visible={nowPlayingState.now_playing_visible}
+                    visible={now_playing_state.now_playing_visible}
                     onRequestClose={async () => {
-                        setNowPlayingState({ now_playing_visible: !nowPlayingState.now_playing_visible, queue_data: await getUpdatedQueueItems() });
+                        set_now_playing_state({ now_playing_visible: !now_playing_state.now_playing_visible, queue_data: await updated_queue_items() });
                     }}>
                     <View style={{ width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row" }} >
                         <View style={{ marginLeft: 10 }}>
-                            <Button color={colors.primary} title='close' onPress={() => { setNowPlayingState({ now_playing_visible: false, queue_data: [] }) }} />
+                            <Button color={colors.primary} title='close' onPress={() => { set_now_playing_state({ now_playing_visible: false, queue_data: [] }) }} />
                         </View>
                         <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Up Next</Text>
                     </View>
                     <View style={{ flex: 1, backgroundColor: colors.background }}>
                         <SwipeListView
-                            data={nowPlayingState.queue_data.slice(1)}
+                            data={now_playing_state.queue_data.slice(1)}
                             renderItem={renderNowPlayingItem}
                             ListHeaderComponent={() =>
                                 <View style={{ flex: 1, width: '100%', height: 140 }}>
                                     <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Now Playing</Text>
-                                    <SongComponentQueue track_data={nowPlayingState.queue_data[0]}/>
+                                    <SongComponentQueue track_data={now_playing_state.queue_data[0]}/>
                                     <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Up Next</Text>
                                 </View>
                             }
@@ -370,7 +375,7 @@ function AudioPlayer(props: {
                                     const tp_queue = await TrackPlayer.getQueue();
                                     const tp_index = tp_queue.findIndex(track => track.title === item.title);
                                     if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
-                                    setNowPlayingState({ 'now_playing_visible': true, 'queue_data': await getUpdatedQueueItems() });
+                                    set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() });
                                 }} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
                                     <Ionicons name='trash-bin-outline' color={"white"} size={22} />
                                 </TouchableOpacity>
@@ -385,13 +390,13 @@ function AudioPlayer(props: {
                 <Modal animationType="slide"
                     transparent={false}
                     presentationStyle={'pageSheet'}
-                    visible={settingsState.settings_visible}
+                    visible={settings_state.settings_visible}
                     onRequestClose={() => {
-                        setSettingsState({ 'settings_visible': !settingsState.settings_visible })
+                        set_settings_state({ 'settings_visible': !settings_state.settings_visible })
                     }}>
                     <View style={{ width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row" }} >
                         <View style={{ marginLeft: 10 }}>
-                            <Button color={colors.primary} title='close' onPress={() => { setSettingsState({ 'settings_visible': false }) }} />
+                            <Button color={colors.primary} title='close' onPress={() => { set_settings_state({ 'settings_visible': false }) }} />
                         </View>
                         <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Settings</Text>
                     </View>
@@ -400,7 +405,7 @@ function AudioPlayer(props: {
                         <MaterialCommunityIcons name="play-speed" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                         <View style={styles.volumeslidercontainer}>
                             <Slider
-                                value={playerState.rate}
+                                value={player_state.rate}
                                 onValueChange={async (value) => { await TrackPlayer.setRate((value[0])) }}
                                 thumbTintColor={colors.primary}
                                 thumbStyle={{ width: 15, height: 15 }}
@@ -410,7 +415,7 @@ function AudioPlayer(props: {
                                 maximumValue={2}
                             />
                         </View>
-                        <Text style={{ left: 300, bottom: 35, color: "white", fontWeight: "bold", fontSize: 17 }}>{playerState.rate}x</Text>
+                        <Text style={{ left: 300, bottom: 35, color: "white", fontWeight: "bold", fontSize: 17 }}>{player_state.rate}x</Text>
                     </View>
                 </Modal>
             </>
