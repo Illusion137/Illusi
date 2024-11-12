@@ -7,7 +7,7 @@ export default function ShufflePlayButton(props: {
     on_press: () => void
     top?: number
 }){
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 
     return (
         <TouchableOpacity onPress={props.on_press} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', top: props.top}}>

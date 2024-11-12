@@ -17,7 +17,7 @@ export default function PlaylistComponent(props: {
 }) {
 	const navigation: NavigationProp<any, any> = useNavigation();
 
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const [pinned, _] = useState(props.playlist_data.pinned);
@@ -77,7 +77,7 @@ export default function PlaylistComponent(props: {
         </>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 80, 

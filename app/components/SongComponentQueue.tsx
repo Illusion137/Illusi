@@ -7,7 +7,7 @@ import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 function SongComponentQueue(props: {
 	track_data: QueueTrack
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	return (
@@ -26,7 +26,7 @@ function SongComponentQueue(props: {
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	songbox:{
 		width: '100%',
 		height: 60,

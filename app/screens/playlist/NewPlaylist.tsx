@@ -14,7 +14,7 @@ function NewPlaylist(props: {
 	
 	const navigation: NavigationProp<any, any> = useNavigation();
 	
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 		
 	const input_ref = useRef<TextInput>();
@@ -66,7 +66,7 @@ function NewPlaylist(props: {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	name_input:{
 		backgroundColor: colors.track,
 		height: 60,

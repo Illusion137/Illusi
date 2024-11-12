@@ -5,7 +5,7 @@ import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 
 function ExtraRecoveryScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
 	return(
@@ -22,7 +22,7 @@ function ExtraRecoveryScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     container: {
         backgroundColor: colors.background, 
         width: '100%', 

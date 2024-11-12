@@ -10,7 +10,7 @@ import { EditMode, HexColor } from '../../lib-origin/Illusive/src/types';
 import LibraryTrackList from '../components/LibraryTrackList';
 
 export default function LibraryScreen() {
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
 	const [edit_mode, set_edit_mode] = useState<EditMode>("NONE");
@@ -50,7 +50,7 @@ export default function LibraryScreen() {
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,

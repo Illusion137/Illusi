@@ -12,7 +12,7 @@ export default function DefaultPlaylistComponent(props: {
     four_track: Track[]
     title: string,
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
     async function navigate(){
@@ -29,7 +29,7 @@ export default function DefaultPlaylistComponent(props: {
     )
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	default_playlist_text:{
 		color: colors.text, 
 		fontSize: 18, 

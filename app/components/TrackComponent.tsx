@@ -30,10 +30,11 @@ function TrackComponent(props: {
                 || ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
 	const [downloading_progress, set_downloading_progress] = useState(0);
 	
+    const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
     const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";
     const disabled_from_full_queue = Prefs.get_pref("full_queue_disables_playing") && GLOBALS.global_var.playing_queue.length > 0;
 
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     let interval: NodeJS.Timeout;
@@ -63,8 +64,8 @@ function TrackComponent(props: {
 
 	return (
 		<TouchableOpacity
-            activeOpacity={props.write_playlist_uuid !== undefined ? 0.9 : 0.2}
-			disabled={disabled_from_edit_mode || props.write_playlist_uuid !== undefined}
+            activeOpacity={disabled_from_write_playlist ? 0.9 : 0.2}
+			disabled={disabled_from_edit_mode || disabled_from_write_playlist}
 			style={{backgroundColor: colors.track, opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
 			onLongPress={() => push_track_to_playing_queue(props.track_data)} 
 			onPress={() => {if(!disabled_from_full_queue && props.from !== undefined && props.track_callback !== undefined) play(props.track_data, props.from, props.track_callback)}}>
@@ -123,7 +124,7 @@ function TrackComponent(props: {
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	track_box:{
 		width: '100%',
 		height: 60,

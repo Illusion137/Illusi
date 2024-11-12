@@ -3,7 +3,7 @@ import React,  { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import { SelectList } from 'react-native-dropdown-select-list';
-import { MusicService, MusicServiceType, Route } from '../../../lib-origin/Illusive/src/types';
+import { MusicService, MusicServiceMappedPlaylist, MusicServiceType, Route } from '../../../lib-origin/Illusive/src/types';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { is_empty, urlid } from '../../../lib-origin/origin/src/utils/util';
@@ -12,7 +12,7 @@ import { create_uri, music_service_to_music_service_uri } from '../../../lib-ori
 
 export default function SelectImportMusicServicePlaylist( params: {route: any} ) {
 	const ts_route = params.route as Route<{title: string}>;
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -21,7 +21,7 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 	const [input_value, set_input_value] = React.useState("");
 
 	const [_, set_selected] = React.useState("");
-	const [title_data, set_title_data] = React.useState(new Map<string, string>());
+	const [title_data, set_title_data] = React.useState(new Map<string, MusicServiceMappedPlaylist>());
 	const [titles, set_titles] = React.useState([] as string[]);
 
 	const music_service_from = ts_route.params.title.replace('Import ', '').replace(' Playlist', '') as MusicServiceType;
@@ -54,10 +54,17 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
             <Button onPress={() => {}} title="Next" color='#808080' />
         )})
     }
-    function set_nav_enabled(url: string){
-        navigation.setOptions({ headerRight: () => (
-            <Button color='blue' onPress={() => navigation.navigate('Playlist', {'uri': make_uri(url)})} title="Next" />
-        )}) 
+    function set_nav_enabled(data: string|MusicServiceMappedPlaylist){
+        if(typeof data === "string"){
+            navigation.setOptions({ headerRight: () => (
+                <Button color='blue' onPress={() => navigation.navigate('Playlist', {'uri': make_uri(data)})} title="Next" />
+            )});
+        }
+        else if(typeof data === "object"){
+            navigation.setOptions({ headerRight: () => (
+                <Button color='blue' onPress={() => navigation.navigate('Playlist', {'uri': make_uri(data.url), 'compact_playlist': data.compact_playlist })} title="Next" />
+            )});
+        }
     }
 	function on_url_update(url: string){
 		set_input_value(url); 
@@ -70,8 +77,8 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 		}
 	}
 	function on_set_selected_url(selected_url: string){
-		set_selected(selected_url); 
-		set_input_value(title_data.get(selected_url) ?? ""); 
+		set_selected(selected_url);
+		set_input_value(title_data.get(selected_url)?.url ?? ""); 
 		set_is_next_disabled(false);
         set_nav_enabled(title_data.get(selected_url)!);
 	}
@@ -101,7 +108,7 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	nameinput:{
 		backgroundColor: colors.shelf,
 		height: 60,

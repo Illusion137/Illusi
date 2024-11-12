@@ -13,7 +13,7 @@ export default function CompactWriterPlaylistComponent(props: {
 }) {
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     async function navigate(){
@@ -46,7 +46,7 @@ export default function CompactWriterPlaylistComponent(props: {
         </>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 60, 

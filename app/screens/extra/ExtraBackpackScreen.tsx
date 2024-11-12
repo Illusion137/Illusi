@@ -15,7 +15,7 @@
 // let restoredIndex = 0;
 
 // function ExtraBackpackScreen(props) {
-// 	const { colors } = useTheme() as typeof Prefs.dark_theme;
+// 	const { colors } = useTheme() as Prefs.Theme;
 // 	const styles = theme_styles(colors);
 
 // 	const [data, setData] = useState([]);

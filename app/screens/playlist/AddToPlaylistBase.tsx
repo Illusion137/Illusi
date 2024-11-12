@@ -13,7 +13,7 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
     const ts_route = params.route as Route<{write_playlist_uuid: string}>;
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     const [illusi_playlists, set_illusi_playlists] = useState<CompactPlaylistData[]>([]);
@@ -67,7 +67,7 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
     )
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     header: {
         width: "100%",
         height: 90,

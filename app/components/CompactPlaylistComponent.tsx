@@ -13,7 +13,7 @@ export default function CompactPlaylistComponent(props: {
     const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.thumbnail_uri!;
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     async function navigate(){
@@ -40,7 +40,7 @@ export default function CompactPlaylistComponent(props: {
         </>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 60, 

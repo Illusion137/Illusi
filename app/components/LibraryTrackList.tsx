@@ -23,7 +23,7 @@ function LibraryTrackList(props: {
     header_item?: () => React.JSX.Element
     adjusted_alphabet_scroll?: number
 }, ref: any){
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const [all_data, set_all_data] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0});
@@ -129,7 +129,7 @@ function LibraryTrackList(props: {
 }
 export default forwardRef(LibraryTrackList);
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,

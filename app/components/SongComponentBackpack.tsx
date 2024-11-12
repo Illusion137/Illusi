@@ -1,18 +1,14 @@
-import React, {useState, useEffect} from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import React, {useState} from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
-import { Artwork, Track } from '../../lib-origin/Illusive/src/types';
-import { generateNewUID } from '../../lib-origin/origin/src/utils/util';
 
 function SongComponentBackpack(props: {
 	track_data: Track,
 	old_uid: string
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	const [disabled, setDisabled] = useState(false)
 
@@ -72,7 +68,7 @@ function SongComponentBackpack(props: {
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	songbox:{
 		width: '100%',
 		height: 60,

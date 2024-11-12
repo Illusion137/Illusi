@@ -5,7 +5,7 @@ import Link from '../../components/Link';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 
 function ExtraLinkerScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	const [modalVisible, setModalVisible] = useState(false);
 
@@ -41,7 +41,7 @@ function ExtraLinkerScreen() {
 		</View>
 	);
 }
-const theme_styles = (_: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (_: Prefs.Theme['colors']) => StyleSheet.create({
     centeredView: {
 		flex: 1,
 		justifyContent: 'center',

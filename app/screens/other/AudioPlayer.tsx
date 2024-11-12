@@ -9,9 +9,6 @@ import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, Track, useTrackPlayerEvents } from 'react-native-track-player';
 import SlidingUpPanel from 'rn-sliding-up-panel';
-import { getColors } from 'react-native-image-colors'
-import * as NetInfo from '@react-native-community/netinfo'
-import * as Network from 'expo-network'
 
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
@@ -40,7 +37,7 @@ function AudioPlayer(props: {
     tracks: IllusiveType.Track[],
     playing_from: string
 }) {
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
     const styles = theme_styles(colors);
     const panel_ref = useRef<SlidingUpPanel>() as React.MutableRefObject<SlidingUpPanel>;
 
@@ -67,7 +64,7 @@ function AudioPlayer(props: {
         is_playing: false,
         loop_track: false,
     });
-    const [sample_artwork_color, set_sample_artwork_color] = useState<string>(Prefs.dark_theme.colors.background);
+    // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
 
     const panel_min_height = 180;
     const panel_max_height = Dimensions.get('screen').height;
@@ -76,7 +73,7 @@ function AudioPlayer(props: {
         const panel_transition_value = 181;
         if(value > panel_transition_value && !panel_state.is_visible)
             set_panel_state({ 'is_visible': true });
-        if(value <= panel_transition_value && panel_state.is_visible)
+        else if(value <= panel_transition_value && panel_state.is_visible)
             set_panel_state({ 'is_visible': false });
     });
 
@@ -255,8 +252,8 @@ function AudioPlayer(props: {
                     }
                 </View>
                 <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
-                    <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} />
-                    {/* <Image source={playerState.artwork as ImageSourcePropType} height={220} style={{width: "auto", opacity: 0.5}}/> */}
+                    {/* <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} /> */}
+                    <Image source={player_state.artwork as number} height={220} style={{width: "auto", opacity: 0.5}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={styles.timestampslidercontainer}>
                         <Slider
@@ -422,7 +419,7 @@ function AudioPlayer(props: {
         </SlidingUpPanel>
     )
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     topcontainer: {
         flex: 1,
         backgroundColor: colors.playScreen

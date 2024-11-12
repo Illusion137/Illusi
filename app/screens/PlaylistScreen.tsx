@@ -17,7 +17,7 @@ import { resolved_default_playlists, sort_playlists } from '../../lib-origin/Ill
 
 let search_query = "";
 function PlaylistScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -96,7 +96,7 @@ function PlaylistScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,

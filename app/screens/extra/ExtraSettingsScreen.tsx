@@ -7,7 +7,7 @@ import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
 
 function ExtraSettingsScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	
     type PrefEntry = [Prefs.PrefOptions, Prefs.Pref<unknown>]
@@ -26,13 +26,13 @@ function ExtraSettingsScreen() {
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.restore_thumbnail_cache}/>
 					<ExtrasSectionButton show_arrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clean_thumbnail_cache}/>
-					<View style={{height: 100}}/>
+					<View style={{height: 200}}/>
 				</>
 			}/>
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     line_long:{
 		width: "100%",
 		height: 0.4,

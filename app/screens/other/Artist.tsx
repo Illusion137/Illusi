@@ -24,7 +24,7 @@ export default function Artist(props: {}){
     const ts_route = params.route as Route<{uid: string}|{uri: string}|{default_playlist_title: string}|{write_uid: string, from_uid: string}>
 
     const navigation: NavigationProp<any, any> = useNavigation();
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     const [playlist_data, set_playlist_data] = useState<Types.Playlist & {creator?: NamedUri[]}>();
@@ -126,7 +126,7 @@ export default function Artist(props: {}){
     );
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     topContainer:{
         flex: 1,
         backgroundColor: colors.background

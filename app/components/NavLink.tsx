@@ -15,7 +15,7 @@ export default function NavLink(props: {
 }) {
 	// const navigation: NavigationProp<any, any> = useNavigation();
 
-	// const { colors } = useTheme() as typeof Prefs.dark_theme;
+	// const { colors } = useTheme() as Prefs.Theme;
 	// const styles = theme_styles(colors);
 
     async function navigate(){
@@ -44,5 +44,5 @@ export default function NavLink(props: {
         </TouchableOpacity>
 	);
 }
-// const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+// const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 // });

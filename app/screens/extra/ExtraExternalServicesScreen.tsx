@@ -17,7 +17,7 @@ function ServiceSwitcher(props: {
     url: string
     set_url: SetState
 }){
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     const music_service = Illusive.music_service.get(props.service)!;
     return (
@@ -46,7 +46,7 @@ function ServiceSwitcher(props: {
     
 
 export default function ExternalServicesScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     const illusive_external_service: MusicServiceType[] = ["YouTube", "YouTube Music", "Spotify", "Amazon Music", "Apple Music", "SoundCloud"] as const;
@@ -118,7 +118,7 @@ export default function ExternalServicesScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	importfrom:{
 		height: 45,
 		width: '100%',

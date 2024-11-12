@@ -13,7 +13,7 @@ import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_util
 function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
 
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	
 	async function zip_data(){
@@ -98,7 +98,7 @@ function ExtraScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,
