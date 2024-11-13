@@ -17,7 +17,7 @@ function TrackComponent(props: {
 		track_data: Track
 		write_playlist_uuid?: typeof Constants.library_write_playlist | string,
 		from?: string,
-        playlist_uuid?: string
+        playlist_uuid?: string,
 		edit_mode?: EditMode,
         track_callback?: () => Track[]
 		refresh_data?: () => void

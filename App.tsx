@@ -1,6 +1,6 @@
 import { Entypo, Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { Button, Image } from 'react-native';
@@ -77,13 +77,13 @@ function SearchStackScreen() {
         </SearchStack.Navigator>
     );
 }
-
 function Tabs() {
+    const theme = useTheme() as Prefs.Theme;
     return (
         <Tab.Navigator initialRouteName={'My Library'}
             screenOptions={{
-                headerShown: false, tabBarActiveTintColor: Prefs.dark_theme.colors.primary, tabBarInactiveTintColor: Prefs.dark_theme.colors.tabInactive,
-                tabBarActiveBackgroundColor: Prefs.dark_theme.colors.background, tabBarInactiveBackgroundColor: Prefs.dark_theme.colors.background, tabBarStyle: { backgroundColor: Prefs.dark_theme.colors.background, height: 90, zIndex: 1 }
+                headerShown: false, tabBarActiveTintColor: theme.colors.primary, tabBarInactiveTintColor: theme.colors.tabInactive,
+                tabBarActiveBackgroundColor: theme.colors.background, tabBarInactiveBackgroundColor: theme.colors.background, tabBarStyle: { backgroundColor: theme.colors.background, height: 90, zIndex: 1 }
             }}
             detachInactiveScreens={true}>
             <Tab.Screen name="My Library" component={LibraryScreen}
@@ -114,6 +114,7 @@ function Tabs() {
 }
 
 export default function App() {
+    const [theme, set_theme] = useState<Prefs.Theme>(Prefs.get_theme(Prefs.get_pref('theme')));
     const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
     const [playing_from, set_playing_from] = useState("");
     const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
@@ -121,7 +122,7 @@ export default function App() {
 
     useEffect(() => {
         (async function () {
-            await illusi_startup(play_tracks);
+            await illusi_startup(play_tracks, set_theme);
             set_is_loading(false);
         })();
     }, []);
@@ -141,11 +142,11 @@ export default function App() {
     }
     return (
         <GlobalStateProvider>
-            <NavigationContainer theme={Prefs.dark_theme}>
+            <NavigationContainer theme={theme}>
                 {is_loading && <Image style={{ flex: 1, backgroundColor: 'black', width: '100%', height: '100%' }} source={require('./assets/splash.png')} />}
                 {is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
                 {!is_loading && <Stack.Navigator>
-                    <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+                    <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false,  }} />
                     <Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen} />
                     <Stack.Screen name="Settings" component={ExtraSettingsScreen} />
                 </Stack.Navigator>}

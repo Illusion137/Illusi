@@ -253,7 +253,7 @@ function AudioPlayer(props: {
                 </View>
                 <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
                     {/* <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} /> */}
-                    <Image source={player_state.artwork as number} height={220} style={{width: "auto", opacity: 0.5}}/>
+                    <Image source={player_state.artwork as number} height={220} style={{width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220,}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={styles.timestampslidercontainer}>
                         <Slider

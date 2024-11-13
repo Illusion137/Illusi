@@ -11,12 +11,13 @@ export default function DefaultPlaylistComponent(props: {
     navigation: NavigationProp<any, any>,
     four_track: Track[]
     title: string,
+    force_order?: boolean,
 }) {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
     async function navigate(){
-        props.navigation.navigate('Playlist', {'default_playlist_title': props.title});
+        props.navigation.navigate('Playlist', {'default_playlist_title': props.title, 'force_order': props.force_order});
     }
 
     return (

@@ -56,6 +56,7 @@ function NewPlaylist(props: {
 				{!isInvalidName && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
+            <View style={{height: 0.6, backgroundColor: colors.line}}/>
 			<TextInput maxLength={45} ref={input_ref as any} placeholder='Playlist name' placeholderTextColor={colors.searchPlaceholder} style={styles.name_input} onChangeText={onNameUpdate}></TextInput>
 			<View style={{height:40}}></View>
             {[...Illusive.music_service.keys()].map((key, i) => (

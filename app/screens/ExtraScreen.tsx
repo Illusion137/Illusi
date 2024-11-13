@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, NativeSyntheticEvent} from 'react-native';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
@@ -7,8 +7,10 @@ import appConfig from '../../app.config';
 import * as Sharing from 'expo-sharing';
 import * as Battery from 'expo-battery';
 import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
 
 function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -20,6 +22,11 @@ function ExtraScreen() {
 		const UTI = 'public.item';
 		await Sharing.shareAsync(FileSystem.documentDirectory ?? "", { UTI });
 	}
+    async function change_theme(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
+        const theme_key = event.nativeEvent.value as Prefs.PossibleThemes;
+        await Prefs.save_pref('theme', theme_key);
+        GLOBALS.global_var.set_theme(Prefs.get_theme(theme_key))
+    }
 
 	const [battery, set_battery] = React.useState(0.0);
 
@@ -68,6 +75,13 @@ function ExtraScreen() {
 				<View style={styles.line_long}/>
 				
 				<Text style={styles.description_txt}>Restore unavailable videos from Backpack</Text>
+
+                <SegmentedControl
+						values={Prefs.all_themes()}
+						selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
+						onChange={async(event) => await change_theme(event)}
+                        style={{backgroundColor: colors.background}}
+                />
 
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>

@@ -27,7 +27,9 @@ import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 let search_query = "";
 let tracks_ref: Track[] = [];
 export default function Playlist(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>
+    const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string, force_order?: boolean}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>
+    const force_order = "force_order" in ts_route.params && (ts_route.params.force_order ?? false);
+    const pre_always_shuffle = Prefs.get_pref('always_shuffle');
 
     const navigation: NavigationProp<any, any> = useNavigation();
     const { colors } = useTheme() as Prefs.Theme;
@@ -76,13 +78,19 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     const is_focused = useIsFocused();
     useEffect( () => {
+        Prefs.prefs.always_shuffle.current_value = !force_order;
         initial_data();
+        return () => exit_handler();
     }, []);
     useEffect( () => {
         if(is_focused){
             refresh_data();
         }
 	}, [is_focused]);
+
+    function exit_handler(){
+        if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
+    }
 
     async function initial_data(){
         tracks_ref = [];
@@ -107,37 +115,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                 return;
             }
             const split = split_uri(ts_route.params.uri);
-            let playlist: Types.MusicServicePlaylist;
-            switch(split[0]){
-                case "musi": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-                    break;
-                }
-                case "youtube": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https("www." + split[1]));
-                    break;
-                }
-                case "youtubemusic": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-                    break;
-                }
-                case "applemusic": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist( make_https(split[1]) );
-                    break;
-                }
-                case "amazonmusic": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-                    break;
-                }
-                case "soundcloud": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-                    break;
-                }
-                case "spotify": {
-                    playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-                    break;
-                }
-            }
+            const playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
             const id_continuation = playlist!.continuation;
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.artwork_url ?? thumbnail_url, creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLActions.add_playback_saved_data_to_tracks(playlist!.tracks);
@@ -221,6 +199,10 @@ export default function Playlist(params: {route: Route<unknown>}){
         navigation.goBack();
     } 
 
+    function play_order(play_tracks: Track[]){
+        const cloned_tracks = [...play_tracks].slice(GLOBALS.global_var.past_track_index);
+        GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+    }
     function play_shuffle(play_tracks: Track[]){
         const cloned_tracks = Illusive.shuffle_tracks("SHUFFLE", [...play_tracks]);
         GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
@@ -235,7 +217,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 		<TrackComponent playlist_uuid={(ts_route.params as {uuid?: string}).uuid} 
                         track_callback={() => [...tracks]} 
                         track_data={item.item} 
-                        from={playlist_data?.title} 
+                        from={playlist_data?.title}
                         edit_mode={edit_mode_state} 
                         write_playlist_uuid={"uri" in ts_route.params ? Constants.library_write_playlist : "write_playlist_uuid" in ts_route.params ? ts_route.params.write_playlist_uuid : undefined} 
                         refresh_data={refresh_data}/>
@@ -261,7 +243,9 @@ export default function Playlist(params: {route: Route<unknown>}){
                     </> 
                 : null}
             </View>
-            {!("write_playlist_uuid" in ts_route.params) ? <ShufflePlayButton on_press={() => play_shuffle(tracks)} top={-40}/> : null}
+            {!("write_playlist_uuid" in ts_route.params) ? 
+                <ShufflePlayButton text={force_order ? "Continue Listening" : undefined} on_press={() => {force_order ? play_order(tracks): play_shuffle(tracks)}} top={-40}/>
+            : null}
         </View>	
     );
     const footer_component = () => (
