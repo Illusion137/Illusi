@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
@@ -27,7 +27,7 @@ function ExtraBatchDownloaderScreen() {
 
 	useEffect(() => {
 		(async function() {
-			const playlists = await SQLActions.all_playlists_data();
+			const playlists = await SQLPlaylists.all_playlists_data();
 			const playlists_entries: {key: string, value: string}[] = []
 			playlists_entries.push({key: Constants.library_write_playlist, value: 'Library'});
 			for (let i = 0; i < playlists.length; i++)

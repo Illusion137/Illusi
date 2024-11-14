@@ -7,7 +7,8 @@ import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { EditMode, NamedUUID, Route, Track } from '../../../lib-origin/Illusive/src/types';
 import * as Types from '../../../lib-origin/Illusive/src/types';
 
@@ -20,7 +21,6 @@ import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
-import { deserialize_track } from '../../../lib-origin/Illusive/src/track_parser';
 import LibraryTrackList from '../../components/LibraryTrackList';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 
@@ -95,7 +95,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     async function initial_data(){
         tracks_ref = [];
         if("default_playlist_title" in ts_route.params) set_playlist_data( Object.assign({...ExampleObj.playlist_example0}, {title: ts_route.params.default_playlist_title}) );
-        else if("uuid" in ts_route.params) set_playlist_data(await SQLActions.playlist_data(ts_route.params.uuid));
+        else if("uuid" in ts_route.params) set_playlist_data(await SQLPlaylists.playlist_data(ts_route.params.uuid));
         else if("uri" in ts_route.params) {
             const cached = GLOBALS.global_var.playlist_cache.get(ts_route.params.uri);
             const cached_hit = cached !== undefined;
@@ -108,7 +108,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             if(cached_hit){
                 set_continuation(cached!.continuation);
                 set_playlist_data(cached!.playlist_data);
-                const cached_tracks = await SQLActions.add_playback_saved_data_to_tracks(cached!.tracks);
+                const cached_tracks = await SQLTracks.add_playback_saved_data_to_tracks(cached!.tracks);
                 tracks_ref = cached_tracks;
                 set_initial_tracks(cached_tracks);
                 set_tracks( cached_tracks );
@@ -118,7 +118,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             const playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
             const id_continuation = playlist!.continuation;
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.artwork_url ?? thumbnail_url, creator: playlist!.creator, date: playlist!.date });
-            const id_tracks = await SQLActions.add_playback_saved_data_to_tracks(playlist!.tracks);
+            const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
             tracks_ref = id_tracks;
@@ -143,13 +143,14 @@ export default function Playlist(params: {route: Route<unknown>}){
                 playlist_tracks = await default_playlist.track_function();
             }
             else if("uuid" in ts_route.params){
-                playlist_tracks = await SQLActions.playlist_tracks(ts_route.params.uuid);
+                playlist_tracks = await SQLPlaylists.playlist_tracks(ts_route.params.uuid);
             }
             tracks_ref = playlist_tracks;
             set_tracks(playlist_tracks);
         }
         if("write_playlist_uuid" in ts_route.params){
-            set_tracks(await SQLActions.add_saved_data_to_write_playlist_tracks(ts_route.params.write_playlist_uuid, ts_route.params.serialized_playlist_data.tracks.map(deserialize_track)));
+            await SQLPlaylists.add_saved_data_to_write_playlist_tracks(ts_route.params.write_playlist_uuid, ts_route.params.serialized_playlist_data.tracks);
+            set_tracks(ts_route.params.serialized_playlist_data.tracks);
         }
     }
     async function try_continuation(){
@@ -161,7 +162,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                 return false;
             }
             const o_playlist_data = playlist_data!;
-            const n_tracks = initial_tracks.concat( await SQLActions.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
+            const n_tracks = initial_tracks.concat( await SQLTracks.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
             const n_continuation = playlist_continuation.continuation;
             tracks_ref = n_tracks;
             set_initial_tracks(n_tracks);
@@ -181,19 +182,19 @@ export default function Playlist(params: {route: Route<unknown>}){
         await full_continue();
         const promised_tracks: Types.Promises = [];
         for(const track of tracks_ref)
-            promised_tracks.push( SQLActions.insert_track(track) );
+            promised_tracks.push( SQLTracks.insert_track(track) );
         await Promise.all(promised_tracks);
         navigation.goBack();
     }
 
     async function save_to_playlist(new_playlist_title: string){
         await add_tracks_to_library();
-        const playlist_uuid = await SQLActions.create_playlist(new_playlist_title);
+        const playlist_uuid = await SQLPlaylists.create_playlist(new_playlist_title);
         const promised_playlist_tracks: Types.Promises = [];
         for(const track of tracks_ref){
-            const track_uid = await SQLActions.track_from_service_id(track);
+            const track_uid = await SQLTracks.track_from_service_id(track);
             if(track_uid === null) continue;
-            promised_playlist_tracks.push( SQLActions.insert_track_playlist(playlist_uuid, track_uid.uid) );	
+            promised_playlist_tracks.push( SQLPlaylists.insert_track_playlist(playlist_uuid, track_uid.uid) );	
         }
         await Promise.all(promised_playlist_tracks);
         navigation.goBack();

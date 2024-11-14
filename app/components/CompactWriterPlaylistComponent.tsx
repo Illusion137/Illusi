@@ -4,8 +4,6 @@ import { NavigationProp, useNavigation, useTheme } from '@react-navigation/nativ
 import FourTrackArtwork from './FourTrackArtwork';
 import { CompactPlaylistData, SerializedCompactPlaylistData } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-import { serialize_track } from '../../lib-origin/Illusive/src/track_parser';
-
 
 export default function CompactWriterPlaylistComponent(props: {
 	playlist_data: CompactPlaylistData
@@ -19,7 +17,7 @@ export default function CompactWriterPlaylistComponent(props: {
     async function navigate(){
         const serialized_data: SerializedCompactPlaylistData = {
             title: props.playlist_data.title,
-            tracks: (await props.playlist_data.track_callback()).map(serialize_track),
+            tracks: await props.playlist_data.track_callback(),
             type: props.playlist_data.type
         };
         navigation.push("Playlist", {

@@ -1,6 +1,6 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
@@ -24,8 +24,8 @@ function ExtraSettingsScreen() {
 				<>
 					<View style={styles.line_long}/>
 					<View style={{height: 30}}/>
-					<ExtrasSectionButton show_arrow={false} text='Reinstate Cache' icon='download' onPress={SQLActions.restore_thumbnail_cache}/>
-					<ExtrasSectionButton show_arrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLActions.clean_thumbnail_cache}/>
+					<ExtrasSectionButton show_arrow={false} text='Reinstate Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear Cache' icon='trash-outline' onPress={SQLTracks.clean_thumbnail_cache}/>
 					<View style={{height: 200}}/>
 				</>
 			}/>

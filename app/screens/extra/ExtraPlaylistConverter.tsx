@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
@@ -40,7 +40,7 @@ function ExtraPlaylistConverter() {
 				if(selected_illusi_playlist == 'Library'){
 					tracks = [...GLOBALS.global_var.sql_tracks]
 				} else{
-					tracks = await SQLActions.playlist_tracks(selected_illusi_playlist);
+					tracks = await SQLPlaylists.playlist_tracks(selected_illusi_playlist);
 				}
 				tracks = tracks.filter(item => item.youtube_id);
 
@@ -65,7 +65,7 @@ function ExtraPlaylistConverter() {
 	);
 	useEffect(() => {
 		(async function() {
-			const playlists = await SQLActions.all_playlists_data();
+			const playlists = await SQLPlaylists.all_playlists_data();
 			const push_data: KeyValue[] = []
 			push_data.push({key: Constants.library_write_playlist, value: 'Library'})
 			for (let i = 0; i < playlists.length; i++)

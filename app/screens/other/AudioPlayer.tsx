@@ -1,23 +1,23 @@
-import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
-import { Slider } from '@miblanchard/react-native-slider';
-import { useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
+import { Slider } from '@miblanchard/react-native-slider';
+import { useTheme } from '@react-navigation/native';
 import { Animated, Button, Dimensions, Easing, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, Track, useTrackPlayerEvents } from 'react-native-track-player';
 import SlidingUpPanel from 'rn-sliding-up-panel';
-
-import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
-import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
-import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
 import NavLink from '../../components/NavLink';
 import SongComponentQueue from '../../components/SongComponentQueue';
+
+import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
+import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
+import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
+import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
+import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 
 interface PlayerStateType {
@@ -101,7 +101,7 @@ function AudioPlayer(props: {
         catch_function_async(async() => {
             const UTI = 'public.item';
             const current_track = await TrackPlayer.getActiveTrack();
-            const illusi_track = await SQLActions.track_from_uid((current_track as Track).id);
+            const illusi_track = await SQLTracks.track_from_uid((current_track as Track).id);
             if (illusi_track.media_uri)
                 await Sharing.shareAsync(FileSystem.documentDirectory + illusi_track.media_uri, { UTI });
             else if (!is_empty(illusi_track.youtube_id))

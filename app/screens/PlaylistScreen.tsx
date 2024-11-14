@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import PlaylistComponent from '../components/PlaylistComponent';
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 
 import { useIsFocused } from '@react-navigation/native';
 import DefaultPlaylistComponent from '../components/DefaultPlaylistComponent';
@@ -38,7 +38,7 @@ function PlaylistScreen() {
 	async function refresh_data(query?: string){
         try {
             search_query = query ?? "";
-            const playlists = playlist_query_filter(await SQLActions.all_playlists_data(), search_query);
+            const playlists = playlist_query_filter(await SQLPlaylists.all_playlists_data(), search_query);
             const ordered_playlists: Playlist[] = sort_playlists(playlists);
             set_playlists([]);
             set_playlists(ordered_playlists)

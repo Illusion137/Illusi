@@ -4,7 +4,8 @@ import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
-import * as SQLActions from "../../lib-origin/Illusive/src/illusi/src/sql_actions";
+import * as SQLTracks from "../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks";
+import * as SQLPlaylists from "../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
 import TrackPlaceholderComponent from "./TrackPlaceholderComponent";
 import { AlphabetScroll, EditMode, Track } from "../../lib-origin/Illusive/src/types";
 import TrackComponent from "./TrackComponent";
@@ -51,10 +52,10 @@ function LibraryTrackList(props: {
 
 	async function refresh_data(query: (string|undefined) = undefined){
 		search_query = query ?? "";
-		await SQLActions.fetch_track_data();
+		await SQLTracks.fetch_track_data();
 		
         let tracks = track_query_filter([...GLOBALS.global_var.sql_tracks], search_query);
-        if(props.write_playlist_uuid !== undefined) tracks = await SQLActions.add_saved_data_to_write_playlist_tracks(props.write_playlist_uuid, tracks);
+        if(props.write_playlist_uuid !== undefined) await SQLPlaylists.add_saved_data_to_write_playlist_tracks(props.write_playlist_uuid, tracks);
         const section_map = track_section_map(tracks);
 
 		set_all_data({char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length});

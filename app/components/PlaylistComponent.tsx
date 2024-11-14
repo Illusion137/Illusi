@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { NavigationProp, useNavigation,useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import FourTrackArtwork from './FourTrackArtwork';
 import { Playlist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
@@ -31,11 +31,11 @@ export default function PlaylistComponent(props: {
 					{
 					text: props.playlist_data.pinned ? "Unpin" : "Pin",
 					onPress: async() => {
-							if(!await SQLActions.is_playlist_pinned(props.playlist_data.uuid)){
-								await SQLActions.pin_unpin_playlist(props.playlist_data.uuid, true)
+							if(!await SQLPlaylists.is_playlist_pinned(props.playlist_data.uuid)){
+								await SQLPlaylists.pin_unpin_playlist(props.playlist_data.uuid, true)
 							}
 							else{
-								await SQLActions.pin_unpin_playlist(props.playlist_data.uuid, false)
+								await SQLPlaylists.pin_unpin_playlist(props.playlist_data.uuid, false)
 							}
 							await props.refresh_data();
 						}
@@ -45,7 +45,7 @@ export default function PlaylistComponent(props: {
 									{
 										text: "Confirm Delete",
 										onPress: async() => {
-											await SQLActions.delete_playlist(props.playlist_data.uuid)
+											await SQLPlaylists.delete_playlist(props.playlist_data.uuid)
 											await props.refresh_data();
 										}
 										},

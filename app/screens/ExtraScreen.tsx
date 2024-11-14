@@ -6,7 +6,8 @@ import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
 import * as Sharing from 'expo-sharing';
 import * as Battery from 'expo-battery';
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLUtils from '../../lib-origin/Illusive/src/illusi/src/sql/sql_utils';
+import * as SQLPlaylists from '../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
@@ -90,9 +91,9 @@ function ExtraScreen() {
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", Prefs.reset_prefs)}/>
 					<View style={styles.line_short}/>	
-					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLActions.delete_all_playlists)}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLPlaylists.delete_all_playlists)}/>
 					<View style={styles.line_short}/>	
-					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLActions.delete_all_data)}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLUtils.delete_all_data)}/>
 				<View style={styles.line_long}/>
 				<Text style={styles.description_txt}>Manage your data; clear your data or export it back to your files app</Text>
 

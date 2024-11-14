@@ -2,7 +2,7 @@
 import React,  { useState, useRef,useImperativeHandle, forwardRef, Ref } from 'react';
 import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import ImportServiceComponent from '../../components/ImportServiceComponent';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
@@ -32,7 +32,7 @@ function NewPlaylist(props: {
 	}
 	async function onCreateValid(){
 		setIsInvalidName(true);
-		await SQLActions.create_playlist(playlistName);
+		await SQLPlaylists.create_playlist(playlistName);
 		await props.refresh_playlists_data();
 		input_ref.current?.clear();
 		input_ref.current?.blur();
