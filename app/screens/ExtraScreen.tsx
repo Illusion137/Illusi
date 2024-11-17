@@ -12,6 +12,11 @@ import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
+import { upload_sqlite_db } from '../../lib-origin/Illusive/src/illusi/src/document_picker';
+import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
+import { test_import_1307_sqldb } from '../../lib-origin/Illusive/src/illusi/src/sql/sql_test';
+import { document_directory } from '../../lib-origin/Illusive/src/illusi/src/sql/sql_fs';
+import path from 'path';
 
 function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -101,6 +106,12 @@ function ExtraScreen() {
 					<>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<ExtrasSectionButton show_arrow={true} text='Upload 1307 SQLite-DB' icon='hammer-outline' onPress={async () => {
+                        const db_path = await upload_sqlite_db();
+                        if("error" in db_path) { alert_error(db_path); return; }
+                        await FileSystem.copyAsync({"from": db_path.fileCopyUri!, to: document_directory("SQLite") + "/" + path.basename(db_path.fileCopyUri!).replace(".sqlite3", "101.sqlite3")});
+                        await test_import_1307_sqldb(db_path.fileCopyUri!);
+                    }}/>
 					<View style={styles.line_long}/>
 					<Text style={styles.description_txt}>Developer Options :3</Text>
 					</>
