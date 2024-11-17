@@ -4,30 +4,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import PlaylistComponent from '../components/PlaylistComponent';
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 
 import { useIsFocused } from '@react-navigation/native';
 import DefaultPlaylistComponent from '../components/DefaultPlaylistComponent';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Playlist, ResolvedDefaultPlaylist } from '../../lib-origin/Illusive/src/types';
 import { playlist_query_filter } from '../../lib-origin/Illusive/src/illusive_utilts';
-import { default_playlists } from '../../lib-origin/Illusive/src/illusi/src/default_playlists';
 import BigList from 'react-native-big-list';
 import NewPlaylist from './playlist/NewPlaylist';
+import { resolved_default_playlists, sort_playlists } from '../../lib-origin/Illusive/src/illusi/src/playlist';
 
 let search_query = "";
-// const CreatePlaylistStack = createNativeStackNavigator();
-// function CreatePlaylistStackScreen() {
-//     return (
-//         <CreatePlaylistStack.Navigator screenOptions={{ headerShown: true }}>
-//             <CreatePlaylistStack.Screen name="New Playlist" component={NewPlaylist as any} options={{ headerShown: false }} />
-//             <CreatePlaylistStack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist} options={{ headerShown: false }} />
-//         </CreatePlaylistStack.Navigator>
-//     );
-// }
-
 function PlaylistScreen() {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -48,25 +38,14 @@ function PlaylistScreen() {
 	async function refresh_data(query?: string){
         try {
             search_query = query ?? "";
-            const playlists = playlist_query_filter(await SQLActions.all_playlists_data(), search_query);
-            const ordered_playlists: Playlist[] = [];
-            for(let i = 0; i < playlists.length; i++){
-                if(playlists[i].pinned)
-                    ordered_playlists.unshift(playlists[i]);
-                else
-                    ordered_playlists.push(playlists[i]);
-            }
+            const playlists = playlist_query_filter(await SQLPlaylists.all_playlists_data(), search_query);
+            const ordered_playlists: Playlist[] = sort_playlists(playlists);
             set_playlists([]);
             set_playlists(ordered_playlists)
-            const resolved_default_playlists = await Promise.all(default_playlists.map(async(p) => {
-                return {
-                    "name": p.name,
-                    "tracks": (await p.track_function()).slice(0,4)
-                }
-            }));
-            set_default_playlists(resolved_default_playlists);
+            const rdefault_playlists = await resolved_default_playlists();
+            set_default_playlists(rdefault_playlists);
         } catch (error) {
-            console.log(error)
+            console.log(error);
         }
 	}
 
@@ -103,7 +82,7 @@ function PlaylistScreen() {
                 <ScrollView  horizontal={true}>
                     { default_playlists_state.map( (default_playlist, i) => (
                         <View key={i}>
-                            <DefaultPlaylistComponent title={default_playlist.name} four_track={default_playlist.tracks.slice(0,4)} navigation={navigation}/>
+                            <DefaultPlaylistComponent title={default_playlist.name} force_order={default_playlist.force_order} four_track={default_playlist.tracks.slice(0,4)} navigation={navigation}/>
                         </View>
                     ) ) }
                 </ScrollView>
@@ -117,7 +96,7 @@ function PlaylistScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,

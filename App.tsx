@@ -1,9 +1,9 @@
 import { Entypo, Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
-import { ActionSheetIOS, Button, Image } from 'react-native';
+import { Button, Image } from 'react-native';
 
 import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import * as GLOBALS from './lib-origin/Illusive/src/illusi/src/globals';
@@ -20,57 +20,69 @@ import ExtraRecoveryScreen from './app/screens/extra/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/extra/ExtraSettingsScreen';
 import ExtraScreen from './app/screens/ExtraScreen';
 import LibraryScreen from './app/screens/LibraryScreen';
-import Artist from './app/screens/other/Artist';
 import AudioPlayer from './app/screens/other/AudioPlayer';
 import SelectImportMusicServicePlaylist from './app/screens/playlist/SelectImportMusicServicePlaylist';
-import ImportMusicServicePlaylist from './app/screens/playlist/ImportMusicServicePlaylist';
 import Playlist from './app/screens/playlist/Playlist';
-import PlaylistAddSearch from './app/screens/playlist/PlaylistAddSearch';
 import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchHomeScreen from './app/screens/SearchHomeScreen';
 import AddToPlaylistBase from './app/screens/playlist/AddToPlaylistBase';
+import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
+import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const ExtrasStack = createNativeStackNavigator();
-
 function ExtrasStackScreen() {
     return (
         <ExtrasStack.Navigator screenOptions={{ headerShown: true }}>
             <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{ headerShown: false }} />
             <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
+            <ExtrasStack.Screen name="Sleep Timer" component={ExtraSleepTimerScreen} />
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
             <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
-            {/* <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} /> */}
+            <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
         </ExtrasStack.Navigator>
     );
 }
 
 const PlaylistsStack = createNativeStackNavigator();
-
 function PlaylistsStackScreen() {
     return (
         <PlaylistsStack.Navigator screenOptions={{ headerShown: false }}>
             <PlaylistsStack.Screen options={{ headerShown: false }} name="PlaylistScreen" component={PlaylistScreen}/>
+            <PlaylistsStack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist}
+                        options={(_) => ({
+                            headerShown: true, headerStyle: { backgroundColor: Prefs.dark_theme.colors.background, }, headerTitleStyle: { fontWeight: '500', color: '#FFFFFF' }, headerTintColor: Prefs.dark_theme.colors.primary,
+                            headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
+                        })}
+                    />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
-            <PlaylistsStack.Screen options={{ headerShown: false }} name="Artist" component={Artist} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
         </PlaylistsStack.Navigator>
     );
 }
 
-
+const SearchStack = createNativeStackNavigator();
+function SearchStackScreen() {
+    return (
+        <SearchStack.Navigator screenOptions={{ headerShown: false }}>
+            <SearchStack.Screen options={{ headerShown: false }} name="SearchHome" component={SearchHomeScreen}/>
+            <SearchStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+        </SearchStack.Navigator>
+    );
+}
 function Tabs() {
+    const theme = useTheme() as Prefs.Theme;
     return (
         <Tab.Navigator initialRouteName={'My Library'}
             screenOptions={{
-                headerShown: false, tabBarActiveTintColor: Prefs.dark_theme.colors.primary, tabBarInactiveTintColor: Prefs.dark_theme.colors.tabInactive,
-                tabBarActiveBackgroundColor: Prefs.dark_theme.colors.background, tabBarInactiveBackgroundColor: Prefs.dark_theme.colors.background, tabBarStyle: { backgroundColor: Prefs.dark_theme.colors.background, height: 90, zIndex: 1 }
+                headerShown: false, tabBarActiveTintColor: theme.colors.primary, tabBarInactiveTintColor: theme.colors.tabInactive,
+                tabBarActiveBackgroundColor: theme.colors.background, tabBarInactiveBackgroundColor: theme.colors.background, tabBarStyle: { backgroundColor: theme.colors.background, height: 90, zIndex: 1 }
             }}
             detachInactiveScreens={true}>
             <Tab.Screen name="My Library" component={LibraryScreen}
@@ -85,7 +97,7 @@ function Tabs() {
                     unmountOnBlur: true,
                 }}
             />
-            <Tab.Screen name="Search" component={SearchHomeScreen}
+            <Tab.Screen name="Search" component={SearchStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="search" size={25} color={color} />),
                     unmountOnBlur: false,
@@ -101,6 +113,7 @@ function Tabs() {
 }
 
 export default function App() {
+    const [theme, set_theme] = useState<Prefs.Theme>(Prefs.get_theme(Prefs.get_pref('theme')));
     const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
     const [playing_from, set_playing_from] = useState("");
     const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
@@ -108,7 +121,7 @@ export default function App() {
 
     useEffect(() => {
         (async function () {
-            await illusi_startup(play_tracks);
+            await illusi_startup(play_tracks, set_theme);
             set_is_loading(false);
         })();
     }, []);
@@ -128,29 +141,13 @@ export default function App() {
     }
     return (
         <GlobalStateProvider>
-            <NavigationContainer theme={Prefs.dark_theme}>
+            <NavigationContainer theme={theme}>
                 {is_loading && <Image style={{ flex: 1, backgroundColor: 'black', width: '100%', height: '100%' }} source={require('./assets/splash.png')} />}
                 {is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
                 {!is_loading && <Stack.Navigator>
-                    <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-                    <Stack.Screen name="Add To Playlist" component={PlaylistAddSearch} options={{ headerShown: true }} />
+                    <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false,  }} />
                     <Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen} />
                     <Stack.Screen name="Settings" component={ExtraSettingsScreen} />
-                    <Stack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist}
-                        options={(_) => ({
-                            headerShown: true, headerStyle: { backgroundColor: Prefs.dark_theme.colors.background, }, headerTitleStyle: { fontWeight: '500', color: '#FFFFFF' }, headerTintColor: Prefs.dark_theme.colors.primary,
-                            headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
-                        })}
-                    />
-                    <Stack.Screen name="ImportMusicServicePlaylist" component={ImportMusicServicePlaylist} options={(_) => ({
-                        headerShown: true, headerStyle: { backgroundColor: Prefs.dark_theme.colors.background, }, headerTitleStyle: { fontWeight: '500', color: '#FFFFFF' }, headerTintColor: 'blue',
-                        headerRight: () => (
-                            <Button
-                                color='#1313ff'
-                                onPress={() => ActionSheetIOS.showActionSheetWithOptions({ options: ['Cancel', 'Save Playlist', 'Add Tracks To Library'], cancelButtonIndex: 0, userInterfaceStyle: 'dark', }, (_) => { })}
-                                title="Save" />)
-                    })}
-                    />
                 </Stack.Navigator>}
             </NavigationContainer>
         </GlobalStateProvider>

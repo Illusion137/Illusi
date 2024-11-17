@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '@react-navigation/native';
+import { useIsFocused, useTheme } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -10,7 +10,7 @@ import { EditMode, HexColor } from '../../lib-origin/Illusive/src/types';
 import LibraryTrackList from '../components/LibraryTrackList';
 
 export default function LibraryScreen() {
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
 	const [edit_mode, set_edit_mode] = useState<EditMode>("NONE");
@@ -29,6 +29,7 @@ export default function LibraryScreen() {
         const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE"]);
 		set_edit_mode(next_edit_mode);
 	}
+    const is_focused = useIsFocused();
 
 	return (
 		<View style={styles.top_container}>
@@ -40,17 +41,17 @@ export default function LibraryScreen() {
 					</TouchableOpacity>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
 					<TextInput autoCorrect={false} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={async(query) => { (library_ref.current as any)?.refresh_data(query)}}></TextInput>
-					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data())}>
+					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data)}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>
 			</View>
-            <LibraryTrackList edit_mode={edit_mode} ref={library_ref}/>
+            <LibraryTrackList edit_mode={edit_mode} ref={library_ref} is_focused={is_focused}/>
 		</View>
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	top_container:{
 		backgroundColor: colors.background,
 		flex: 1,

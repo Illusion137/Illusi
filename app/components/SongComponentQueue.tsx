@@ -7,18 +7,18 @@ import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 function SongComponentQueue(props: {
 	track_data: QueueTrack
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	return (
         <View style={{backgroundColor: colors.track}}  >
             <View style={styles.songbox}>
                 <View style={{justifyContent: 'center'}}>
-                    <Image source={props.track_data.playback.artwork as any} style={styles.image}></Image>
+                    <Image source={props.track_data?.playback?.artwork as any} style={styles.image}></Image>
                 </View>
                 <View style={styles.text}>
-                    <Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
-                    <Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => artist.name).join(", ")}</Text>
+                    <Text style={styles.title} numberOfLines={1} >{props.track_data?.title}</Text>
+                    <Text style={styles.artist} numberOfLines={1} >{props.track_data?.artists.map(artist => artist.name).join(", ")}</Text>
                 </View>
             </View>
             <View style={styles.line}/>
@@ -26,7 +26,7 @@ function SongComponentQueue(props: {
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	songbox:{
 		width: '100%',
 		height: 60,

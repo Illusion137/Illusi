@@ -1,148 +1,71 @@
-// import React,  { useState, useEffect } from 'react';
-// import { View, StyleSheet, FlatList, Alert, TouchableOpacity, Text } from 'react-native';
-// import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import React,  { useState, useEffect } from 'react';
+import { View, FlatList, Alert } from 'react-native';
+import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+import { useTheme } from '@react-navigation/native';
+import * as SQLBackpack from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_backpack';
+import { Track } from '../../../lib-origin/Illusive/src/types';
+import { unzip_backpack } from '../../../lib-origin/Illusive/src/illusi/src/backpack';
+import ExtrasSectionButton from '../../components/ExtrasSectionButton';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
+import SongComponentBackpack from '../../components/SongComponentBackpack';
 
-// import { useNavigation, useTheme } from '@react-navigation/native';
-// import ExtrasSectionButton from '../../components/ExtrasSectionButton';
-// import { importedIcon } from '../../../globals';
-// import SegmentedControl from '@react-native-segmented-control/segmented-control';
-// import SongComponentBackpack from '../../components/SongComponentBackpack';
-// import { getProxyList, getRandomIndex } from '../../Illusive/IllusivePlaylistResolver';
-// import SearchYouTube from '../../Illusive/IllusiveSearch';
-// import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+export default function ExtraBackpackScreen() {
+	const { colors } = useTheme() as Prefs.Theme;
 
-// let restoredDataAll = []
-// let restoredIndex = 0;
+    const [mode_index, set_mode_index] = useState(0);
+	const [backpack_tracks, set_backpack_tracks] = useState<Track[]>([]);
+	const [unzipped_backpack_tracks, set_unzipped_backpack_tracks] = useState<Track[]>([]);
 
-// function ExtraBackpackScreen(props) {
-// 	const { colors } = useTheme() as typeof Prefs.dark_theme;
-// 	const styles = theme_styles(colors);
+	function ask_consent(title: string, confirmText: string, func: () => Promise<void>){
+		Alert.alert(
+			title,
+			confirmText,
+			[ { text: "Cancel"},
+			  { text: "OK", onPress: async() => {
+				  await func();
+			  } } ]
+		  );
+	}
 
-// 	const [data, setData] = useState([]);
-// 	const [restoredData, setRestoredData] = useState([]);
-// 	const [index, setIndex] = useState(0);
+    async function unzip_backpack_tracks(){
+        set_unzipped_backpack_tracks(await unzip_backpack(backpack_tracks));
+        set_mode_index(1);
+    }
 
-// 	function toCleanedQuery(title, artist){
-// 		let cleanedQuery = "";
-// 		title =    title.replaceAll(/\(.+?\)/g, '')
-// 						.replaceAll(/\[.+?\]/g, '')
-// 						.replaceAll('\\', '')
-// 						.replaceAll(/\s\s/g, '\\')
-// 						.replaceAll('\\', '');
-// 		let titleWords = title.split(' ');
-// 		let n_titleWords = [];
-// 		if(titleWords.length == 1){
-// 			return title + ' ' + artist;
-// 		}
-// 		let artistWords = artist.split(' ');
+	useEffect( () => {
+		(async function() {
+            set_backpack_tracks(await SQLBackpack.backpack_tracks());
+        })();
+	}, []);
+	const render_header = () => (
+		<>
+				{unzipped_backpack_tracks.length == 0 && <View>
+					<ExtrasSectionButton show_arrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {ask_consent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", unzip_backpack_tracks)}}/>
+					<ExtrasSectionButton show_arrow={false} text='Clear Backpack' icon='trash' onPress={async () => {ask_consent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
+						await SQLBackpack.empty_backpack();
+						set_backpack_tracks([])
+					})}}/>
+				</View>}
+				<View style={{height: 50}}/>
+		</>
+	)
+	const render_item = (item: {item: Track}) => (
+		<>
+			<SongComponentBackpack track_data={item.item}/>
+		</>
+	)
 
-// 		for(let i = 0; i < titleWords.length; i++){
-// 			if( !artistWords.includes(titleWords[i]) ){
-// 				n_titleWords.push(titleWords[i]);
-// 			}
-// 		}
-// 		cleanedQuery = n_titleWords.join(' ').replaceAll(/\s-\s/g, ' ').replaceAll(/-\s/g, ' ').replaceAll(/\s-/g, ' ') + ' - ' + artistWords.join(' ');
-// 		cleanedQuery = cleanedQuery.trim()
-// 		return cleanedQuery
-// 	}
+	return(
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
+						<SegmentedControl 
+				values={["View Backpack", "View Conversion"]}
+				selectedIndex={mode_index}
+				onChange={async(event) => {set_mode_index(event.nativeEvent.selectedSegmentIndex);}}
+			/>
+			<View style={{height: 15}}/>
 
-// 	function askConsent(title, confirmText, func){
-// 		Alert.alert(
-// 			title,
-// 			confirmText,
-// 			[ { text: "Cancel"},
-// 			  { text: "OK", onPress: async() => {
-// 				  await func();
-// 			  } } ]
-// 		  );
-// 	}
-
-// 	useEffect( () => {
-// 		(async function() {
-// 				let backpackTracks = await SQLActions.getBackpack();
-// 				setData(backpackTracks)
-// 			})();
-// 	}, []);
-// 	const renderHeader = () => (
-// 		<>
-// 				{restoredData.length == 0 && <View>
-// 					<ExtrasSectionButton show_arrow={false} text='Restore tracks in Backpack' icon='refresh' onPress={async () => {askConsent("Restore tracks in Backpack", "Are you sure you want to restore tracks in your Backpack", async() => {
-// 						let proxies = await getProxyList();
-// 						async function searchYT(title, artist, oldUID, proxy = null){
-// 							let search_query = toCleanedQuery(title, artist);
-// 							let ytSearchResult = await SearchYouTube(search_query, 0, proxy);
-// 							let results = ytSearchResult.data
-// 							for(let i = 0; i < results.length; i++){						
-// 								results[i]['artwork'] = {'uri': `https://img.youtube.com/vi/${results[i].video_id}/maxresdefault.jpg`, 'cache': 'force-cache'}
-// 								results[i]['oldUID'] = oldUID;
-// 								results[i]['disabled'] = false;
-// 							}
-// 							return results.slice(0,10);
-// 						}
-// 						let tracks = data;
-// 						const ytTracks = [];
-// 						for(let i = 0; i < tracks.length; i++){
-// 							ytTracks.push(
-// 								searchYT(tracks[i].video_name, tracks[i].video_creator, tracks[i].uid, proxies[getRandomIndex(proxies.length)])
-// 							)
-// 						}
-// 						let results = await Promise.all(ytTracks)
-// 						restoredDataAll = results				
-// 						setRestoredData(results.map( (item) => item[0] ))
-// 						restoredIndex = 0;
-// 						setIndex(1);
-// 					})}}/>
-// 					<ExtrasSectionButton show_arrow={false} text='Clear Backpack' icon='trash' onPress={async () => {askConsent("Clear Backpack", "Are you sure you want to clear your Backpack", async() => {
-// 						await SQLActions.clear_backpack();
-// 						setData([])
-// 					})}}/>
-// 				</View>}
-// 				<View style={{height: 50}}/>
-// 		</>
-// 	)
-// 	const renderItem = ({item}) => (
-// 		<>
-// 			<SongComponentBackpack disabled={item.disabled || false} oldUID={item.oldUID} video_id={item.video_id} video_name={item.video_name} video_creator={item.video_creator} artwork={item.artwork} video_duration={item.video_duration}/>
-// 		</>
-// 	)
-
-// 	return(
-// 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-// 						<SegmentedControl 
-// 				values={["View Backpack","View Conversion"]}
-// 				selectedIndex={index}
-// 				onChange={async(event) => {setIndex(event.nativeEvent.selectedSegmentIndex);}}
-// 			/>
-// 			<View style={{height: 15}}/>
-
-// 			{index == 1 && 
-// 			<View style={{flexDirection: 'row', width: '100%', height: 30}}>
-// 				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}} onPress={() => { 
-// 					try {						
-// 						restoredIndex;
-// 						if(restoredIndex - 1 >= 0) restoredIndex--;
-// 						setRestoredData(restoredDataAll.map( (item) => item[restoredIndex] ))
-// 					} catch (error) {
-// 						console.log(error)
-// 					}
-// 				}
-// 				}><Text style={{color: 'white', fontWeight: '200'}}>Previous</Text></TouchableOpacity>
-// 				<TouchableOpacity style={{backgroundColor: colors.track, width: '50%', height: 30, justifyContent: 'center', alignItems: 'center', borderRadius: 5}} onPress={() => { 
-// 					try{
-// 						if(restoredIndex + 1 < restoredDataAll[0].length) restoredIndex++;
-// 						setRestoredData(restoredDataAll.map( (item) => item[restoredIndex] ))
-// 					} catch (error) {
-// 						console.log(error)
-// 					}
-// 				}
-// 				}><Text style={{color: 'white', fontWeight: '200'}}>Next</Text></TouchableOpacity>
-// 			</View>}
-// 			{index == 0 && <FlatList data={data} renderItem={renderItem} ListHeaderComponent={renderHeader}/>}
-// 			{index == 1 && <FlatList data={restoredData} renderItem={renderItem} ListHeaderComponent={() => (<View style={{height: 20}}/>)}/>}
-// 		</View>
-// 	);
-// }
-// const theme_styles = (colors) => StyleSheet.create({
-    
-// });
-// export default ExtraBackpackScreen;
+			{mode_index == 0 && <FlatList data={backpack_tracks} renderItem={render_item} ListHeaderComponent={render_header}/>}
+			{mode_index == 1 && <FlatList data={unzipped_backpack_tracks} renderItem={render_item} ListHeaderComponent={() => (<View style={{height: 20}}/>)}/>}
+		</View>
+	);
+}

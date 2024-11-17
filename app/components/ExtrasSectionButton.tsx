@@ -8,9 +8,9 @@ function ExtrasSectionButton(props: {
 		onPress: () => void,
 		show_arrow: true | boolean, 
 		text: string,
-		icon: string
+        icon: keyof (typeof Ionicons)["glyphMap"]
 	}) {	
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	return(
@@ -23,7 +23,7 @@ function ExtrasSectionButton(props: {
 		</TouchableHighlight>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
 		height: 50, 

@@ -1,20 +1,20 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, ScrollView, TouchableHighlight, TouchableOpacity, Modal, Button, ImageBackground, Easing, Image, Alert } from 'react-native';
+import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions'
 import { Ionicons, Octicons } from '@expo/vector-icons';
-import AddToPlaylistsModal from './other/AddToPlaylistsModal';
-import TrackComponent from '../components/TrackComponent';
 import { CompactArtist, CompactPlaylist, MusicSearchResponse, Track } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
 import { is_empty } from '../../lib-origin/origin/src/utils/util';
+import { Constants } from '../../lib-origin/Illusive/src/constants';
+import TrackComponent from '../components/TrackComponent';
+import AddToPlaylistsModal from './other/AddToPlaylistsModal';
 import CompactPlaylistComponent from '../components/CompactPlaylistComponent';
 import CompactArtistComponent from '../components/CompactArtistComponent';
 
 function SearchScreen() {
-    const empty_search_result = {"tracks": [], "playlists": [], "artists": [], "albums": []};
+    const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
     
     type SearchMode = "Tracks" | "Albums" | "Artists" | "Playlists";
     const search_modes: SearchMode[] = ["Tracks", "Albums", "Artists", "Playlists"];
@@ -24,18 +24,18 @@ function SearchScreen() {
     const [search_service, set_search_service] = useState<SearchService>("YouTube");
     const search_services: SearchService[] = ["YouTube", "SoundCloud", "Spotify"];
 
-	const [search_result, set_search_result] = useState(empty_search_result as MusicSearchResponse);
+	const [search_result, set_search_result] = useState<MusicSearchResponse>(empty_search_result);
 	const [searching_data, set_searching_data] = useState([] as string[]);
 	const [is_searching, set_is_searching] = useState(true);
 	const [search_query_state, set_search_query_state] = useState('');
 	
-	const [continuation, set_continuation] = useState();
-	const navigation = useNavigation();
+	// const [continuation, set_continuation] = useState();
+	// const navigation = useNavigation();
 
 	const [is_using_recent_searches, set_is_using_recent_searches] = useState(true);
-    const [modal_data, set_modal_data] = useState({'show':false, 'track_data': null});
+    const [modal_data, set_modal_data] = useState({'show': false, 'track_data': null});
 
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	useEffect(() => {
@@ -46,7 +46,7 @@ function SearchScreen() {
 
 	function add_from(show: boolean, track: null){
 		set_modal_data({'show':show, 'track_data': track})
-	}
+	}add_from; //TODO: Find use for this
 	function get_previous_searches(){
 		set_searching_data(Prefs.get_pref('recent_searches'));
 	}
@@ -57,7 +57,7 @@ function SearchScreen() {
         await Prefs.add_to_recent_searches(query);
 
 		const music_search_result = await Illusive.music_service.get(search_service)!.search!(query);
-        music_search_result.tracks = await SQLActions.add_playback_saved_data_to_tracks(music_search_result.tracks);
+        music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
         if(music_search_result.tracks.length === 0 && music_search_result.albums.length === 0 && music_search_result.artists.length === 0 && music_search_result.playlists.length === 0) return false;
         set_search_result(music_search_result);
 		set_is_searching(false);
@@ -115,7 +115,7 @@ function SearchScreen() {
     const render_misc_component = (item: {item: Track|CompactArtist|CompactPlaylist}) => { 
         return (
         "uid" in item.item ?
-            <TrackComponent track_data={item.item} write_playlist='LIBRARY' from='Illusi Mix'/>
+            <TrackComponent track_data={item.item} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
                 : "artist" in item.item ? 
                     <CompactPlaylistComponent playlist_data={item.item}/>
                         : <CompactArtistComponent artist_data={item.item}/>
@@ -163,7 +163,7 @@ function SearchScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	topcontainer:{
 		backgroundColor: colors.background,
 		flex: 1,

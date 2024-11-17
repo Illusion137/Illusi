@@ -9,14 +9,14 @@ export default function CompactArtistComponent(props: {
 	artist_data: CompactArtist
     on_press?: () => void|Promise<void>
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	return(
         <>
 			<TouchableOpacity style={styles.button} onPress={props.on_press}>
                 <>
 					<View style={{width: 15}}/>
-					<Image source={{"uri":  !props.artist_data.profile_thumbnail_uri!.includes("http") ? props.artist_data.profile_thumbnail_uri!.replace('//', 'https://') : props.artist_data.profile_thumbnail_uri, "cache": "force-cache"}} style={styles.image}/>
+					<Image source={{"uri":  !props.artist_data.profile_artwork_url?.includes("http") ? props.artist_data.profile_artwork_url!.replace('//', 'https://') : props.artist_data.profile_artwork_url, "cache": "force-cache"}} style={styles.image}/>
 					<View style={{flexDirection: 'column', left: 20}}>
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.artist_data.name?.name}</Text>
 					</View>
@@ -26,7 +26,7 @@ export default function CompactArtistComponent(props: {
         </>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	button:{
 		width: '100%',
 		height: 60, 

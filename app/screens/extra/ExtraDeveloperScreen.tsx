@@ -1,22 +1,18 @@
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, TextInput, Alert } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, TextInput, Alert } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { Prefs } from "../../../../lib-origin/Illusive/src/prefs";
-import { useEffect, useState } from "react";
-import * as GLOBALS from "../../../../lib-origin/Illusive/src/illusi/src/globals";
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLUpdate from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_update';
+import * as SQLDatabase from '../../../lib-origin/Illusive/src/illusi/src/sql/database';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
 let sql_statement = "";
 export default function ExtraDeveloperScreen(){
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	
-	const [sqlState, setSQLState] = useState({columns: [], rows: []});
-	const width_array = [100];
-
 	async function alertSQLTables() {
-		Alert.alert("SQL Tables", JSON.stringify(await SQLActions.get_all_tables(SQLActions.db)));
+		Alert.alert("SQL Tables", JSON.stringify(await SQLUpdate.get_all_tables(SQLDatabase.db)));
 	}
 
 	async function exportSQLData(){
@@ -25,7 +21,7 @@ export default function ExtraDeveloperScreen(){
 
 	async function runSQL(sql_statement: string){
 		if(!sql_statement.trim()) return;
-		const result = await SQLActions.db.runAsync(sql_statement);
+		const result = await SQLDatabase.db.runAsync(sql_statement);
 		Alert.alert("SQL Result", JSON.stringify(result));
 	}
 
@@ -70,7 +66,7 @@ export default function ExtraDeveloperScreen(){
 	);
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	button: {
 		backgroundColor: '#201050',
 		width: '33%',
@@ -80,7 +76,7 @@ const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.crea
 		alignItems: 'center',
 	},
 	button_text: {
-		color: 'white',
+		color: colors.text,
 		fontWeight: 'bold',
 		width: 100,
 		textAlign: 'center'

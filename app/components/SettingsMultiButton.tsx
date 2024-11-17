@@ -8,7 +8,7 @@ function SettingsMultiButton(props: {
 	settings_key: Prefs.PrefOptions
 	settings_pref: Prefs.Pref<unknown>
 }) {
-    const { colors } = useTheme() as typeof Prefs.dark_theme;
+    const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     const settings_key = Prefs.snake_case_to_plain_text(props.settings_key);
@@ -50,7 +50,7 @@ function SettingsMultiButton(props: {
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
 		height: 50, 

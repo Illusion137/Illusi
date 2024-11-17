@@ -9,7 +9,7 @@ function ImportServiceComponent(props: {
     img_props: ImageSourcePropType,
     disabled?: boolean
 }) {
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
     
     function navigate_or_alert(){
@@ -31,7 +31,7 @@ function ImportServiceComponent(props: {
     )
 }
 
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	import_from:{
 		height: 45,
 		width: '100%',

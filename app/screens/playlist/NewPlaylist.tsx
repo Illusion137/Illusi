@@ -2,7 +2,7 @@
 import React,  { useState, useRef,useImperativeHandle, forwardRef, Ref } from 'react';
 import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import ImportServiceComponent from '../../components/ImportServiceComponent';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
@@ -14,7 +14,7 @@ function NewPlaylist(props: {
 	
 	const navigation: NavigationProp<any, any> = useNavigation();
 	
-	const { colors } = useTheme() as typeof Prefs.dark_theme;
+	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 		
 	const input_ref = useRef<TextInput>();
@@ -32,7 +32,7 @@ function NewPlaylist(props: {
 	}
 	async function onCreateValid(){
 		setIsInvalidName(true);
-		await SQLActions.create_playlist(playlistName);
+		await SQLPlaylists.create_playlist(playlistName);
 		await props.refresh_playlists_data();
 		input_ref.current?.clear();
 		input_ref.current?.blur();
@@ -56,17 +56,18 @@ function NewPlaylist(props: {
 				{!isInvalidName && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
+            <View style={{height: 0.6, backgroundColor: colors.line}}/>
 			<TextInput maxLength={45} ref={input_ref as any} placeholder='Playlist name' placeholderTextColor={colors.searchPlaceholder} style={styles.name_input} onChangeText={onNameUpdate}></TextInput>
 			<View style={{height:40}}></View>
             {[...Illusive.music_service.keys()].map((key, i) => (
                 <View key={i}>
-			        <ImportServiceComponent service_name={key} navigation={navigation} img_props={(typeof Illusive.music_service.get(key)!.app_icon === "number" ? Illusive.music_service.get(key)!.app_icon : {uri: Illusive.music_service.get(key)!.app_icon, cache: 'force-cache'}) as any}/>
+			        <ImportServiceComponent disabled={!(Illusive.music_service.get(key)!.has_credentials() || Illusive.music_service.get(key)!.cookie_jar_callback === undefined)} service_name={key} navigation={navigation} img_props={(typeof Illusive.music_service.get(key)!.app_icon === "number" ? Illusive.music_service.get(key)!.app_icon : {uri: Illusive.music_service.get(key)!.app_icon, cache: 'force-cache'}) as any}/>
                 </View>
             ))}
 		</View>
 	);
 }
-const theme_styles = (colors: typeof Prefs.dark_theme.colors) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	name_input:{
 		backgroundColor: colors.track,
 		height: 60,
