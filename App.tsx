@@ -20,7 +20,6 @@ import ExtraRecoveryScreen from './app/screens/extra/ExtraRecoveryScreen';
 import ExtraSettingsScreen from './app/screens/extra/ExtraSettingsScreen';
 import ExtraScreen from './app/screens/ExtraScreen';
 import LibraryScreen from './app/screens/LibraryScreen';
-import Artist from './app/screens/other/Artist';
 import AudioPlayer from './app/screens/other/AudioPlayer';
 import SelectImportMusicServicePlaylist from './app/screens/playlist/SelectImportMusicServicePlaylist';
 import Playlist from './app/screens/playlist/Playlist';
@@ -28,6 +27,7 @@ import PlaylistScreen from './app/screens/PlaylistScreen';
 import SearchHomeScreen from './app/screens/SearchHomeScreen';
 import AddToPlaylistBase from './app/screens/playlist/AddToPlaylistBase';
 import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
+import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -44,7 +44,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
-            {/* <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} /> */}
+            <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
         </ExtrasStack.Navigator>
     );
@@ -62,7 +62,6 @@ function PlaylistsStackScreen() {
                         })}
                     />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
-            <PlaylistsStack.Screen options={{ headerShown: false }} name="Artist" component={Artist} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
         </PlaylistsStack.Navigator>
     );

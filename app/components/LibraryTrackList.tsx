@@ -1,4 +1,4 @@
-import { useIsFocused, useTheme } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
 import { forwardRef, MutableRefObject, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
@@ -23,6 +23,7 @@ function LibraryTrackList(props: {
     header_height?: number
     header_item?: () => React.JSX.Element
     adjusted_alphabet_scroll?: number
+    is_focused: boolean
 }, ref: any){
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
@@ -38,14 +39,13 @@ function LibraryTrackList(props: {
 
 	const scroll_bar_animated = useRef(new Animated.Value(93)).current;
 	const biglist_ref = useRef<BigList>();
-    const is_focused = useIsFocused();
 
     useImperativeHandle(ref, () => ({
         refresh_data,
     }));    
     useEffect( () => {
-		if(is_focused) refresh_data(search_query);
-	}, [is_focused]);
+		refresh_data(search_query);
+	}, [props.is_focused]);
     useEffect( () => {
 		on_edit_mode_change(props.edit_mode);
 	}, [props.edit_mode]);

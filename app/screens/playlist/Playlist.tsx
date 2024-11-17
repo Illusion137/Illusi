@@ -174,16 +174,20 @@ export default function Playlist(params: {route: Route<unknown>}){
         return false;
     }
     async function full_continue(){
-        let i = 0;
-        while(i++ <= Constants.safe_max_fetch_continues && await try_continuation()){}
+        if(!is_empty(continuation) && "uri" in ts_route.params){
+            const split = split_uri(ts_route.params.uri);
+            const data = await Illusive.music_service.get(music_service_uri_to_music_service(split[0]))!.get_rest_of_playlist(continuation);
+            tracks_ref = tracks_ref.concat(await SQLTracks.add_playback_saved_data_to_tracks(data));
+            set_initial_tracks(tracks_ref);
+            set_tracks(tracks_ref);
+            set_continuation(null);
+            GLOBALS.global_var.playlist_cache.update(ts_route.params.uri, {tracks: tracks_ref, playlist_data: playlist_data!, continuation: null});
+        }
+        return tracks_ref;
     }
 
     async function add_tracks_to_library(){
-        await full_continue();
-        const promised_tracks: Types.Promises = [];
-        for(const track of tracks_ref)
-            promised_tracks.push( SQLTracks.insert_track(track) );
-        await Promise.all(promised_tracks);
+        await SQLTracks.insert_all_tracks(await full_continue());
         navigation.goBack();
     }
 
@@ -262,6 +266,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             <View style={{height: '94%'}}>
                 {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
                     <LibraryTrackList 
+                        is_focused={is_focused}
                         edit_mode='NONE'
                         ref={library_ref}
                         write_playlist_uuid={ts_route.params.write_playlist_uuid}

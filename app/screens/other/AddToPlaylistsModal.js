@@ -4,8 +4,9 @@ import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput, TouchableH
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SQLActions from '../../../lib-origin/Illusive/src/illusi/src/sql_actions';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
+import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import SelectPlaylist from '../../components/SelectPlaylist';
 
@@ -30,14 +31,14 @@ function AddToPlaylistsModal(props) {
         visible={modalData.show}
         presentationStyle={'pageSheet'}
         onShow={async() => {
-            let playlists = await SQLActions.getAllPlaylists();
+            let playlists = await SQLPlaylists.getAllPlaylists();
 
             for(let i = 0; i < playlists.length; i++){
-                let playlistTracks = await SQLActions.getPlaylistTracks(playlists[i].title.replaceAll(' ', '_'));
+                let playlistTracks = await SQLPlaylists.getPlaylistTracks(playlists[i].title.replaceAll(' ', '_'));
     
                 playlists[i]['track_count'] = playlistTracks.length;
                 playlists[i]['four_track'] = playlistTracks.slice(0,4);
-                playlists[i]['pinned'] = await SQLActions.getIsPlaylistsPinned(playlists[i].title) == 0 ? false : true
+                playlists[i]['pinned'] = await SQLPlaylists.getIsPlaylistsPinned(playlists[i].title) == 0 ? false : true
             }
             let orderedPlaylists = []
             for(let i = 0; i < playlists.length; i++){
@@ -67,8 +68,8 @@ function AddToPlaylistsModal(props) {
                 <Text style={{marginHorizontal: 20, bottom: 50, color: '#FFFFFF', fontSize: 14}}>{modalData.track_data?.video_creator || ""}</Text>
                 <FlatList style={{bottom: 45}} data={playlistsData} renderItem={renderPlaylistItem}/>
                 <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center'}} onPress={async() => {
-                    if(!(await SQLActions.checkIfVideoIdExists(modalData.track_data.video_id))){
-                        await SQLActions.insertTrackData(new SQLActions.Track({
+                    if(!(await SQLTracks.checkIfVideoIdExists(modalData.track_data.video_id))){
+                        await SQLTracks.insertTrackData(new SQLTracks.Track({
                                 video_name: modalData.track_data.video_name || "-",
                                 video_creator: modalData.track_data.video_creator || "-",
                                 video_id: modalData.track_data.video_id || "0",
@@ -80,9 +81,9 @@ function AddToPlaylistsModal(props) {
                     }
                     let selectedPlaylistsArray = [...GLOBALS.selectedPlaylists]
                     for(const selectedPlaylist of selectedPlaylistsArray){
-                        let playlistTracksVideoIds = (await SQLActions.getPlaylistTracks(selectedPlaylist)).map(({video_id}) => video_id)
+                        let playlistTracksVideoIds = (await SQLTracks.getPlaylistTracks(selectedPlaylist)).map(({video_id}) => video_id)
                         if(!playlistTracksVideoIds.includes(modalData.track_data.video_id)){
-                            await SQLActions.insertTrackIntoPlaylist({'uid': modalData.track_data.uid}, selectedPlaylist);
+                            await SQLPlaylists.insertTrackIntoPlaylist({'uid': modalData.track_data.uid}, selectedPlaylist);
                         }
                     }
                     modalData.track_data.callback();

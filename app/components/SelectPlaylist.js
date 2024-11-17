@@ -6,9 +6,6 @@ import { useNavigation,useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';;
 
-import * as SQLActions from '../../lib-origin/Illusive/src/illusi/src/sql_actions';
-
-
 function SelectPlaylist(props) {
 	const navigation = useNavigation();
 

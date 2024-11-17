@@ -45,7 +45,7 @@ function PlaylistScreen() {
             const rdefault_playlists = await resolved_default_playlists();
             set_default_playlists(rdefault_playlists);
         } catch (error) {
-            console.log(error)
+            console.log(error);
         }
 	}
 

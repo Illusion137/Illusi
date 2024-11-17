@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '@react-navigation/native';
+import { useIsFocused, useTheme } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -29,6 +29,7 @@ export default function LibraryScreen() {
         const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE"]);
 		set_edit_mode(next_edit_mode);
 	}
+    const is_focused = useIsFocused();
 
 	return (
 		<View style={styles.top_container}>
@@ -45,7 +46,7 @@ export default function LibraryScreen() {
 					</TouchableOpacity>
 				</View>
 			</View>
-            <LibraryTrackList edit_mode={edit_mode} ref={library_ref}/>
+            <LibraryTrackList edit_mode={edit_mode} ref={library_ref} is_focused={is_focused}/>
 		</View>
 	);
 }
