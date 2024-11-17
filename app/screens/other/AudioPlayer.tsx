@@ -19,6 +19,7 @@ import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
 import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 
 interface PlayerStateType {
     title?: string,
@@ -103,7 +104,7 @@ function AudioPlayer(props: {
             const current_track = await TrackPlayer.getActiveTrack();
             const illusi_track = await SQLTracks.track_from_uid((current_track as Track).id);
             if (illusi_track.media_uri)
-                await Sharing.shareAsync(FileSystem.documentDirectory + illusi_track.media_uri, { UTI });
+                await Sharing.shareAsync(FileSystem.documentDirectory + Illusive.media_archive_path + illusi_track.media_uri, { UTI });
             else if (!is_empty(illusi_track.youtube_id))
                 await Sharing.shareAsync(`https://www.youtube.com/watch?v=${illusi_track.youtube_id}`);
         });

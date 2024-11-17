@@ -28,6 +28,7 @@ import SearchHomeScreen from './app/screens/SearchHomeScreen';
 import AddToPlaylistBase from './app/screens/playlist/AddToPlaylistBase';
 import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
 import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
+import EditPlaylist from './app/screens/playlist/EditPlaylist';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -61,6 +62,7 @@ function PlaylistsStackScreen() {
                             headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
                         })}
                     />
+            <PlaylistsStack.Screen options={{ headerShown: false }} name="Edit Playlist" component={EditPlaylist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
         </PlaylistsStack.Navigator>

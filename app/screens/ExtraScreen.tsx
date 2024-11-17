@@ -83,10 +83,10 @@ function ExtraScreen() {
 				<Text style={styles.description_txt}>Restore unavailable videos from Backpack</Text>
 
                 <SegmentedControl
-						values={Prefs.all_themes()}
-						selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
-						onChange={async(event) => await change_theme(event)}
-                        style={{backgroundColor: colors.background}}
+                    values={Prefs.all_themes()}
+                    selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
+                    onChange={async(event) => await change_theme(event)}
+                    style={{backgroundColor: colors.background}}
                 />
 
 				<View style={styles.line_long}/>

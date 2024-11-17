@@ -16,7 +16,7 @@ function SettingsMultiButton(props: {
 	const [number_settings_value, set_number_settings_value] = useState<string>(props.settings_pref.type === "NUMBER" ? String(props.settings_pref.current_value) : "")
 
     async function number_on_value_change(){
-        let n = parseInt(number_settings_value) ?? 1; 
+        let n = parseInt(number_settings_value) ?? 1;
         set_number_settings_value(String(n));
         if(props.settings_pref.range !== undefined){
             if(n < props.settings_pref.range.start) n = props.settings_pref.range.start;
@@ -37,7 +37,7 @@ function SettingsMultiButton(props: {
 			<View style={{flex: 1, alignItems: 'flex-end', right:10}}>
 				{props.settings_pref.type === "NUMBER" ? 
 					<TextInput maxLength={3} style={{color: 'white', fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={number_settings_value} onChangeText={(val) => { set_number_settings_value(val) } }
-					onBlur={async() => await number_on_value_change}/> : null
+					onBlur={async() => await number_on_value_change()}/> : null
 				}
 				{props.settings_pref.type === "BOOLEAN" ?
 					<Switch value={boolean_settings_value} 

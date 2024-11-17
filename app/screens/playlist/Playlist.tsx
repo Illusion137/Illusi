@@ -243,7 +243,9 @@ export default function Playlist(params: {route: Route<unknown>}){
                         <IoniconsTouchableOpacity on_press={() => { 
                             navigation.navigate('AddToPlaylistBase', {write_playlist_uuid: (ts_route.params as {uuid: string}).uuid }); }} 
                                 style={styles.playlist_button} icon_name='add' icon_size={35} icon_color={colors.primary} icon_style={{left:1}}/>
-                        <MaterialCommunityIconsTouchableOpacity on_press={() => {}} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                        <MaterialCommunityIconsTouchableOpacity on_press={() => {
+                            navigation.navigate('Edit Playlist', {uuid: (ts_route.params as {uuid: string}).uuid });
+                        }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                         <FontAwesomeTouchableOpacity on_press={() => {}} style={styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                     </> 
                 : null}

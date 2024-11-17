@@ -33,7 +33,7 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 	useEffect(() => {
 		(async function() {
 			set_header();
-			if(Prefs.get_pref('get_account_playlists_in_get_playlist') || true){
+			if(Prefs.get_pref('get_account_playlists_in_get_playlist')){
 				if(music_service !== undefined){
                     if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
                         const playlist_map = await music_service.user_playlists_map!();
