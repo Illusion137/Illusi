@@ -17,11 +17,11 @@ function SettingsMultiButton(props: {
 
     async function number_on_value_change(){
         let n = parseInt(number_settings_value) ?? 1;
-        set_number_settings_value(String(n));
         if(props.settings_pref.range !== undefined){
             if(n < props.settings_pref.range.start) n = props.settings_pref.range.start;
             else if(n > props.settings_pref.range.end) n = props.settings_pref.range.end;
         }
+        set_number_settings_value(String(n));
         await Prefs.set_settings_number(props.settings_key, n);
     }
 
