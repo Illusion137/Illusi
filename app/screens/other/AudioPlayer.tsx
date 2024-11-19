@@ -7,13 +7,12 @@ import { useTheme } from '@react-navigation/native';
 import { Animated, Button, Dimensions, Easing, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
-import TrackPlayer, { Event, RepeatMode, State, Track, useTrackPlayerEvents } from 'react-native-track-player';
+import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-track-player';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import NavLink from '../../components/NavLink';
 import SongComponentQueue from '../../components/SongComponentQueue';
 
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
@@ -101,9 +100,10 @@ function AudioPlayer(props: {
     async function share_track() {
         catch_function_async(async() => {
             const UTI = 'public.item';
-            const current_track = await TrackPlayer.getActiveTrack();
-            const illusi_track = await SQLTracks.track_from_uid((current_track as Track).id);
-            if (illusi_track.media_uri)
+            const current_track = await TrackPlayer.getActiveTrackIndex();
+            if(current_track === undefined) return;
+            const illusi_track = GLOBALS.global_var.playing_tracks[current_track];
+            if (!is_empty(illusi_track.media_uri))
                 await Sharing.shareAsync(FileSystem.documentDirectory + Illusive.media_archive_path + illusi_track.media_uri, { UTI });
             else if (!is_empty(illusi_track.youtube_id))
                 await Sharing.shareAsync(`https://www.youtube.com/watch?v=${illusi_track.youtube_id}`);

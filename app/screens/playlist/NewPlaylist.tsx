@@ -61,7 +61,7 @@ function NewPlaylist(props: {
 			<View style={{height:40}}></View>
             {[...Illusive.music_service.keys()].map((key, i) => (
                 <View key={i}>
-			        <ImportServiceComponent disabled={!(Illusive.music_service.get(key)!.has_credentials() || Illusive.music_service.get(key)!.cookie_jar_callback === undefined) || Illusive.free_music_services.includes(key)} service_name={key} navigation={navigation} img_props={(typeof Illusive.music_service.get(key)!.app_icon === "number" ? Illusive.music_service.get(key)!.app_icon : {uri: Illusive.music_service.get(key)!.app_icon, cache: 'force-cache'}) as any}/>
+			        <ImportServiceComponent disabled={!(Illusive.music_service.get(key)!.has_credentials() || Illusive.music_service.get(key)!.cookie_jar_callback === undefined || Illusive.free_music_services.includes(key))} service_name={key} navigation={navigation} img_props={(typeof Illusive.music_service.get(key)!.app_icon === "number" ? Illusive.music_service.get(key)!.app_icon : {uri: Illusive.music_service.get(key)!.app_icon, cache: 'force-cache'}) as any}/>
                 </View>
             ))}
 		</View>

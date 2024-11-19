@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { CookieJar } from '../../../lib-origin/origin/src/utils/cookie_util';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/types';
+import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 
 let current_service: MusicServiceType|null = null;
 
@@ -42,8 +44,10 @@ function ServiceSwitcher(props: {
         </>
     )
 }
-    
-    
+
+export function clear_webview_data(){
+    CookieManager.clearAll(true);
+}
 
 export default function ExternalServicesScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
@@ -110,10 +114,12 @@ export default function ExternalServicesScreen() {
 						/>
 			</View> }
 			<ScrollView>
+                <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin-outline' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
                 {illusive_external_service.map((service, i) => (
                     <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} cookies_enabled={external_services_cookies_enabled[service]}/>
                 ))}
+                <View style={{height: 100}}/>
 			</ScrollView>
 		</View>
 	);
