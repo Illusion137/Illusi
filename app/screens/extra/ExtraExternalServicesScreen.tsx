@@ -109,7 +109,7 @@ export default function ExternalServicesScreen() {
 						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 						// userAgent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
 						// applicationNameForUserAgent='Illusi'
-                        // originWhitelist={['http://', 'https://', 'about:']}
+                        originWhitelist={['http://', 'https://', 'about:', 'http://*', 'https://*', 'about:*', '*']}
 						contentMode="mobile"
 						/>
 			</View> }

@@ -6,7 +6,10 @@ import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/s
 import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
 import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from "@react-native-segmented-control/segmented-control";
 import { IoniconsTouchableOpacity } from "../../components/TouchableIconOpacity";
+import ExtrasSectionButton from "../../components/ExtrasSectionButton";
 
+type KeyValue = {key: string, value: string};
+type Action = "ADD"|"REMOVE";
 export default function EditPlaylist(params: {route: Route<unknown>}){
     const ts_route = params.route as Route<{uuid: string}>;
     
@@ -14,8 +17,16 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 	const styles = theme_styles(colors);
     
     const sort_modes: SortType[] = ["OLDEST", "NEWEST", "ALPHABETICAL"];
+    const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK"];
 
     const [playlist_data, set_playlist_data] = useState<Playlist>();
+    
+    const [inherited_playlist_key_values, set_inherited_playlist_key_values] = useState<KeyValue[]>([]);
+    const [inherited_playlist_selected_index, set_inherited_playlist_selected_index] = useState(0);
+    const [inherited_playlist_segment_mode, set_inherited_playlist_segment_mode] = useState<PlaylistInheritanceMode>("INCLUDE");
+    
+    const [inherited_search_query, set_inherited_search_query] = useState("");
+    const [inherited_search_segment_mode, set_inherited_search_segment_mode] = useState<PlaylistInheritanceMode>("INCLUDE");
     
     useEffect(() => {
         (async() => {
@@ -27,18 +38,27 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
         const new_sort_mode: SortType = event.nativeEvent.value.toUpperCase() as SortType;
         await SQLPlaylists.update_playlist_sort_mode(ts_route.params.uuid, new_sort_mode);
     }
-    async function add_inherited_playlist(inherited_playlist: InheritedPlaylist){
-        inherited_playlist;
-    } add_inherited_playlist;
-    async function remove_inherited_playlist(inherited_playlist: InheritedPlaylist){
-        inherited_playlist;
+    async function inherited_playlist_action(type: Action){
+        const inherited_playlist: InheritedPlaylist = {
+            "mode": inherited_playlist_segment_mode,
+            "uuid": inherited_playlist_key_values[inherited_playlist_selected_index].key
+        };
+        const new_iplaylists = SQLPlaylists.inherited_playlists_action(playlist_data.inherited_playlists, inherited_playlist, type);
+        await SQLPlaylists.update_playlist_inherited_playlists(playlist_data.uuid, new_iplaylists);
     }
-    async function add_inherited_search(inherited_search: InheritedSearch){
-        inherited_search;
-    } add_inherited_search;
-    async function remove_inherited_search(inherited_search: InheritedSearch){
-        inherited_search;
+    async function inherited_search_action(type: Action){
+        const inherited_search: InheritedSearch = {
+            "mode": inherited_search_segment_mode,
+            "query": inherited_search_query
+        };
+        const new_isearches = SQLPlaylists.inherited_searches_action(playlist_data.inherited_playlists, inherited_playlist, type);
+        await SQLPlaylists.update_playlist_inherited_searchs(playlist_data.uuid, new_isearches);
     }
+    async function add_inherited_playlist(){ await inherited_playlist_action("ADD"); }
+    async function remove_inherited_playlist(){ await inherited_playlist_action("REMOVE"); }
+    async function add_inherited_search(){ await inherited_search_action("ADD"); }
+    async function remove_inherited_search(){ await inherited_search_action("REMOVE"); }
+
     return (
         <View style={styles.top_container}>
             <View style={{height: 80}}/>
@@ -51,6 +71,12 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                 style={{backgroundColor: colors.background}}/>
             <View>
                 <Text style={styles.info_text}>Inherited Playlists</Text>
+                <SegmentedControl
+                    values={inheritance_modes.map(mode => mode.toLowerCase())}
+                    selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
+                    onChange={async(event) => set_inherited_playlist_segment_mode(event)}
+                    style={{backgroundColor: colors.background}}/>
+                <ExtrasSectionButton show_arrow={false} text='Create New Playlist Inheritance' icon='file-tray-full-outline' onPress={add_inherited_playlist}/>
                 {
                     playlist_data?.inherited_playlists?.map((item, i) => (
                         <View key={i}>
@@ -62,6 +88,12 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             </View>
             <View>
                 <Text style={styles.info_text}>Inherited Searchs</Text>
+                <SegmentedControl
+                    values={inheritance_modes.map(mode => mode.toLowerCase())}
+                    selectedIndex={inheritance_modes.findIndex(item => item === inherited_search_segment_mode)}
+                    onChange={async(event) => set_inherited_search_segment_mode(event)}
+                    style={{backgroundColor: colors.background}}/>
+                <ExtrasSectionButton show_arrow={false} text='Create New Search Inheritance' icon='file-tray-full-outline' onPress={add_inherited_search}/>
                 {
                     playlist_data?.inherited_searchs?.map((item, i) => (
                         <View key={i}>
