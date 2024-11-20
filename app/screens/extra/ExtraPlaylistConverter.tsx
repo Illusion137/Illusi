@@ -8,10 +8,11 @@ import { useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { MusicServiceMappedPlaylist, MusicServiceType } from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { loggedin_services } from '../../../lib-origin/Illusive/src/illusi/src/playlist_converter';
+import { convert_playlist, loggedin_services } from '../../../lib-origin/Illusive/src/illusi/src/playlist_converter';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
+import { create_uri, music_service_to_music_service_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
 type KeyValue = {key: string, value: string};
 function ExtraPlaylistConverter() {
@@ -24,7 +25,7 @@ function ExtraPlaylistConverter() {
 	const [illusi_playlist_data, set_illusi_playlist_data] = React.useState<KeyValue[]>([]);
 
 	const [segmented_service_values, set_segmented_service_values] = React.useState<MusicServiceType[]>([]);
-	const [selected_segmented_service_value, set_selected_segmented_service_value] = React.useState("");
+	const [selected_segmented_service_value, set_selected_segmented_service_value] = React.useState<MusicServiceType>("YouTube");
 
 	const [selected_service_playlist, set_selected_service_playlist] = React.useState("");
 	const [service_playlist_data, set_service_playlist_data] = React.useState<KeyValue[]>([]);
@@ -36,28 +37,16 @@ function ExtraPlaylistConverter() {
 		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			try {
-				let tracks = [];
-				if(selected_illusi_playlist == 'Library'){
-					tracks = [...GLOBALS.global_var.sql_tracks]
-				} else{
-					tracks = await SQLPlaylists.playlist_tracks(selected_illusi_playlist);
-				}
-				tracks = tracks.filter(item => item.youtube_id);
-
-				const playlist_url = data.get(selected_service_playlist)
-				
-				if(selected_segmented_service_value == "YouTube" && playlist_url !== undefined){
-					// let playlistId = getYTPlaylistIdFromURL(playlist_url);
-					// await insertIntoYouTubePlaylist(selectedServicePlaylist, tracks);
-				} else if(selected_segmented_service_value == "Spotify"){
-
-				}
-				else if(selected_segmented_service_value == "Amazon"){
-					
-				}
-				// await insertIntoAmazonMusicPlaylist(playlistURL, selectedServicePlaylist, [...GLOBALS.global_var.SQLTracks]);
-				// let playlistId = getYTPlaylistIdFromURL(playlistURL)
-				// await insertIntoYouTubePlaylist(playlistId, [...GLOBALS.global_var.SQLTracks].map(({video_id}) => (video_id)));
+                const illusi_item = illusi_playlist_data.find(item => item.value === selected_illusi_playlist)!;
+				const illusi_tracks = illusi_item.key === Constants.library_write_playlist ? GLOBALS.global_var.sql_tracks.slice() : await SQLPlaylists.playlist_tracks(illusi_item.key);
+                const service_uri = music_service_to_music_service_uri(selected_segmented_service_value);
+                const service_id = data.get("selected_service_playlist")!.url;
+                await convert_playlist( illusi_tracks, selected_segmented_service_value, 
+                    {
+                        "to": { "uuid_uri": create_uri(service_uri, service_id) },
+                        "full_sample": false
+                    }
+                );
 			} catch (error) {
 				console.log(error)
 			}
@@ -107,7 +96,7 @@ function ExtraPlaylistConverter() {
 					<SegmentedControl 
 						values={segmented_service_values}
 						selectedIndex={undefined}
-						onChange={async(event) => {set_selected_segmented_service_value(event.nativeEvent.value); await get_service_playlist_data(event.nativeEvent.value as MusicServiceType)}}
+						onChange={async(event) => {set_selected_segmented_service_value(event.nativeEvent.value as MusicServiceType); await get_service_playlist_data(event.nativeEvent.value as MusicServiceType)}}
 					/>
 					<View style={{height: 15}}/>
 					<SelectList 
