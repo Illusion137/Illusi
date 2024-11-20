@@ -78,7 +78,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     const is_focused = useIsFocused();
     useEffect( () => {
-        Prefs.prefs.always_shuffle.current_value = !force_order;
+        if(force_order) Prefs.prefs.always_shuffle.current_value = false;
         initial_data();
         return () => exit_handler();
     }, []);

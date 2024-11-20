@@ -17,6 +17,7 @@ function ExtraSettingsScreen() {
 	<>
 		<SettingsMultiButton settings_key={item.item[0]} settings_pref={item.item[1]}/>
 		{item.index !== settings_data.length-1 && <View style={styles.line_short}/>}
+		{item.item[1]?.description !== undefined ? <Text>{item.item[1].description}</Text>: null }
 	</>;
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
