@@ -117,7 +117,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             const split = split_uri(ts_route.params.uri);
             const playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
             if("error" in playlist! && !is_empty(playlist.error)) {
-                alert_error(playlist.error!.map(item => item.error).join(", "));
+                alert_error(playlist.error![0]);
                 return;
             }
             const id_continuation = playlist!.continuation;

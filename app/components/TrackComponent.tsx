@@ -20,7 +20,7 @@ function TrackComponent(props: {
         playlist_uuid?: string,
 		edit_mode?: EditMode,
         track_callback?: () => Track[]
-		refresh_data?: () => void
+		refresh_data?: () => Promise<void>
 	}) {
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
@@ -37,7 +37,7 @@ function TrackComponent(props: {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
-    let interval: NodeJS.Timeout;
+    let interval: any;
 	useEffect(() => {
         const depth = Prefs.get_pref('download_queue_max_length');
         const index = GLOBALS.downloading.slice(0, depth).findIndex(item => item?.uid === props.track_data.uid);
@@ -106,8 +106,8 @@ function TrackComponent(props: {
 				{props.write_playlist_uuid !== undefined &&
                     <IoniconsTouchableOpacity on_press={() => insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data)} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
-				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
-                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
+				{props.edit_mode === "DOWNLOAD" && (!is_downloaded || Prefs.get_pref('can_redownload')) && is_empty(props.track_data.imported_id) && !is_downloading && 
+                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={is_downloaded && Prefs.get_pref('can_redownload') ? colors.orange : colors.primary} icon_style={{left: 10}}/>
 				}
 				{is_downloading && 
 					<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{downloading_progress}%</Text>

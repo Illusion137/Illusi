@@ -44,6 +44,7 @@ function LibraryTrackList(props: {
         refresh_data,
     }));    
     useEffect( () => {
+        search_query = "";
 		refresh_data(search_query);
 	}, [props.is_focused]);
     useEffect( () => {

@@ -21,7 +21,7 @@ function ExtraPlaylistConverter() {
 	
 	const [data, set_data] = useState(new Map<string, MusicServiceMappedPlaylist>());
 
-	const [selected_illusi_playlist, set_selected_illusi_playlist] = React.useState("");
+	const [selected_illusi_playlist_key, set_selected_illusi_playlist_key] = React.useState("");
 	const [illusi_playlist_data, set_illusi_playlist_data] = React.useState<KeyValue[]>([]);
 
 	const [segmented_service_values, set_segmented_service_values] = React.useState<MusicServiceType[]>([]);
@@ -37,8 +37,7 @@ function ExtraPlaylistConverter() {
 		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			try {
-                const illusi_item = illusi_playlist_data.find(item => item.value === selected_illusi_playlist)!;
-				const illusi_tracks = illusi_item.key === Constants.library_write_playlist ? GLOBALS.global_var.sql_tracks.slice() : await SQLPlaylists.playlist_tracks(illusi_item.key);
+				const illusi_tracks = selected_illusi_playlist_key === Constants.library_write_playlist ? GLOBALS.global_var.sql_tracks.slice() : await SQLPlaylists.playlist_tracks(selected_illusi_playlist_key);
                 const service_uri = music_service_to_music_service_uri(selected_segmented_service_value);
                 const service_id = data.get("selected_service_playlist")!.url;
                 await convert_playlist( illusi_tracks, selected_segmented_service_value, 
@@ -48,7 +47,7 @@ function ExtraPlaylistConverter() {
                     }
                 );
 			} catch (error) {
-				console.log(error)
+				alert_error({error: error as Error})
 			}
 		} } ]
 	);
@@ -77,9 +76,9 @@ function ExtraPlaylistConverter() {
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
-					setSelected={(value: string) => set_selected_illusi_playlist(value)}
+					setSelected={(key: string) => set_selected_illusi_playlist_key(key)}
 					data={illusi_playlist_data} 
-					save="value"
+					save="key"
 					arrowicon={<></>}
 					searchicon={<></>}
 					searchPlaceholder={"Select Illusi Playlist"}
@@ -89,7 +88,7 @@ function ExtraPlaylistConverter() {
 					dropdownStyles={{backgroundColor: colors.track}}
 					dropdownTextStyles={{color: 'white'}}
 				/>
-				{selected_illusi_playlist != undefined && selected_illusi_playlist !== "" && 
+				{selected_illusi_playlist_key != undefined && selected_illusi_playlist_key !== "" && 
 				<>
 					<View style={{height: 15}}/>
 					<Text style={styles.descriptiontxt}>Select service to convert playlist to</Text>

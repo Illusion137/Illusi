@@ -10,6 +10,7 @@ import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/types';
 import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
+import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 
 let current_service: MusicServiceType|null = null;
 
@@ -71,7 +72,8 @@ export default function ExternalServicesScreen() {
         if(current_service === null) return;
         const illusive_service = Illusive.music_service.get(current_service!)!;
         CookieManager.get(event.url).then(
-            async(res: Cookies) => { 
+            async(res: Cookies) => {
+                if(is_empty(res)) return;
                 await Prefs.save_pref(illusive_service.pref_cookie_jar!, CookieJar.fromCookies(res as any)); 
                 const updated_cookies_enabled = {...external_services_cookies_enabled};
                 if(illusive_service.has_credentials())
@@ -109,7 +111,12 @@ export default function ExternalServicesScreen() {
 						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 						// userAgent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
 						// applicationNameForUserAgent='Illusi'
-                        originWhitelist={['http://', 'https://', 'about:', 'http://*', 'https://*', 'about:*', '*']}
+                        onShouldStartLoadWithRequest={event => {  
+                            if (!event.url.startsWith("https://"))
+                                return false;
+                            return true;
+                        }}
+                        originWhitelist={['*']}
 						contentMode="mobile"
 						/>
 			</View> }
