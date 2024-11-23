@@ -28,6 +28,8 @@ import SearchHomeScreen from './app/screens/SearchHomeScreen';
 import AddToPlaylistBase from './app/screens/playlist/AddToPlaylistBase';
 import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
 import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
+import EditPlaylist from './app/screens/playlist/EditPlaylist';
+import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -40,6 +42,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
             <ExtrasStack.Screen name="Sleep Timer" component={ExtraSleepTimerScreen} />
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
+            <ExtrasStack.Screen name="Experimental Settings" component={ExtraExperimentalSettingsScreen} />
             <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
@@ -61,6 +64,7 @@ function PlaylistsStackScreen() {
                             headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
                         })}
                     />
+            <PlaylistsStack.Screen options={{ headerShown: false }} name="Edit Playlist" component={EditPlaylist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
         </PlaylistsStack.Navigator>

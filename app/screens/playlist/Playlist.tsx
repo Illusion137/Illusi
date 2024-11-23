@@ -78,7 +78,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     const is_focused = useIsFocused();
     useEffect( () => {
-        Prefs.prefs.always_shuffle.current_value = !force_order;
+        if(force_order) Prefs.prefs.always_shuffle.current_value = false;
         initial_data();
         return () => exit_handler();
     }, []);
@@ -116,6 +116,10 @@ export default function Playlist(params: {route: Route<unknown>}){
             }
             const split = split_uri(ts_route.params.uri);
             const playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
+            if("error" in playlist! && !is_empty(playlist.error)) {
+                alert_error(playlist.error![0]);
+                return;
+            }
             const id_continuation = playlist!.continuation;
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.artwork_url ?? thumbnail_url, creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
@@ -124,7 +128,6 @@ export default function Playlist(params: {route: Route<unknown>}){
             tracks_ref = id_tracks;
             set_initial_tracks(id_tracks);
             set_tracks(id_tracks);
-            if("error" in playlist! && !is_empty(playlist.error)) return;
             GLOBALS.global_var.playlist_cache.add(ts_route.params.uri, {tracks: id_tracks, playlist_data: id_playlist_data, continuation: id_continuation});
         }
         else if("write_playlist_uuid" in ts_route.params){
@@ -243,7 +246,9 @@ export default function Playlist(params: {route: Route<unknown>}){
                         <IoniconsTouchableOpacity on_press={() => { 
                             navigation.navigate('AddToPlaylistBase', {write_playlist_uuid: (ts_route.params as {uuid: string}).uuid }); }} 
                                 style={styles.playlist_button} icon_name='add' icon_size={35} icon_color={colors.primary} icon_style={{left:1}}/>
-                        <MaterialCommunityIconsTouchableOpacity on_press={() => {}} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                        <MaterialCommunityIconsTouchableOpacity on_press={() => {
+                            navigation.navigate('Edit Playlist', {uuid: (ts_route.params as {uuid: string}).uuid });
+                        }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                         <FontAwesomeTouchableOpacity on_press={() => {}} style={styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                     </> 
                 : null}

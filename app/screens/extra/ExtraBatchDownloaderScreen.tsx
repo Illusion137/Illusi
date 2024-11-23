@@ -16,13 +16,12 @@ function ExtraBatchDownloaderScreen() {
 	const styles = theme_styles(colors);
 	
 	const [downloading_tracks_data, set_downloading_tracks_data] = React.useState([...GLOBALS.downloading]);
-	const [selected, set_selected] = React.useState("");
+	const [selected_key, set_selected_key] = React.useState("");
 	const [playlist_download_data, set_playlist_download_data] = React.useState<{key: string, value: string}[]>([]);
 	
 	async function download_playlist(){
-        if(is_empty(selected)){ return; }
-        const item = playlist_download_data.find(item => item.value === selected)!;
-        batch_download(item.key);
+        if(is_empty(selected_key)){ return; }
+        batch_download(selected_key);
     }
 
 	useEffect(() => {
@@ -31,7 +30,7 @@ function ExtraBatchDownloaderScreen() {
 			const playlists_entries: {key: string, value: string}[] = []
 			playlists_entries.push({key: Constants.library_write_playlist, value: 'Library'});
 			for (let i = 0; i < playlists.length; i++)
-				playlists_entries.push({key: playlists[i].uuid, value: playlists[i].title})
+				playlists_entries.push({key: playlists[i].uuid, value: playlists[i].title});
 			set_playlist_download_data(playlists_entries);
 		})()
 		const interval = setInterval(() => {
@@ -66,9 +65,9 @@ function ExtraBatchDownloaderScreen() {
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 				<SelectList 
-					setSelected={(value: string) => set_selected(value)}
+					setSelected={(key: string) => set_selected_key(key)}
 					data={playlist_download_data}
-					save="value"
+					save="key"
 					arrowicon={<></>}
 					searchicon={<></>}
 					searchPlaceholder={"Select Playlist"}

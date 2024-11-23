@@ -45,7 +45,7 @@ function PlaylistScreen() {
             const rdefault_playlists = await resolved_default_playlists();
             set_default_playlists(rdefault_playlists);
         } catch (error) {
-            console.log(error);
+            
         }
 	}
 
@@ -82,7 +82,7 @@ function PlaylistScreen() {
                 <ScrollView  horizontal={true}>
                     { default_playlists_state.map( (default_playlist, i) => (
                         <View key={i}>
-                            <DefaultPlaylistComponent title={default_playlist.name} force_order={default_playlist.force_order} four_track={default_playlist.tracks.slice(0,4)} navigation={navigation}/>
+                            <DefaultPlaylistComponent title={default_playlist.name} force_order={default_playlist.force_order} four_track={default_playlist.four_tracks} navigation={navigation}/>
                         </View>
                     ) ) }
                 </ScrollView>

@@ -8,6 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { CookieJar } from '../../../lib-origin/origin/src/utils/cookie_util';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/types';
+import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import ExtrasSectionButton from '../../components/ExtrasSectionButton';
+import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 
 let current_service: MusicServiceType|null = null;
 
@@ -42,8 +45,10 @@ function ServiceSwitcher(props: {
         </>
     )
 }
-    
-    
+
+export function clear_webview_data(){
+    CookieManager.clearAll(true);
+}
 
 export default function ExternalServicesScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
@@ -67,7 +72,8 @@ export default function ExternalServicesScreen() {
         if(current_service === null) return;
         const illusive_service = Illusive.music_service.get(current_service!)!;
         CookieManager.get(event.url).then(
-            async(res: Cookies) => { 
+            async(res: Cookies) => {
+                if(is_empty(res)) return;
                 await Prefs.save_pref(illusive_service.pref_cookie_jar!, CookieJar.fromCookies(res as any)); 
                 const updated_cookies_enabled = {...external_services_cookies_enabled};
                 if(illusive_service.has_credentials())
@@ -105,15 +111,22 @@ export default function ExternalServicesScreen() {
 						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 						// userAgent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
 						// applicationNameForUserAgent='Illusi'
-                        originWhitelist={['http://', 'https://', 'about:']}
+                        onShouldStartLoadWithRequest={event => {  
+                            if (!event.url.startsWith("https://"))
+                                return false;
+                            return true;
+                        }}
+                        originWhitelist={['*']}
 						contentMode="mobile"
 						/>
 			</View> }
 			<ScrollView>
+                <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin-outline' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
                 {illusive_external_service.map((service, i) => (
                     <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} cookies_enabled={external_services_cookies_enabled[service]}/>
                 ))}
+                <View style={{height: 100}}/>
 			</ScrollView>
 		</View>
 	);
