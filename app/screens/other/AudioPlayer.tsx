@@ -118,7 +118,7 @@ function AudioPlayer(props: {
             const queue = await TrackPlayer.getQueue();
             if (is_setup && queue.length <= 0) {
                 GLOBALS.global_var.playing_track_index = 0;
-                GLOBALS.global_var.playing_tracks = props.tracks;
+                GLOBALS.global_var.playing_tracks = props.tracks.slice();
                 for (let i = 0; i < props.tracks.length; i++) {
                     GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
                     GLOBALS.global_var.playing_tracks[i].playback!.added = false;

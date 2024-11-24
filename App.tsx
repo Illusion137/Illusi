@@ -64,7 +64,7 @@ function PlaylistsStackScreen() {
                             headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
                         })}
                     />
-            <PlaylistsStack.Screen options={{ headerShown: false }} name="Edit Playlist" component={EditPlaylist as any} />
+            <PlaylistsStack.Screen options={{ headerShown: true }} name="Edit Playlist" component={EditPlaylist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
         </PlaylistsStack.Navigator>

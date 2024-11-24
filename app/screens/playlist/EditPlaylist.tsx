@@ -77,7 +77,6 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 
     return (
         <ScrollView style={styles.top_container}>
-            <View style={{height: 80}}/>
             <Text style={styles.info_text}>{playlist_title}</Text>
             <TextInput value={playlist_title} autoCorrect={false} placeholder='Enter Title' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_playlist_title(text)}}/>
             <ExtrasSectionButton show_arrow={false} text='Change Playlist Title' icon='pencil-sharp' onPress={change_playlist_title}/>

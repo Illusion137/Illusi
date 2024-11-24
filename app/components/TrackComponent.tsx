@@ -79,7 +79,7 @@ function TrackComponent(props: {
 					}
 				</View>
 				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
-					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
+					<Text style={styles.title} numberOfLines={1} >{Prefs.get_pref('alt_titles') ? props.track_data.alt_title ?? props.track_data.title : props.track_data.title}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => remove_topic(artist.name).trim()).join(", ")}</Text>
                     { Prefs.get_pref('simple_tags') ? <View style={{flexDirection: 'row'}}>
     					<Text style={styles.album} numberOfLines={1} >{props.track_data.album?.name ?? ""}</Text>
