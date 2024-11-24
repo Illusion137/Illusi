@@ -13,7 +13,8 @@ import { Playlist, ResolvedDefaultPlaylist } from '../../lib-origin/Illusive/src
 import { playlist_query_filter } from '../../lib-origin/Illusive/src/illusive_utilts';
 import BigList from 'react-native-big-list';
 import NewPlaylist from './playlist/NewPlaylist';
-import { resolved_default_playlists, sort_playlists } from '../../lib-origin/Illusive/src/illusi/src/playlist';
+import { sort_playlists } from '../../lib-origin/Illusive/src/illusi/src/playlist';
+import { resolved_default_playlists } from '../../lib-origin/Illusive/src/illusi/src/default_playlists';
 
 let search_query = "";
 function PlaylistScreen() {
