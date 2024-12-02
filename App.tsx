@@ -30,6 +30,7 @@ import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
 import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
 import EditPlaylist from './app/screens/playlist/EditPlaylist';
 import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
+import ExtraMiscSettingsScreen from './app/screens/extra/ExtraMiscSettingsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -42,6 +43,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
             <ExtrasStack.Screen name="Sleep Timer" component={ExtraSleepTimerScreen} />
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
+            <ExtrasStack.Screen name="Miscellaneous Settings" component={ExtraMiscSettingsScreen} />
             <ExtrasStack.Screen name="Experimental Settings" component={ExtraExperimentalSettingsScreen} />
             <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />

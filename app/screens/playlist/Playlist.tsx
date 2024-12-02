@@ -155,6 +155,11 @@ export default function Playlist(params: {route: Route<unknown>}){
             await SQLPlaylists.add_saved_data_to_write_playlist_tracks(ts_route.params.write_playlist_uuid, ts_route.params.serialized_playlist_data.tracks);
             set_tracks(ts_route.params.serialized_playlist_data.tracks);
         }
+        else if("default_playlist_title" in ts_route.params){
+            const title = ts_route.params.default_playlist_title;
+            const default_playlist = default_playlists.find(playlist => playlist.name === title)!;
+            set_tracks(await default_playlist.track_function())
+        }
     }
     async function try_continuation(){
         if(!is_empty(continuation) && "uri" in ts_route.params){

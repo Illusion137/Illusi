@@ -22,6 +22,7 @@ function TrackComponent(props: {
         track_callback?: () => Track[]
 		refresh_data?: () => Promise<void>
 	}) {
+
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
 	const [playlist_saved, set_playlist_saved] = useState(
@@ -79,7 +80,7 @@ function TrackComponent(props: {
 					}
 				</View>
 				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
-					<Text style={styles.title} numberOfLines={1} >{Prefs.get_pref('alt_titles') ? props.track_data.alt_title ?? props.track_data.title : props.track_data.title}</Text>
+					<Text style={styles.title} numberOfLines={1} >{Prefs.get_pref('alt_titles') && !is_empty(props.track_data.alt_title) ? props.track_data.alt_title : props.track_data.title}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => remove_topic(artist.name).trim()).join(", ")}</Text>
                     { Prefs.get_pref('simple_tags') ? <View style={{flexDirection: 'row'}}>
     					<Text style={styles.album} numberOfLines={1} >{props.track_data.album?.name ?? ""}</Text>
@@ -100,10 +101,11 @@ function TrackComponent(props: {
                         {!is_empty(props.track_data.thumbnail_uri)  ? <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.lyrics_uri)     ? <MaterialIcons name="closed-caption" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {(is_downloading)                          ? <MaterialIcons name="downloading" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
+                        {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
 					</View> : null }
 				</View>
-				{props.write_playlist_uuid !== undefined &&
+				{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist &&
                     <IoniconsTouchableOpacity on_press={() => insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data)} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
 				{props.edit_mode === "DOWNLOAD" && (!is_downloaded || Prefs.get_pref('can_redownload')) && is_empty(props.track_data.imported_id) && !is_downloading && 

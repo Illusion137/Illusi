@@ -112,7 +112,8 @@ function AudioPlayer(props: {
 
     useEffect(() => {
         async function setup() {
-            panel_ref.current?.show();
+            if((!Prefs.get_pref('play_no_popup') || TrackPlayer.getActiveTrack().catch(e => e) instanceof Error)) 
+                panel_ref.current?.show();
             const is_setup = await setup_track_player();
             await TrackPlayer.reset();
             const queue = await TrackPlayer.getQueue();
@@ -236,7 +237,7 @@ function AudioPlayer(props: {
                         </TouchableOpacity>
                     </Animated.View>
                     <TouchableOpacity style={{ alignItems: 'center', justifyContent: 'center', width: 250 }} disabled={panel_state.is_visible} onPress={() => panel_ref.current.show()}>
-                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }}>{panel_state.is_visible ? "PLAYING FROM" : player_state.artist}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }} numberOfLines={1}>{panel_state.is_visible ? "PLAYING FROM" : remove_topic(player_state.artist)}</Text>
                         <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state.title}</Text>
                     </TouchableOpacity>
                     {panel_state.is_visible ?
