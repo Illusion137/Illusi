@@ -33,6 +33,7 @@ interface PlayerStateType {
     loop_track?: boolean,
 };
 
+const top_padding = Dimensions.get('screen').height * 0.08;
 function AudioPlayer(props: {
     tracks: IllusiveType.Track[],
     playing_from: string
@@ -65,12 +66,11 @@ function AudioPlayer(props: {
         loop_track: false,
     });
     // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
-
-    const panel_min_height = 180;
+    const panel_min_height = 135 + top_padding;
     const panel_max_height = Dimensions.get('screen').height;
     const panel_animated = new Animated.Value(panel_min_height);
     panel_animated.addListener(({ value }) => {
-        const panel_transition_value = 181;
+        const panel_transition_value = panel_min_height + 1;
         if(value > panel_transition_value && !panel_state.is_visible)
             set_panel_state({ 'is_visible': true });
         else if(value <= panel_transition_value && panel_state.is_visible)
@@ -223,7 +223,7 @@ function AudioPlayer(props: {
         // containerStyle={{ left: 0, right: 0, display: 'flex', zIndex: 10, top: '100%' }}
         >
             <>
-                <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ backgroundColor: colors.playScreen, height: 45, opacity: interpolatePanelPosition([0, 1]) }} />
+                <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ backgroundColor: colors.playScreen, height: top_padding, opacity: interpolatePanelPosition([0, 1]) }} />
                 {/* HEADER ---------------------------------------------------- */}
                 <View style={styles.header}>
                     <Animated.View style={{

@@ -1,5 +1,5 @@
 import React,  { useState, useRef, useEffect } from 'react';
-import { View, Animated, Text, StyleSheet, TouchableOpacity, TextInput, InteractionManager, ScrollView } from 'react-native';
+import { View, Animated, Text, StyleSheet, TouchableOpacity, TextInput, InteractionManager, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import SlidingUpPanel from 'rn-sliding-up-panel';
@@ -90,7 +90,7 @@ function PlaylistScreen() {
             </View>
 			<View style={{width: '100%', height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30}}/>
 			<BigList style={{height: '71%'}} data={playlists_state} keyExtractor={(item, _) => String(item.uuid)} itemHeight={80} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={() => (<View style={{height:100}}></View>)}/>
-			<SlidingUpPanel allowDragging={false} draggableRange={{top:660, bottom: 0}} ref={panel_ref as any} animatedValue={new Animated.Value(0)}>
+			<SlidingUpPanel allowDragging={false} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={panel_ref as any} animatedValue={new Animated.Value(0)}>
                 {/* <CreatePlaylistStackScreen/> */}
                 <NewPlaylist ref={new_playlist_ref as any} close_panel={hide} refresh_playlists_data={refresh_data}/>
 			</SlidingUpPanel>

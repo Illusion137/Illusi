@@ -78,18 +78,21 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     const is_focused = useIsFocused();
     useEffect( () => {
+        search_query = "";
         if(force_order) Prefs.prefs.always_shuffle.current_value = false;
         initial_data();
         return () => exit_handler();
     }, []);
     useEffect( () => {
         if(is_focused){
+            search_query = "";
             refresh_data();
         }
 	}, [is_focused]);
 
     function exit_handler(){
         if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
+        search_query = "";
     }
 
     async function initial_data(){
@@ -136,7 +139,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     }
 
     async function refresh_data(query?: string){
-		search_query = query ?? "";
+		search_query = query ?? (search_query ?? "");
         set_search_query_state(search_query);
         if(tracks.length === 0 && !("write_playlist_uuid" in ts_route.params) || "uuid" in ts_route.params){
             let playlist_tracks = initial_tracks;
@@ -266,16 +269,16 @@ export default function Playlist(params: {route: Route<unknown>}){
     const footer_component = () => (
         <View style={{height:100}}></View>
     );
-
+    
     return(
         <View style={styles.top_container}>
-            <View style={styles.header}>
+            <View style={styles.header} pointerEvents='box-none'>
                 <AntDesignTouchableOpacity on_press={() => navigation.goBack()} style={{}} icon_name='left' icon_size={30} icon_color={colors.primary} icon_style={{}}/>
                 {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={actions} style={{}} icon_name='ellipsis-horizontal-outline' icon_size={40} icon_color={colors.primary} icon_style={{}} hitslop={40}/> : null }
             </View>
             <View style={{height: '94%'}}>
                 {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
-                    <LibraryTrackList 
+                    <LibraryTrackList
                         is_focused={is_focused}
                         edit_mode='NONE'
                         ref={library_ref}
@@ -339,7 +342,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         position: 'absolute',
         top: -40,
         left: 50,
-		padding: 5,
+		padding: 10,
 		fontSize: 15,
 		borderRadius: 10,
 	},
