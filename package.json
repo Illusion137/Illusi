@@ -67,6 +67,7 @@
     "metro-config": "^0.81.0",
     "metro-resolver": "^0.81.0",
     "path": "^0.12.7",
+    "phantomjs": "^1.9.20",
     "probe-image-size": "^7.2.3",
     "querystring": "^0.2.1",
     "react": "18.3.1",
