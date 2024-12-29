@@ -50,5 +50,8 @@ export default {
     },
     "plugins": [
         "expo-font"
-    ]
+    ],
+    "experiments": {
+        "reactCompiler": true
+    }
 }

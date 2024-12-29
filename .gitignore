@@ -1,6 +1,6 @@
 # Illusi
-.history/
 lib-origin/
+.history/
 TestApp.tsx
 tsconfig.json
 *.config.js

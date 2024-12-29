@@ -3,7 +3,8 @@ UNCHECK LIB_ORIGIN GITIGNORE BEFORE DEPLOYING
 
 RUN DEV CLIENT: npx expo start --dev-client --tunnel
 
-BUILD APP FOR TESTING: eas build --profile development --platform ios
+BUILD APP FOR TESTING:   eas build -p ios --profile development
+BUILD APP FOR SIMULATOR: eas build -p ios --profile simulator --local
 
 BUILD APP FOR APP STORE: eas build
 
