@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, NativeSyntheticEvent} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, NativeSyntheticEvent, Linking} from 'react-native';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
@@ -26,7 +26,7 @@ function ExtraScreen() {
     async function change_theme(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
         const theme_key = event.nativeEvent.value as Prefs.PossibleThemes;
         await Prefs.save_pref('theme', theme_key);
-        GLOBALS.global_var.set_theme(Prefs.get_theme(theme_key))
+        Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
     }
 
 	const [battery, set_battery] = React.useState(0.0);
@@ -77,21 +77,28 @@ function ExtraScreen() {
 				
 				<Text style={styles.description_txt}>Restore unavailable videos from Backpack</Text>
 
-                <SegmentedControl
-                    values={Prefs.all_themes()}
-                    selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
-                    onChange={async(event) => await change_theme(event)}
-                    style={{backgroundColor: colors.background}}
-                />
+				<View style={styles.line_long}/>
+					<ExtrasSectionButton show_arrow={true} text='Themes' icon='brush-outline' onPress={async () => navigation.navigate('Themes')}/>
+					<View style={styles.line_short}/>
+					<SegmentedControl
+						values={Prefs.all_themes()}
+						selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
+						onChange={async(event) => await change_theme(event)}
+						style={{backgroundColor: colors.background}}
+					/>
+				<Text style={styles.description_txt}>Customize the look of Illusi</Text>
 
 				<View style={styles.line_long}/>
-					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {}}/>
+					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {
+						if(await Linking.canOpenURL('vnd.github://Illusion137')){
+							await Linking.openURL('vnd.github://Illusion137')
+						}
+						else await Linking.openURL('https://github.com/Illusion137');
+					}}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
 					<View style={styles.line_short}/>
-					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", Prefs.reset_prefs)}/>
-					<View style={styles.line_short}/>	
-					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLPlaylists.delete_all_playlists)}/>
+					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", async () => {await Prefs.reset_prefs(); Prefs.pref_set_theme(GLOBALS.global_var.set_theme);})}/>
 					<View style={styles.line_short}/>	
 					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLUtils.delete_all_data)}/>
 				<View style={styles.line_long}/>
@@ -99,6 +106,8 @@ function ExtraScreen() {
 
 				{ Prefs.get_pref('dev_mode') ?
 					<>
+					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLPlaylists.delete_all_playlists)}/>
+					<View style={styles.line_short}/>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
 					<View style={styles.line_long}/>

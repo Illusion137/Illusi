@@ -1,6 +1,6 @@
 import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { CompactArtist, CompactPlaylist, MusicSearchResponse, Track } from '../../lib-origin/Illusive/src/types';
@@ -16,13 +16,16 @@ import CompactArtistComponent from '../components/CompactArtistComponent';
 function SearchScreen() {
     const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
     
-    type SearchMode = "Tracks" | "Albums" | "Artists" | "Playlists";
+    type SearchMode = "Smart" | "Tracks" | "Albums" | "Artists" | "Playlists";
     const search_modes: SearchMode[] = ["Tracks", "Albums", "Artists", "Playlists"];
-    const [search_mode, set_search_mode] = useState<SearchMode>("Tracks");
+    const [search_mode, set_search_mode] = useState<SearchMode>("Smart");
 
-    type SearchService = "YouTube" | "SoundCloud" | "Spotify";
-    const [search_service, set_search_service] = useState<SearchService>("YouTube");
-    const search_services: SearchService[] = ["YouTube", "SoundCloud", "Spotify"];
+    type SearchService = "YouTube" | "SoundCloud" | "Spotify" | "YouTube Music";
+    const search_services: SearchService[] = 
+		Illusive.music_service.get('YouTube Music')!.has_credentials() ? 
+		["YouTube Music", "YouTube", "SoundCloud", "Spotify"]
+		: ["YouTube", "SoundCloud", "Spotify"];
+    const [search_service, set_search_service] = useState<SearchService>(search_services[0]);
 
 	const [search_result, set_search_result] = useState<MusicSearchResponse>(empty_search_result);
 	const [searching_data, set_searching_data] = useState([] as string[]);
@@ -99,18 +102,18 @@ function SearchScreen() {
 
 
 	const render_chip_header_component = () => (
-        <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10}}>
-            {is_searching ? search_services.map((service) => (
-                <TouchableOpacity style={{backgroundColor: search_service === service ? colors.primary : "#121212", borderRadius: 20, padding: 10}} key={service} onPress={() => on_search_service_chip_press(service)}>
-                    <Text style={{color: colors.text}}>{service}</Text>
-                </TouchableOpacity>
-            )) : 
-            search_modes.map((mode) => (
-                <TouchableOpacity style={{backgroundColor: search_mode === mode ? colors.primary : "#121212", borderRadius: 20, padding: 10}} key={mode} onPress={() => on_search_mode_chip_press(mode)}>
-                    <Text style={{color: colors.text}}>{mode}</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
+		<ScrollView horizontal={true} style={{flexDirection: 'row'}} contentContainerStyle={{flexGrow: 1, justifyContent: 'space-around', marginBottom: 10, height: 40}}>
+					{is_searching ? search_services.map((service) => (
+						<TouchableOpacity style={{backgroundColor: search_service === service ? colors.primary : "#121212", borderRadius: 20, padding: 10}} key={service} onPress={() => on_search_service_chip_press(service)}>
+							<Text style={{color: colors.text}}>{service}</Text>
+						</TouchableOpacity>
+					)) : 
+					search_modes.map((mode) => (
+						<TouchableOpacity style={{backgroundColor: search_mode === mode ? colors.primary : "#121212", borderRadius: 20, padding: 10}} key={mode} onPress={() => on_search_mode_chip_press(mode)}>
+							<Text style={{color: colors.text}}>{mode}</Text>
+						</TouchableOpacity>
+					))}
+		</ScrollView>
     );
     const render_misc_component = (item: {item: Track|CompactArtist|CompactPlaylist}) => { 
         return (

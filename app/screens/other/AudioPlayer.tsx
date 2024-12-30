@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
-import { Animated, Button, Dimensions, Easing, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Button, Dimensions, Easing, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-track-player';
@@ -51,6 +51,10 @@ function AudioPlayer(props: {
     });
     const [settings_state, set_settings_state] = useState({
         settings_visible: false,
+    });
+    const [lyrics_state, set_lyrics_state] = useState({
+        lyrics_visible: false,
+        lyrics: ''
     });
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
     const [player_state, set_player_state] = useState({
@@ -103,10 +107,12 @@ function AudioPlayer(props: {
             const current_track = await TrackPlayer.getActiveTrackIndex();
             if(current_track === undefined) return;
             const illusi_track = GLOBALS.global_var.playing_tracks[current_track];
-            if (!is_empty(illusi_track.media_uri))
+            if (!is_empty(illusi_track.media_uri) && !Prefs.get_pref('share_as_original'))
                 await Sharing.shareAsync(FileSystem.documentDirectory + Illusive.media_archive_path + illusi_track.media_uri, { UTI });
             else if (!is_empty(illusi_track.youtube_id))
                 await Sharing.shareAsync(`https://www.youtube.com/watch?v=${illusi_track.youtube_id}`);
+            else if (!is_empty(illusi_track.soundcloud_permalink))
+                await Sharing.shareAsync(illusi_track.soundcloud_permalink!);
         });
     }
 
@@ -326,10 +332,11 @@ function AudioPlayer(props: {
                                     <Text>+ Add</Text>
                                 </View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { }}>
+                            <TouchableOpacity onPress={() => {set_settings_state({ 'settings_visible': true })}}>
                                 <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={async () => {
+                                set_lyrics_state({ 'lyrics_visible': true, 'lyrics': lyrics_state.lyrics })
                                 // await getLyrics(title);
                             }}>
                                 <Ionicons name="mic-outline" size={28} color={colors.primary} />
@@ -417,6 +424,32 @@ function AudioPlayer(props: {
                         <Text style={{ left: 300, bottom: 35, color: "white", fontWeight: "bold", fontSize: 17 }}>{player_state.rate}x</Text>
                     </View>
                 </Modal>
+                <Modal animationType="slide"
+                    transparent={false}
+                    presentationStyle={'pageSheet'}
+                    visible={lyrics_state.lyrics_visible}
+                    onRequestClose={() => {
+                        set_lyrics_state({ 'lyrics_visible': !lyrics_state.lyrics_visible, 'lyrics': lyrics_state.lyrics })
+                    }}>
+                    <View style={{ width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row" }} >
+                        <View style={{ marginLeft: 10 }}>
+                            <Button color={colors.primary} title='close' onPress={() => { set_lyrics_state({ 'lyrics_visible': false, 'lyrics': lyrics_state.lyrics}) }} />
+                        </View>
+                        <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Lyrics</Text>
+                    </View>
+                    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
+                        { is_empty(lyrics_state.lyrics) ? 
+                            <Text style={styles.lyrics_text}>Unable to find lyrics for this song</Text>
+                            : lyrics_state.lyrics
+                            .split('\n')
+                            .map(line => /\[.+?\]/.test(line) ? '' : line)
+                            .map((line, i) => (
+                                <Text key={line + i} style={styles.lyrics_text}>
+                                    {line}
+                                </Text>
+                        ))}
+                    </ScrollView>
+                </Modal>
             </>
         </SlidingUpPanel>
     )
@@ -475,6 +508,13 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     volumeslidercontainer: {
         marginLeft: 40,
         marginRight: 80,
+    },
+    lyrics_text: {
+        color: colors.text,
+        fontWeight: 'bold',
+        fontSize: 24,
+        margin: 15,
+        marginVertical: 5
     }
 });
 export default AudioPlayer;

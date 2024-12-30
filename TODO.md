@@ -1,39 +1,44 @@
 # Misc
 - [x] Build script to pull from origin
-- [x] Build script to build Illusi
+- [x] Build script to build Illusi-Sim
+- [ ] Build script to build Illusi-Dev
+- [ ] Build script to build Illusi-Prod
 
 # Bugs
 - [ ] Screen-Size should be dynamic and work for all resolutions including iPad and MacOS (Extras Screen)
-- [ ] Track-Metadata such as plays not updating properly
-- [ ] Track-Metadata sometimes has bad values such as null for a property type: number
+- [x] Track-Metadata such as plays not updating properly
+- [x] Track-Metadata sometimes has bad values such as null for a property type: number
 - [ ] Soundcloud signins only last for a day or two
 - [ ] Soundcloud downloads still sometimes don't work
 
 # Features
+- [ ] Store track play iso-dates in SQLite Database
 - [ ] Equalizer
-- [ ] Search from YouTube Music
-- [ ] Lyrics
+- [x] Search from YouTube Music
+- [x] Lyrics Screen
+- [ ] Fetching Lyrics
 - [ ] iCloud Backups
 - [ ] iCloud linking to other devices
 - [ ] Add to playlist from AudioPlayer
 - [ ] Remove song from library/playlist from AudioPlayer
-- [ ] Add from recently-player + past-queue playlists
+- [x] Add from recently-player + past-queue playlists
 - [ ] Convert Illusi-playist back to any music-service
 - [ ] Link playlists to Illusi-playlist
 - [ ] Linker
-- [ ] Custom primary-color
-- [ ] More themes
+- [x] Theming
+- [ ] Custom primary color
+- [ ] More themes (Light Mode)
 - [ ] Import from SQLite
 - [ ] Smart Shuffle
 - [ ] Track edit-mode EDIT
 - [ ] Preview song before add-to-playist
-- [ ] Search-flags: @sc soundcloud, @pl-### plays
+- [x] Search-flags: @sc soundcloud
 - [ ] Pref: 'compact_playlists' - Makes PlaylistComponents compact
-- [ ] Pref: 'share_as_original' - Shares as link instead of file
+- [x] Pref: 'share_as_original' - Shares as link instead of file
 - [ ] ArtistScreen
-- [ ] Better Search
-- [ ] Use Musi-Explore page
+- [x] Smart Search
+- [x] Use Musi-Explore page
 - [ ] Allow YouTube_Music-Explore page
 - [ ] Share Playlists
 - [ ] Pandora support
-- [ ] Link to Github
+- [x] Link to Github

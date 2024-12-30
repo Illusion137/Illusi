@@ -3,6 +3,7 @@ import { View, StyleSheet, Modal, Pressable, Text, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import Link from '../../components/Link';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+import { create_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
 function ExtraLinkerScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
@@ -35,9 +36,7 @@ function ExtraLinkerScreen() {
 				onPress={() => setModalVisible(true)}>
 				<Text style={styles.textStyle}>Show Modal</Text>
 			</Pressable>
-			<Link fromIcon={"Musi"} fromText={"Music"} toIcon={"Amazon"} toText={"Recently Played"} biDirectional={true}/>
-			<Link fromIcon={"Illusi"} fromText={"Songs"} toIcon={"Spotify"} toText={"Car"} biDirectional={false}/>
-			<Link fromIcon={"YouTube"} fromText={"Liked Music"} toIcon={"None"} toText={"NULL"} biDirectional={false}/>
+			<Link linker_link={{link_uuid: "", full_sample: false, uuid_uri: create_uri('illusi', ''), to_service: "Spotify", to: {'title': '', 'uuid_uri': create_uri('spotify', '')} }}/>
 		</View>
 	);
 }

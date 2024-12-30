@@ -1,4 +1,5 @@
 import React from 'react';
+import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import FourTrackArtwork from './FourTrackArtwork';
@@ -6,8 +7,8 @@ import { CompactPlaylistData, SerializedCompactPlaylistData } from '../../lib-or
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 
 export default function CompactWriterPlaylistComponent(props: {
-	playlist_data: CompactPlaylistData
-    write_playlist_uuid: string
+	playlist_data: CompactPlaylistData;
+    write_playlist_uuid: string;
 }) {
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
@@ -15,9 +16,11 @@ export default function CompactWriterPlaylistComponent(props: {
 	const styles = theme_styles(colors);
 
     async function navigate(){
-        const serialized_data: SerializedCompactPlaylistData = {
+        const tracks = await props.playlist_data.track_callback();
+		const serialized_data: SerializedCompactPlaylistData = {
             title: props.playlist_data.title,
-            tracks: await props.playlist_data.track_callback(),
+            tracks: props.playlist_data.check_existing_tracks ? 
+				tracks.filter(async (track) => await SQLTracks.track_exists(track) ) : tracks,
             type: props.playlist_data.type
         };
         navigation.push("Playlist", {

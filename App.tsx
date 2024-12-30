@@ -31,6 +31,7 @@ import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
 import EditPlaylist from './app/screens/playlist/EditPlaylist';
 import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
 import ExtraMiscSettingsScreen from './app/screens/extra/ExtraMiscSettingsScreen';
+import ExtraThemesScreen from './app/screens/extra/ExtraThemesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -50,6 +51,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
+            <ExtrasStack.Screen name="Themes" component={ExtraThemesScreen} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
         </ExtrasStack.Navigator>
     );
