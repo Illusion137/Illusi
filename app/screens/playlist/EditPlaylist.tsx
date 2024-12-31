@@ -57,7 +57,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             "mode": inherited_playlist_segment_mode,
             "uuid": inherited_playlist_selected_key
         };
-        const new_iplaylists = SQLPlaylists.inherited_playlists_action(playlist_data!.inherited_playlists!, inherited_playlist, type);
+        const new_iplaylists = SQLPlaylists.inherited_playlists_action(playlist_data?.inherited_playlists ?? [], inherited_playlist, type);
         await SQLPlaylists.update_playlist_inherited_playlists(playlist_data!.uuid, new_iplaylists);
         set_playlist_data({...playlist_data!, "inherited_playlists": new_iplaylists});
     }
@@ -83,6 +83,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             <View style={{height: 30}}/>
             <Text style={styles.info_text}>Sort Mode</Text>
             <SegmentedControl
+                fontStyle={{color: colors.text}}
                 values={sort_modes.map(mode => mode.toLowerCase())}
                 selectedIndex={sort_modes.findIndex(item => item === playlist_data?.sort)}
                 onChange={async(event) => await change_sort_mode(event)}
@@ -91,6 +92,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             <View>
                 <Text style={styles.info_text}>Inherited Playlists</Text>
                 <SegmentedControl
+                    fontStyle={{color: colors.text}}
                     values={inheritance_modes.map(mode => mode.toLowerCase())}
                     selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
                     onChange={async(event) => set_inherited_playlist_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
@@ -110,7 +112,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 				/>
                 <ExtrasSectionButton show_arrow={false} text='Create New Playlist Inheritance' icon='pencil-sharp' onPress={add_inherited_playlist}/>
                 {
-                    playlist_data?.inherited_playlists?.map((item, i) => {
+                    (playlist_data?.inherited_playlists ?? [])?.map((item, i) => {
                         const title = SQLPlaylists.playlist_name_sync(item.uuid);
                         return (
                             <View key={i}>
@@ -129,13 +131,14 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                 <Text style={styles.info_text}>Inherited Searchs</Text>
                 <TextInput autoCorrect={false} placeholder='Enter Search Query' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_inherited_search_query(text)}}/>
                 <SegmentedControl
+                    fontStyle={{color: colors.text}}
                     values={inheritance_modes.map(mode => mode.toLowerCase())}
                     selectedIndex={inheritance_modes.findIndex(item => item === inherited_search_segment_mode)}
                     onChange={async(event) => set_inherited_search_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
                     style={{backgroundColor: colors.background}}/>
                 <ExtrasSectionButton show_arrow={false} text='Create New Search Inheritance' icon='pencil-sharp' onPress={add_inherited_search}/>
                 {
-                    playlist_data?.inherited_searchs?.map((item, i) => (
+                    (playlist_data?.inherited_searchs ?? [])?.map((item, i) => (
                         <View key={i}>
                             <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center'}}>
                                 <Text style={styles.inherit_text} numberOfLines={1}>{item.query} - {item.mode}</Text>

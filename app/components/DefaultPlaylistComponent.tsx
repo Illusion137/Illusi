@@ -32,7 +32,7 @@ export default function DefaultPlaylistComponent(props: {
 
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	default_playlist_text:{
-		color: colors.text, 
+		color: "white", 
 		fontSize: 18, 
 		fontWeight: 'bold', 
 		textAlign:'center',

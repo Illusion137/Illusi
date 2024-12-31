@@ -16,9 +16,10 @@
 - [ ] Equalizer
 - [x] Search from YouTube Music
 - [x] Lyrics Screen
-- [ ] Fetching Lyrics
+- [x] Fetching Lyrics
 - [ ] iCloud Backups
 - [ ] iCloud linking to other devices
+- [x] AudioPlayer Add to Playlist Modal Structure
 - [ ] Add to playlist from AudioPlayer
 - [ ] Remove song from library/playlist from AudioPlayer
 - [x] Add from recently-player + past-queue playlists
@@ -27,7 +28,7 @@
 - [ ] Linker
 - [x] Theming
 - [ ] Custom primary color
-- [ ] More themes (Light Mode)
+- [x] More themes (Light Mode)
 - [ ] Import from SQLite
 - [ ] Smart Shuffle
 - [ ] Track edit-mode EDIT

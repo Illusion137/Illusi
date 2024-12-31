@@ -21,6 +21,7 @@ function TrackComponent(props: {
 		edit_mode?: EditMode,
         track_callback?: () => Track[]
 		refresh_data?: () => Promise<void>
+		add_from?: (show: boolean, track: Track|null) => any
 	}) {
 
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
@@ -106,7 +107,10 @@ function TrackComponent(props: {
 					</View> : null }
 				</View>
 				{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist &&
-                    <IoniconsTouchableOpacity on_press={() => insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data)} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
+                    <IoniconsTouchableOpacity on_press={() => {
+						insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data);
+						if(props.add_from !== undefined && Prefs.get_pref('add_from_modal')) props.add_from(true, props.track_data);
+					}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
 				{props.edit_mode === "DOWNLOAD" && (!is_downloaded || Prefs.get_pref('can_redownload')) && is_empty(props.track_data.imported_id) && !is_downloading && 
                     <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={is_downloaded && Prefs.get_pref('can_redownload') ? colors.orange : colors.primary} icon_style={{left: 10}}/>

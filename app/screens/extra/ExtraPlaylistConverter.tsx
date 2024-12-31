@@ -95,6 +95,7 @@ function ExtraPlaylistConverter() {
 					<SegmentedControl 
 						values={segmented_service_values}
 						selectedIndex={undefined}
+						fontStyle={{color: colors.text}}
 						onChange={async(event) => {set_selected_segmented_service_value(event.nativeEvent.value as MusicServiceType); await get_service_playlist_data(event.nativeEvent.value as MusicServiceType)}}
 					/>
 					<View style={{height: 15}}/>

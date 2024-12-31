@@ -241,12 +241,12 @@ export default function Playlist(params: {route: Route<unknown>}){
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
             <TextInput autoCorrect={false} placeholder='Search Playlist' placeholderTextColor={colors.subtext} style={styles.search_input} onChangeText={on_edit_text}></TextInput>
-            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
+            <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
             <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
-                <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
-                <Text style={{color: '#FFFFFF', fontSize: 20}}>{playlist_data?.description}</Text>
-                <Text style={{color: '#808080', fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
+                <Text style={{color: colors.text, fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
+                <Text style={{color: colors.text, fontSize: 20}}>{playlist_data?.description}</Text>
+                <Text style={{color: colors.subtext, fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
             </View>
             <View style={styles.playlist_buttons_container}>
                 {"uuid" in ts_route.params ?

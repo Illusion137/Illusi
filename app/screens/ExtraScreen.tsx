@@ -85,6 +85,7 @@ function ExtraScreen() {
 						selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
 						onChange={async(event) => await change_theme(event)}
 						style={{backgroundColor: colors.background}}
+						fontStyle={{color: colors.text}}
 					/>
 				<Text style={styles.description_txt}>Customize the look of Illusi</Text>
 

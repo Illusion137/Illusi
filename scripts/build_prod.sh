@@ -14,12 +14,12 @@ git push
 echo "Patching gitignore..."
 node scripts/patch_gitignore.js
 
-eas build -p ios --local
+eas build -p ios
 
 echo "Restoring gitignore..."
 node scripts/unpatch_gitignore.js
 
-# eas submit -p ios
+eas submit -p ios
 
 # echo "Fixing buildname..."
 # node scripts/fix_buildname.js prod_build

@@ -50,6 +50,18 @@ export default function ExtraThemesScreen(){
                     </View>
                 </View>
             </View>
+            <TouchableOpacity onPress={async() => {
+                // await Prefs.save_pref('primary_color', '#000000');
+                // Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
+            }}>
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.btnsectionText}>🎨</Text>
+                    <Text style={styles.btnsectionText}>Custom Color</Text>
+                    <AntDesign name="star" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>
+                </View>
+            </TouchableOpacity>
+            <View style={styles.line_long}></View>
+            <View style={{height: 30}}></View>
             {
                 Prefs.possible_primary_colors.map(color => 
                     (<View key={color.color + color.name}>

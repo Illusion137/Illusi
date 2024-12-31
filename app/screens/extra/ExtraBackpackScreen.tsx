@@ -60,6 +60,7 @@ export default function ExtraBackpackScreen() {
 						<SegmentedControl 
 				values={["View Backpack", "View Conversion"]}
 				selectedIndex={mode_index}
+				fontStyle={{color: colors.text}}
 				onChange={async(event) => {set_mode_index(event.nativeEvent.selectedSegmentIndex);}}
 			/>
 			<View style={{height: 15}}/>

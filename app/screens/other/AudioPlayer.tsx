@@ -19,6 +19,8 @@ import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/uti
 import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
+import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
+// import AddToPlaylistsModal from './AddToPlaylistsModal';
 
 interface PlayerStateType {
     title?: string,
@@ -56,6 +58,9 @@ function AudioPlayer(props: {
         lyrics_visible: false,
         lyrics: ''
     });
+    const [add_to_playlist_state, set_add_to_playlist_state] = useState({show: false, track_data: null as IllusiveType.Track|null});
+    add_to_playlist_state;
+
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
     const [player_state, set_player_state] = useState({
         title: props.tracks[0]?.title,
@@ -327,7 +332,12 @@ function AudioPlayer(props: {
                         </View>
                         {/* EXTRA CONTROLS ----------------------------------------------------*/}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15 }}>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={async() => {
+                                if(!Prefs.get_pref('add_from_modal')) return;
+                                const current_track_index = await TrackPlayer.getActiveTrackIndex();
+                                if(current_track_index === undefined) return;
+                                set_add_to_playlist_state({ 'show': true, 'track_data': GLOBALS.global_var.playing_tracks[current_track_index]});
+                            }}>
                                 <View style={{ backgroundColor: colors.primary, height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}>
                                     <Text>+ Add</Text>
                                 </View>
@@ -336,8 +346,17 @@ function AudioPlayer(props: {
                                 <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={async () => {
-                                set_lyrics_state({ 'lyrics_visible': true, 'lyrics': lyrics_state.lyrics })
-                                // await getLyrics(title);
+                                const current_track_index = await TrackPlayer.getActiveTrackIndex();
+                                if(current_track_index === undefined) return;
+                                const lyrics = await Illusive.get_track_lryics(GLOBALS.global_var.playing_tracks[current_track_index])
+                                if(typeof lyrics === "object"){
+                                    if(!lyrics.error.message.includes('YouTube')) {
+                                        alert_error(lyrics);
+                                        return;
+                                    }
+                                    return;
+                                }
+                                set_lyrics_state({ 'lyrics_visible': true, 'lyrics': lyrics });
                             }}>
                                 <Ionicons name="mic-outline" size={28} color={colors.primary} />
                             </TouchableOpacity>
@@ -450,6 +469,7 @@ function AudioPlayer(props: {
                         ))}
                     </ScrollView>
                 </Modal>
+                {/* <AddToPlaylistsModal modal_data={add_to_playlist_state} callback={() => {}}/> */}
             </>
         </SlidingUpPanel>
     )

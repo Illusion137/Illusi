@@ -33,7 +33,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		alignItems: 'center'
 	},
 	btnsectionText:{
-		color: '#FFFFFF',
+		color: colors.text,
 		fontSize: 16,
 		left:20
 	}

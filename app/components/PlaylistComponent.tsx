@@ -65,10 +65,10 @@ export default function PlaylistComponent(props: {
 					<View style={{width: 15}}/>
 					<FourTrackArtwork four_track={props.playlist_data.visual_data!.four_track ?? []} size={35}/>
 					<View style={{flexDirection: 'column', left: 25}}>
-						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title}</Text>
+						<Text style={{color: colors.text, fontSize:15}}>{props.playlist_data.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
 							{pinned ? <MaterialIcons name="push-pin" size={22} color={colors.primary}/> : null}
-							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.visual_data!.track_count} Tracks</Text>
+							<Text style={{color: colors.subtext}}>{props.playlist_data.visual_data!.track_count} Tracks</Text>
 						</View>
 					</View>
                 </> 
