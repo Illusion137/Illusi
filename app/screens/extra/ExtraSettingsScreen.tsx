@@ -14,7 +14,7 @@ function ExtraSettingsScreen() {
 	
     type PrefEntry = [Prefs.PrefOptions, Prefs.Pref<unknown>]
 
-	const [settings_data, _] = useState((Object.entries(Prefs.prefs) as PrefEntry[]).filter(item => (item[1].show_in_settings ?? false) && ((item[1].experimental ?? false) === false))); 
+	const [settings_data, _] = useState((Object.entries(Prefs.prefs) as PrefEntry[]).filter(item => (item[1].show_in_settings ?? false) && (item[1].show_in_type === undefined))); 
 	const render_item = (item: {item: PrefEntry, index: number}) => 
 	<>
 		<SettingsMultiButton settings_key={item.item[0]} settings_pref={item.item[1]}/>
@@ -27,6 +27,7 @@ function ExtraSettingsScreen() {
 				<>
 					<View style={styles.line_long}/>
 					<View style={{height: 30}}/>
+					<ExtrasSectionButton show_arrow={true} text='Miscellaneous Settings' icon='settings-outline' onPress={() => navigation.navigate("Miscellaneous Settings")}/>
 					<ExtrasSectionButton show_arrow={true} text='Experimental Settings' icon='settings-outline' onPress={() => navigation.navigate("Experimental Settings")}/>
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>

@@ -15,6 +15,7 @@ import { ExampleObj } from "../../lib-origin/Illusive/src/illusi/src/example_obj
 import EditTrackModal from "./EditTrackModal";
 import { on_alphabet_scroll_update } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 import ShufflePlayButton from "./ShufflePlayButton";
+import React from "react";
 
 let search_query = "";
 function LibraryTrackList(props: {
@@ -25,6 +26,7 @@ function LibraryTrackList(props: {
     adjusted_alphabet_scroll?: number
     is_focused: boolean
 }, ref: any){
+
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 

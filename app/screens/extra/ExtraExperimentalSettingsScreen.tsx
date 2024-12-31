@@ -10,7 +10,7 @@ export default function ExtraExperimentalSettingsScreen() {
 	
     type PrefEntry = [Prefs.PrefOptions, Prefs.Pref<unknown>]
 
-	const [settings_data, _] = useState((Object.entries(Prefs.prefs) as PrefEntry[]).filter(item => (item[1].show_in_settings ?? false) && (item[1].experimental ?? false))); 
+	const [settings_data, _] = useState((Object.entries(Prefs.prefs) as PrefEntry[]).filter(item => (item[1].show_in_settings ?? false) && (item[1]?.show_in_type === "EXPERIMENTAL"))); 
 	const render_item = (item: {item: PrefEntry, index: number}) => 
 	<>
 		<SettingsMultiButton settings_key={item.item[0]} settings_pref={item.item[1]}/>

@@ -78,18 +78,21 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     const is_focused = useIsFocused();
     useEffect( () => {
+        search_query = "";
         if(force_order) Prefs.prefs.always_shuffle.current_value = false;
         initial_data();
         return () => exit_handler();
     }, []);
     useEffect( () => {
         if(is_focused){
+            search_query = "";
             refresh_data();
         }
 	}, [is_focused]);
 
     function exit_handler(){
         if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
+        search_query = "";
     }
 
     async function initial_data(){
@@ -136,7 +139,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     }
 
     async function refresh_data(query?: string){
-		search_query = query ?? "";
+		search_query = query ?? (search_query ?? "");
         set_search_query_state(search_query);
         if(tracks.length === 0 && !("write_playlist_uuid" in ts_route.params) || "uuid" in ts_route.params){
             let playlist_tracks = initial_tracks;
@@ -154,6 +157,11 @@ export default function Playlist(params: {route: Route<unknown>}){
         if("write_playlist_uuid" in ts_route.params){
             await SQLPlaylists.add_saved_data_to_write_playlist_tracks(ts_route.params.write_playlist_uuid, ts_route.params.serialized_playlist_data.tracks);
             set_tracks(ts_route.params.serialized_playlist_data.tracks);
+        }
+        else if("default_playlist_title" in ts_route.params){
+            const title = ts_route.params.default_playlist_title;
+            const default_playlist = default_playlists.find(playlist => playlist.name === title)!;
+            set_tracks(await default_playlist.track_function())
         }
     }
     async function try_continuation(){
@@ -233,12 +241,12 @@ export default function Playlist(params: {route: Route<unknown>}){
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
             <TextInput autoCorrect={false} placeholder='Search Playlist' placeholderTextColor={colors.subtext} style={styles.search_input} onChangeText={on_edit_text}></TextInput>
-            <Text style={{color: '#808080', fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
+            <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
             <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
-                <Text style={{color: '#FFFFFF', fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
-                <Text style={{color: '#FFFFFF', fontSize: 20}}>{playlist_data?.description}</Text>
-                <Text style={{color: '#808080', fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
+                <Text style={{color: colors.text, fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
+                <Text style={{color: colors.text, fontSize: 20}}>{playlist_data?.description}</Text>
+                <Text style={{color: colors.subtext, fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
             </View>
             <View style={styles.playlist_buttons_container}>
                 {"uuid" in ts_route.params ?
@@ -261,16 +269,16 @@ export default function Playlist(params: {route: Route<unknown>}){
     const footer_component = () => (
         <View style={{height:100}}></View>
     );
-
+    
     return(
         <View style={styles.top_container}>
-            <View style={styles.header}>
+            <View style={styles.header} pointerEvents='box-none'>
                 <AntDesignTouchableOpacity on_press={() => navigation.goBack()} style={{}} icon_name='left' icon_size={30} icon_color={colors.primary} icon_style={{}}/>
                 {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={actions} style={{}} icon_name='ellipsis-horizontal-outline' icon_size={40} icon_color={colors.primary} icon_style={{}} hitslop={40}/> : null }
             </View>
             <View style={{height: '94%'}}>
                 {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
-                    <LibraryTrackList 
+                    <LibraryTrackList
                         is_focused={is_focused}
                         edit_mode='NONE'
                         ref={library_ref}
@@ -334,7 +342,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         position: 'absolute',
         top: -40,
         left: 50,
-		padding: 5,
+		padding: 10,
 		fontSize: 15,
 		borderRadius: 10,
 	},

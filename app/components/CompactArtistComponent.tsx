@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { CompactArtist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
+import { remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { MaterialIcons } from '@expo/vector-icons';
 
 
 export default function CompactArtistComponent(props: {
@@ -18,8 +20,11 @@ export default function CompactArtistComponent(props: {
 					<View style={{width: 15}}/>
 					<Image source={{"uri":  !props.artist_data.profile_artwork_url?.includes("http") ? props.artist_data.profile_artwork_url!.replace('//', 'https://') : props.artist_data.profile_artwork_url, "cache": "force-cache"}} style={styles.image}/>
 					<View style={{flexDirection: 'column', left: 20}}>
-						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.artist_data.name?.name}</Text>
+						<Text style={{color: '#FFFFFF', fontSize:15}}>{remove_topic(props.artist_data.name?.name)}</Text>
 					</View>
+					{props.artist_data.is_official_artist_channel ? 
+						<MaterialIcons name='verified' size={18} style={{left: "6%"}} color={colors.primary}/>
+					: null}
                 </>
             </TouchableOpacity>
             <View style={{width:'100%', height: 1, marginLeft:90, backgroundColor: '#303030'}}/>

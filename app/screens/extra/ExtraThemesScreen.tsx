@@ -1,0 +1,166 @@
+import React from 'react';
+import { AntDesign, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
+import { Slider } from '@miblanchard/react-native-slider';
+import { useTheme } from '@react-navigation/native';
+import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
+import { Text, View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
+
+export default function ExtraThemesScreen(){
+    const { colors } = useTheme() as Prefs.Theme;
+    const styles = theme_styles(colors);
+    return (
+        <ScrollView>
+            <View style={{borderRadius: 30, backgroundColor: colors.shelf, margin: 10, padding: 20}}>
+                <View style={styles.textcontainer}>
+                    <Text style={styles.title}>Various Track Title</Text>
+                    <Text style={styles.artist}>Various Artists</Text>
+                </View>
+                <View style={{ bottom: 40 }}>
+                    <View style={styles.playbackcontainer}>
+                            <Ionicons name="shuffle-sharp" size={35} color={colors.primary} />
+                            <Ionicons name="play-back-sharp" size={35} color={colors.primary} />
+                            <Ionicons name={"play-circle-sharp"} size={90} color={colors.primary} />
+                            <Ionicons name="play-forward-sharp" size={35} color={colors.primary} />
+                            <Ionicons name="repeat-sharp" size={35} color={colors.primary} />
+                    </View>
+                    <View>
+                        <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
+                        <View style={styles.volumeslidercontainer}>
+                            <Slider
+                                value={0.5}
+                                thumbTintColor={colors.primary}
+                                thumbStyle={{ width: 15, height: 15 }}
+                                thumbTouchSize={{ width: 40, height: 40 }}
+                                minimumTrackTintColor={colors.primary}
+                                maximumTrackTintColor='#DADADA40'
+                                maximumValue={1}
+                            />
+                        </View>
+                        <Ionicons name="volume-high-sharp" size={20} color='#656565' style={{ bottom: 30, alignSelf: 'flex-end', right: 50 }} />
+                        <MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565' style={{ bottom: 50, alignSelf: 'flex-end', right: 15 }} />
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15 }}>
+                        <View style={{ backgroundColor: colors.primary, height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text>+ Add</Text>
+                        </View>
+                        <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
+                        <Ionicons name="mic-outline" size={28} color={colors.primary} />
+                        <Ionicons name="share-outline" size={28} color={colors.primary} />
+                    </View>
+                </View>
+            </View>
+            <TouchableOpacity onPress={async() => {
+                // await Prefs.save_pref('primary_color', '#000000');
+                // Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
+            }}>
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.btnsectionText}>🎨</Text>
+                    <Text style={styles.btnsectionText}>Custom Color</Text>
+                    <AntDesign name="star" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>
+                </View>
+            </TouchableOpacity>
+            <View style={styles.line_long}></View>
+            <View style={{height: 30}}></View>
+            {
+                Prefs.possible_primary_colors.map(color => 
+                    (<View key={color.color + color.name}>
+                        <TouchableOpacity onPress={async() => {
+                            await Prefs.save_pref('primary_color', color.color);
+                            Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
+                        }}>
+                            <View style={styles.sectionContainer}>
+                                <Text style={styles.btnsectionText}>{color.icon}</Text>
+                                <Text style={styles.btnsectionText}>{color.name}</Text>
+                                <AntDesign name="star" size={22} color={color.color} style={{position: 'absolute', left: "90%"}}/>
+                            </View>
+                        </TouchableOpacity>
+                        <View style={styles.line_long}></View>
+                    </View>)
+                )
+            }
+        </ScrollView>
+    );
+}
+
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
+    sectionContainer:{
+		width: '100%', 
+		height: 50, 
+		backgroundColor: colors.track,
+		flexDirection: 'row', 
+		alignItems: 'center'
+	},
+	btnsectionText:{
+		color: '#FFFFFF',
+		fontSize: 16,
+		left:20
+	},
+    line_long:{
+		width: "90%",
+		height: 0.3,
+		opacity: 0.3,
+		backgroundColor: colors.text,
+	},
+    topcontainer: {
+        flex: 1,
+        backgroundColor: colors.playScreen
+    },
+    header: {
+        backgroundColor: colors.playScreen,
+        height: 45,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexDirection: 'row'
+    },
+    topfrom: {
+        color: '#808080',
+        fontSize: 12,
+        top: -4
+    },
+    toptitle: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        top: -2
+    },
+    timestampslidercontainer: {
+        alignItems: 'stretch',
+        justifyContent: 'center',
+        bottom: 20
+    },
+    textcontainer: {
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        bottom: 0,
+        height: 100,
+        marginLeft: 40,
+        marginRight: 40
+    },
+    tsstyle: {
+        color: '#808080'
+    },
+    title: {
+        color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    artist: {
+        color: '#808080'
+    },
+    playbackcontainer: {
+        justifyContent: 'space-evenly',
+        alignItems: 'center',
+        flexDirection: 'row'
+    },
+    volumeslidercontainer: {
+        marginLeft: 40,
+        marginRight: 80,
+    },
+    lyrics_text: {
+        color: colors.text,
+        fontWeight: 'bold',
+        fontSize: 24,
+        margin: 15,
+        marginVertical: 5
+    }
+});

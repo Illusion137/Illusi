@@ -23,6 +23,7 @@ import { Route } from "../../../lib-origin/Illusive/src/types";
 // import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 
 export default function Artist(params: {route: Route<unknown>}){
+    params;
     return (
         <>
         </>

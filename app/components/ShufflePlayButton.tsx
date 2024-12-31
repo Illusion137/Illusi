@@ -12,7 +12,7 @@ export default function ShufflePlayButton(props: {
 
     return (
         <TouchableOpacity onPress={props.on_press} style={{backgroundColor: colors.primary, width: '100%', height: 40, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', top: props.top}}>
-            <Ionicons name="shuffle" size={25} color={colors.background} style={{}}/>
+            <Ionicons name="shuffle" size={25} color={colors.text.toLowerCase() === '#ffffff' ? '#000000' : '#ffffff'} style={{}}/>
             <Text style={{fontWeight: '500', fontSize: 18}}>{props.text ?? "Shuffle Play"}</Text>
         </TouchableOpacity>
     );

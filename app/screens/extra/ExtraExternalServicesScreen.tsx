@@ -1,4 +1,4 @@
-import React,  { useRef, useState } from 'react';
+import React,  { useState } from 'react';
 import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'react-native';
 import CookieManager, { Cookies } from '@react-native-community/cookies';
 import { useTheme } from '@react-navigation/native';
@@ -85,38 +85,29 @@ export default function ExternalServicesScreen() {
 
     // REFERENCE: https://stackoverflow.com/questions/68067668/react-native-webview-rendering-blank-page
     const generate_random_key = () => Math.random() * 100000;
-    const webview_ref = useRef<WebView>();
-    const [key, set_key] = useState(generate_random_key());
+    const [key, set_key] = useState(generate_random_key()); set_key;
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			{ url != null && <View style={{height: 500}}>
 				<WebView
                         key={key}
-                        onLoadEnd={data => {
-                            const {nativeEvent} = data;
-                            const {title} = nativeEvent;
-                            if (!title.trim()) {
-                                webview_ref.current?.stopLoading();
-                                webview_ref.current?.reload();
-                                set_key(generate_random_key());
-                            }
-                        }}
                         source={{ uri: url }} 
 						style={{ flex: 1 }}
-						javaScriptEnabled={true}
-						sharedCookiesEnabled={true}
-						thirdPartyCookiesEnabled={true}
-						onNavigationStateChange={web_view_navigation_change}
-						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
-						// userAgent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
-						// applicationNameForUserAgent='Illusi'
                         onShouldStartLoadWithRequest={event => {  
-                            if (!event.url.startsWith("https://"))
+                            if (event.url.startsWith("about:"))
                                 return false;
                             return true;
                         }}
                         originWhitelist={['*']}
+						// contentMode="mobile"
+                        domStorageEnabled={true}
+                        javaScriptEnabled={true}
+						sharedCookiesEnabled={true}
+						thirdPartyCookiesEnabled={true}
+						onNavigationStateChange={web_view_navigation_change}
+						userAgent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
+						// applicationNameForUserAgent='Illusi'
 						contentMode="mobile"
 						/>
 			</View> }

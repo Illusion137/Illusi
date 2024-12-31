@@ -6,19 +6,20 @@ import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 
 function ExtrasSectionButton(props: {
 		onPress: () => void,
+		transparent?: boolean,
 		show_arrow: true | boolean, 
 		text: string,
-        icon: keyof (typeof Ionicons)["glyphMap"]
+        icon: keyof (typeof Ionicons)["glyphMap"] | 'NONE'
 	}) {	
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	return(
 		<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={props.onPress}>
-			<View style={styles.sectionContainer}>
-				<Ionicons name={props.icon as any} size={25} color={colors.primary} style={{left: 10}}/>
+			<View style={(props.transparent ?? false) ? {...styles.sectionContainer, backgroundColor: '#00000000'} : styles.sectionContainer}>
+				{ props.icon !== 'NONE' ? <Ionicons name={props.icon as any} size={25} color={colors.primary} style={{left: 10}}/> : null}
 				<Text style={styles.btnsectionText}>{props.text}</Text>
-				{ props.show_arrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: 340}}/>}
+				{ props.show_arrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>}
 			</View>
 		</TouchableHighlight>
 	);
@@ -27,12 +28,12 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
 		height: 50, 
-		backgroundColor: colors.track, 
+		backgroundColor: colors.track,
 		flexDirection: 'row', 
 		alignItems: 'center'
 	},
 	btnsectionText:{
-		color: '#FFFFFF',
+		color: colors.text,
 		fontSize: 16,
 		left:20
 	}

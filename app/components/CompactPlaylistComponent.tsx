@@ -10,7 +10,7 @@ import { best_thumbnail, empty_join_dot } from '../../lib-origin/Illusive/src/il
 export default function CompactPlaylistComponent(props: {
 	playlist_data: CompactPlaylist
 }) {
-    const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.thumbnail_uri!;
+    const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.artwork_url!;
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
 
 	const { colors } = useTheme() as Prefs.Theme;
@@ -31,7 +31,7 @@ export default function CompactPlaylistComponent(props: {
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title.name}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
                             {((props.playlist_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
-							<Text style={{color: '#AAAAAA'}}>{empty_join_dot([props.playlist_data.artist.map(artist => remove_topic(artist.name)).join(", "), props.playlist_data?.date?.getFullYear()])}</Text>
+							<Text style={{color: '#AAAAAA'}}>{empty_join_dot([props.playlist_data.artist.map(artist => remove_topic(artist.name)).join(", "), new Date(props.playlist_data?.date!).getFullYear()])}</Text>
 						</View>
 					</View>
                 </>

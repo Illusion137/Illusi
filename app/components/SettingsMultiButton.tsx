@@ -36,7 +36,7 @@ function SettingsMultiButton(props: {
 			<Text style={styles.btnsectionText}>{settings_key}</Text>
 			<View style={{flex: 1, alignItems: 'flex-end', right:10}}>
 				{props.settings_pref.type === "NUMBER" ? 
-					<TextInput maxLength={3} style={{color: 'white', fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={number_settings_value} onChangeText={(val) => { set_number_settings_value(val) } }
+					<TextInput maxLength={3} style={{color: colors.text, fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={number_settings_value} onChangeText={(val) => { set_number_settings_value(val) } }
 					onBlur={async() => await number_on_value_change()}/> : null
 				}
 				{props.settings_pref.type === "BOOLEAN" ?
@@ -44,7 +44,7 @@ function SettingsMultiButton(props: {
 							onValueChange={boolean_on_value_change} 
 							thumbColor={'#ffffff'} 
 							trackColor={{false: '#ffffff', true: colors.primary}}
-							ios_backgroundColor={'#ffffff'}/> : null
+							ios_backgroundColor={colors.text}/> : null
 				}
 			</View>
 		</View>
@@ -59,7 +59,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		alignItems: 'center'
 	},
 	btnsectionText:{
-		color: '#FFFFFF',
+		color: colors.text,
 		fontSize: 16,
 		left:20
 	}
