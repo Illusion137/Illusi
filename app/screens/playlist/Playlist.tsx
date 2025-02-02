@@ -27,6 +27,7 @@ import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 let search_query = "";
 let tracks_ref: Track[] = [];
 export default function Playlist(params: {route: Route<unknown>}){
+
     const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string, force_order?: boolean}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>
     const force_order = "force_order" in ts_route.params && (ts_route.params.force_order ?? false);
     const pre_always_shuffle = Prefs.get_pref('always_shuffle');
@@ -285,7 +286,8 @@ export default function Playlist(params: {route: Route<unknown>}){
                         write_playlist_uuid={ts_route.params.write_playlist_uuid}
                         header_height={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 330 : 395}
                         header_item={header_component}
-                        adjusted_alphabet_scroll={-35}/>
+                        adjusted_alphabet_scroll={-35}
+                        />
                     : <BigList style={{backgroundColor: colors.background}} 
                         headerHeight={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 330 : 395} 
                         itemHeight={61} 

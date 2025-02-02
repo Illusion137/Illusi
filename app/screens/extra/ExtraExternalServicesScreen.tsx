@@ -11,6 +11,7 @@ import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/typ
 import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
+import { alert_info } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 
 let current_service: MusicServiceType|null = null;
 
@@ -29,8 +30,10 @@ function ServiceSwitcher(props: {
                 activeOpacity={0.6} 
                 underlayColor="#FFFFFF" 
                 onPress={() => {
-                    current_service = props.service;
-                    if(props.url === null) props.set_url(music_service.web_view_url); 
+                    if(props.url === null) {
+                        current_service = props.service;
+                        props.set_url(music_service.web_view_url); 
+                    }
                     else props.set_url(null)
                 }}>
                 <View style={styles.importfrom}>
@@ -74,7 +77,8 @@ export default function ExternalServicesScreen() {
         CookieManager.get(event.url).then(
             async(res: Cookies) => {
                 if(is_empty(res)) return;
-                await Prefs.save_pref(illusive_service.pref_cookie_jar!, CookieJar.fromCookies(res as any)); 
+                (Prefs.get_pref(illusive_service.pref_cookie_jar!) as CookieJar).merge(CookieJar.fromCookies(res as any));
+                await Prefs.save_pref(illusive_service.pref_cookie_jar!, Prefs.get_pref(illusive_service.pref_cookie_jar!)); 
                 const updated_cookies_enabled = {...external_services_cookies_enabled};
                 if(illusive_service.has_credentials())
                     updated_cookies_enabled[current_service!] = true;
@@ -113,6 +117,15 @@ export default function ExternalServicesScreen() {
 			</View> }
 			<ScrollView>
                 <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin-outline' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
+                { Prefs.get_pref('dev_mode') ? <ExtrasSectionButton show_arrow={false} text='Log Soundcloud Cookies' icon='accessibility' onPress={
+                    async () => 
+                        alert_info(
+                            Prefs
+                                .get_pref('soundcloud_cookie_jar')
+                                .getCookies()
+                                .map(cookie => JSON.stringify(cookie.getData())).join('\n\n')
+                        )
+                }/> : null}            
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
                 {illusive_external_service.map((service, i) => (
                     <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} cookies_enabled={external_services_cookies_enabled[service]}/>

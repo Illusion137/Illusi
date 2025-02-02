@@ -8,6 +8,7 @@ import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from "@react-n
 import { IoniconsTouchableOpacity } from "../../components/TouchableIconOpacity";
 import ExtrasSectionButton from "../../components/ExtrasSectionButton";
 import { SelectList } from "react-native-dropdown-select-list";
+import { ExampleObj } from "../../../lib-origin/Illusive/src/illusi/src/example_objs";
 
 type KeyValue = {key: string, value: string};
 type Action = "ADD"|"REMOVE";
@@ -20,7 +21,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     const sort_modes: SortType[] = ["OLDEST", "NEWEST", "ALPHABETICAL"];
     const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK"];
 
-    const [playlist_data, set_playlist_data] = useState<Playlist>();
+    const [playlist_data, set_playlist_data] = useState<Playlist>(ExampleObj.playlist_example0);
     const [playlist_title, set_playlist_title] = useState("");
 
     const [inherited_playlist_key_values, set_inherited_playlist_key_values] = useState<KeyValue[]>([]);
@@ -40,7 +41,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 			const playlists_entries: {key: string, value: string}[] = [];
 			for (let i = 0; i < playlists.length; i++)
 				playlists_entries.push({key: playlists[i].uuid, value: playlists[i].title});
-			set_inherited_playlist_key_values(playlists_entries);
+            set_inherited_playlist_key_values(playlists_entries);
         })();
     }, []);
 

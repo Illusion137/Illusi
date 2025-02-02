@@ -11,8 +11,8 @@ import { AlphabetScroll, EditMode, Track } from "../../lib-origin/Illusive/src/t
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "../../lib-origin/Illusive/src/illusi/src/play";
 import { track_query_filter, track_section_map } from "../../lib-origin/Illusive/src/illusive_utilts";
-import { ExampleObj } from "../../lib-origin/Illusive/src/illusi/src/example_objs";
-import EditTrackModal from "./EditTrackModal";
+// import { ExampleObj } from "../../lib-origin/Illusive/src/illusi/src/example_objs";
+// import EditTrackModal from "./EditTrackModal";
 import { on_alphabet_scroll_update } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 import ShufflePlayButton from "./ShufflePlayButton";
 import React from "react";
@@ -31,7 +31,7 @@ function LibraryTrackList(props: {
 	const styles = theme_styles(colors);
 
 	const [all_data, set_all_data] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0});
-	const [edit_track_modal_data, _] = useState({visible: false, track: ExampleObj.track_example0});
+	// const [edit_track_modal_data, _] = useState({visible: false, track: ExampleObj.track_example0});
 
     const alphabet_scroll: AlphabetScroll = {
 		all_alphabet_fast_scroll_locations: [] as number[],
@@ -127,7 +127,7 @@ function LibraryTrackList(props: {
 					</View>
 				))}
 			</Animated.View>
-            <EditTrackModal visible={edit_track_modal_data.visible} track={edit_track_modal_data.track}/>
+            {/* <EditTrackModal visible={edit_track_modal_data.visible} track={edit_track_modal_data.track}/> */}
         </>
     )
 }
