@@ -12,13 +12,11 @@ export default {
         "resizeMode": "contain",
         "backgroundColor": "#000000"
     },
-    "expo": {
-        "runtimeVersion": "1.0.0",
-        "extra": {
-            "eas": {
-                "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
-            }
-        },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+        "eas": {
+            "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
+        }
     },
     "updates": {
         // "fallbackToCacheTimeout": 0, 
