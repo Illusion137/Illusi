@@ -7,14 +7,6 @@ export default {
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "platforms": [
-        "ios",
-    ],
-    "extra": {
-        "eas": {
-            "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
-        },
-    },
     "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "contain",
@@ -39,6 +31,11 @@ export default {
                 "audio",
                 "fetch"
             ]
+        }
+    },
+    "extra": {
+        "eas": {
+            "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
         }
     },
     "web": {
