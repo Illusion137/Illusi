@@ -32,6 +32,10 @@ import EditPlaylist from './app/screens/playlist/EditPlaylist';
 import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
 import ExtraMiscSettingsScreen from './app/screens/extra/ExtraMiscSettingsScreen';
 import ExtraThemesScreen from './app/screens/extra/ExtraThemesScreen';
+import { addShortcutListener } from 'react-native-siri-shortcut';
+import ExtraBatchUndownloaderScreen from './app/screens/extra/ExtraBatchUndownloader';
+import { Illusive } from './lib-origin/Illusive/src/illusive';
+import { playlist_tracks } from './lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -48,6 +52,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Experimental Settings" component={ExtraExperimentalSettingsScreen} />
             <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />
+            <ExtrasStack.Screen name="Batch Un-Downloader" component={ExtraBatchUndownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
@@ -132,6 +137,19 @@ export default function App() {
             await illusi_startup(play_tracks, set_theme);
             set_is_loading(false);
         })();
+        const subscription = addShortcutListener(async({ userInfo, activityType }) => {
+            const info: {uuid: string} = userInfo as any; 
+            switch(activityType){
+                case("com.illusion137.Illusi.ShuffleMusic"): {
+                    const shuffled = Illusive.shuffle_tracks("SHUFFLE", await playlist_tracks(info.uuid))
+                    GLOBALS.global_var.play_tracks(shuffled[0], shuffled, "Shortcut");
+                    break;
+                }
+            }
+        });      
+        return () => {
+            subscription.remove();
+        };
     }, []);
     useEffect(() => {
         if (is_playing == "LOADING") {

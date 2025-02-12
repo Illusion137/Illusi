@@ -13,6 +13,7 @@ import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import { create_uri, music_service_to_music_service_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 
 type KeyValue = {key: string, value: string};
 function ExtraPlaylistConverter() {
@@ -32,17 +33,19 @@ function ExtraPlaylistConverter() {
 
 	const confirm_convert_playlist_alert = () =>
     Alert.alert(
-		"Download All Tracks in Playlist",
+		"Convert Playlist?",
 		"Are you sure?",
 		[ { text: "Cancel"},
         { text: "OK", onPress: async() => {
 			try {
 				const illusi_tracks = selected_illusi_playlist_key === Constants.library_write_playlist ? GLOBALS.global_var.sql_tracks.slice() : await SQLPlaylists.playlist_tracks(selected_illusi_playlist_key);
-                const service_uri = music_service_to_music_service_uri(selected_segmented_service_value);
-                const service_id = data.get("selected_service_playlist")!.url;
+				
+				const service_uri = music_service_to_music_service_uri(selected_segmented_service_value);
+				const service_id = data.get("selected_service_playlist")?.url;
+				if(is_empty(service_id)) throw "service_id is empty";
                 await convert_playlist( illusi_tracks, selected_segmented_service_value, 
                     {
-                        "to": { "uuid_uri": create_uri(service_uri, service_id) },
+                        "to": { "uuid_uri": create_uri(service_uri, service_id!) },
                         "full_sample": false
                     }
                 );

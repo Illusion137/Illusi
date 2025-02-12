@@ -12,6 +12,7 @@ import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
+import { presentShortcut } from "react-native-siri-shortcut";
 
 function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -64,6 +65,7 @@ function ExtraScreen() {
 
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
+					{Prefs.get_pref('hide_batch_undownloader') ? null : <ExtrasSectionButton show_arrow={true} text='Batch Un-Downloader' icon='arrow-undo-outline' onPress={async () => navigation.navigate('Batch Un-Downloader')}/> }
 					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
@@ -111,6 +113,19 @@ function ExtraScreen() {
 					<View style={styles.line_short}/>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<ExtrasSectionButton show_arrow={true} text='Developer Test Button' icon='hammer-outline' onPress={() => 
+						presentShortcut({
+							'activityType': 'com.illusion137.Illusi.dev.ShuffleMusic',
+							'persistentIdentifier': 'com.illusion137.Illusi.dev.ShuffleMusic',
+							'title': "Shuffle Shortcut",
+							'isEligibleForHandoff': true,
+							'isEligibleForPrediction': true,
+							'isEligibleForPublicIndexing': true,
+							'isEligibleForSearch': true,
+							'keywords': ["Shuffle", "Music", 'Illusi'],
+							'description': 'Shuffles Library',
+						}, (data) => console.log(data))
+					}/>
 					<View style={styles.line_long}/>
 					<Text style={styles.description_txt}>Developer Options :3</Text>
 					</> : null

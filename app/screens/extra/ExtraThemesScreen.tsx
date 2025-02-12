@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { AntDesign, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { Text, View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Text, View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import ColorPicker from 'react-native-wheel-color-picker'
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 
+let selected_color = "#ffffff";
 export default function ExtraThemesScreen(){
     const { colors } = useTheme() as Prefs.Theme;
     const styles = theme_styles(colors);
+
+    const color_picker_ref = useRef<ColorPicker>();
+    const [show_color_selector, set_show_color_selector] = useState<boolean>(false);
     return (
         <ScrollView>
             <View style={{borderRadius: 30, backgroundColor: colors.shelf, margin: 10, padding: 20}}>
@@ -51,8 +56,8 @@ export default function ExtraThemesScreen(){
                 </View>
             </View>
             <TouchableOpacity onPress={async() => {
-                // await Prefs.save_pref('primary_color', '#000000');
-                // Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
+                await Prefs.save_pref('primary_color', selected_color as `#${string}`);
+                Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
             }}>
                 <View style={styles.sectionContainer}>
                     <Text style={styles.btnsectionText}>🎨</Text>
@@ -60,6 +65,27 @@ export default function ExtraThemesScreen(){
                     <AntDesign name="star" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>
                 </View>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.sectionContainer} onPress={async() => {
+                color_picker_ref.current?.revert();
+                set_show_color_selector(!show_color_selector);
+            }}>
+                <Text style={styles.btnsectionText}>{show_color_selector ? "Hide" : "Show"} Color Picker</Text>
+            </TouchableOpacity>
+            {show_color_selector ? <ColorPicker
+                ref={color_picker_ref as any}
+                swatchesOnly={false}
+                onColorChangeComplete={(color) => selected_color = color}
+                thumbSize={40}
+                sliderSize={40}
+                noSnap={true}
+                row={false}
+                swatches={false}
+                discrete={false}
+                wheelLoadingIndicator={<ActivityIndicator size={40} />}
+                sliderLoadingIndicator={<ActivityIndicator size={20} />}
+                useNativeDriver={false}
+                useNativeLayout={false}
+                />: null}
             <View style={styles.line_long}></View>
             <View style={{height: 30}}></View>
             {

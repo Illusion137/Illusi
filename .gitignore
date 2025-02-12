@@ -3,7 +3,6 @@ lib-origin/
 .history/
 TestApp.tsx
 tsconfig.json
-*.config.js
 .vscode
 .expo
 builds/

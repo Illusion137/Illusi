@@ -1,10 +1,12 @@
 import React,  { useState } from 'react';
-import { View, StyleSheet, FlatList, Text } from 'react-native';
+import { View, StyleSheet, Text, SectionList } from 'react-native';
 import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
+import { PrefEntry } from '../../../lib-origin/Illusive/src/types';
+import { prefs_settings_groupby_filter } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
 function ExtraSettingsScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -12,23 +14,28 @@ function ExtraSettingsScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	
-    type PrefEntry = [Prefs.PrefOptions, Prefs.Pref<unknown>]
-
-	const [settings_data, _] = useState((Object.entries(Prefs.prefs) as PrefEntry[]).filter(item => (item[1].show_in_settings ?? false) && (item[1].show_in_type === undefined))); 
+	const [settings_data, _] = useState(prefs_settings_groupby_filter(undefined));
 	const render_item = (item: {item: PrefEntry, index: number}) => 
 	<>
 		<SettingsMultiButton settings_key={item.item[0]} settings_pref={item.item[1]}/>
 		{item.index !== settings_data.length-1 && <View style={styles.line_short}/>}
 		{item.item[1]?.description !== undefined ? <Text style={styles.description_text}>{item.item[1].description}</Text>: null }
 	</>;
+	const render_section_header = (section: {section: {title: string}}) => (
+	<>
+		<Text style={styles.header_text}>{section.section.title}</Text>
+		<View style={styles.thick_line_long}/>
+	</>	);
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-			<FlatList data={settings_data} renderItem={render_item} ListHeaderComponent={<View style={styles.line_long}/>} ListFooterComponent={
+			<SectionList sections={settings_data} renderItem={render_item} renderSectionHeader={render_section_header} ListHeaderComponent={<View style={styles.line_long}/>} ListFooterComponent={
 				<>
 					<View style={styles.line_long}/>
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton show_arrow={true} text='Miscellaneous Settings' icon='settings-outline' onPress={() => navigation.navigate("Miscellaneous Settings")}/>
+					<Text style={styles.description_text}>Usually one-time settings that you'd forget about</Text>
 					<ExtrasSectionButton show_arrow={true} text='Experimental Settings' icon='settings-outline' onPress={() => navigation.navigate("Experimental Settings")}/>
+					<Text style={styles.description_text}>Settings that have a chance of breaking things; use with caution; all disabled by default</Text>
 					<View style={{height: 30}}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
 					<ExtrasSectionButton show_arrow={false} text='Clear Thumbnail Cache' icon='trash-outline' onPress={SQLTracks.clean_thumbnail_cache}/>
@@ -39,7 +46,13 @@ function ExtraSettingsScreen() {
 	);
 }
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
-    line_long:{
+	thick_line_long:{
+		width: "90%",
+		height: 0.4,
+		opacity: 1,
+		backgroundColor: colors.text,
+	},
+	line_long:{
 		width: "100%",
 		height: 0.4,
 		opacity: 0.1,
@@ -58,6 +71,15 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         marginTop: 5,
         marginBottom: 10,
         fontSize: 16
-    }
+    },
+	header_text: {
+		paddingTop: 16,
+		paddingBottom: 5,
+		marginLeft: 10,
+		color: colors.text,
+		fontSize: 24,
+		fontWeight: 'bold',
+		backgroundColor: colors.background + 'f0'
+	}
 });
 export default ExtraSettingsScreen;
