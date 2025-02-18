@@ -34,6 +34,8 @@ export default function Playlist(params: {route: Route<unknown>}){
     const force_order = "force_order" in ts_route.params && (ts_route.params.force_order ?? false);
     const pre_always_shuffle = Prefs.get_pref('always_shuffle');
 
+    const writing_from_library: boolean = "write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist;
+
     const navigation: NavigationProp<any, any> = useNavigation();
     const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
@@ -47,7 +49,8 @@ export default function Playlist(params: {route: Route<unknown>}){
     const [continuation, set_continuation] = useState<unknown>();
     const [search_query_state, set_search_query_state] = useState<string>("");
 
-    function getShortcut():ShortcutOptions{
+    function getShortcut(): ShortcutOptions{
+        const key = "uuid" in ts_route.params ? ts_route.params.uuid : ("default_playlist_title" in ts_route.params) ? ts_route.params.default_playlist_title : "";
         return {
             activityType: 'com.illusion137.Illusi.ShuffleMusic',
             persistentIdentifier: 'com.illusion137.Illusi.ShuffleMusic',
@@ -57,8 +60,8 @@ export default function Playlist(params: {route: Route<unknown>}){
             isEligibleForPublicIndexing: true,
             isEligibleForSearch: true,
             keywords: ["Shuffle", "Music", 'Illusi'],
-            requiredUserInfoKeys: [(ts_route.params as {uuid: string}).uuid],
-            userInfo: {uuid: (ts_route.params as {uuid: string}).uuid},
+            requiredUserInfoKeys: [key],
+            userInfo: {uuid: key},
             description: 'Shuffles Playlist',
         }
     }
@@ -160,6 +163,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     }
 
     async function refresh_data(query?: string){
+        if(writing_from_library) return;
 		search_query = query ?? (search_query ?? "");
         set_search_query_state(search_query);
         if(tracks.length === 0 && !("write_playlist_uuid" in ts_route.params) || "uuid" in ts_route.params){
@@ -263,7 +267,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 		<View style={styles.playlist_list_header}>
             <TextInput autoCorrect={false} placeholder='Search Playlist' placeholderTextColor={colors.subtext} style={styles.search_input} onChangeText={on_edit_text}></TextInput>
             <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
-            <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={tracks} size={75}/>
+            <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75}/>
             <View style={{top: 15, alignItems: 'center'}}>
                 <Text style={{color: colors.text, fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
                 <Text style={{color: colors.text, fontSize: 20}}>{playlist_data?.description}</Text>

@@ -20,6 +20,7 @@ import { illusive_track_to_track_player_track, setup_track_player, track_player_
 import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
+import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 // import AddToPlaylistsModal from './AddToPlaylistsModal';
 
 interface PlayerStateType {
@@ -64,7 +65,7 @@ function AudioPlayer(props: {
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
     const [player_state, set_player_state] = useState({
         title: props.tracks[0]?.title,
-        artist: props.tracks[0]?.artists.map(artist => artist.name).join(", "),
+        artist: artist_string(props.tracks[0]),
         artwork: props.tracks[0]?.playback!.artwork,
         duration: props.tracks[0]?.duration ?? 0,
         elapsed_time: 0,
@@ -200,7 +201,7 @@ function AudioPlayer(props: {
         set_artist_data(GLOBALS.global_var.playing_tracks[event.track].artists[0]);
         update_player_state({
             title: GLOBALS.global_var.playing_tracks[event.track]?.title,
-            artist: GLOBALS.global_var.playing_tracks[event.track]?.artists?.[0]?.name,
+            artist: artist_string(GLOBALS.global_var.playing_tracks[event.track]),
             duration: event.duration,
             artwork: GLOBALS.global_var.playing_tracks[event.track]?.playback!.artwork,
             elapsed_time: event.position,

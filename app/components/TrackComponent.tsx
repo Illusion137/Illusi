@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
-import { duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { artist_string, duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { EditMode, Track } from '../../lib-origin/Illusive/src/types';
-import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { is_empty } from '../../lib-origin/origin/src/utils/util';
 import { push_track_to_playing_queue, play } from '../../lib-origin/Illusive/src/illusi/src/play';
 import { delete_track, insert_into_write_playlist, download_track } from '../../lib-origin/Illusive/src/illusi/src/components/track';
 import { Constants } from '../../lib-origin/Illusive/src/constants';
@@ -82,7 +82,7 @@ function TrackComponent(props: {
 				</View>
 				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
 					<Text style={styles.title} numberOfLines={1} >{Prefs.get_pref('alt_titles') && !is_empty(props.track_data.alt_title) ? props.track_data.alt_title : props.track_data.title}</Text>
-					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(artist => remove_topic(artist.name).trim()).join(", ")}</Text>
+					<Text style={styles.artist} numberOfLines={1} >{artist_string(props.track_data)}</Text>
                     { Prefs.get_pref('simple_tags') ? <View style={{flexDirection: 'row'}}>
     					<Text style={styles.album} numberOfLines={1} >{props.track_data.album?.name ?? ""}</Text>
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
@@ -101,6 +101,7 @@ function TrackComponent(props: {
                         {!is_empty(props.track_data.amazonmusic_id) ? <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.thumbnail_uri)  ? <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.lyrics_uri)     ? <MaterialIcons name="closed-caption" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
+                        {!is_empty(props.track_data.meta?.unavailable) ? <MaterialCommunityIcons name="file-hidden" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {(is_downloading)                          ? <MaterialIcons name="downloading" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}

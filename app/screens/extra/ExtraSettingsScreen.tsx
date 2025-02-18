@@ -7,6 +7,10 @@ import SettingsMultiButton from '../../components/SettingsMultiButton';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
 import { PrefEntry } from '../../../lib-origin/Illusive/src/types';
 import { prefs_settings_groupby_filter } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
+import { Constants } from '../../../lib-origin/Illusive/src/constants';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 function ExtraSettingsScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -26,6 +30,28 @@ function ExtraSettingsScreen() {
 		<Text style={styles.header_text}>{section.section.title}</Text>
 		<View style={styles.thick_line_long}/>
 	</>	);
+
+	function getShortcut():ShortcutOptions{
+		return {
+			activityType: 'com.illusion137.Illusi.ShuffleMusic',
+			persistentIdentifier: 'com.illusion137.Illusi.ShuffleMusic',
+			title: "Shuffle Shortcut " + "Library", 
+			isEligibleForHandoff: true,
+			isEligibleForPrediction: true,
+			isEligibleForPublicIndexing: true,
+			isEligibleForSearch: true,
+			keywords: ["Shuffle", "Music", 'Illusi'],
+			requiredUserInfoKeys: [Constants.library_write_playlist],
+			userInfo: {uuid: Constants.library_write_playlist},
+			description: 'Shuffles Playlist',
+		}
+	}
+
+	async function zip_data(){
+		const UTI = 'public.item';
+		await Sharing.shareAsync(FileSystem.documentDirectory ?? "", { UTI });
+	}
+
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			<SectionList sections={settings_data} renderItem={render_item} renderSectionHeader={render_section_header} ListHeaderComponent={<View style={styles.line_long}/>} ListFooterComponent={
@@ -37,8 +63,12 @@ function ExtraSettingsScreen() {
 					<ExtrasSectionButton show_arrow={true} text='Experimental Settings' icon='settings-outline' onPress={() => navigation.navigate("Experimental Settings")}/>
 					<Text style={styles.description_text}>Settings that have a chance of breaking things; use with caution; all disabled by default</Text>
 					<View style={{height: 30}}/>
+					<ExtrasSectionButton show_arrow={true} text='Danger Zone' icon='warning-sharp' onPress={() => navigation.navigate("Danger Zone")}/>
+					<View style={styles.line_long}/>
+					<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
+					<ExtrasSectionButton show_arrow={false} text='Shuffle Library Shortcut' icon='library-outline' onPress={() => presentShortcut(getShortcut(), (data) => data)}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
-					<ExtrasSectionButton show_arrow={false} text='Clear Thumbnail Cache' icon='trash-outline' onPress={SQLTracks.clean_thumbnail_cache}/>
+					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
 					<View style={{height: 200}}/>
 				</>
 			}/>

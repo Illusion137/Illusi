@@ -41,7 +41,7 @@ function ExtraBatchDownloaderScreen() {
 	}, []);
 	
 	const render_header_item = (_: {item: any}) => <>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining</Text>
+		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining • {}</Text>
 		<View style={{height: 8}}/>
 		<View style={styles.linelong}/>
 		<View style={{height: 30}}/>

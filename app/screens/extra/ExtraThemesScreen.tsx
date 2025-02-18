@@ -13,6 +13,7 @@ export default function ExtraThemesScreen(){
     const styles = theme_styles(colors);
 
     const color_picker_ref = useRef<ColorPicker>();
+    const [selected_color_state, set_selected_color_state] = useState<string>(selected_color);
     const [show_color_selector, set_show_color_selector] = useState<boolean>(false);
     return (
         <ScrollView>
@@ -62,7 +63,7 @@ export default function ExtraThemesScreen(){
                 <View style={styles.sectionContainer}>
                     <Text style={styles.btnsectionText}>🎨</Text>
                     <Text style={styles.btnsectionText}>Custom Color</Text>
-                    <AntDesign name="star" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>
+                    <AntDesign name="star" size={22} color={selected_color_state} style={{position: 'absolute', left: "90%"}}/>
                 </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sectionContainer} onPress={async() => {
@@ -74,7 +75,7 @@ export default function ExtraThemesScreen(){
             {show_color_selector ? <ColorPicker
                 ref={color_picker_ref as any}
                 swatchesOnly={false}
-                onColorChangeComplete={(color) => selected_color = color}
+                onColorChangeComplete={(color) => {selected_color = color; set_selected_color_state(color);}}
                 thumbSize={40}
                 sliderSize={40}
                 noSnap={true}

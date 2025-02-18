@@ -9,7 +9,7 @@ import SelectPlaylist from '../../components/SelectPlaylist';
 import { sort_playlists } from '../../../lib-origin/Illusive/src/illusi/src/playlist';
 import { Playlist, Track } from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { remove_topic } from '../../../lib-origin/origin/src/utils/util';
+import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 
 type ModalData = {show: boolean, track_data: Track|null};
 function AddToPlaylistsModal(props: {modal_data: ModalData, callback: () => void}) {
@@ -65,7 +65,7 @@ function AddToPlaylistsModal(props: {modal_data: ModalData, callback: () => void
                     height: '20%',
                 }}/>
                 <Text numberOfLines={1} style={{marginHorizontal: 20, bottom: 50, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{modal_data.track_data?.title || ""}</Text>
-                <Text style={{marginHorizontal: 20, bottom: 50, color: colors.text, fontSize: 14}}>{modal_data.track_data?.artists.map(artist => remove_topic(artist.name)).join(', ') || ""}</Text>
+                <Text style={{marginHorizontal: 20, bottom: 50, color: colors.text, fontSize: 14}}>{artist_string(modal_data.track_data!)}</Text>
                 <FlatList style={{bottom: 45}} data={playlists_data} renderItem={render_playlist_item}/>
                 <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center'}} onPress={async() => save_selection()}>
                     <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Save</Text>

@@ -1,8 +1,9 @@
 import React, {} from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { QueueTrack } from '../../lib-origin/Illusive/src/types';
+import { QueueTrack, Track } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
+import { artist_string } from '../../lib-origin/Illusive/src/illusive_utilts';
 
 function SongComponentQueue(props: {
 	track_data: QueueTrack
@@ -18,7 +19,7 @@ function SongComponentQueue(props: {
                 </View>
                 <View style={styles.text}>
                     <Text style={styles.title} numberOfLines={1} >{props.track_data?.title}</Text>
-                    <Text style={styles.artist} numberOfLines={1} >{props.track_data?.artists.map(artist => artist.name).join(", ")}</Text>
+                    <Text style={styles.artist} numberOfLines={1} >{artist_string(props.track_data as Track)}</Text>
                 </View>
             </View>
             <View style={styles.line}/>

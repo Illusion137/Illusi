@@ -4,9 +4,8 @@ import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Track } from '../../lib-origin/Illusive/src/types';
-import { duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { artist_string, duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
 import * as SQLBackpack from '../../lib-origin/Illusive/src/illusi/src/sql/sql_backpack';
-import { remove_topic } from '../../lib-origin/origin/src/utils/util';
 
 function SongComponentBackpack(props: {
 	track_data: Track,
@@ -26,7 +25,7 @@ function SongComponentBackpack(props: {
 				</View>
 				<View style={styles.text}>
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
-					<Text style={styles.artist} numberOfLines={1} >{props.track_data.artists.map(item => remove_topic(item.name)).join(", ")}</Text>
+					<Text style={styles.artist} numberOfLines={1} >{artist_string(props.track_data)}</Text>
 				</View>
 				{ !(disabled) && <TouchableOpacity style={{alignSelf:'center', left: 20, padding: 10}} onPress={async () => {
 					set_disabled(true);

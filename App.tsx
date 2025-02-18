@@ -32,10 +32,16 @@ import EditPlaylist from './app/screens/playlist/EditPlaylist';
 import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
 import ExtraMiscSettingsScreen from './app/screens/extra/ExtraMiscSettingsScreen';
 import ExtraThemesScreen from './app/screens/extra/ExtraThemesScreen';
-import { addShortcutListener } from 'react-native-siri-shortcut';
+import { addShortcutListener, getInitialShortcut } from 'react-native-siri-shortcut';
 import ExtraBatchUndownloaderScreen from './app/screens/extra/ExtraBatchUndownloader';
 import { Illusive } from './lib-origin/Illusive/src/illusive';
 import { playlist_tracks } from './lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
+import { is_empty } from './lib-origin/origin/src/utils/util';
+import { default_playlists } from './lib-origin/Illusive/src/illusi/src/default_playlists';
+import { Constants } from './lib-origin/Illusive/src/constants';
+import ExtraDangerScreen from './app/screens/extra/ExtraDangerScreen';
+import ExtraHelpScreen from './app/screens/extra/ExtraHelpScreen';
+import ExtraMarkdownRenderScreen from './app/screens/extra/ExtraMarkdownRenderScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -58,6 +64,9 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Themes" component={ExtraThemesScreen} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
+            <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
+            <ExtrasStack.Screen name="Changelog" component={ExtraMarkdownRenderScreen} />
+            <ExtrasStack.Screen name="Help" component={ExtraHelpScreen} />
         </ExtrasStack.Navigator>
     );
 }
@@ -132,21 +141,37 @@ export default function App() {
     const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
     const [is_loading, set_is_loading] = useState(true);
 
+    async function run_shortcut(userInfo: {uuid: string}, activityType: string){
+        const info: {uuid: string} = userInfo as any;
+        switch(activityType){
+            case("com.illusion137.Illusi.ShuffleMusic"): {
+                if(is_empty(info.uuid)) return;
+                const default_playlist_names = default_playlists.map(playlist => playlist.name);
+                const shuffled = Illusive.shuffle_tracks("SHUFFLE",
+                    default_playlist_names.includes(info.uuid) ?
+                        await default_playlists.find(playlist => playlist.name === info.uuid)!.track_function() :
+                    info.uuid === Constants.library_write_playlist ? 
+                        GLOBALS.global_var.sql_tracks :
+                    await playlist_tracks(info.uuid)
+                )
+                GLOBALS.global_var.play_tracks(shuffled[0], shuffled, "Shortcut");
+                break;
+            }
+        }
+    }
+
     useEffect(() => {
         (async function () {
             await illusi_startup(play_tracks, set_theme);
             set_is_loading(false);
+            const maybe_initial_shortcut = await getInitialShortcut();
+            if(maybe_initial_shortcut !== null){
+                await run_shortcut(maybe_initial_shortcut.userInfo as any, maybe_initial_shortcut.activityType);
+            }
         })();
         const subscription = addShortcutListener(async({ userInfo, activityType }) => {
-            const info: {uuid: string} = userInfo as any; 
-            switch(activityType){
-                case("com.illusion137.Illusi.ShuffleMusic"): {
-                    const shuffled = Illusive.shuffle_tracks("SHUFFLE", await playlist_tracks(info.uuid))
-                    GLOBALS.global_var.play_tracks(shuffled[0], shuffled, "Shortcut");
-                    break;
-                }
-            }
-        });      
+            await run_shortcut(userInfo as any, activityType);
+        });
         return () => {
             subscription.remove();
         };
