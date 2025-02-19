@@ -4,6 +4,7 @@ import { NavigationContainer, useTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { Button, Image } from 'react-native';
+import appConfig from './app.config';
 
 import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import * as GLOBALS from './lib-origin/Illusive/src/illusi/src/globals';
@@ -162,7 +163,7 @@ export default function App() {
 
     useEffect(() => {
         (async function () {
-            await illusi_startup(play_tracks, set_theme);
+            await illusi_startup(appConfig.version, play_tracks, set_theme);
             set_is_loading(false);
             const maybe_initial_shortcut = await getInitialShortcut();
             if(maybe_initial_shortcut !== null){
