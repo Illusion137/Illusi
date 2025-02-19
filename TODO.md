@@ -10,6 +10,7 @@
 - [x] Track-Metadata sometimes has bad values such as null for a property type: number
 - [ ] Soundcloud signins only last for a day or two
 - [ ] Soundcloud downloads still sometimes don't work
+- [ ] Trackplayer becomes out of sync
 
 # Features
 - [ ] Store track play iso-dates in SQLite Database

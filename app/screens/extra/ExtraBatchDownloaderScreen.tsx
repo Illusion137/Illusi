@@ -41,7 +41,7 @@ function ExtraBatchDownloaderScreen() {
 	}, []);
 	
 	const render_header_item = (_: {item: any}) => <>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining</Text>
+		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining • {}</Text>
 		<View style={{height: 8}}/>
 		<View style={styles.linelong}/>
 		<View style={{height: 30}}/>
@@ -64,7 +64,7 @@ function ExtraBatchDownloaderScreen() {
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-				<SelectList 
+				<SelectList
 					setSelected={(key: string) => set_selected_key(key)}
 					data={playlist_download_data}
 					save="key"
@@ -77,7 +77,9 @@ function ExtraBatchDownloaderScreen() {
 					dropdownStyles={{backgroundColor: colors.track}}
 					dropdownTextStyles={{color: 'white'}}
 				/>
-				<ExtrasSectionButton show_arrow={false} text='Download all From Playlist' icon='archive-outline' onPress={async() => await if_confirm("Download All Tracks in Playlist", "Are You Sure?", download_playlist)}/>
+				{is_empty(selected_key) ? null : 
+				<ExtrasSectionButton show_arrow={false} text='Download From Playlist' icon='archive-outline' onPress={async() => await if_confirm("Download Tracks in Playlist", "Are You Sure?", download_playlist)}/> 
+				}
 				<View style={{height: 15}}/>
 				<FlatList 
 					data={downloading_tracks_data} 

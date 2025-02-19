@@ -2,15 +2,10 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, NativeSyntheticEvent, Linking} from 'react-native';
 import ExtrasSectionButton from '../components/ExtrasSectionButton';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
 import appConfig from '../../app.config';
-import * as Sharing from 'expo-sharing';
 import * as Battery from 'expo-battery';
-import * as SQLUtils from '../../lib-origin/Illusive/src/illusi/src/sql/sql_utils';
-import * as SQLPlaylists from '../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
 
 function ExtraScreen() {
@@ -19,10 +14,6 @@ function ExtraScreen() {
     const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 	
-	async function zip_data(){
-		const UTI = 'public.item';
-		await Sharing.shareAsync(FileSystem.documentDirectory ?? "", { UTI });
-	}
     async function change_theme(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
         const theme_key = event.nativeEvent.value as Prefs.PossibleThemes;
         await Prefs.save_pref('theme', theme_key);
@@ -64,6 +55,7 @@ function ExtraScreen() {
 
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
+					{Prefs.get_pref('hide_batch_undownloader') ? null : <ExtrasSectionButton show_arrow={true} text='Batch Un-Downloader' icon='arrow-undo-outline' onPress={async () => navigation.navigate('Batch Un-Downloader')}/> }
 					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
@@ -97,18 +89,14 @@ function ExtraScreen() {
 						else await Linking.openURL('https://github.com/Illusion137');
 					}}/>
 					<View style={styles.line_short}/>
-					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
+					<ExtrasSectionButton show_arrow={true} text='Changelog' icon='list-outline' onPress={async () => navigation.navigate('Changelog')}/>
+					<ExtrasSectionButton show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
 					<View style={styles.line_short}/>
-					<ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", async () => {await Prefs.reset_prefs(); Prefs.pref_set_theme(GLOBALS.global_var.set_theme);})}/>
-					<View style={styles.line_short}/>	
-					<ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLUtils.delete_all_data)}/>
 				<View style={styles.line_long}/>
-				<Text style={styles.description_txt}>Manage your data; clear your data or export it back to your files app</Text>
+				<Text style={styles.description_txt}>Export your data back to your files app</Text>
 
 				{ Prefs.get_pref('dev_mode') ?
 					<>
-					<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLPlaylists.delete_all_playlists)}/>
-					<View style={styles.line_short}/>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
 					<View style={styles.line_long}/>

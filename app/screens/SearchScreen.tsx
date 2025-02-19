@@ -21,10 +21,7 @@ function SearchScreen() {
     const [search_mode, set_search_mode] = useState<SearchMode>("Smart");
 
     type SearchService = "YouTube" | "SoundCloud" | "Spotify" | "YouTube Music";
-    const search_services: SearchService[] = 
-		Illusive.music_service.get('YouTube Music')!.has_credentials() ? 
-		["YouTube Music", "YouTube", "SoundCloud", "Spotify"]
-		: ["YouTube", "SoundCloud", "Spotify"];
+    const search_services: SearchService[] = ["YouTube Music", "YouTube", "SoundCloud", "Spotify"];
     const [search_service, set_search_service] = useState<SearchService>(search_services[0]);
 
 	const [search_result, set_search_result] = useState<MusicSearchResponse>(empty_search_result);
