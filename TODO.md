@@ -21,21 +21,21 @@
 - [ ] iCloud Backups
 - [ ] iCloud linking to other devices
 - [x] AudioPlayer Add to Playlist Modal Structure
-- [ ] Add to playlist from AudioPlayer
+- [x] Add to playlist from AudioPlayer
 - [ ] Remove song from library/playlist from AudioPlayer
 - [x] Add from recently-player + past-queue playlists
 - [ ] Convert Illusi-playist back to any music-service
 - [ ] Link playlists to Illusi-playlist
 - [ ] Linker
 - [x] Theming
-- [ ] Custom primary color
+- [x] Custom primary color
 - [x] More themes (Light Mode)
 - [ ] Import from SQLite
 - [ ] Smart Shuffle
-- [ ] Track edit-mode EDIT
+- [x] Track edit-mode EDIT
 - [ ] Preview song before add-to-playist
 - [x] Search-flags: @sc soundcloud
-- [ ] Pref: 'compact_playlists' - Makes PlaylistComponents compact
+- [x] Pref: 'compact_playlists' - Makes PlaylistComponents compact
 - [x] Pref: 'share_as_original' - Shares as link instead of file
 - [ ] ArtistScreen
 - [x] Smart Search

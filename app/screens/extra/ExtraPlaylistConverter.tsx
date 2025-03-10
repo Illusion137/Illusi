@@ -8,12 +8,15 @@ import { useTheme } from '@react-navigation/native';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import { MusicServiceMappedPlaylist, MusicServiceType } from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { convert_playlist, loggedin_services } from '../../../lib-origin/Illusive/src/illusi/src/playlist_converter';
+import { convert_playlist } from '../../../lib-origin/Illusive/src/illusi/src/playlist_converter';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import { create_uri, music_service_to_music_service_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
+import { loggedin_services } from '../../../lib-origin/Illusive/src/illusi/src/sampler';
+import { ResponseError } from '../../../lib-origin/origin/src/utils/types';
+import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 
 type KeyValue = {key: string, value: string};
 function ExtraPlaylistConverter() {
@@ -41,14 +44,31 @@ function ExtraPlaylistConverter() {
 				const illusi_tracks = selected_illusi_playlist_key === Constants.library_write_playlist ? GLOBALS.global_var.sql_tracks.slice() : await SQLPlaylists.playlist_tracks(selected_illusi_playlist_key);
 				
 				const service_uri = music_service_to_music_service_uri(selected_segmented_service_value);
-				const service_id = data.get("selected_service_playlist")?.url;
-				if(is_empty(service_id)) throw "service_id is empty";
-                await convert_playlist( illusi_tracks, selected_segmented_service_value, 
+				const service_id = data.get(selected_service_playlist)?.url.replace("youtube.com/playlist?list=", '');
+				if(is_empty(service_id)) throw new Error("service_id is empty");
+                const status = await convert_playlist( illusi_tracks, selected_segmented_service_value, 
                     {
                         "to": { "uuid_uri": create_uri(service_uri, service_id!) },
-                        "full_sample": false
+                        "full_sample": false,
+						"divide_and_conquer": false
                     }
                 );
+				if("error" in status) alert_error(status as ResponseError);
+				else if(status.ok === false) {
+					if_confirm("Try Divide And Conquer?", "Splits playlist into more tiny digestible pieces", async() => {
+						const status = await convert_playlist( illusi_tracks, selected_segmented_service_value, 
+							{
+								"to": { "uuid_uri": create_uri(service_uri, service_id!) },
+								"full_sample": false,
+								"divide_and_conquer": true
+							}
+						);
+						if("error" in status) alert_error(status as ResponseError);
+						else if(status.ok === false) GLOBALS.global_var.bottom_alert?.("Conversion Failure", "WARN");
+						else GLOBALS.global_var.bottom_alert?.("Conversion Success", "GOOD");
+					})
+				}
+				else GLOBALS.global_var.bottom_alert?.("Conversion Success", "GOOD");
 			} catch (error) {
 				alert_error({error: error as Error})
 			}

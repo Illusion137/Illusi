@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView } from "react-native";
+import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity, ActionSheetIOS } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode, Route, SortType } from "../../../lib-origin/Illusive/src/types";
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
@@ -9,6 +9,11 @@ import { IoniconsTouchableOpacity } from "../../components/TouchableIconOpacity"
 import ExtrasSectionButton from "../../components/ExtrasSectionButton";
 import { SelectList } from "react-native-dropdown-select-list";
 import { ExampleObj } from "../../../lib-origin/Illusive/src/illusi/src/example_objs";
+import FourTrackArtwork from "../../components/FourTrackArtwork";
+import { Ionicons } from "@expo/vector-icons";
+import { is_empty } from '../../../lib-origin/origin/src/utils/util';
+import { upload_playlist_thumbnail } from "../../../lib-origin/Illusive/src/illusi/src/document_picker";
+import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 
 type KeyValue = {key: string, value: string};
 type Action = "ADD"|"REMOVE";
@@ -31,9 +36,33 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     const [inherited_search_query, set_inherited_search_query] = useState("");
     const [inherited_search_segment_mode, set_inherited_search_segment_mode] = useState<PlaylistInheritanceMode>("INCLUDE");
     
+    const edit_artwork_actions = () => {
+        ActionSheetIOS.showActionSheetWithOptions(
+            {
+                options: is_empty(playlist_data.thumbnail_uri) ? ["Cancel", "Upload New Artwork"] : ["Cancel", "Upload New Artwork", "Remove Artwork"],
+                destructiveButtonIndex: 2,
+                cancelButtonIndex: 0,
+                userInterfaceStyle: 'dark'
+            }, async(i) => {
+                if (i === 0) {} 
+                else if (i === 1) { 
+                    await upload_playlist_thumbnail(playlist_data, async(updated_playlist) => {
+                        set_playlist_data({...updated_playlist});
+                        GLOBALS.global_var.bottom_alert?.("Updated Playlist Artwork", "INFO");
+                    } ); 
+                }
+                else if (i === 2) { 
+                    await SQLPlaylists.update_playlist(playlist_data.uuid, {...playlist_data, thumbnail_uri: ''}); 
+                    set_playlist_data({...playlist_data, thumbnail_uri: ''});
+                    GLOBALS.global_var.bottom_alert?.("Removed Playlist Artwork", "INFO");
+                }
+            }
+        );
+    }
+
     useEffect(() => {
         (async() => {
-            const pdata = await SQLPlaylists.playlist_data(ts_route.params.uuid, true);
+            const pdata = await SQLPlaylists.playlist_data(ts_route.params.uuid);
             set_playlist_data(pdata);
             set_playlist_title(pdata.title);
 
@@ -48,6 +77,8 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     
     async function change_playlist_title(){
         await SQLPlaylists.update_playlist_title(ts_route.params.uuid, playlist_title);
+        GLOBALS.global_var.bottom_alert?.("Updated Playlist Title", "INFO");
+    
     }
     async function change_sort_mode(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
         const new_sort_mode: SortType = event.nativeEvent.value.toUpperCase() as SortType;
@@ -78,9 +109,12 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 
     return (
         <ScrollView style={styles.top_container}>
-            <Text style={styles.info_text}>{playlist_title}</Text>
-            <TextInput value={playlist_title} autoCorrect={false} placeholder='Enter Title' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_playlist_title(text)}}/>
-            <ExtrasSectionButton show_arrow={false} text='Change Playlist Title' icon='pencil-sharp' onPress={change_playlist_title}/>
+            <TouchableOpacity style={{justifyContent: 'center', alignItems: 'center', paddingTop: 20}} onPress={edit_artwork_actions}>
+                <Ionicons style={{position: 'absolute', zIndex: 10, top: "45%"}} size={50} name='pencil-outline' color={'white'}/>
+                <FourTrackArtwork size={100} thumbnail_uri={playlist_data.thumbnail_uri} four_track={playlist_data.visual_data?.four_track ?? []} dim={true} dim_amount={0.4}/>
+            </TouchableOpacity>
+            <TextInput value={playlist_title} autoCorrect={false} placeholder='Enter Title' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_playlist_title(text)}} onEndEditing={change_playlist_title} onSubmitEditing={change_playlist_title}/>
+            <View style={{alignSelf: 'center', height: 0.2, backgroundColor: colors.text, width: '70%'}}/>
             <View style={{height: 30}}/>
             <Text style={styles.info_text}>Sort Mode</Text>
             <SegmentedControl
@@ -92,26 +126,30 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             <View style={{height: 30}}/>
             <View>
                 <Text style={styles.info_text}>Inherited Playlists</Text>
-                <SegmentedControl
-                    fontStyle={{color: colors.text}}
-                    values={inheritance_modes.map(mode => mode.toLowerCase())}
-                    selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
-                    onChange={async(event) => set_inherited_playlist_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
-                    style={{backgroundColor: colors.background}}/>
-                <SelectList 
-					setSelected={(key: string) => set_inherited_playlist_selected_key(key)}
-					data={inherited_playlist_key_values}
-					save="key"
-					arrowicon={<></>}
-					searchicon={<></>}
-					searchPlaceholder={"Select Playlist"}
-					placeholder='Select Playlist'
-					inputStyles={{backgroundColor: colors.track, color: 'white'}}
-					boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
-					dropdownStyles={{backgroundColor: colors.track}}
-					dropdownTextStyles={{color: 'white'}}
-				/>
-                <ExtrasSectionButton show_arrow={false} text='Create New Playlist Inheritance' icon='pencil-sharp' onPress={add_inherited_playlist}/>
+                <View style={{borderColor: colors.text, borderWidth: 0.4, margin: 2}}>
+                    <View style={{padding: 5}}>
+                        <SegmentedControl
+                            fontStyle={{color: colors.text}}
+                            values={inheritance_modes.map(mode => mode.toLowerCase())}
+                            selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
+                            onChange={async(event) => set_inherited_playlist_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
+                            style={{backgroundColor: colors.background}}/>
+                        <SelectList 
+                            setSelected={(key: string) => set_inherited_playlist_selected_key(key)}
+                            data={inherited_playlist_key_values}
+                            save="key"
+                            arrowicon={<></>}
+                            searchicon={<></>}
+                            searchPlaceholder={"Select Playlist"}
+                            placeholder='Select Playlist'
+                            inputStyles={{backgroundColor: colors.track, color: 'white'}}
+                            boxStyles={{backgroundColor: colors.track, borderColor: colors.primary, borderRadius: 5}}
+                            dropdownStyles={{backgroundColor: colors.track}}
+                            dropdownTextStyles={{color: 'white'}}
+                        />
+                        <ExtrasSectionButton show_arrow={false} text='Create New Playlist Inheritance' icon='pencil-sharp' onPress={add_inherited_playlist}/>
+                    </View>
+                </View>
                 {
                     (playlist_data?.inherited_playlists ?? [])?.map((item, i) => {
                         const title = SQLPlaylists.playlist_name_sync(item.uuid);
@@ -127,17 +165,21 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                     })
                 }
             </View>
-            <View style={{height: 60}}/>
+            <View style={{height: 20}}/>
             <View>
                 <Text style={styles.info_text}>Inherited Searchs</Text>
-                <TextInput autoCorrect={false} placeholder='Enter Search Query' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_inherited_search_query(text)}}/>
-                <SegmentedControl
-                    fontStyle={{color: colors.text}}
-                    values={inheritance_modes.map(mode => mode.toLowerCase())}
-                    selectedIndex={inheritance_modes.findIndex(item => item === inherited_search_segment_mode)}
-                    onChange={async(event) => set_inherited_search_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
-                    style={{backgroundColor: colors.background}}/>
-                <ExtrasSectionButton show_arrow={false} text='Create New Search Inheritance' icon='pencil-sharp' onPress={add_inherited_search}/>
+                <View style={{borderColor: colors.text, borderWidth: 0.4, margin: 2}}>
+                    <View style={{padding: 5}}>
+                        <TextInput autoCorrect={false} placeholder='Enter Search Query' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input0} onChangeText={(text) => {set_inherited_search_query(text)}}/>
+                        <SegmentedControl
+                            fontStyle={{color: colors.text}}
+                            values={inheritance_modes.map(mode => mode.toLowerCase())}
+                            selectedIndex={inheritance_modes.findIndex(item => item === inherited_search_segment_mode)}
+                            onChange={async(event) => set_inherited_search_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
+                            style={{backgroundColor: colors.background}}/>
+                        <ExtrasSectionButton show_arrow={false} text='Create New Search Inheritance' icon='pencil-sharp' onPress={add_inherited_search}/>
+                    </View>
+                </View>
                 {
                     (playlist_data?.inherited_searchs ?? [])?.map((item, i) => (
                         <View key={i}>
@@ -150,7 +192,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                     ))
                 }
             </View>
-            <View style={{height: 500}}/>
+            <View style={{height: 200}}/>
         </ScrollView>
     )
 }
@@ -213,14 +255,21 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         alignItems: 'center'
     },
     search_input:{
+        left: '10%',
+        color: colors.text,
+        fontSize: 25,
+        fontWeight: 'bold',
+        marginLeft: 30,
         marginTop: 10,
-        marginBottom: 5,
-        marginLeft: 10,
-        padding: 5,
-		backgroundColor: colors.searchInput,
-		color: colors.text,
 		width: '90%',
-		fontSize: 15,
+		borderRadius: 10,// Top Right Corner
+	},
+    search_input0:{
+        color: colors.text,
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 10,
+		width: '90%',
 		borderRadius: 10,// Top Right Corner
 	},
 });

@@ -1,4 +1,4 @@
-// import React,  { useState, useRef, useEffect } from 'react';
+    // import React,  { useState, useRef, useEffect } from 'react';
 // import { View, StyleSheet, Animated, Image, FlatList, ActionSheetIOS, Text, TouchableOpacity, Linking, Alert } from "react-native";
 // import { AntDesign, Ionicons, MaterialCommunityIcons,FontAwesome } from "@expo/vector-icons";
 // import { NavigationProp, useTheme } from '@react-navigation/native';

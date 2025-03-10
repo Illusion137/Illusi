@@ -6,11 +6,12 @@ import React, { useEffect, useState } from 'react';
 import { Button, Image } from 'react-native';
 import appConfig from './app.config';
 
+import * as uuid from 'react-native-uuid';
 import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import * as GLOBALS from './lib-origin/Illusive/src/illusi/src/globals';
 import { filter_play_tracks } from './lib-origin/Illusive/src/illusi/src/play';
 import { Prefs } from './lib-origin/Illusive/src/prefs';
-import { PlayingState, Track } from './lib-origin/Illusive/src/types';
+import { BottomAlertType, PlayingState, Track } from './lib-origin/Illusive/src/types';
 import GlobalStateProvider from './app/components/GlobalContext';
 import ExtraBatchDownloaderScreen from './app/screens/extra/ExtraBatchDownloaderScreen';
 import ExtraDeveloperScreen from './app/screens/extra/ExtraDeveloperScreen';
@@ -43,6 +44,11 @@ import { Constants } from './lib-origin/Illusive/src/constants';
 import ExtraDangerScreen from './app/screens/extra/ExtraDangerScreen';
 import ExtraHelpScreen from './app/screens/extra/ExtraHelpScreen';
 import ExtraMarkdownRenderScreen from './app/screens/extra/ExtraMarkdownRenderScreen';
+import ExtraKeepDeleteScreen from './app/screens/extra/ExtraKeepDeleteScreen';
+import ExtraCreateLinkScreen from './app/screens/extra/ExtraCreateLinkScreen';
+import ExtraCustomExploreBase from './app/screens/extra/ExtraCustomExploreBase';
+import ExtraCustomExploreArtistWatch from './app/screens/extra/ExtraCustomExploreArtistWatch';
+import BottomAlert from './app/components/BottomAlert';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -52,7 +58,9 @@ function ExtrasStackScreen() {
     return (
         <ExtrasStack.Navigator screenOptions={{ headerShown: true }}>
             <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{ headerShown: false }} />
+            <ExtrasStack.Screen name="Link" component={ExtraCreateLinkScreen} options={{ headerShown: false }} />
             <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
+            <ExtrasStack.Screen name="Keep Delete" component={ExtraKeepDeleteScreen} />
             <ExtrasStack.Screen name="Sleep Timer" component={ExtraSleepTimerScreen} />
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
             <ExtrasStack.Screen name="Miscellaneous Settings" component={ExtraMiscSettingsScreen} />
@@ -64,6 +72,8 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Themes" component={ExtraThemesScreen} />
+            <ExtrasStack.Screen name="Customize Explore" component={ExtraCustomExploreBase} />
+            <ExtrasStack.Screen name="Artist Watch" component={ExtraCustomExploreArtistWatch} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
             <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
             <ExtrasStack.Screen name="Changelog" component={ExtraMarkdownRenderScreen} />
@@ -120,7 +130,7 @@ function Tabs() {
                     unmountOnBlur: true,
                 }}
             />
-            <Tab.Screen name="Search" component={SearchStackScreen}
+            <Tab.Screen name="Explore" component={SearchStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="search" size={25} color={color} />),
                     unmountOnBlur: false,
@@ -141,6 +151,11 @@ export default function App() {
     const [playing_from, set_playing_from] = useState("");
     const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
     const [is_loading, set_is_loading] = useState(true);
+    const [bottom_alert, set_bottom_alert] = useState({
+        uuid: "",
+        text: "",
+        type: "GOOD" as BottomAlertType
+    });
 
     async function run_shortcut(userInfo: {uuid: string}, activityType: string){
         const info: {uuid: string} = userInfo as any;
@@ -163,7 +178,7 @@ export default function App() {
 
     useEffect(() => {
         (async function () {
-            await illusi_startup(appConfig.version, play_tracks, set_theme);
+            await illusi_startup(appConfig.version, play_tracks, set_theme, update_bottom_alert);
             set_is_loading(false);
             const maybe_initial_shortcut = await getInitialShortcut();
             if(maybe_initial_shortcut !== null){
@@ -191,15 +206,21 @@ export default function App() {
         set_playing_from(title);
         set_is_playing("LOADING");
     }
+    function update_bottom_alert(text: string, type: BottomAlertType){
+        set_bottom_alert({
+            uuid: uuid.default.v4() as string,
+            text,
+            type
+        });
+    }
     return (
         <GlobalStateProvider>
             <NavigationContainer theme={theme}>
                 {is_loading && <Image style={{ flex: 1, backgroundColor: 'black', width: '100%', height: '100%' }} source={require('./assets/splash.png')} />}
                 {is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+                <BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid}/>
                 {!is_loading && <Stack.Navigator>
                     <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false,  }} />
-                    <Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen} />
-                    <Stack.Screen name="Settings" component={ExtraSettingsScreen} />
                 </Stack.Navigator>}
             </NavigationContainer>
         </GlobalStateProvider>

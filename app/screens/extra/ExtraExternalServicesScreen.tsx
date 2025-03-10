@@ -50,6 +50,7 @@ function ServiceSwitcher(props: {
 }
 
 export function clear_webview_data(){
+    CookieManager.clearAll(false);
     CookieManager.clearAll(true);
 }
 

@@ -48,16 +48,17 @@ function SearchScreen() {
 		set_modal_data({'show':show, 'track_data': track})
 	}
 	function get_previous_searches(){
+		set_is_searching(true);
 		set_searching_data(Prefs.get_pref('recent_searches'));
 	}
 	async function search(query: string) {
         if(is_empty(query.trim())) return false;
-		set_search_result(empty_search_result);
-
+		set_search_result({...empty_search_result});
+		
         await Prefs.add_to_recent_searches(query);
 
 		const music_search_result = await Illusive.music_service.get(search_service)!.search!(query);
-        music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
+		music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
         if(music_search_result.tracks.length === 0 && music_search_result.albums.length === 0 && music_search_result.artists.length === 0 && music_search_result.playlists.length === 0) return false;
         set_search_result(music_search_result);
 		set_is_searching(false);
@@ -145,7 +146,8 @@ function SearchScreen() {
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
 				<TextInput value={search_query_state} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
-					onFocus={get_previous_searches} 
+					onFocus={get_previous_searches}
+					onPress={get_previous_searches}
 					onChangeText={on_text_update} 
 					onEndEditing={on_end_editing}
 					// onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}
@@ -161,7 +163,7 @@ function SearchScreen() {
                     renderItem={render_misc_component}
                 /> : null }
 			</View>
-			<AddToPlaylistsModal modal_data={modal_data} callback={() => {}}/>
+			<AddToPlaylistsModal set_modal_data={set_modal_data} modal_data={modal_data} callback={() => {}}/>
 		</View>
 	);
 }

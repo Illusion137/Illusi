@@ -10,6 +10,7 @@ import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_u
 import { batch_download } from '../../../lib-origin/Illusive/src/illusi/src/downloader';
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
+import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 
 function ExtraBatchDownloaderScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
@@ -41,7 +42,7 @@ function ExtraBatchDownloaderScreen() {
 	}, []);
 	
 	const render_header_item = (_: {item: any}) => <>
-		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining • {}</Text>
+		<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, width: '95%', fontWeight: 'bold'}}>{downloading_tracks_data.length} Tracks Remaining • {Illusive.convert_track_default_opts({}).to_music_service}</Text>
 		<View style={{height: 8}}/>
 		<View style={styles.linelong}/>
 		<View style={{height: 30}}/>

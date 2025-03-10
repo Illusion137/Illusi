@@ -128,7 +128,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             const cached_hit = cached !== undefined;
             let thumbnail_url;
             if(ts_route.params.compact_playlist !== undefined) {
-                thumbnail_url = ts_route.params.compact_playlist.artwork_thumbnails !== undefined ? best_thumbnail(ts_route.params.compact_playlist.artwork_thumbnails!)?.url : ts_route.params.compact_playlist.artwork_url;
+                thumbnail_url = !is_empty(ts_route.params.compact_playlist.artwork_thumbnails) ? best_thumbnail(ts_route.params.compact_playlist.artwork_thumbnails!)?.url : ts_route.params.compact_playlist.artwork_url;
                 set_playlist_data({title: ts_route.params.compact_playlist.title.name, creator: ts_route.params.compact_playlist.artist, thumbnail_uri: thumbnail_url, date: ts_route.params.compact_playlist.date, uuid: ""});
             }
             else thumbnail_url = undefined;
@@ -234,6 +234,7 @@ export default function Playlist(params: {route: Route<unknown>}){
         for(const track of tracks_ref){
             const track_uid = await SQLTracks.track_from_service_id(track);
             if(track_uid === null) continue;
+            if(!("uid" in track_uid)) continue;
             promised_playlist_tracks.push( SQLPlaylists.insert_track_playlist(playlist_uuid, track_uid.uid) );	
         }
         await Promise.all(promised_playlist_tracks);

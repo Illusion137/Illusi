@@ -34,7 +34,7 @@ export default function CompactWriterPlaylistComponent(props: {
 			<TouchableOpacity style={styles.button} onPress={navigate}>
                 <>
 					<View style={{width: 15}}/>
-                    <FourTrackArtwork four_track={props.playlist_data.four_track} size={26}/>
+                    <FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={props.playlist_data.four_track} size={26}/>
 					<View style={{flexDirection: 'column', left: 20}}>
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>

@@ -16,6 +16,8 @@ export default function CompactPlaylistComponent(props: {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
+	console.log(props.playlist_data)
+
     async function navigate(){
         if(is_empty(props.playlist_data.title.uri)) return;
         navigation.navigate("Playlist", {"uri": props.playlist_data.title.uri, compact_playlist: props.playlist_data});

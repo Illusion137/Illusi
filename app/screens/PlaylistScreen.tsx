@@ -45,6 +45,7 @@ function PlaylistScreen() {
             set_playlists(ordered_playlists)
             const rdefault_playlists = await resolved_default_playlists();
             set_default_playlists(rdefault_playlists);
+			// console.log(await db.getAllAsync("SELECT * FROM tracks_deleted WHERE Timestamp > DATETIME('now', '+1 day')"));
         } catch (error) {
             
         }
@@ -58,7 +59,7 @@ function PlaylistScreen() {
 	 }
 
 	const render_item = (item: {item: Playlist}) => (
-		<PlaylistComponent playlist_data={item.item} refresh_data={refresh_data}/>
+		<PlaylistComponent playlist_data={item.item} refresh_data={refresh_data} compact={Prefs.get_pref('compact_playlists')}/>
 	);
 
 	function hide(){ panel_ref.current?.hide(); }
@@ -89,7 +90,7 @@ function PlaylistScreen() {
                 </ScrollView>
             </View>
 			<View style={{width: '100%', height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30}}/>
-			<BigList style={{height: '71%'}} data={playlists_state} keyExtractor={(item, _) => String(item.uuid)} itemHeight={80} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={() => (<View style={{height:100}}></View>)}/>
+			<BigList style={{height: '71%'}} data={playlists_state} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={() => (<View style={{height:100}}></View>)}/>
 			<SlidingUpPanel allowDragging={false} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={panel_ref as any} animatedValue={new Animated.Value(0)}>
                 {/* <CreatePlaylistStackScreen/> */}
                 <NewPlaylist ref={new_playlist_ref as any} close_panel={hide} refresh_playlists_data={refresh_data}/>

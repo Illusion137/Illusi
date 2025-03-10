@@ -1570,6 +1570,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-airplay-button (1.1.0):
+    - React-Core
   - react-native-cloud-store (0.12.0):
     - React-Core
   - react-native-cookies (5.0.1):
@@ -1906,6 +1908,15 @@ PODS:
     - Yoga
   - RNImageColors (1.3.1):
     - React-Core
+  - RNImageCropPicker (0.42.0):
+    - React-Core
+    - React-RCTImage
+    - RNImageCropPicker/QBImagePickerController (= 0.42.0)
+    - TOCropViewController (~> 2.7.4)
+  - RNImageCropPicker/QBImagePickerController (0.42.0):
+    - React-Core
+    - React-RCTImage
+    - TOCropViewController (~> 2.7.4)
   - RNReanimated (3.16.7):
     - DoubleConversion
     - glog
@@ -2048,6 +2059,7 @@ PODS:
     - SDWebImage/Core (~> 5.6)
   - SocketRocket (0.7.1)
   - SwiftAudioEx (1.1.0)
+  - TOCropViewController (2.7.4)
   - UMAppLoader (5.0.1)
   - Yoga (0.0.0)
   - YoutubePlayer-in-WKWebView (0.3.11)
@@ -2123,6 +2135,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-airplay-button (from `../node_modules/react-native-airplay-button`)
   - react-native-cloud-store (from `../node_modules/react-native-cloud-store`)
   - "react-native-cookies (from `../node_modules/@react-native-community/cookies`)"
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
@@ -2165,6 +2178,7 @@ DEPENDENCIES:
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNImageColors (from `../node_modules/react-native-image-colors`)
+  - RNImageCropPicker (from `../node_modules/react-native-image-crop-picker`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSiriShortcuts (from `../node_modules/react-native-siri-shortcut`)
@@ -2183,6 +2197,7 @@ SPEC REPOS:
     - SDWebImageSVGCoder
     - SocketRocket
     - SwiftAudioEx
+    - TOCropViewController
     - YoutubePlayer-in-WKWebView
 
 EXTERNAL SOURCES:
@@ -2323,6 +2338,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-airplay-button:
+    :path: "../node_modules/react-native-airplay-button"
   react-native-cloud-store:
     :path: "../node_modules/react-native-cloud-store"
   react-native-cookies:
@@ -2407,6 +2424,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNImageColors:
     :path: "../node_modules/react-native-image-colors"
+  RNImageCropPicker:
+    :path: "../node_modules/react-native-image-crop-picker"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2493,6 +2512,7 @@ SPEC CHECKSUMS:
   React-logger: 5cad0c76d056809523289e589309012215a393b5
   React-Mapbuffer: a381120aea722d2244d4e4b663a10d4c3b2d4e51
   React-microtasksnativemodule: 5eb5925893ffd482c5244f323f7fd98a4c07528d
+  react-native-airplay-button: 67346bac38f575ce06978b5746052b0aa2741439
   react-native-cloud-store: bf8067ba89fa64215670edde7307112f573a7315
   react-native-cookies: 66880334b9dd8b6d3e54871c5d724f65efca8cf6
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
@@ -2535,6 +2555,7 @@ SPEC CHECKSUMS:
   RNDateTimePicker: 818460dc31b0dc5ec58289003e27dd8d022fb79c
   RNGestureHandler: 27a63f2218affdf1a426d56682f9b174904838b3
   RNImageColors: 161f6730faddedcb1c8693ec53ebb10992176c37
+  RNImageCropPicker: b0afedeefd8655254a15c34103718455fde6ce59
   RNReanimated: 66cf0f600a26d2b5e74c6e0b1c77c1ab1f62fc05
   RNScreens: 4a5ab20b324ed1e3fe3862796b8f8e0a6208c415
   RNSiriShortcuts: 149966f5de0cac63bd9fd8c2d5c51235439d1760
@@ -2544,6 +2565,7 @@ SPEC CHECKSUMS:
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   SwiftAudioEx: f6aa653770f3a0d3851edaf8d834a30aee4a7646
+  TOCropViewController: 80b8985ad794298fb69d3341de183f33d1853654
   UMAppLoader: 7e7e0eaa7854ffd652c00a68c443afb28c3bedba
   Yoga: 90d80701b27946c4b23461c00a7207f300a6ff71
   YoutubePlayer-in-WKWebView: 2c3aa1d5ad8dded9f95ef12033af5dd8e55864b7

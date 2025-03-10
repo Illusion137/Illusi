@@ -1,41 +1,28 @@
-import React,  { useState } from 'react';
+import React,  { useEffect, useState } from 'react';
 import { View, StyleSheet, Modal, Pressable, Text, Alert } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import { NavigationProp, useIsFocused, useNavigation, useTheme } from '@react-navigation/native';
 import Link from '../../components/Link';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { create_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 
 function ExtraLinkerScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
-	const [modalVisible, setModalVisible] = useState(false);
+	styles;
+
+	const navigation: NavigationProp<any, any> = useNavigation();
+
+	const focused = useIsFocused();
+
+	useEffect(() => {
+
+	}, [focused]);
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-			<Modal
-				animationType="slide"
-				transparent={true}
-				visible={modalVisible}
-				onRequestClose={() => {
-				Alert.alert('Modal has been closed.');
-				setModalVisible(!modalVisible);
-				}}>
-				<View style={styles.centeredView}>
-				<View style={styles.modalView}>
-					<Text style={styles.modalText}>Hello World!</Text>
-					<Pressable
-					style={[styles.button, styles.buttonClose]}
-					onPress={() => setModalVisible(!modalVisible)}>
-					<Text style={styles.textStyle}>Hide Modal</Text>
-					</Pressable>
-				</View>
-				</View>
-			</Modal>
-			<Pressable
-				style={[styles.button, styles.buttonOpen]}
-				onPress={() => setModalVisible(true)}>
-				<Text style={styles.textStyle}>Show Modal</Text>
-			</Pressable>
+			<ExtrasSectionButton text='Create New Link' icon='NONE' show_arrow={false} onPress={() => {navigation.navigate("Link")}}/>
+			
 			<Link linker_link={{link_uuid: "", full_sample: false, uuid_uri: create_uri('illusi', ''), to_service: "Spotify", to: {'title': '', 'uuid_uri': create_uri('spotify', '')} }}/>
 		</View>
 	);
@@ -46,8 +33,8 @@ const theme_styles = (_: Prefs.Theme['colors']) => StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginTop: 22,
-	  },
-	  modalView: {
+	},
+	modalView: {
 		margin: 20,
 		backgroundColor: 'white',
 		borderRadius: 20,
@@ -57,7 +44,7 @@ const theme_styles = (_: Prefs.Theme['colors']) => StyleSheet.create({
 		shadowOffset: {
 		  width: 0,
 		  height: 2,
-		},
+	},
 		shadowOpacity: 0.25,
 		shadowRadius: 4,
 		elevation: 5,
