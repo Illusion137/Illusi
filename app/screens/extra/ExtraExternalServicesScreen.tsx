@@ -28,7 +28,12 @@ function ServiceSwitcher(props: {
         <>
             <TouchableHighlight 
                 activeOpacity={0.6} 
-                underlayColor="#FFFFFF" 
+                underlayColor="#FFFFFF"
+                onLongPress={() => {
+                    if_confirm(`Clear ${props.service} Cookies?`, "", () => {
+                        Prefs.save_pref<any>(music_service.pref_cookie_jar, new CookieJar([]));
+                    });
+                }}
                 onPress={() => {
                     if(props.url === null) {
                         current_service = props.service;

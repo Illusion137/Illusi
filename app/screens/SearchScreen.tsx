@@ -6,12 +6,14 @@ import { Ionicons, Octicons } from '@expo/vector-icons';
 import { CompactArtist, CompactPlaylist, MusicSearchResponse, Track } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
-import { is_empty } from '../../lib-origin/origin/src/utils/util';
+import { is_empty, json_catch } from '../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../lib-origin/Illusive/src/constants';
 import TrackComponent from '../components/TrackComponent';
 import AddToPlaylistsModal from './other/AddToPlaylistsModal';
 import CompactPlaylistComponent from '../components/CompactPlaylistComponent';
 import CompactArtistComponent from '../components/CompactArtistComponent';
+import { ResponseError } from '../../lib-origin/origin/src/utils/types';
+import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
 
 function SearchScreen() {
     const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
@@ -57,7 +59,11 @@ function SearchScreen() {
 		
         await Prefs.add_to_recent_searches(query);
 
-		const music_search_result = await Illusive.music_service.get(search_service)!.search!(query);
+		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(search_service)!.search!(query).catch(json_catch);
+		if("error" in music_search_result){
+			alert_error(music_search_result as ResponseError);
+			return false;
+		}
 		music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
         if(music_search_result.tracks.length === 0 && music_search_result.albums.length === 0 && music_search_result.artists.length === 0 && music_search_result.playlists.length === 0) return false;
         set_search_result(music_search_result);

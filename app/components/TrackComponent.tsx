@@ -1,10 +1,11 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useTheme } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ActionSheetIOS, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
+import * as SQLUtils from '../../lib-origin/Illusive/src/illusi/src/sql/sql_utils';
 import * as SQLfs from '../../lib-origin/Illusive/src/illusi/src/sql/sql_fs';
 import { artist_string, duration_to_string } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
@@ -16,6 +17,7 @@ import { Constants } from '../../lib-origin/Illusive/src/constants';
 import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
 import { upload_track_thumbnail } from '../../lib-origin/Illusive/src/illusi/src/document_picker';
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
+import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 
 function TrackComponent(props: {
 		track_data: Track
@@ -26,7 +28,11 @@ function TrackComponent(props: {
         track_callback?: () => Track[]
 		refresh_data?: () => Promise<void>
 		add_from?: (show: boolean, track: Track|null) => any
+		trim_track?: (show: boolean, track_data: Track|null) => any
 	}) {
+
+	const navigation: Navigator = useNavigation();
+	
 	const [artwork, set_artwork] = useState( props.track_data.playback?.artwork );
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
@@ -37,7 +43,8 @@ function TrackComponent(props: {
 	const [downloading_progress, set_downloading_progress] = useState(0);
 	
     const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
-    const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";
+    const notdisabled_from_write_playlist = disabled_from_write_playlist ? !is_empty(props.track_data.media_uri) : false;
+	const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";
     const disabled_from_full_queue = Prefs.get_pref("full_queue_disables_playing") && GLOBALS.global_var.playing_queue.length > 0;
 
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
@@ -70,25 +77,67 @@ function TrackComponent(props: {
         return () => clearInterval(interval);
     }, []);
 
-	const edit_artwork_actions = () => {
+	const actions: (
+			"Cancel"|
+			"Trim Media"|
+			"Download Media"|
+			"Download Thumbnail"|
+			"Download Lyrics"|
+			"Goto Artist"|
+			"Goto Album"|
+			"Upload New Artwork"|
+			"Remove Artwork"
+		)[] = [
+		"Cancel",
+		!is_empty(props.track_data.media_uri) && props.trim_track !== undefined ? "Trim Media" : undefined,
+		is_empty(props.track_data.media_uri) ? "Download Media" : undefined,
+		is_empty(props.track_data.thumbnail_uri) ? "Download Thumbnail" : undefined,
+		is_empty(props.track_data.lyrics_uri) ? "Download Lyrics" : undefined,
+		!is_empty(props.track_data.artists[0].uri) ? "Goto Artist" : undefined,
+		!is_empty(props.track_data.album?.uri) ? "Goto Album" : undefined,
+		"Upload New Artwork",
+		!is_empty(props.track_data.thumbnail_uri) ? "Remove Artwork" : undefined,
+	].filter(item => item !== undefined) as any[];
+
+	const edit_actions = () => {
 		ActionSheetIOS.showActionSheetWithOptions(
 			{
-				options: is_empty(props.track_data.thumbnail_uri) ? ["Cancel", "Upload New Artwork"] : ["Cancel", "Upload New Artwork", "Remove Artwork"],
-				destructiveButtonIndex: 2,
+				options: actions,
+				destructiveButtonIndex: actions.indexOf("Remove Artwork"),
 				cancelButtonIndex: 0,
 				userInterfaceStyle: 'dark'
 			}, async(i) => {
-				if (i === 0) {} 
-				else if (i === 1) { 
-					await upload_track_thumbnail(props.track_data, async(updated_track) => {
-						set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), updated_track));
-						GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");
-					} ); 
-				}
-				else if (i === 2) { 
-					await SQLTracks.update_track(props.track_data.uid, {...props.track_data, thumbnail_uri: ''}); 
-					set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...props.track_data, thumbnail_uri: ''}));
-					GLOBALS.global_var.bottom_alert?.("Removed Track Artwork", "INFO");
+				switch(actions[i]){
+					case "Cancel": break;
+					case "Trim Media":
+						props.trim_track?.(true, props.track_data); 
+						break;
+					case "Download Media":
+						await download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress);
+						break;
+					case "Download Thumbnail":
+						await SQLUtils.download_thumbnail(props.track_data);
+						break;
+					case "Download Lyrics":
+						break;
+					case "Goto Artist":
+						navigation.push("Artist", {uri: props.track_data.artists[0].uri});
+						break;
+					case "Goto Album":
+						navigation.push("Playlist", {uri: props.track_data.album!.uri});
+						break;
+					case "Upload New Artwork":
+						await upload_track_thumbnail(props.track_data, async(updated_track) => {
+							set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), updated_track));
+							GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");
+						} ); 
+						break;
+					case "Remove Artwork":
+						await SQLTracks.update_track(props.track_data.uid, {...props.track_data, thumbnail_uri: ''}); 
+						set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...props.track_data, thumbnail_uri: ''}));
+						GLOBALS.global_var.bottom_alert?.("Removed Track Artwork", "INFO");
+							break;
+					default: break;
 				}
 			}
 		);
@@ -97,10 +146,16 @@ function TrackComponent(props: {
 	return (
 		<TouchableOpacity
             activeOpacity={disabled_from_write_playlist ? 0.9 : 0.2}
-			disabled={disabled_from_edit_mode || disabled_from_write_playlist}
+			disabled={disabled_from_edit_mode || (disabled_from_write_playlist && !notdisabled_from_write_playlist)}
 			style={{backgroundColor: colors.track, opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
-			onLongPress={() => push_track_to_playing_queue(props.track_data)} 
-			onPress={() => {if(!disabled_from_full_queue && props.from !== undefined && props.track_callback !== undefined) play(props.track_data, props.from, props.track_callback)}}>
+			onLongPress={() => GLOBALS.global_var.is_playing ? push_track_to_playing_queue(props.track_data) : edit_actions()} 
+			onPress={async() => {
+				if(notdisabled_from_write_playlist){
+					GLOBALS.global_var.play_tracks(props.track_data, [props.track_data], "Write Playlist")
+				}
+				else if(!disabled_from_full_queue && props.from !== undefined && props.track_callback !== undefined) 
+					play(props.track_data, props.from, props.track_callback)}
+			}>
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
 					<Image source={artwork} style={styles.image}/>
@@ -153,7 +208,7 @@ function TrackComponent(props: {
                     <IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data)} style={styles.centered} icon_name='trash-outline' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
 				}
                 {props.edit_mode === "EDIT" && 
-                    <IoniconsTouchableOpacity on_press={edit_artwork_actions} style={styles.centered} icon_name='pencil-outline' icon_size={30} icon_color={colors.orange} icon_style={styles.else_icon}/>
+                    <IoniconsTouchableOpacity on_press={edit_actions} style={styles.centered} icon_name='pencil-outline' icon_size={30} icon_color={colors.orange} icon_style={styles.else_icon}/>
 				}
 			</View>
 			<View style={styles.line}/>

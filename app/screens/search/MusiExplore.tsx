@@ -8,11 +8,10 @@ import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
 import { NavigationProp, useNavigation, useTheme } from "@react-navigation/native";
 import { Musi } from '../../../lib-origin/origin/src';
 import { create_uri } from '../../../lib-origin/Illusive/src/illusive_utilts';
-import { CompactPlaylist, Track } from '../../../lib-origin/Illusive/src/types';
-import TrackComponent from '../../components/TrackComponent';
-import { Constants } from '../../../lib-origin/Illusive/src/constants';
+import { CompactPlaylist } from '../../../lib-origin/Illusive/src/types';
 import { IoniconsTouchableOpacity } from '../../components/TouchableIconOpacity';
 import { clean_youtube_title } from '../../../lib-origin/Illusive/src/gen/youtube_parser';
+import TrackHorizontalScrolls from '../../components/TrackHorizontalScrolls';
 
 type MusiExplore = ReturnType<typeof musi_parse_explore>;
 let musi_explore_data: MusiExplore;
@@ -57,11 +56,6 @@ export default function MusiExplore(){
         </View>
     );
 
-    const render_track_component = (item: {item: Track}) =>
-    (
-        <TrackComponent key={item.item.uid} track_data={item.item} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
-	);
-
     return (
         <ScrollView>
             {musi_explore === undefined ? 
@@ -94,13 +88,12 @@ export default function MusiExplore(){
                         <View style={styles.line_long}/>
                         <Text style={{color: colors.text, fontSize: 30, fontWeight: 'bold', marginLeft: 10, marginTop: 20, marginBottom: 10}}>Top Tracks</Text>
                         <View style={styles.line_long}/>
-                        {
-                            musi_explore.top_tracks.slice(0, 20).map(item => render_track_component({item}))
-                        }
+                        <TrackHorizontalScrolls tracks={musi_explore.top_tracks.slice(0,20)} height={5}/>
                     </>
                 ) 
                 : null
             }
+            <View style={{height: 100}}/>
         </ScrollView>
     );
 }

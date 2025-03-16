@@ -4,7 +4,8 @@ import { useIsFocused, useTheme } from '@react-navigation/native';
 import SearchScreen from "./SearchScreen";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { LinearGradient } from 'expo-linear-gradient';
-import MusiExplore from "./search/MusiExplore";
+// import MusiExplore from "./search/MusiExplore";
+import IllusiExplore from "./search/IllusiExplore";
 
 export default function SearchHomeScreen(){
     const { colors } = useTheme() as Prefs.Theme;
@@ -25,13 +26,14 @@ export default function SearchHomeScreen(){
             {search_screen_state && 
             <LinearGradient
                 colors={[colors.primary, colors.background]}
-                locations={[0.1, 0.8]}
-                end={{x: 0, y: 0.5}}
+                locations={[0.05, 0.2]}
+                end={{x: 1.5, y: 2}}
                 style={styles.topContainer}>
                 <View style={styles.wrapper}>
                     <TextInput onPressIn={() => {toggle = !toggle; set_search_screen_state(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>
                 </View>
-                <MusiExplore/>
+                {/* <MusiExplore/> */}
+                <IllusiExplore/>
             </LinearGradient>}
         </>
     );

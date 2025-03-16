@@ -225,6 +225,10 @@ PODS:
     - Yoga
   - ExpoAsset (11.0.3):
     - ExpoModulesCore
+  - ExpoAudio (0.3.5):
+    - ExpoModulesCore
+  - ExpoBackgroundFetch (13.0.5):
+    - ExpoModulesCore
   - ExpoBattery (9.0.2):
     - ExpoModulesCore
   - ExpoBlur (14.0.3):
@@ -1572,6 +1576,27 @@ PODS:
     - Yoga
   - react-native-airplay-button (1.1.0):
     - React-Core
+  - react-native-audio-waveform (2.1.5):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-cloud-store (0.12.0):
     - React-Core
   - react-native-cookies (5.0.1):
@@ -2079,6 +2104,8 @@ DEPENDENCIES:
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
+  - ExpoAudio (from `../node_modules/expo-audio/ios`)
+  - ExpoBackgroundFetch (from `../node_modules/expo-background-fetch/ios`)
   - ExpoBattery (from `../node_modules/expo-battery/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoDocumentPicker (from `../node_modules/expo-document-picker/ios`)
@@ -2136,6 +2163,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-airplay-button (from `../node_modules/react-native-airplay-button`)
+  - "react-native-audio-waveform (from `../node_modules/@simform_solutions/react-native-audio-waveform`)"
   - react-native-cloud-store (from `../node_modules/react-native-cloud-store`)
   - "react-native-cookies (from `../node_modules/@react-native-community/cookies`)"
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
@@ -2229,6 +2257,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu-interface/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
+  ExpoAudio:
+    :path: "../node_modules/expo-audio/ios"
+  ExpoBackgroundFetch:
+    :path: "../node_modules/expo-background-fetch/ios"
   ExpoBattery:
     :path: "../node_modules/expo-battery/ios"
   ExpoBlur:
@@ -2340,6 +2372,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-airplay-button:
     :path: "../node_modules/react-native-airplay-button"
+  react-native-audio-waveform:
+    :path: "../node_modules/@simform_solutions/react-native-audio-waveform"
   react-native-cloud-store:
     :path: "../node_modules/react-native-cloud-store"
   react-native-cookies:
@@ -2454,6 +2488,8 @@ SPEC CHECKSUMS:
   expo-dev-menu: ceee8df015c6999dee507356aa73dd2806eef952
   expo-dev-menu-interface: 00dc42302a72722fdecec3fa048de84a9133bcc4
   ExpoAsset: 715ce37a36951fee71c32773b3be50f2285e2fbe
+  ExpoAudio: 5fe5fc98236b820c4affd09e0631de1c7a7c299b
+  ExpoBackgroundFetch: 26f947a6b229fd8b19b93c3eb53d5933db22336a
   ExpoBattery: d2e508fb7a2a6214d97ff598274c8bd71b704ce6
   ExpoBlur: 392c1207f71d0ecf22371621c1fbd44ba84d9742
   ExpoDocumentPicker: 6d3d499cf15b692688a804f42927d0f35de5ebaa
@@ -2513,6 +2549,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: a381120aea722d2244d4e4b663a10d4c3b2d4e51
   React-microtasksnativemodule: 5eb5925893ffd482c5244f323f7fd98a4c07528d
   react-native-airplay-button: 67346bac38f575ce06978b5746052b0aa2741439
+  react-native-audio-waveform: d6890f104ef4a05d2b5744f38a161e95649e48d6
   react-native-cloud-store: bf8067ba89fa64215670edde7307112f573a7315
   react-native-cookies: 66880334b9dd8b6d3e54871c5d724f65efca8cf6
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca

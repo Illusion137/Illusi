@@ -109,13 +109,14 @@ function ExtraScreen() {
 					<>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<ExtrasSectionButton show_arrow={true} text='Developer Test Screen' icon='ticket-sharp' onPress={async () => navigation.navigate('Developer Test')}/>
 					<View style={styles.line_long}/>
 					<Text style={styles.description_txt}>Developer Options :3</Text>
 					</> : null
 				}
 				
 				<Text style={styles.description_txt}>Illusi Version: {appConfig.version} Beta</Text>
-				<Text style={styles.description_txt}>Last Synced: {Prefs.get_pref('last_synced').toUTCString()}</Text>
+				<Text style={styles.description_txt}>Last Synced: {Prefs.get_pref('last_synced').toLocaleString()}</Text>
 				<Text style={styles.description_txt}>Battery Level: {battery}</Text>
 			</ScrollView>
 		</View>

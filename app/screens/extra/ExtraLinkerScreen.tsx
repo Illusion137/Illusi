@@ -1,5 +1,5 @@
-import React,  { useEffect, useState } from 'react';
-import { View, StyleSheet, Modal, Pressable, Text, Alert } from 'react-native';
+import React,  { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { NavigationProp, useIsFocused, useNavigation, useTheme } from '@react-navigation/native';
 import Link from '../../components/Link';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';

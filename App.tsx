@@ -49,6 +49,9 @@ import ExtraCreateLinkScreen from './app/screens/extra/ExtraCreateLinkScreen';
 import ExtraCustomExploreBase from './app/screens/extra/ExtraCustomExploreBase';
 import ExtraCustomExploreArtistWatch from './app/screens/extra/ExtraCustomExploreArtistWatch';
 import BottomAlert from './app/components/BottomAlert';
+import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
+import Artist from './app/screens/other/Artist';
+import MultiOption from './app/screens/other/MultiOption';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -75,9 +78,12 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Customize Explore" component={ExtraCustomExploreBase} />
             <ExtrasStack.Screen name="Artist Watch" component={ExtraCustomExploreArtistWatch} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
+            <ExtrasStack.Screen name="Developer Test" component={ExtraDevTestScreen} />
             <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
             <ExtrasStack.Screen name="Changelog" component={ExtraMarkdownRenderScreen} />
             <ExtrasStack.Screen name="Help" component={ExtraHelpScreen} />
+            <ExtrasStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <ExtrasStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
         </ExtrasStack.Navigator>
     );
 }
@@ -95,7 +101,9 @@ function PlaylistsStackScreen() {
                     />
             <PlaylistsStack.Screen options={{ headerShown: true }} name="Edit Playlist" component={EditPlaylist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <PlaylistsStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
+            <PlaylistsStack.Screen options={{ headerShown: true }} name="MultiOption" component={MultiOption as any}/>
         </PlaylistsStack.Navigator>
     );
 }
@@ -106,7 +114,19 @@ function SearchStackScreen() {
         <SearchStack.Navigator screenOptions={{ headerShown: false }}>
             <SearchStack.Screen options={{ headerShown: false }} name="SearchHome" component={SearchHomeScreen}/>
             <SearchStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <SearchStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
         </SearchStack.Navigator>
+    );
+}
+
+const LibraryStack = createNativeStackNavigator();
+function LibraryStackScreen() {
+    return (
+        <LibraryStack.Navigator screenOptions={{ headerShown: false }}>
+            <LibraryStack.Screen options={{ headerShown: false }} name="My Library Screen" component={LibraryScreen as any} />
+            <LibraryStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <LibraryStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
+        </LibraryStack.Navigator>
     );
 }
 function Tabs() {
@@ -118,7 +138,7 @@ function Tabs() {
                 tabBarActiveBackgroundColor: theme.colors.background, tabBarInactiveBackgroundColor: theme.colors.background, tabBarStyle: { backgroundColor: theme.colors.background, height: 90, zIndex: 1 }
             }}
             detachInactiveScreens={true}>
-            <Tab.Screen name="My Library" component={LibraryScreen}
+            <Tab.Screen name="My Library" component={LibraryStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="library-sharp" size={30} color={color} />),
                     unmountOnBlur: false,
@@ -133,9 +153,8 @@ function Tabs() {
             <Tab.Screen name="Explore" component={SearchStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="search" size={25} color={color} />),
-                    unmountOnBlur: false,
                 }}
-            />
+                />
             <Tab.Screen name="Extras" component={ExtrasStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Entypo name="dots-three-horizontal" size={25} color={color} />),
@@ -169,25 +188,25 @@ export default function App() {
                     info.uuid === Constants.library_write_playlist ? 
                         GLOBALS.global_var.sql_tracks :
                     await playlist_tracks(info.uuid)
-                )
-                GLOBALS.global_var.play_tracks(shuffled[0], shuffled, "Shortcut");
+                );
+                play_tracks(shuffled[0], shuffled, "Shortcut");
                 break;
             }
         }
     }
 
     useEffect(() => {
+        const subscription = addShortcutListener(async({ userInfo, activityType }) => {
+            await run_shortcut(userInfo as any, activityType);
+        });
         (async function () {
-            await illusi_startup(appConfig.version, play_tracks, set_theme, update_bottom_alert);
-            set_is_loading(false);
             const maybe_initial_shortcut = await getInitialShortcut();
             if(maybe_initial_shortcut !== null){
                 await run_shortcut(maybe_initial_shortcut.userInfo as any, maybe_initial_shortcut.activityType);
             }
+            await illusi_startup(appConfig.version, play_tracks, set_theme, update_bottom_alert);
+            set_is_loading(false);
         })();
-        const subscription = addShortcutListener(async({ userInfo, activityType }) => {
-            await run_shortcut(userInfo as any, activityType);
-        });
         return () => {
             subscription.remove();
         };

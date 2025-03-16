@@ -54,7 +54,7 @@ function AudioPlayer(props: {
         title: props.tracks[0]?.title,
         artist: artist_string(props.tracks[0]),
         artwork: props.tracks[0]?.playback!.artwork,
-        album: props.tracks[0]?.album?.name,
+        album: props.tracks[0]?.album,
         duration: props.tracks[0]?.duration ?? 0,
     });
     const [player_state_trackplayer, set_player_state_trackplayer] = useState({
@@ -103,7 +103,7 @@ function AudioPlayer(props: {
             title: reshuffled_tracks[0]?.title,
             artist: artist_string(reshuffled_tracks[0]),
             artwork: reshuffled_tracks[0]?.playback!.artwork,
-            album: reshuffled_tracks[0]?.album?.name,
+            album: reshuffled_tracks[0]?.album,
             duration: reshuffled_tracks[0]?.duration ?? 0,
         });
     }
@@ -200,7 +200,7 @@ function AudioPlayer(props: {
                 artist: artist_string(GLOBALS.global_var.playing_tracks[event.index]),
                 duration: event.track?.duration ?? 0,
                 artwork: GLOBALS.global_var.playing_tracks[event.index]?.playback!.artwork,
-                album: GLOBALS.global_var.playing_tracks[event.index]?.album?.name,
+                album: GLOBALS.global_var.playing_tracks[event.index]?.album,
 
             });
             if(now_playing_state.now_playing_visible) {
@@ -219,6 +219,19 @@ function AudioPlayer(props: {
             set_player_state_type(event.state);
         }
     });
+
+    async function remove_track_from_queue(item: IllusiveType.QueueTrack){
+        const current_track_index = await TrackPlayer.getActiveTrackIndex();
+        if(current_track_index === undefined) return;
+        const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
+        if(global_index !== -1){
+            GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
+            const tp_queue = await TrackPlayer.getQueue();
+            const tp_index = tp_queue.findIndex((track, i) => track.title === item.title && i >= current_track_index);
+            if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
+        }
+        set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() });
+    }
 
     const renderNowPlayingItem = (item: { item: IllusiveType.QueueTrack }) => <SongComponentQueue track_data={item.item} />;
 
@@ -289,8 +302,8 @@ function AudioPlayer(props: {
                     {/* TITLE & ARTIST ----------------------------------------------------*/}
                     <View style={styles.textcontainer}>
                         <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
-                        <NavLink text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} />
-                        <Text style={styles.artist}>{player_state_metadata.album ?? ""}</Text>
+                        <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
+                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
                     </View>
                     {/* PLAY CONTROLS ----------------------------------------------------*/}
                     <View style={{ bottom: 20 }}>
@@ -398,18 +411,7 @@ function AudioPlayer(props: {
                                 </View>
                             }
                             renderHiddenItem={({item}) => (
-                                <TouchableOpacity onPress={async () => {
-                                    const current_track_index = await TrackPlayer.getActiveTrackIndex();
-                                    if(current_track_index === undefined) return;
-                                    const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
-                                    if(global_index !== -1){
-                                        GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
-                                        const tp_queue = await TrackPlayer.getQueue();
-                                        const tp_index = tp_queue.findIndex(track => track.title === item.title);
-                                        if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
-                                    }
-                                    set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() });
-                                }} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
+                                <TouchableOpacity onPress={async () => remove_track_from_queue(item)} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
                                     <Ionicons name='trash-bin-outline' color={"white"} size={22} />
                                 </TouchableOpacity>
                             )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity, ActionSheetIOS } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useNavigation, useTheme } from "@react-navigation/native";
 import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode, Route, SortType } from "../../../lib-origin/Illusive/src/types";
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { upload_playlist_thumbnail } from "../../../lib-origin/Illusive/src/illusi/src/document_picker";
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
+import { Navigator } from "../../../lib-origin/Illusive/src/illusi/src/types";
 
 type KeyValue = {key: string, value: string};
 type Action = "ADD"|"REMOVE";
@@ -22,8 +23,28 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     
     const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
-    
-    const sort_modes: SortType[] = ["OLDEST", "NEWEST", "ALPHABETICAL"];
+
+    const navigation: Navigator = useNavigation();
+
+    const sort_modes: SortType[] = [
+        "OLDEST"
+        ,"NEWEST" 
+        ,"ALPHABETICAL" 
+        ,"ALPHABETICAL_REVERSE"    
+        ,"DURATION_HILOW"
+        ,"DURATION_LOWHI" 
+        ,"PLAYS_HILOW"
+        ,"PLAYS_LOWHI" 
+        ,"VIEWS_HILOW"
+        ,"VIEWS_LOWHI"
+        ,"ADDED_DATE_HILOW"
+        ,"ADDED_DATE_LOWHI"
+        ,"DOWNLOAD_DATE_HILOW"
+        ,"DOWNLOAD_DATE_LOWHI"
+        ,"LAST_PLAYED_DATE_HILOW"
+        ,"LAST_PLAYED_DATE_LOWHI"
+        ,"LAST_SAMPLED_DATE_HILOW"
+        ,"LAST_SAMPLED_DATE_LOWHI"];
     const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK"];
 
     const [playlist_data, set_playlist_data] = useState<Playlist>(ExampleObj.playlist_example0);
@@ -74,15 +95,17 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
         })();
     }, []);
 
-    
     async function change_playlist_title(){
         await SQLPlaylists.update_playlist_title(ts_route.params.uuid, playlist_title);
         GLOBALS.global_var.bottom_alert?.("Updated Playlist Title", "INFO");
-    
     }
     async function change_sort_mode(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
         const new_sort_mode: SortType = event.nativeEvent.value.toUpperCase() as SortType;
         await SQLPlaylists.update_playlist_sort_mode(ts_route.params.uuid, new_sort_mode);
+    } change_sort_mode;
+    function update_sort_mode(mode: SortType){
+        if(sort_modes.includes(mode))
+            SQLPlaylists.update_playlist_sort_mode(ts_route.params.uuid, mode);
     }
     async function inherited_playlist_action(type: Action, item?: InheritedPlaylist){
         const inherited_playlist: InheritedPlaylist = item ?? {
@@ -116,14 +139,16 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             <TextInput value={playlist_title} autoCorrect={false} placeholder='Enter Title' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_playlist_title(text)}} onEndEditing={change_playlist_title} onSubmitEditing={change_playlist_title}/>
             <View style={{alignSelf: 'center', height: 0.2, backgroundColor: colors.text, width: '70%'}}/>
             <View style={{height: 30}}/>
-            <Text style={styles.info_text}>Sort Mode</Text>
-            <SegmentedControl
+            {/* <Text style={styles.info_text}>Sort Mode</Text> */}
+            <ExtrasSectionButton show_arrow={true} text="Edit Sort Mode" icon="NONE" onPress={() => navigation.push("MultiOption", {options: sort_modes, current_value: sort_modes.find(item => item === playlist_data?.sort), press: update_sort_mode.bind(undefined)})}/>
+            <View style={{height: 30}}/>
+            {/* <SegmentedControl
                 fontStyle={{color: colors.text}}
                 values={sort_modes.map(mode => mode.toLowerCase())}
                 selectedIndex={sort_modes.findIndex(item => item === playlist_data?.sort)}
                 onChange={async(event) => await change_sort_mode(event)}
                 style={{backgroundColor: colors.background}}/>
-            <View style={{height: 30}}/>
+            <View style={{height: 30}}/> */}
             <View>
                 <Text style={styles.info_text}>Inherited Playlists</Text>
                 <View style={{borderColor: colors.text, borderWidth: 0.4, margin: 2}}>

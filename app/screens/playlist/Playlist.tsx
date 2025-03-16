@@ -17,7 +17,7 @@ import { default_playlists } from '../../../lib-origin/Illusive/src/illusi/src/d
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { best_thumbnail, empty_join_dot, make_https, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { ExampleObj } from '../../../lib-origin/Illusive/src/illusi/src/example_objs';
-import { is_empty } from '../../../lib-origin/origin/src/utils/util';
+import { is_empty, json_catch } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
@@ -25,6 +25,7 @@ import LibraryTrackList from '../../components/LibraryTrackList';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
 import { share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { ResponseError } from '../../../lib-origin/origin/src/utils/types';
 
 let search_query = "";
 let tracks_ref: Track[] = [];
@@ -32,7 +33,9 @@ export default function Playlist(params: {route: Route<unknown>}){
     const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string, force_order?: boolean}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>;
 
     const force_order = "force_order" in ts_route.params && (ts_route.params.force_order ?? false);
+    const force_hide_audioplayer = "write_playlist_uuid" in ts_route.params && ts_route.params.write_playlist_uuid !== Constants.library_write_playlist;
     const pre_always_shuffle = Prefs.get_pref('always_shuffle');
+    const pre_hide_audioplayer = Prefs.get_pref('play_no_popup');
 
     const writing_from_library: boolean = "write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist;
 
@@ -104,6 +107,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     useEffect( () => {
         search_query = "";
         if(force_order) Prefs.prefs.always_shuffle.current_value = false;
+        if(force_hide_audioplayer) Prefs.prefs.play_no_popup.current_value = true;
         initial_data();
         return () => exit_handler();
     }, []);
@@ -116,6 +120,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     function exit_handler(){
         if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
+        if(force_hide_audioplayer) Prefs.prefs.play_no_popup.current_value = pre_hide_audioplayer;
         search_query = "";
     }
 
@@ -142,13 +147,14 @@ export default function Playlist(params: {route: Route<unknown>}){
                 return;
             }
             const split = split_uri(ts_route.params.uri);
-            const playlist = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1]));
-            if("error" in playlist! && !is_empty(playlist.error)) {
-                alert_error(playlist.error![0], true);
+            const playlist: Types.MusicServicePlaylist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1])).catch(json_catch);
+
+            if("error" in playlist!) {
+                alert_error(playlist.error as any, true);
                 return;
             }
             const id_continuation = playlist!.continuation;
-            const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: playlist!.artwork_url ?? thumbnail_url, creator: playlist!.creator, date: playlist!.date });
+            const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {...playlist_data, title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: thumbnail_url ?? playlist!.artwork_url, creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
