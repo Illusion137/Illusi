@@ -11,6 +11,8 @@ import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
+import { mass_sample_youtube_to_youtube_music, speed_sample_unavailable_tracks } from '../../../lib-origin/Illusive/src/illusi/src/sampler';
 
 function ExtraSettingsScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -68,6 +70,15 @@ function ExtraSettingsScreen() {
 					<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
 					<ExtrasSectionButton show_arrow={false} text='Shuffle Library Shortcut' icon='library-outline' onPress={() => presentShortcut(getShortcut(), (data) => data)}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
+					<ExtrasSectionButton show_arrow={false} text='Speed Sample Library' icon='search-circle' onPress={async() => {
+						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, Prefs.get_pref('speed_sample_super_speed'));
+						GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");
+					}}/>
+					<ExtrasSectionButton show_arrow={false} text='Convert all YouTube Tracks to YouTube Music' icon='construct-outline' onPress={async() => {
+						await mass_sample_youtube_to_youtube_music();
+						GLOBALS.global_var.bottom_alert?.("FINISHED CONVERTING TRACKS", "INFO");
+					}}/>
+					<Text style={styles.description_text}>Useful for those who had Illusi pre-Illusi.14.0.0</Text>
 					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
 					<View style={{height: 200}}/>
 				</>

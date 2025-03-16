@@ -1,46 +1,40 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleProp, TextStyle } from 'react-native';
-// import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
-// import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { is_empty } from '../../lib-origin/origin/src/utils/util';
-// import { split_uri } from '../../lib-origin/Illusive/src/illusive_utilts';
-
+import { useNavigation } from '@react-navigation/native';
+import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 
 export default function NavLink(props: {
     text: string
 	uri: string
+    type: "album"|"playlist"|"artist"
     text_style: StyleProp<TextStyle>
-    callforward?: () => Promise<void>
-    callback?: () => Promise<void>
+    callforward?: () => void
 }) {
-	// const navigation: NavigationProp<any, any> = useNavigation();
+	const navigation: Navigator = useNavigation();
 
 	// const { colors } = useTheme() as Prefs.Theme;
 	// const styles = theme_styles(colors);
 
     async function navigate(){
         if(is_empty(props.uri)) return;
-        if(props.callforward !== undefined) await props.callforward();
-
-        // const parsed_uri = split_uri(props.uri);
-        // switch(parsed_uri[1]){
-        //     case "album":
-        //     case "playlist": {
-        //         navigation.navigate("Playlist", {"uri": props.uri});                
-        //         break; 
-        //     }
-        //     case "artist": {
-        //         navigation.navigate("Artist", {"uri": props.uri});
-        //         break;
-        //     }
-        // }
-
-        if(props.callback !== undefined) await props.callback();
+        props?.callforward?.();
+        switch(props.type){
+            case "album":
+            case "playlist": {
+        		navigation.navigate('My Library', {screen: 'Playlist', params: {uri: props.uri}}); 
+                break; 
+            }
+            case "artist": {
+        		navigation.navigate('My Library', {screen: 'Artist', params: {uri: props.uri}}); 
+                break;
+            }
+        }
     }
 
 	return(
-        <TouchableOpacity onPress={navigate} hitSlop={5}>
-                <Text style={props.text_style} numberOfLines={1}>{props.text}</Text>
+        <TouchableOpacity disabled={is_empty(props.uri)} onPress={navigate} hitSlop={5}>
+            <Text style={props.text_style} numberOfLines={1}>{props.text}</Text>
         </TouchableOpacity>
 	);
 }

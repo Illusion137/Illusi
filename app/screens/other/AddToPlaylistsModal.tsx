@@ -5,44 +5,46 @@ import { useTheme } from '@react-navigation/native';
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
-import SelectPlaylist from '../../components/SelectPlaylist';
 import { sort_playlists } from '../../../lib-origin/Illusive/src/illusi/src/playlist';
-import { Playlist, Track } from '../../../lib-origin/Illusive/src/types';
+import { Playlist, SetState, Track } from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import PlaylistComponent from '../../components/PlaylistComponent';
 
 type ModalData = {show: boolean, track_data: Track|null};
-function AddToPlaylistsModal(props: {modal_data: ModalData, callback: () => void}) {
+function AddToPlaylistsModal(props: {
+    modal_data: ModalData,
+    set_modal_data: SetState
+    callback: () => void,
+}) {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors); styles;
 
 	const [playlists_data, set_playlists_data] = useState<Playlist[]>([])
-    const [modal_data, set_modal_data] = useState<ModalData>({show:false, track_data: null})
 
     useEffect(() => {
         if(props.modal_data.show === false) return;
         GLOBALS.global_var.selected_playlists_uuids?.clear();
-        set_modal_data(props.modal_data);
-    }, [props.modal_data.track_data])
+    }, [props.modal_data])
 
 	const render_playlist_item = (item: {item: Playlist}) => (
-		<SelectPlaylist playlist={item.item}/>
+		<PlaylistComponent playlist_data={item.item} select={{mode: true, track: props.modal_data.track_data!}} refresh_data={() => {}}/>
 	);
     async function save_selection(){
-        if(!(await SQLTracks.track_exists(modal_data.track_data!))){
-            await SQLTracks.insert_track(modal_data.track_data!);
+        if(!(await SQLTracks.track_exists(props.modal_data.track_data!))){
+            await SQLTracks.insert_track(props.modal_data.track_data!);
         }
         for(const playlist_uuid of [...GLOBALS.global_var.selected_playlists_uuids.values()]){
-            await SQLPlaylists.insert_track_playlist(playlist_uuid, modal_data.track_data!.uid);
+            await SQLPlaylists.insert_track_playlist(playlist_uuid, props.modal_data.track_data!.uid);
         }
         props.callback();
-        set_modal_data({'show':false, 'track_data': null});
+        props.set_modal_data({'show':false, 'track_data': null});
     }
 
 	return(
         <Modal
         animationType="slide"
-        visible={modal_data.show}
+        visible={props.modal_data.show}
         presentationStyle={'pageSheet'}
         onShow={async() => {
             const playlists = await SQLPlaylists.all_playlists_data();
@@ -51,21 +53,23 @@ function AddToPlaylistsModal(props: {modal_data: ModalData, callback: () => void
         }
         }
         onRequestClose={() => {
-            set_modal_data({'show':false, 'track_data': null});
+            props.set_modal_data({'show':false, 'track_data': null});
         }}>
             <View style={{flex: 1, backgroundColor: colors.background}}>
                 <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
                     <Button color={colors.primary} title={'Cancel'} onPress={() => {
-                        set_modal_data({'show':false, 'track_data': null});
+                        props.set_modal_data({'show':false, 'track_data': null});
                     }}/>
                     <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 18, right: '30%'}}>Add To Playlist</Text>
                 </View>
-                <Image source={modal_data.track_data === null ? undefined : modal_data.track_data.playback?.artwork} resizeMode="cover" style={{
+                <Image source={props.modal_data.track_data === null ? undefined : props.modal_data.track_data.playback?.artwork} resizeMode="cover" style={{
                     width: '100%',
-                    height: '20%',
+                    height: '21%',
+                    opacity: 0.7
                 }}/>
-                <Text numberOfLines={1} style={{marginHorizontal: 20, bottom: 50, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{modal_data.track_data?.title || ""}</Text>
-                <Text style={{marginHorizontal: 20, bottom: 50, color: colors.text, fontSize: 14}}>{artist_string(modal_data.track_data!)}</Text>
+                <Text numberOfLines={1} style={{marginHorizontal: 20, bottom: 60, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{props.modal_data.track_data?.title || ""}</Text>
+                <Text style={{marginHorizontal: 20, bottom: 62, color: colors.text, fontSize: 14}}>{artist_string(props.modal_data.track_data!)}</Text>
+                <View style={{height: 10}}/>
                 <FlatList style={{bottom: 45}} data={playlists_data} renderItem={render_playlist_item}/>
                 <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center'}} onPress={async() => save_selection()}>
                     <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Save</Text>

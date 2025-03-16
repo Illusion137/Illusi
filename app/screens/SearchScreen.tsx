@@ -6,12 +6,14 @@ import { Ionicons, Octicons } from '@expo/vector-icons';
 import { CompactArtist, CompactPlaylist, MusicSearchResponse, Track } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
-import { is_empty } from '../../lib-origin/origin/src/utils/util';
+import { is_empty, json_catch } from '../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../lib-origin/Illusive/src/constants';
 import TrackComponent from '../components/TrackComponent';
 import AddToPlaylistsModal from './other/AddToPlaylistsModal';
 import CompactPlaylistComponent from '../components/CompactPlaylistComponent';
 import CompactArtistComponent from '../components/CompactArtistComponent';
+import { ResponseError } from '../../lib-origin/origin/src/utils/types';
+import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
 
 function SearchScreen() {
     const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
@@ -48,16 +50,21 @@ function SearchScreen() {
 		set_modal_data({'show':show, 'track_data': track})
 	}
 	function get_previous_searches(){
+		set_is_searching(true);
 		set_searching_data(Prefs.get_pref('recent_searches'));
 	}
 	async function search(query: string) {
         if(is_empty(query.trim())) return false;
-		set_search_result(empty_search_result);
-
+		set_search_result({...empty_search_result});
+		
         await Prefs.add_to_recent_searches(query);
 
-		const music_search_result = await Illusive.music_service.get(search_service)!.search!(query);
-        music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
+		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(search_service)!.search!(query).catch(json_catch);
+		if("error" in music_search_result){
+			alert_error(music_search_result as ResponseError);
+			return false;
+		}
+		music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
         if(music_search_result.tracks.length === 0 && music_search_result.albums.length === 0 && music_search_result.artists.length === 0 && music_search_result.playlists.length === 0) return false;
         set_search_result(music_search_result);
 		set_is_searching(false);
@@ -145,7 +152,8 @@ function SearchScreen() {
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
 				<TextInput value={search_query_state} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
-					onFocus={get_previous_searches} 
+					onFocus={get_previous_searches}
+					onPress={get_previous_searches}
 					onChangeText={on_text_update} 
 					onEndEditing={on_end_editing}
 					// onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}
@@ -161,7 +169,7 @@ function SearchScreen() {
                     renderItem={render_misc_component}
                 /> : null }
 			</View>
-			<AddToPlaylistsModal modal_data={modal_data} callback={() => {}}/>
+			<AddToPlaylistsModal set_modal_data={set_modal_data} modal_data={modal_data} callback={() => {}}/>
 		</View>
 	);
 }

@@ -29,6 +29,7 @@ function ExtraScreen() {
 		return () => clearInterval(interval_id); //This is important
 	}, [])
 
+
 	return (
 		<View style={styles.top_container}>
 			<View style={styles.header}>
@@ -40,9 +41,13 @@ function ExtraScreen() {
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Backup, Recover, & Transfer' icon='sync-circle-outline' onPress={async () => navigation.navigate('Backup, Recover & Transfer')}/>
 				<View style={styles.line_long}/>
-
 				<Text style={styles.description_txt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
 				
+				<View style={styles.line_long}/>
+					<ExtrasSectionButton show_arrow={true} text='Keep Delete' icon='heart-outline' onPress={async () => navigation.navigate('Keep Delete')}/>
+				<View style={styles.line_long}/>
+				<Text style={styles.description_txt}>The Tinder of your Music; Swipe left to delete tracks or swipe right to keep</Text>
+
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
 					<View style={styles.line_short}/>	
@@ -64,7 +69,7 @@ function ExtraScreen() {
 				<Text style={styles.description_txt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
 
 				<View style={styles.line_long}/>
-					<ExtrasSectionButton show_arrow={true} text='Backpack' icon='folder-open-outline' onPress={async () => navigation.navigate('Backpack')}/>
+					<ExtrasSectionButton show_arrow={true} text='Backpack' icon='bag-outline' onPress={async () => navigation.navigate('Backpack')}/>
 				<View style={styles.line_long}/>
 				
 				<Text style={styles.description_txt}>Restore unavailable videos from Backpack</Text>
@@ -82,6 +87,11 @@ function ExtraScreen() {
 				<Text style={styles.description_txt}>Customize the look of Illusi</Text>
 
 				<View style={styles.line_long}/>
+					<ExtrasSectionButton show_arrow={true} text='Explore' icon='fish-outline' onPress={async () => navigation.navigate('Customize Explore')}/>
+					<View style={styles.line_short}/>
+				<Text style={styles.description_txt}>Customize your Illusi-Explore</Text>
+
+				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {
 						if(await Linking.canOpenURL('vnd.github://Illusion137')){
 							await Linking.openURL('vnd.github://Illusion137')
@@ -93,18 +103,20 @@ function ExtraScreen() {
 					<ExtrasSectionButton show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
 					<View style={styles.line_short}/>
 				<View style={styles.line_long}/>
-				<Text style={styles.description_txt}>Export your data back to your files app</Text>
+				<Text style={styles.description_txt}>Get to know Illusi</Text>
 
 				{ Prefs.get_pref('dev_mode') ?
 					<>
 					<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Developer' icon='hammer-outline' onPress={async () => navigation.navigate('Developer')}/>
+					<ExtrasSectionButton show_arrow={true} text='Developer Test Screen' icon='ticket-sharp' onPress={async () => navigation.navigate('Developer Test')}/>
 					<View style={styles.line_long}/>
 					<Text style={styles.description_txt}>Developer Options :3</Text>
 					</> : null
 				}
 				
 				<Text style={styles.description_txt}>Illusi Version: {appConfig.version} Beta</Text>
+				<Text style={styles.description_txt}>Last Synced: {Prefs.get_pref('last_synced').toLocaleString()}</Text>
 				<Text style={styles.description_txt}>Battery Level: {battery}</Text>
 			</ScrollView>
 		</View>

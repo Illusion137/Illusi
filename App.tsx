@@ -6,11 +6,12 @@ import React, { useEffect, useState } from 'react';
 import { Button, Image } from 'react-native';
 import appConfig from './app.config';
 
+import * as uuid from 'react-native-uuid';
 import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import * as GLOBALS from './lib-origin/Illusive/src/illusi/src/globals';
 import { filter_play_tracks } from './lib-origin/Illusive/src/illusi/src/play';
 import { Prefs } from './lib-origin/Illusive/src/prefs';
-import { PlayingState, Track } from './lib-origin/Illusive/src/types';
+import { BottomAlertType, PlayingState, Track } from './lib-origin/Illusive/src/types';
 import GlobalStateProvider from './app/components/GlobalContext';
 import ExtraBatchDownloaderScreen from './app/screens/extra/ExtraBatchDownloaderScreen';
 import ExtraDeveloperScreen from './app/screens/extra/ExtraDeveloperScreen';
@@ -43,6 +44,14 @@ import { Constants } from './lib-origin/Illusive/src/constants';
 import ExtraDangerScreen from './app/screens/extra/ExtraDangerScreen';
 import ExtraHelpScreen from './app/screens/extra/ExtraHelpScreen';
 import ExtraMarkdownRenderScreen from './app/screens/extra/ExtraMarkdownRenderScreen';
+import ExtraKeepDeleteScreen from './app/screens/extra/ExtraKeepDeleteScreen';
+import ExtraCreateLinkScreen from './app/screens/extra/ExtraCreateLinkScreen';
+import ExtraCustomExploreBase from './app/screens/extra/ExtraCustomExploreBase';
+import ExtraCustomExploreArtistWatch from './app/screens/extra/ExtraCustomExploreArtistWatch';
+import BottomAlert from './app/components/BottomAlert';
+import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
+import Artist from './app/screens/other/Artist';
+import MultiOption from './app/screens/other/MultiOption';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -52,7 +61,9 @@ function ExtrasStackScreen() {
     return (
         <ExtrasStack.Navigator screenOptions={{ headerShown: true }}>
             <ExtrasStack.Screen name="Extra" component={ExtraScreen} options={{ headerShown: false }} />
+            <ExtrasStack.Screen name="Link" component={ExtraCreateLinkScreen} options={{ headerShown: false }} />
             <ExtrasStack.Screen name="Backup, Recover & Transfer" component={ExtraRecoveryScreen} />
+            <ExtrasStack.Screen name="Keep Delete" component={ExtraKeepDeleteScreen} />
             <ExtrasStack.Screen name="Sleep Timer" component={ExtraSleepTimerScreen} />
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
             <ExtrasStack.Screen name="Miscellaneous Settings" component={ExtraMiscSettingsScreen} />
@@ -64,10 +75,15 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Themes" component={ExtraThemesScreen} />
+            <ExtrasStack.Screen name="Customize Explore" component={ExtraCustomExploreBase} />
+            <ExtrasStack.Screen name="Artist Watch" component={ExtraCustomExploreArtistWatch} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
+            <ExtrasStack.Screen name="Developer Test" component={ExtraDevTestScreen} />
             <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
             <ExtrasStack.Screen name="Changelog" component={ExtraMarkdownRenderScreen} />
             <ExtrasStack.Screen name="Help" component={ExtraHelpScreen} />
+            <ExtrasStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <ExtrasStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
         </ExtrasStack.Navigator>
     );
 }
@@ -85,7 +101,9 @@ function PlaylistsStackScreen() {
                     />
             <PlaylistsStack.Screen options={{ headerShown: true }} name="Edit Playlist" component={EditPlaylist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <PlaylistsStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
             <PlaylistsStack.Screen options={{ headerShown: false }} name="AddToPlaylistBase" component={AddToPlaylistBase as any}/>
+            <PlaylistsStack.Screen options={{ headerShown: true }} name="MultiOption" component={MultiOption as any}/>
         </PlaylistsStack.Navigator>
     );
 }
@@ -96,7 +114,19 @@ function SearchStackScreen() {
         <SearchStack.Navigator screenOptions={{ headerShown: false }}>
             <SearchStack.Screen options={{ headerShown: false }} name="SearchHome" component={SearchHomeScreen}/>
             <SearchStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <SearchStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
         </SearchStack.Navigator>
+    );
+}
+
+const LibraryStack = createNativeStackNavigator();
+function LibraryStackScreen() {
+    return (
+        <LibraryStack.Navigator screenOptions={{ headerShown: false }}>
+            <LibraryStack.Screen options={{ headerShown: false }} name="My Library Screen" component={LibraryScreen as any} />
+            <LibraryStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
+            <LibraryStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
+        </LibraryStack.Navigator>
     );
 }
 function Tabs() {
@@ -108,7 +138,7 @@ function Tabs() {
                 tabBarActiveBackgroundColor: theme.colors.background, tabBarInactiveBackgroundColor: theme.colors.background, tabBarStyle: { backgroundColor: theme.colors.background, height: 90, zIndex: 1 }
             }}
             detachInactiveScreens={true}>
-            <Tab.Screen name="My Library" component={LibraryScreen}
+            <Tab.Screen name="My Library" component={LibraryStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="library-sharp" size={30} color={color} />),
                     unmountOnBlur: false,
@@ -120,12 +150,11 @@ function Tabs() {
                     unmountOnBlur: true,
                 }}
             />
-            <Tab.Screen name="Search" component={SearchStackScreen}
+            <Tab.Screen name="Explore" component={SearchStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="search" size={25} color={color} />),
-                    unmountOnBlur: false,
                 }}
-            />
+                />
             <Tab.Screen name="Extras" component={ExtrasStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Entypo name="dots-three-horizontal" size={25} color={color} />),
@@ -141,6 +170,11 @@ export default function App() {
     const [playing_from, set_playing_from] = useState("");
     const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
     const [is_loading, set_is_loading] = useState(true);
+    const [bottom_alert, set_bottom_alert] = useState({
+        uuid: "",
+        text: "",
+        type: "GOOD" as BottomAlertType
+    });
 
     async function run_shortcut(userInfo: {uuid: string}, activityType: string){
         const info: {uuid: string} = userInfo as any;
@@ -154,25 +188,25 @@ export default function App() {
                     info.uuid === Constants.library_write_playlist ? 
                         GLOBALS.global_var.sql_tracks :
                     await playlist_tracks(info.uuid)
-                )
-                GLOBALS.global_var.play_tracks(shuffled[0], shuffled, "Shortcut");
+                );
+                play_tracks(shuffled[0], shuffled, "Shortcut");
                 break;
             }
         }
     }
 
     useEffect(() => {
+        const subscription = addShortcutListener(async({ userInfo, activityType }) => {
+            await run_shortcut(userInfo as any, activityType);
+        });
         (async function () {
-            await illusi_startup(appConfig.version, play_tracks, set_theme);
-            set_is_loading(false);
             const maybe_initial_shortcut = await getInitialShortcut();
             if(maybe_initial_shortcut !== null){
                 await run_shortcut(maybe_initial_shortcut.userInfo as any, maybe_initial_shortcut.activityType);
             }
+            await illusi_startup(appConfig.version, play_tracks, set_theme, update_bottom_alert);
+            set_is_loading(false);
         })();
-        const subscription = addShortcutListener(async({ userInfo, activityType }) => {
-            await run_shortcut(userInfo as any, activityType);
-        });
         return () => {
             subscription.remove();
         };
@@ -191,15 +225,21 @@ export default function App() {
         set_playing_from(title);
         set_is_playing("LOADING");
     }
+    function update_bottom_alert(text: string, type: BottomAlertType){
+        set_bottom_alert({
+            uuid: uuid.default.v4() as string,
+            text,
+            type
+        });
+    }
     return (
         <GlobalStateProvider>
             <NavigationContainer theme={theme}>
                 {is_loading && <Image style={{ flex: 1, backgroundColor: 'black', width: '100%', height: '100%' }} source={require('./assets/splash.png')} />}
                 {is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+                <BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid}/>
                 {!is_loading && <Stack.Navigator>
                     <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false,  }} />
-                    <Stack.Screen name="Backup & Recovery" component={ExtraRecoveryScreen} />
-                    <Stack.Screen name="Settings" component={ExtraSettingsScreen} />
                 </Stack.Navigator>}
             </NavigationContainer>
         </GlobalStateProvider>

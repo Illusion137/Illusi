@@ -1,28 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import Markdown from 'react-native-markdown-display';
-import { CHANGELOG } from '../../../lib-origin/gen_changelog';
 
-export default function ExtraMarkdownRenderScreen() {
+export default function ExtraKeepDeleteScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
-	styles;
 
 	return(
-		<ScrollView style={{backgroundColor: colors.background, left: "5%", width: '90%', flex: 1,}}>
-            <View style={{height: 20}}/>
-			<Markdown style={{
-                  "body": {
-                    color: colors.text,
-                  },
-				  "code_inline": {color: 'black', fontSize: 14}
-                }}>
-            	{ CHANGELOG }
-          	</Markdown>
-            <View style={{height: 200}}/>
-		</ScrollView>
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
+            <Text style={styles.header_text}>Under Construction...</Text>
+		</View>
 	);
 }
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({

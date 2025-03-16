@@ -13,6 +13,8 @@ export default function CompactArtistComponent(props: {
 }) {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
+
+	console.log(props.artist_data)
 	return(
         <>
 			<TouchableOpacity style={styles.button} onPress={props.on_press}>

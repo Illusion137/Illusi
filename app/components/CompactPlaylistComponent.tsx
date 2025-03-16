@@ -1,24 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import { CompactPlaylist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
 import { best_thumbnail, empty_join_dot } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 
 export default function CompactPlaylistComponent(props: {
 	playlist_data: CompactPlaylist
 }) {
     const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.artwork_url!;
-	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
+	const navigation: Navigator = useNavigation();
 
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
     async function navigate(){
         if(is_empty(props.playlist_data.title.uri)) return;
-        navigation.navigate("Playlist", {"uri": props.playlist_data.title.uri, compact_playlist: props.playlist_data});
+        navigation.push("Playlist", {"uri": props.playlist_data.title.uri, compact_playlist: props.playlist_data});
     }
 
 	return(

@@ -26,7 +26,7 @@ export default function LibraryScreen() {
 
 	function cycle_edit_mode(){
         const current_edit_mode = edit_mode;
-        const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE"]);
+        const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE", "EDIT"]);
 		set_edit_mode(next_edit_mode);
 	}
     const is_focused = useIsFocused();

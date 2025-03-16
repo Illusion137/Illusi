@@ -20,21 +20,9 @@ import { illusive_track_to_track_player_track, setup_track_player, track_player_
 import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
-import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
-// import AddToPlaylistsModal from './AddToPlaylistsModal';
-
-interface PlayerStateType {
-    title?: string,
-    artist?: string,
-    artwork?: IllusiveType.Artwork,
-    duration?: number,
-    elapsed_time?: number,
-    duration_remaining?: number,
-    volume?: number,
-    rate?: number,
-    is_playing?: boolean,
-    loop_track?: boolean,
-};
+import { artist_string, shuffle_array } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import AddToPlaylistsModal from './AddToPlaylistsModal';
+import AirPlayButton from "react-native-airplay-button";
 
 const top_padding = Dimensions.get('screen').height * 0.08;
 function AudioPlayer(props: {
@@ -60,21 +48,23 @@ function AudioPlayer(props: {
         lyrics: ''
     });
     const [add_to_playlist_state, set_add_to_playlist_state] = useState({show: false, track_data: null as IllusiveType.Track|null});
-    add_to_playlist_state;
 
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
-    const [player_state, set_player_state] = useState({
+    const [player_state_metadata, set_player_state_metadata] = useState({
         title: props.tracks[0]?.title,
         artist: artist_string(props.tracks[0]),
         artwork: props.tracks[0]?.playback!.artwork,
+        album: props.tracks[0]?.album,
         duration: props.tracks[0]?.duration ?? 0,
+    });
+    const [player_state_trackplayer, set_player_state_trackplayer] = useState({
         elapsed_time: 0,
         duration_remaining: props.tracks[0]?.duration ?? 0,
         volume: 1,
         rate: 1,
-        is_playing: false,
         loop_track: false,
     });
+    const [player_state_type, set_player_state_type] = useState<State>(State.None);
     // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
     const panel_min_height = 135 + top_padding;
     const panel_max_height = Dimensions.get('screen').height;
@@ -86,22 +76,6 @@ function AudioPlayer(props: {
         else if(value <= panel_transition_value && panel_state.is_visible)
             set_panel_state({ 'is_visible': false });
     });
-
-    function update_player_state(updated_state: PlayerStateType) {
-        const player_state_copy = player_state;
-        set_player_state({
-            title: updated_state.title ?? player_state_copy.title,
-            artist: updated_state.artist ?? player_state_copy.artist,
-            artwork: updated_state.artwork ?? player_state_copy.artwork,
-            duration: updated_state.duration ?? player_state_copy.duration,
-            elapsed_time: updated_state.elapsed_time ?? player_state_copy.elapsed_time,
-            duration_remaining: updated_state.duration_remaining ?? player_state_copy.duration_remaining,
-            volume: updated_state.volume ?? player_state_copy.volume,
-            rate: updated_state.rate ?? player_state_copy.rate,
-            is_playing: updated_state.is_playing ?? player_state_copy.is_playing,
-            loop_track: updated_state.loop_track ?? player_state_copy.loop_track,
-        });
-    }
 
     function interpolatePanelPosition(output_range: any[]) {
         return panel_animated.interpolate({ 'inputRange': [panel_min_height, panel_max_height], 'outputRange': output_range, 'extrapolate': 'clamp' });
@@ -122,45 +96,57 @@ function AudioPlayer(props: {
         });
     }
 
-    useEffect(() => {
-        async function setup() {
-            if((!Prefs.get_pref('play_no_popup') || TrackPlayer.getActiveTrack().catch(e => e) instanceof Error)) 
-                panel_ref.current?.show();
-            const is_setup = await setup_track_player();
-            await TrackPlayer.reset();
-            const queue = await TrackPlayer.getQueue();
-            if (is_setup && queue.length <= 0) {
-                GLOBALS.global_var.playing_track_index = 0;
-                GLOBALS.global_var.playing_tracks = props.tracks.slice();
-                for (let i = 0; i < props.tracks.length; i++) {
-                    GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
-                    GLOBALS.global_var.playing_tracks[i].playback!.added = false;
-                }
-                GLOBALS.global_var.playing_tracks[0].playback!.added = true;
-                let track_misses = 0;
-                let track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
+    async function reshuffle(){
+        const reshuffled_tracks = shuffle_array([...props.tracks]);
+        await setup(reshuffled_tracks);
+        set_player_state_metadata({
+            title: reshuffled_tracks[0]?.title,
+            artist: artist_string(reshuffled_tracks[0]),
+            artwork: reshuffled_tracks[0]?.playback!.artwork,
+            album: reshuffled_tracks[0]?.album,
+            duration: reshuffled_tracks[0]?.duration ?? 0,
+        });
+    }
 
-                while ((track == null || track == 'skip') && track_misses < 10) {
-                    GLOBALS.global_var.playing_tracks = GLOBALS.global_var.playing_tracks.slice(1);
-                    track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
-                    track_misses++;
-                }
-                if (track !== 'skip') {
-                    await TrackPlayer.add(track);
-                }
+    async function setup(reshuffled_tracks?: IllusiveType.Track[]) {
+        if((!Prefs.get_pref('play_no_popup') || TrackPlayer.getActiveTrack().catch(e => e) instanceof Error)) 
+            panel_ref.current?.show();
+        const is_setup = await setup_track_player();
+        await TrackPlayer.reset();
+        const queue = await TrackPlayer.getQueue();
+        if (is_setup && queue.length <= 0) {
+            const tracks = reshuffled_tracks ?? props.tracks;
+            GLOBALS.global_var.playing_track_index = 0;
+            GLOBALS.global_var.playing_tracks = tracks.slice();
+            for (let i = 0; i < tracks.length; i++) {
+                GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
+                GLOBALS.global_var.playing_tracks[i].playback!.added = false;
             }
-            await TrackPlayer.play();
+            GLOBALS.global_var.playing_tracks[0].playback!.added = true;
+            let track_misses = 0;
+            let track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
+
+            while ((track == null || track == 'skip') && track_misses < 10) {
+                GLOBALS.global_var.playing_tracks = GLOBALS.global_var.playing_tracks.slice(1);
+                track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
+                track_misses++;
+            }
+            if (track !== 'skip') {
+                await TrackPlayer.add(track);
+            }
         }
+        await TrackPlayer.play();
+    }
+
+    useEffect(() => {
         setup();
     }, []);
 
     const toggle_playing = useCallback(async () => {
         const tp_state = await TrackPlayer.getPlaybackState();
-        const player_state_copy = player_state;
-        update_player_state({ is_playing: !player_state_copy.is_playing });
+        set_player_state_type(player_state_type === State.Playing ? State.Paused : State.Playing);
 
-        if("error" in tp_state) return;
-        if (tp_state.state === State.Playing) await TrackPlayer.pause();
+        if(tp_state.state === State.Playing) await TrackPlayer.pause();
         else await TrackPlayer.play();
     }, []);
 
@@ -196,29 +182,56 @@ function AudioPlayer(props: {
         return queue_items;
     }
 
-    useTrackPlayerEvents([Event.PlaybackProgressUpdated], async(event) => {
-        const player_state = await TrackPlayer.getPlaybackState();
-        set_artist_data(GLOBALS.global_var.playing_tracks[event.track].artists[0]);
-        update_player_state({
-            title: GLOBALS.global_var.playing_tracks[event.track]?.title,
-            artist: artist_string(GLOBALS.global_var.playing_tracks[event.track]),
-            duration: event.duration,
-            artwork: GLOBALS.global_var.playing_tracks[event.track]?.playback!.artwork,
-            elapsed_time: event.position,
-            duration_remaining: event.duration - event.position,
-            is_playing: player_state.state === State.Playing,
-            volume: await TrackPlayer.getVolume(),
-            rate: await TrackPlayer.getRate(),
-            loop_track: await TrackPlayer.getRepeatMode() === RepeatMode.Track
-        })
+    useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async(event) => {
+        if(event.type === Event.PlaybackProgressUpdated){
+            set_player_state_trackplayer({
+                elapsed_time: event.position,
+                duration_remaining: event.duration - event.position,
+                volume: await TrackPlayer.getVolume(),
+                rate: await TrackPlayer.getRate(),
+                loop_track: await TrackPlayer.getRepeatMode() === RepeatMode.Track,
+            });
+        }
+        else if(event.type === Event.PlaybackActiveTrackChanged){
+            if(event.index === undefined) return;
+            set_artist_data(GLOBALS.global_var.playing_tracks[event.index].artists[0]);
+            set_player_state_metadata({
+                title: GLOBALS.global_var.playing_tracks[event.index]?.title,
+                artist: artist_string(GLOBALS.global_var.playing_tracks[event.index]),
+                duration: event.track?.duration ?? 0,
+                artwork: GLOBALS.global_var.playing_tracks[event.index]?.playback!.artwork,
+                album: GLOBALS.global_var.playing_tracks[event.index]?.album,
+
+            });
+            if(now_playing_state.now_playing_visible) {
+                set_now_playing_state({
+                    now_playing_visible: true,
+                    queue_data: await updated_queue_items()
+                });
+            }
+            //     if(event.track?.artwork !== undefined){
+            //         const colors = await getColors(event.track.artwork);
+            //         if(colors.platform === "ios")
+            //             set_sample_artwork_color(colors.primary);
+            //     }
+        }
+        else if(event.type === Event.PlaybackState){
+            set_player_state_type(event.state);
+        }
     });
-    // useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async(event) => {
-    //     if(event.track?.artwork !== undefined){
-    //         const colors = await getColors(event.track.artwork);
-    //         if(colors.platform === "ios")
-    //             set_sample_artwork_color(colors.primary);
-    //     }
-    // });
+
+    async function remove_track_from_queue(item: IllusiveType.QueueTrack){
+        const current_track_index = await TrackPlayer.getActiveTrackIndex();
+        if(current_track_index === undefined) return;
+        const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
+        if(global_index !== -1){
+            GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
+            const tp_queue = await TrackPlayer.getQueue();
+            const tp_index = tp_queue.findIndex((track, i) => track.title === item.title && i >= current_track_index);
+            if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
+        }
+        set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() });
+    }
 
     const renderNowPlayingItem = (item: { item: IllusiveType.QueueTrack }) => <SongComponentQueue track_data={item.item} />;
 
@@ -249,8 +262,8 @@ function AudioPlayer(props: {
                         </TouchableOpacity>
                     </Animated.View>
                     <TouchableOpacity style={{ alignItems: 'center', justifyContent: 'center', width: 250 }} disabled={panel_state.is_visible} onPress={() => panel_ref.current.show()}>
-                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }} numberOfLines={1}>{panel_state.is_visible ? "PLAYING FROM" : remove_topic(player_state.artist)}</Text>
-                        <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state.title}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }} numberOfLines={1}>{panel_state.is_visible ? "PLAYING FROM" : remove_topic(player_state_metadata.artist)}</Text>
+                        <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state_metadata.title}</Text>
                     </TouchableOpacity>
                     {panel_state.is_visible ?
                         <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={async () => {
@@ -261,17 +274,17 @@ function AudioPlayer(props: {
                     }
                     {!panel_state.is_visible ?
                         <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={toggle_playing}>
-                            <Ionicons name={player_state.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={colors.primary} />
+                            <Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={colors.primary} />
                         </TouchableOpacity> : null
                     }
                 </View>
                 <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
                     {/* <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} /> */}
-                    <Image source={player_state.artwork as number} height={220} style={{width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220,}}/>
+                    <Image source={player_state_metadata.artwork as number} height={220} style={{width: "auto", opacity: player_state_type === State.Buffering ? 0.7 : 0.8, maxHeight: 220, minHeight: 220,}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={styles.timestampslidercontainer}>
                         <Slider
-                            value={player_state.elapsed_time}
+                            value={player_state_trackplayer.elapsed_time}
                             onValueChange={async (val) => { await TrackPlayer.seekTo(val[0]); }}
                             thumbTintColor={colors.primary}
                             minimumTrackTintColor={colors.primary}
@@ -279,43 +292,44 @@ function AudioPlayer(props: {
                             thumbStyle={{ width: 8, height: 8 }}
                             thumbTouchSize={{ width: 40, height: 40 }}
                             minimumValue={0}
-                            maximumValue={player_state.duration}
+                            maximumValue={player_state_metadata.duration}
                         />
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30 }}>
-                        <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state.elapsed_time)}</Text>
-                        <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state.duration_remaining)}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
+                        <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
                     </View>
                     {/* TITLE & ARTIST ----------------------------------------------------*/}
                     <View style={styles.textcontainer}>
-                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state.title}</TextTicker>
-                        <NavLink text_style={styles.artist} text={remove_topic(player_state.artist)} uri={artist_data?.uri ?? ""} />
+                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
+                        <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
+                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
                     </View>
                     {/* PLAY CONTROLS ----------------------------------------------------*/}
-                    <View style={{ bottom: 40 }}>
+                    <View style={{ bottom: 20 }}>
                         <View style={styles.playbackcontainer}>
-                            <TouchableOpacity onPress={() => { }}>
+                            <TouchableOpacity onPress={reshuffle}>
                                 <Ionicons name="shuffle-sharp" size={35} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={track_player_previous}>
                                 <Ionicons name="play-back-sharp" size={35} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={toggle_playing}>
-                                <Ionicons name={player_state.is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
+                                <Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={track_player_next}>
                                 <Ionicons name="play-forward-sharp" size={35} color={colors.primary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { }}>
-                                <Ionicons name="repeat-sharp" size={35} color={colors.primary} />
+                            <TouchableOpacity onPress={async() => {await TrackPlayer.setRepeatMode(player_state_trackplayer.loop_track ? RepeatMode.Off : RepeatMode.Track)}}>
+                                <Ionicons name="repeat-sharp" size={35} color={player_state_trackplayer.loop_track ? colors.primary : colors.inactive} />
                             </TouchableOpacity>
                         </View>
                         {/* VOLUME CONTROLS ----------------------------------------------------*/}
-                        <View>
+                        <View style={{top: 10}}>
                             <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                             <View style={styles.volumeslidercontainer}>
                                 <Slider
-                                    value={player_state.volume}
+                                    value={player_state_trackplayer.volume}
                                     onValueChange={async (value) => { await TrackPlayer.setVolume(value[0] / 1); }}
                                     thumbTintColor={colors.primary}
                                     thumbStyle={{ width: 15, height: 15 }}
@@ -326,15 +340,20 @@ function AudioPlayer(props: {
                                 />
                             </View>
                             <Ionicons name="volume-high-sharp" size={20} color='#656565' style={{ bottom: 30, alignSelf: 'flex-end', right: 50 }} />
-                            <TouchableOpacity>
-                                <MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565' style={{ bottom: 50, alignSelf: 'flex-end', right: 15 }} />
-                            </TouchableOpacity>
+                            <AirPlayButton 
+                                activeTintColor={colors.secondary}
+                                tintColor={colors.primary}
+                                prioritizesVideoDevices={false}
+                                style={{ width: 20, height: 20, bottom: 50, alignSelf: 'flex-end', right: 15 }}
+                            />
+                            {/* <TouchableOpacity> */}
+                                {/* <MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565' style={{ bottom: 50, alignSelf: 'flex-end', right: 15 }} /> */}
+                            {/* </TouchableOpacity> */}
 
                         </View>
                         {/* EXTRA CONTROLS ----------------------------------------------------*/}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15, top: 10 }}>
                             <TouchableOpacity onPress={async() => {
-                                if(!Prefs.get_pref('add_from_modal')) return;
                                 const current_track_index = await TrackPlayer.getActiveTrackIndex();
                                 if(current_track_index === undefined) return;
                                 set_add_to_playlist_state({ 'show': true, 'track_data': GLOBALS.global_var.playing_tracks[current_track_index]});
@@ -392,17 +411,7 @@ function AudioPlayer(props: {
                                 </View>
                             }
                             renderHiddenItem={({item}) => (
-                                <TouchableOpacity onPress={async () => {
-                                    const current_track_index = await TrackPlayer.getActiveTrackIndex();
-                                    if(current_track_index === undefined) return;
-                                    const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
-                                    if(global_index !== -1)
-                                        GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
-                                    const tp_queue = await TrackPlayer.getQueue();
-                                    const tp_index = tp_queue.findIndex(track => track.title === item.title);
-                                    if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
-                                    set_now_playing_state({ 'now_playing_visible': true, 'queue_data': await updated_queue_items() });
-                                }} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
+                                <TouchableOpacity onPress={async () => remove_track_from_queue(item)} style={{ backgroundColor: "#FF2c00", flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
                                     <Ionicons name='trash-bin-outline' color={"white"} size={22} />
                                 </TouchableOpacity>
                             )}
@@ -427,21 +436,22 @@ function AudioPlayer(props: {
                         <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Settings</Text>
                     </View>
                     <View style={{ flex: 1, backgroundColor: colors.background }}>
-                        <Text style={{ left: 17, top: 18, color: "white", fontWeight: "300", fontSize: 15 }}>Playback Speed</Text>
+                        <Text style={{ left: 17, top: 18, color: "white", fontWeight: "300", fontSize: 15 }}>Playback Speed:</Text>
+                        <Text style={{ left: "34%", bottom: 0, color: "white", fontWeight: "bold", fontSize: 17 }}>{String(player_state_trackplayer.rate).slice(0, 4)}x</Text>
                         <MaterialCommunityIcons name="play-speed" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                         <View style={styles.volumeslidercontainer}>
                             <Slider
-                                value={player_state.rate}
-                                onValueChange={async (value) => { await TrackPlayer.setRate((value[0])) }}
+                                value={player_state_trackplayer.rate}
+                                onValueChange={async (value) => { await TrackPlayer.setRate((value[0])); set_player_state_trackplayer({...player_state_trackplayer, rate: value[0]}) }}
                                 thumbTintColor={colors.primary}
                                 thumbStyle={{ width: 15, height: 15 }}
                                 thumbTouchSize={{ width: 40, height: 40 }}
                                 minimumTrackTintColor={colors.primary}
                                 maximumTrackTintColor='#DADADA40'
+                                step={0.01}
                                 maximumValue={2}
                             />
                         </View>
-                        <Text style={{ left: 300, bottom: 35, color: "white", fontWeight: "bold", fontSize: 17 }}>{player_state.rate}x</Text>
                     </View>
                 </Modal>
                 <Modal animationType="slide"
@@ -470,7 +480,7 @@ function AudioPlayer(props: {
                         ))}
                     </ScrollView>
                 </Modal>
-                {/* <AddToPlaylistsModal modal_data={add_to_playlist_state} callback={() => {}}/> */}
+                <AddToPlaylistsModal set_modal_data={set_add_to_playlist_state} modal_data={add_to_playlist_state} callback={() => {}}/>
             </>
         </SlidingUpPanel>
     )
@@ -533,9 +543,10 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     lyrics_text: {
         color: colors.text,
         fontWeight: 'bold',
+        width: "85%",
         fontSize: 24,
         margin: 15,
-        marginVertical: 5
+        marginVertical: 10
     }
 });
 export default AudioPlayer;
