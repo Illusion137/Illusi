@@ -32,7 +32,7 @@ function TrackComponent(props: {
 	}) {
 
 	const navigation: Navigator = useNavigation();
-	
+
 	const [artwork, set_artwork] = useState( props.track_data.playback?.artwork );
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
@@ -76,6 +76,10 @@ function TrackComponent(props: {
         }
         return () => clearInterval(interval);
     }, []);
+
+	useEffect(() => {
+		set_artwork(props.track_data.playback!.artwork);
+	}, [props.track_data.playback!.artwork]);
 
 	const actions: (
 			"Cancel"|
@@ -151,7 +155,9 @@ function TrackComponent(props: {
 			onLongPress={() => GLOBALS.global_var.is_playing ? push_track_to_playing_queue(props.track_data) : edit_actions()} 
 			onPress={async() => {
 				if(notdisabled_from_write_playlist){
-					GLOBALS.global_var.play_tracks(props.track_data, [props.track_data], "Write Playlist")
+					const clone: Track = JSON.parse(JSON.stringify(props.track_data));
+					const track: Track = {...clone, meta: {...clone.meta!, begdur: clone.duration * 0.20}};
+					GLOBALS.global_var.play_tracks(track, [track], "Write Playlist");
 				}
 				else if(!disabled_from_full_queue && props.from !== undefined && props.track_callback !== undefined) 
 					play(props.track_data, props.from, props.track_callback)}
@@ -159,7 +165,7 @@ function TrackComponent(props: {
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
 					<Image source={artwork} style={styles.image}/>
-					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.2, position: 'absolute', backgroundColor: tint}}/>}
+					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
 					{Prefs.get_pref('show_track_duration') && props.track_data.duration !== undefined && 
 						<View style={{position: 'absolute', left: duration_to_string(props.track_data.duration).left - 8, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
 							<Text style={{color:'white', fontSize:10}}>{duration_to_string(props.track_data.duration).duration}</Text>

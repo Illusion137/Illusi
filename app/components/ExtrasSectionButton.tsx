@@ -9,15 +9,16 @@ function ExtrasSectionButton(props: {
 		transparent?: boolean,
 		show_arrow: true | boolean, 
 		text: string,
-        icon: keyof (typeof Ionicons)["glyphMap"] | 'NONE'
+        icon: keyof (typeof Ionicons)["glyphMap"] | 'NONE',
+		indev?: boolean
 	}) {	
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	return(
-		<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={props.onPress}>
+		<TouchableHighlight disabled={props.indev} style={{opacity: props.indev ? 0.5 : 1}} activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={props.onPress}>
 			<View style={(props.transparent ?? false) ? {...styles.sectionContainer, backgroundColor: '#00000000'} : styles.sectionContainer}>
-				{ props.icon !== 'NONE' ? <Ionicons name={props.icon as any} size={25} color={colors.primary} style={{left: 10}}/> : null}
+				{ props.icon !== 'NONE' ? <Ionicons name={props.indev ? "construct-outline" : props.icon as any} size={25} color={colors.primary} style={{left: 10}}/> : null}
 				<Text style={styles.btnsectionText}>{props.text}</Text>
 				{ props.show_arrow && <AntDesign name="right" size={22} color={colors.primary} style={{position: 'absolute', left: "90%"}}/>}
 			</View>

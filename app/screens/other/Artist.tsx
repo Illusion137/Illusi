@@ -1,4 +1,4 @@
-import { IllusiveURI, MusicServiceArtist, Route } from "../../../lib-origin/Illusive/src/types";
+import { IllusiveURI, MusicServiceArtist, Route, Track } from "../../../lib-origin/Illusive/src/types";
 import { Image, ImageBackground, ScrollView, Text, View } from "react-native";
 import AlbumList from "../../components/AlbumList";
 import TrackHorizontalScrolls from "../../components/TrackHorizontalScrolls";
@@ -10,7 +10,7 @@ import { music_service_uri_to_music_service, split_uri, tracks_with_artist } fro
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { ResponseError } from "../../../lib-origin/origin/src/utils/types";
 import { Illusive } from "../../../lib-origin/Illusive/src/illusive";
-import { is_empty, json_catch } from "../../../lib-origin/origin/src/utils/util";
+import { is_empty, json_catch, remove_topic } from "../../../lib-origin/origin/src/utils/util";
 import { alert_error } from "../../../lib-origin/Illusive/src/illusi/src/alert";
 import HeaderWith from "../../components/HeaderWith";
 import HorizontalRowArtists from "../../components/HorizontalRowArtists";
@@ -55,7 +55,6 @@ export default function Artist(params: {route: Route<unknown>}){
         }
         const artist: MusicServiceArtist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_artist!(split[1]).catch(json_catch);
         if("error" in artist!) {
-            console.log(artist.error)
             alert_error(artist as any , true);
             return;
         }
@@ -65,7 +64,10 @@ export default function Artist(params: {route: Route<unknown>}){
         GLOBALS.global_var.artist_cache.add(ts_route.params.uri, {artist_data: artist});
     }
 
-    const shared_tracks = tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name);
+    const shared_tracks: Track[] = tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name)
+        .map(track => ({
+            ...track, downloading_data: {...track.downloading_data!, saved: true}  
+        }));
 
     return (
         <>
@@ -76,16 +78,16 @@ export default function Artist(params: {route: Route<unknown>}){
                 { !is_empty(artist_data.background_artwork_url) ? 
                 <ImageBackground blurRadius={10} source={{uri: artist_data.background_artwork_url, scale: 0.3}} style={{height: 170, flexDirection: 'row', alignItems: 'flex-end'}}>
                     {!is_empty(artist_data.profile_artwork_url) ? <Image source={{uri: artist_data.profile_artwork_url}} style={{borderRadius: 100, width: 80, height: 80, bottom: 20, left: 30}}/> : null}
-                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{artist_data.name}</Text>
+                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{remove_topic(artist_data.name)}</Text>
                 </ImageBackground> : 
                 <View style={{height: 170, top: 40, flexDirection: 'row', alignItems: 'flex-end'}}>
                     {!is_empty(artist_data.profile_artwork_url) ? <Image source={{uri: artist_data.profile_artwork_url}} style={{borderRadius: 100, width: 80, height: 80, bottom: 20, left: 30}}/> : null}
-                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{artist_data.name}</Text>
+                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{remove_topic(artist_data.name)}</Text>
                 </View>
                 }
                 <View style={{paddingTop: 40}}/>
                 {artist_data?.latest_release ? <LatestRelease album_data={artist_data?.latest_release}/> : null }
-                <View style={{paddingVertical: 20}}/>
+                <View style={{paddingVertical: 10}}/>
                 {
                     artist_data.tracks.length > 0 ? 
                     <HeaderWith title={"Tracks"}>        
@@ -105,6 +107,10 @@ export default function Artist(params: {route: Route<unknown>}){
                 {
                     artist_data.appears_on !== undefined && artist_data.appears_on.length > 0 ? 
                     <AlbumList title="Appears On" else_type={"SINGLE"} albums={artist_data.appears_on}/> : null
+                }
+                {
+                    artist_data.playlists.length > 0 ? 
+                    <AlbumList title="Playlists" else_type={"SINGLE"} albums={artist_data.playlists}/> : null
                 }
                 <View style={{paddingTop: 20}}/>
                 {

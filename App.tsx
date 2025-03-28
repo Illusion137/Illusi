@@ -46,12 +46,12 @@ import ExtraHelpScreen from './app/screens/extra/ExtraHelpScreen';
 import ExtraMarkdownRenderScreen from './app/screens/extra/ExtraMarkdownRenderScreen';
 import ExtraKeepDeleteScreen from './app/screens/extra/ExtraKeepDeleteScreen';
 import ExtraCreateLinkScreen from './app/screens/extra/ExtraCreateLinkScreen';
-import ExtraCustomExploreBase from './app/screens/extra/ExtraCustomExploreBase';
-import ExtraCustomExploreArtistWatch from './app/screens/extra/ExtraCustomExploreArtistWatch';
 import BottomAlert from './app/components/BottomAlert';
 import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
 import Artist from './app/screens/other/Artist';
 import MultiOption from './app/screens/other/MultiOption';
+import * as Haptics from 'expo-haptics';
+import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -75,8 +75,6 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Playlist Converter" component={ExtraPlaylistConverter} />
             <ExtrasStack.Screen name="Backpack" component={ExtraBackpackScreen} />
             <ExtrasStack.Screen name="Themes" component={ExtraThemesScreen} />
-            <ExtrasStack.Screen name="Customize Explore" component={ExtraCustomExploreBase} />
-            <ExtrasStack.Screen name="Artist Watch" component={ExtraCustomExploreArtistWatch} />
             <ExtrasStack.Screen name="Developer" component={ExtraDeveloperScreen} />
             <ExtrasStack.Screen name="Developer Test" component={ExtraDevTestScreen} />
             <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
@@ -115,6 +113,7 @@ function SearchStackScreen() {
             <SearchStack.Screen options={{ headerShown: false }} name="SearchHome" component={SearchHomeScreen}/>
             <SearchStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <SearchStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
+            <SearchStack.Screen options={{ headerShown: false }} name="AlbumGridRenderer" component={AlbumGridRenderer as any} />
         </SearchStack.Navigator>
     );
 }
@@ -147,7 +146,7 @@ function Tabs() {
             <Tab.Screen name="Playlists" component={PlaylistsStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="musical-notes" size={25} color={color} />),
-                    unmountOnBlur: true,
+                    unmountOnBlur: false,
                 }}
             />
             <Tab.Screen name="Explore" component={SearchStackScreen}
@@ -201,11 +200,15 @@ export default function App() {
         });
         (async function () {
             const maybe_initial_shortcut = await getInitialShortcut();
-            if(maybe_initial_shortcut !== null){
+            const default_playlist_names = default_playlists.map(playlist => playlist.name);
+            if(maybe_initial_shortcut !== null && !default_playlist_names.includes((maybe_initial_shortcut.userInfo as {uuid: string}).uuid)){
                 await run_shortcut(maybe_initial_shortcut.userInfo as any, maybe_initial_shortcut.activityType);
             }
             await illusi_startup(appConfig.version, play_tracks, set_theme, update_bottom_alert);
             set_is_loading(false);
+            if(maybe_initial_shortcut !== null && default_playlist_names.includes((maybe_initial_shortcut.userInfo as {uuid: string}).uuid)){
+                await run_shortcut(maybe_initial_shortcut.userInfo as any, maybe_initial_shortcut.activityType);
+            }
         })();
         return () => {
             subscription.remove();
@@ -231,6 +234,7 @@ export default function App() {
             text,
             type
         });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     return (
         <GlobalStateProvider>

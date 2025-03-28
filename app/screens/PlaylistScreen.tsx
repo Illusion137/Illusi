@@ -39,16 +39,15 @@ function PlaylistScreen() {
 	async function refresh_data(query?: string){
         try {
             search_query = query ?? "";
-            const playlists = playlist_query_filter(await SQLPlaylists.all_playlists_data(), search_query);
-            const ordered_playlists: Playlist[] = sort_playlists(playlists);
-            set_playlists([]);
-            set_playlists(ordered_playlists)
-            const rdefault_playlists = await resolved_default_playlists();
-            set_default_playlists(rdefault_playlists);
-			// console.log(await db.getAllAsync("SELECT * FROM tracks_deleted WHERE Timestamp > DATETIME('now', '+1 day')"));
-        } catch (error) {
-            
-        }
+			SQLPlaylists.all_playlists_data().then(playlists => {
+				const filtered_playlists = playlist_query_filter(playlists, search_query);
+				const ordered_playlists: Playlist[] = sort_playlists(filtered_playlists);
+				set_playlists(ordered_playlists);
+			});
+            resolved_default_playlists().then(rdefault_playlists => {
+				set_default_playlists(rdefault_playlists);
+			});
+        } catch (error) {}
 	}
 
 	function show_new_playlist_panel() { 

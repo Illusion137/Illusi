@@ -27,6 +27,7 @@ function LibraryTrackList(props: {
     header_item?: () => React.JSX.Element
     adjusted_alphabet_scroll?: number
     is_focused: boolean
+	refresh_query_on_focus?: boolean
 }, ref: any){
 
 	const { colors } = useTheme() as Prefs.Theme;
@@ -49,7 +50,9 @@ function LibraryTrackList(props: {
         refresh_data,
     }));    
     useEffect( () => {
-        search_query = "";
+		if(props.refresh_query_on_focus ?? false){
+			search_query = "";
+		}
 		refresh_data(search_query);
 	}, [props.is_focused]);
     useEffect( () => {

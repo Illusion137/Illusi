@@ -1,23 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import { CompactArtist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-import { remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 
 
 export default function CompactArtistComponent(props: {
 	artist_data: CompactArtist
-    on_press?: () => void|Promise<void>
 }) {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
-	console.log(props.artist_data)
+	const navigation: Navigator = useNavigation();
+
+	async function navigate(){
+		if(is_empty(props.artist_data.name.uri)) return;
+		navigation.push("Artist", {"uri": props.artist_data.name.uri});
+	}
 	return(
         <>
-			<TouchableOpacity style={styles.button} onPress={props.on_press}>
+			<TouchableOpacity style={styles.button} onPress={navigate}>
                 <>
 					<View style={{width: 15}}/>
 					<Image source={{"uri":  !props.artist_data.profile_artwork_url?.includes("http") ? props.artist_data.profile_artwork_url!.replace('//', 'https://') : props.artist_data.profile_artwork_url, "cache": "force-cache"}} style={styles.image}/>

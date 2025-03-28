@@ -24,12 +24,16 @@ export default function PlaylistComponent(props: {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
-	const [pinned, _] = useState(props.playlist_data.pinned);
+	const [pinned, set_pinned] = useState(props.playlist_data.pinned);
 	const [disabled, set_disabled] = useState(false);
 
 	const select_mode = (props.select?.mode ?? false);
 	const compact = (props.compact ?? false);
 	const [selected, set_selected] = useState(GLOBALS.global_var.selected_playlists_uuids.has(props.playlist_data.uuid));
+
+	useEffect(() => {
+		set_pinned(props.playlist_data.pinned);
+	}, [props.playlist_data.pinned]);
 
 	async function is_disabled(): Promise<boolean>{
 		if(props.select === undefined) return false;
@@ -65,7 +69,7 @@ export default function PlaylistComponent(props: {
 				{
 				text: props.playlist_data.pinned ? "Unpin" : "Pin",
 				onPress: async() => {
-						if(!await SQLPlaylists.is_playlist_pinned(props.playlist_data.uuid)){
+						if(!(props.playlist_data.pinned ?? false)){
 							await SQLPlaylists.pin_unpin_playlist(props.playlist_data.uuid, true)
 						}
 						else{

@@ -4,7 +4,7 @@ import Album, { SecondLineType } from "./Album";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { useTheme } from "@react-navigation/native";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ResponseError } from "../../lib-origin/origin/src/utils/types";
 import { alert_error } from "../../lib-origin/Illusive/src/illusi/src/alert";
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals'
@@ -42,9 +42,12 @@ export default function AlbumList(props: {
         set_albums(filterd_album_data);
         set_last_refresh(new Date());
         Prefs.save_pref('new_releases_last_refreshed', new Date());
-        Prefs.save_pref('new_releases_persistant_cache', filterd_album_data);
         GLOBALS.global_var.bottom_alert("Successfully Refreshed Data", "GOOD");
     }
+
+    useEffect(() => {
+        set_albums(props.albums)
+    }, [props.albums]);
 
     return (
         <View style={{paddingVertical: 10}}>

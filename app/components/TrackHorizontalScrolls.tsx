@@ -9,7 +9,7 @@ export default function TrackHorizontalScrolls(props: {
 }){
     const screen_width = Dimensions.get('screen').width;
     const track_width = screen_width * .95;
-    const split_tracks = props.tracks.reduce((result_array: any[], item, index) => { 
+    const split_tracks: Track[][] = props.tracks.reduce((result_array: any[], item, index) => { 
         const chunk_index = Math.floor(index / props.height)
       
         if(!result_array[chunk_index]) {
