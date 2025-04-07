@@ -26,6 +26,7 @@ export default function PlaylistComponent(props: {
 
 	const [pinned, set_pinned] = useState(props.playlist_data.pinned);
 	const [disabled, set_disabled] = useState(false);
+	const [visual_data, set_visual_data] = useState<Playlist['visual_data']>();
 
 	const select_mode = (props.select?.mode ?? false);
 	const compact = (props.compact ?? false);
@@ -34,6 +35,18 @@ export default function PlaylistComponent(props: {
 	useEffect(() => {
 		set_pinned(props.playlist_data.pinned);
 	}, [props.playlist_data.pinned]);
+	useEffect(() => {
+		(async() => {
+			if(props.playlist_data.visual_data){
+				const resolved_tracks = await Promise.resolve(props.playlist_data.visual_data.four_track);
+				set_visual_data({four_track: resolved_tracks?.slice(0,4) ?? [], track_count: resolved_tracks?.length ?? 0});
+			}
+		})()
+	}, [props.playlist_data]);
+
+	useEffect(() => {
+
+	}, []);
 
 	async function is_disabled(): Promise<boolean>{
 		if(props.select === undefined) return false;
@@ -108,12 +121,12 @@ export default function PlaylistComponent(props: {
 					onLongPress={select_mode ? () => {} : on_hold}>
 				<>
 					<View style={{width: 15}}/>
-					<FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={props.playlist_data.visual_data!.four_track ?? []} size={compact ? 22 : 35}/>
+					<FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={visual_data?.four_track ?? []} size={compact ? 22 : 35}/>
 					<View style={{flexDirection: 'column', left: 25}}>
 						<Text style={{color: colors.text, fontSize:15}}>{props.playlist_data.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
 							{pinned ? <MaterialIcons name="push-pin" size={22} color={colors.primary}/> : null}
-							<Text style={{color: colors.subtext}}>{props.playlist_data.visual_data!.track_count} Tracks</Text>
+							<Text style={{color: colors.subtext}}>{visual_data?.track_count ?? 0} Tracks</Text>
 						</View>
 					</View>
 					{

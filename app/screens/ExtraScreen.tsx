@@ -94,6 +94,7 @@ function ExtraScreen() {
 						else await Linking.openURL('https://github.com/Illusion137');
 					}}/>
 					<View style={styles.line_short}/>
+					<ExtrasSectionButton show_arrow={true} text='Statistics' icon='stats-chart-outline' onPress={async () => navigation.navigate('Statistics')}/>
 					<ExtrasSectionButton show_arrow={true} text='Changelog' icon='list-outline' onPress={async () => navigation.navigate('Changelog')}/>
 					<ExtrasSectionButton show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
 					<View style={styles.line_short}/>

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import FourTrackArtwork from './FourTrackArtwork';
-import { CompactPlaylistData, SerializedCompactPlaylistData } from '../../lib-origin/Illusive/src/types';
+import { CompactPlaylistData, Playlist, SerializedCompactPlaylistData } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 
 export default function CompactWriterPlaylistComponent(props: {
@@ -29,16 +29,27 @@ export default function CompactWriterPlaylistComponent(props: {
         });           
     }
 
+	const [visual_data, set_visual_data] = useState<Playlist['visual_data']>();
+
+	useEffect(() => {
+		(async() => {
+			if(props.playlist_data.four_track){
+				const resolved_tracks = await Promise.resolve(props.playlist_data.four_track);
+				set_visual_data({four_track: resolved_tracks?.slice(0,4) ?? [], track_count: Math.max(resolved_tracks?.length ?? 0, props.playlist_data.track_count)});
+			}
+		})()
+	}, [props.playlist_data]);
+
 	return(
         <>
 			<TouchableOpacity style={styles.button} onPress={navigate}>
                 <>
 					<View style={{width: 15}}/>
-                    <FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={props.playlist_data.four_track} size={26}/>
+                    <FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={visual_data?.four_track ?? []} size={26}/>
 					<View style={{flexDirection: 'column', left: 20}}>
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
-							<Text style={{color: '#AAAAAA'}}>{props.playlist_data.track_count} Tracks</Text>
+							<Text style={{color: '#AAAAAA'}}>{visual_data?.track_count ?? 0} Tracks</Text>
 						</View>
 					</View>
                 </>

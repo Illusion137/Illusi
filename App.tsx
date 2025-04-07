@@ -52,6 +52,7 @@ import Artist from './app/screens/other/Artist';
 import MultiOption from './app/screens/other/MultiOption';
 import * as Haptics from 'expo-haptics';
 import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
+import ExtraStatisticsScreen from './app/screens/extra/ExtraStatisticsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -80,6 +81,7 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Danger Zone" component={ExtraDangerScreen} />
             <ExtrasStack.Screen name="Changelog" component={ExtraMarkdownRenderScreen} />
             <ExtrasStack.Screen name="Help" component={ExtraHelpScreen} />
+            <ExtrasStack.Screen name="Statistics" component={ExtraStatisticsScreen} />
             <ExtrasStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <ExtrasStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
         </ExtrasStack.Navigator>

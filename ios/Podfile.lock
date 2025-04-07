@@ -2074,6 +2074,8 @@ PODS:
     - Yoga
   - RNSiriShortcuts (3.2.4):
     - React
+  - RNSVG (15.11.2):
+    - React-Core
   - RNVectorIcons (10.0.3):
     - DoubleConversion
     - glog
@@ -2232,6 +2234,7 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSiriShortcuts (from `../node_modules/react-native-siri-shortcut`)
+  - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - UMAppLoader (from `../node_modules/unimodules-app-loader/ios`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -2490,6 +2493,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNSiriShortcuts:
     :path: "../node_modules/react-native-siri-shortcut"
+  RNSVG:
+    :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   UMAppLoader:
@@ -2621,6 +2626,7 @@ SPEC CHECKSUMS:
   RNReanimated: 66cf0f600a26d2b5e74c6e0b1c77c1ab1f62fc05
   RNScreens: 4a5ab20b324ed1e3fe3862796b8f8e0a6208c415
   RNSiriShortcuts: 149966f5de0cac63bd9fd8c2d5c51235439d1760
+  RNSVG: a07e14363aa208062c6483bad24a438d5986d490
   RNVectorIcons: 4a7bd77379b1f63416bec24816a3ae835a377edf
   SDWebImage: 8a6b7b160b4d710e2a22b6900e25301075c34cb3
   SDWebImageAVIFCoder: 00310d246aab3232ce77f1d8f0076f8c4b021d90
