@@ -6,7 +6,7 @@ import App from './App';
 
 // import TestApp from './TestApp';
 
-// console.disableYellowBox = true;
+// console.disableYellowBox = true; 
 
 const error = console.error; console.error = (...args) => { if (/defaultProps/.test(args[0])) return; error(...args); };
 
