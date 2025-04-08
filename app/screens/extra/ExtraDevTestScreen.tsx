@@ -1,4 +1,4 @@
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
 import Equalizer from "../../components/Equalizer";

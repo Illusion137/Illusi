@@ -13,6 +13,8 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
+pod 'Illusion137-ffmpeg-kit-ios-https', :path => '../../ffmpeg-kit'
+
 target 'Illusi' do
   use_expo_modules!
 
