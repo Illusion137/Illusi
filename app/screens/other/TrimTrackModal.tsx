@@ -61,8 +61,8 @@ export default function TrimTrackModal(props: {
         presentationStyle={'pageSheet'}
         onShow={async() => {}}
         onRequestClose={() => {
-            props.set_modal_data({'show':false, 'track_data': null});
             waveform_ref.current?.pausePlayer();
+            props.set_modal_data({'show':false, 'track_data': null});
         }}>
             <View style={{flex: 1, backgroundColor: colors.background}}>
                 <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
