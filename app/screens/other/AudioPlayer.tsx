@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
-import { Slider } from '@miblanchard/react-native-slider';
+// import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
 import { Animated, Button, Dimensions, Easing, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
@@ -283,7 +283,7 @@ function AudioPlayer(props: {
                     <Image source={player_state_metadata.artwork as number} height={220} style={{width: "auto", opacity: player_state_type === State.Buffering ? 0.7 : 0.8, maxHeight: 220, minHeight: 220,}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={styles.timestampslidercontainer}>
-                        <Slider
+                        {/* <Slider
                             value={player_state_trackplayer.elapsed_time}
                             onValueChange={async (val) => { await TrackPlayer.seekTo(val[0]); }}
                             thumbTintColor={colors.primary}
@@ -293,7 +293,7 @@ function AudioPlayer(props: {
                             thumbTouchSize={{ width: 40, height: 40 }}
                             minimumValue={0}
                             maximumValue={player_state_metadata.duration}
-                        />
+                        /> */}
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30 }}>
                         <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
@@ -328,7 +328,7 @@ function AudioPlayer(props: {
                         <View style={{top: 10}}>
                             <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                             <View style={styles.volumeslidercontainer}>
-                                <Slider
+                                {/* <Slider
                                     value={player_state_trackplayer.volume}
                                     onValueChange={async (value) => { await TrackPlayer.setVolume(value[0] / 1); }}
                                     thumbTintColor={colors.primary}
@@ -337,7 +337,7 @@ function AudioPlayer(props: {
                                     minimumTrackTintColor={colors.primary}
                                     maximumTrackTintColor='#DADADA40'
                                     maximumValue={1}
-                                />
+                                /> */}
                             </View>
                             <Ionicons name="volume-high-sharp" size={20} color='#656565' style={{ bottom: 30, alignSelf: 'flex-end', right: 50 }} />
                             <AirPlayButton 
@@ -440,7 +440,7 @@ function AudioPlayer(props: {
                         <Text style={{ left: "34%", bottom: 0, color: "white", fontWeight: "bold", fontSize: 17 }}>{String(player_state_trackplayer.rate).slice(0, 4)}x</Text>
                         <MaterialCommunityIcons name="play-speed" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                         <View style={styles.volumeslidercontainer}>
-                            <Slider
+                            {/* <Slider
                                 value={player_state_trackplayer.rate}
                                 onValueChange={async (value) => { await TrackPlayer.setRate((value[0])); set_player_state_trackplayer({...player_state_trackplayer, rate: value[0]}) }}
                                 thumbTintColor={colors.primary}
@@ -450,7 +450,7 @@ function AudioPlayer(props: {
                                 maximumTrackTintColor='#DADADA40'
                                 step={0.01}
                                 maximumValue={2}
-                            />
+                            /> */}
                         </View>
                     </View>
                 </Modal>

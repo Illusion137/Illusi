@@ -3,7 +3,6 @@ import { View, StyleSheet, Text, Image, TouchableOpacity, Dimensions } from 'rea
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { empty_join_dot } from '../../../lib-origin/Illusive/src/illusive_utilts';
-import { Slider } from '@miblanchard/react-native-slider';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ExtraKeepDeleteScreen() {
@@ -24,14 +23,14 @@ export default function ExtraKeepDeleteScreen() {
 				</View>
 			</View>
 			<Image source={{uri: thumbnail_uri, cache: 'force-cache'}} style={{width: thumbnail_size, height: thumbnail_size, borderRadius: 10, alignSelf: 'center'}}/>
-			<Slider
+			{/* <Slider
 				thumbTintColor={colors.primary}
 				minimumTrackTintColor={colors.primary}
 				maximumTrackTintColor='#DADADAA0'
 				thumbStyle={{ width: 8, height: 8 }}
 				thumbTouchSize={{ width: 40, height: 40 }}
 				minimumValue={0}
-				/>
+				/> */}
 			<View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
 				<TouchableOpacity onPress={() => {}}>
 					<Ionicons name="play-skip-back" size={35} color={colors.primary}/>

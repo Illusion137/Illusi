@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { AntDesign, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
-import { Slider } from '@miblanchard/react-native-slider';
+// import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { Text, View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
@@ -33,7 +33,7 @@ export default function ExtraThemesScreen(){
                     <View>
                         <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                         <View style={styles.volumeslidercontainer}>
-                            <Slider
+                            {/* <Slider
                                 value={0.5}
                                 thumbTintColor={colors.primary}
                                 thumbStyle={{ width: 15, height: 15 }}
@@ -41,7 +41,7 @@ export default function ExtraThemesScreen(){
                                 minimumTrackTintColor={colors.primary}
                                 maximumTrackTintColor='#DADADA40'
                                 maximumValue={1}
-                            />
+                            /> */}
                         </View>
                         <Ionicons name="volume-high-sharp" size={20} color='#656565' style={{ bottom: 30, alignSelf: 'flex-end', right: 50 }} />
                         <MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565' style={{ bottom: 50, alignSelf: 'flex-end', right: 15 }} />
