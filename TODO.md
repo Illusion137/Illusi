@@ -9,8 +9,8 @@
 - [x] Track-Metadata such as plays not updating properly
 - [x] Track-Metadata sometimes has bad values such as null for a property type: number
 - [ ] Soundcloud signins only last for a day or two
-- [ ] Soundcloud downloads still sometimes don't work
-- [ ] Trackplayer becomes out of sync
+- [x] Soundcloud downloads still sometimes don't work
+- [x] Trackplayer becomes out of sync
 
 # Features
 - [ ] Store track play iso-dates in SQLite Database
@@ -24,23 +24,23 @@
 - [x] Add to playlist from AudioPlayer
 - [ ] Remove song from library/playlist from AudioPlayer
 - [x] Add from recently-player + past-queue playlists
-- [ ] Convert Illusi-playist back to any music-service
-- [ ] Link playlists to Illusi-playlist
-- [ ] Linker
+- [x] Convert Illusi-playist back to any music-service
+- [x] Link playlists to Illusi-playlist
+- [x] Linker
 - [x] Theming
 - [x] Custom primary color
 - [x] More themes (Light Mode)
-- [ ] Import from SQLite
+- [x] Import from SQLite
 - [ ] Smart Shuffle
 - [x] Track edit-mode EDIT
-- [ ] Preview song before add-to-playist
+- [x] Preview song before add-to-playist
 - [x] Search-flags: @sc soundcloud
 - [x] Pref: 'compact_playlists' - Makes PlaylistComponents compact
 - [x] Pref: 'share_as_original' - Shares as link instead of file
-- [ ] ArtistScreen
+- [x] ArtistScreen
 - [x] Smart Search
 - [x] Use Musi-Explore page
-- [ ] Allow YouTube_Music-Explore page
+- [x] Allow YouTube_Music-Explore page
 - [ ] Share Playlists
 - [ ] Pandora support
 - [x] Link to Github

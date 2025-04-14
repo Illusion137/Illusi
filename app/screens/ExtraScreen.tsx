@@ -44,7 +44,7 @@ function ExtraScreen() {
 				<Text style={styles.description_txt}>Backup your music, transfer your playlists to other devices, recover deleted music and more</Text>
 				
 				<View style={styles.line_long}/>
-					<ExtrasSectionButton show_arrow={true} text='Keep Delete' icon='heart-outline' onPress={async () => navigation.navigate('Keep Delete')}/>
+					<ExtrasSectionButton indev={true} show_arrow={true} text='Keep Delete' icon='heart-outline' onPress={async () => navigation.navigate('Keep Delete')}/>
 				<View style={styles.line_long}/>
 				<Text style={styles.description_txt}>The Tinder of your Music; Swipe left to delete tracks or swipe right to keep</Text>
 
@@ -63,7 +63,7 @@ function ExtraScreen() {
 					{Prefs.get_pref('hide_batch_undownloader') ? null : <ExtrasSectionButton show_arrow={true} text='Batch Un-Downloader' icon='arrow-undo-outline' onPress={async () => navigation.navigate('Batch Un-Downloader')}/> }
 					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.line_short}/>
-					<ExtrasSectionButton show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
+					<ExtrasSectionButton indev={true} show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
 				<View style={styles.line_long}/>
 
 				<Text style={styles.description_txt}>Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.</Text>
@@ -87,11 +87,6 @@ function ExtraScreen() {
 				<Text style={styles.description_txt}>Customize the look of Illusi</Text>
 
 				<View style={styles.line_long}/>
-					<ExtrasSectionButton show_arrow={true} text='Explore' icon='fish-outline' onPress={async () => navigation.navigate('Customize Explore')}/>
-					<View style={styles.line_short}/>
-				<Text style={styles.description_txt}>Customize your Illusi-Explore</Text>
-
-				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {
 						if(await Linking.canOpenURL('vnd.github://Illusion137')){
 							await Linking.openURL('vnd.github://Illusion137')
@@ -99,6 +94,7 @@ function ExtraScreen() {
 						else await Linking.openURL('https://github.com/Illusion137');
 					}}/>
 					<View style={styles.line_short}/>
+					<ExtrasSectionButton show_arrow={true} text='Statistics' icon='stats-chart-outline' onPress={async () => navigation.navigate('Statistics')}/>
 					<ExtrasSectionButton show_arrow={true} text='Changelog' icon='list-outline' onPress={async () => navigation.navigate('Changelog')}/>
 					<ExtrasSectionButton show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
 					<View style={styles.line_short}/>

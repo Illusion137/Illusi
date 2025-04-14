@@ -14,7 +14,7 @@ import { playlist_query_filter } from '../../lib-origin/Illusive/src/illusive_ut
 import BigList from 'react-native-big-list';
 import NewPlaylist from './playlist/NewPlaylist';
 import { sort_playlists } from '../../lib-origin/Illusive/src/illusi/src/playlist';
-import { resolved_default_playlists } from '../../lib-origin/Illusive/src/illusi/src/default_playlists';
+import { empty_resolved_default_playlists, resolved_default_playlists } from '../../lib-origin/Illusive/src/illusi/src/default_playlists';
 
 let search_query = "";
 function PlaylistScreen() {
@@ -24,8 +24,8 @@ function PlaylistScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
     const is_focused = useIsFocused();
 
-	const [playlists_state, set_playlists] = useState([] as Playlist[]);
-    const [default_playlists_state, set_default_playlists] = useState([] as ResolvedDefaultPlaylist[]);
+	const [playlists_state, set_playlists] = useState<Playlist[]>([]);
+    const [default_playlists_state, set_default_playlists] = useState<ResolvedDefaultPlaylist[]>(empty_resolved_default_playlists());
 	
 	const panel_ref = useRef<SlidingUpPanel>();
 	const new_playlist_ref = useRef<{ focusInput: () => void }>();
@@ -39,16 +39,15 @@ function PlaylistScreen() {
 	async function refresh_data(query?: string){
         try {
             search_query = query ?? "";
-            const playlists = playlist_query_filter(await SQLPlaylists.all_playlists_data(), search_query);
-            const ordered_playlists: Playlist[] = sort_playlists(playlists);
-            set_playlists([]);
-            set_playlists(ordered_playlists)
-            const rdefault_playlists = await resolved_default_playlists();
-            set_default_playlists(rdefault_playlists);
-			// console.log(await db.getAllAsync("SELECT * FROM tracks_deleted WHERE Timestamp > DATETIME('now', '+1 day')"));
-        } catch (error) {
-            
-        }
+			SQLPlaylists.all_playlists_data().then(playlists => {
+				const filtered_playlists = playlist_query_filter(playlists, search_query);
+				const ordered_playlists: Playlist[] = sort_playlists(filtered_playlists);
+				set_playlists(ordered_playlists);
+			});
+			resolved_default_playlists().then(rdefault_playlists => {
+				set_default_playlists(rdefault_playlists);
+			});
+        } catch (error) {}
 	}
 
 	function show_new_playlist_panel() { 

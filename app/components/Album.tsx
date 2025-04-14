@@ -5,23 +5,30 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { CompactPlaylist } from "../../lib-origin/Illusive/src/types";
 import { best_thumbnail, empty_join_dot, single_case } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Navigator } from "../../lib-origin/Illusive/src/illusi/src/types";
+import { play } from "../../lib-origin/Illusive/src/illusi/src/play";
 
 export type SecondLineType = "YEAR"|"ARTIST";
 export default function Album(props: {
     album_data: CompactPlaylist
     second_line_type?: SecondLineType
+    size?: number
 }){
-    const size = Dimensions.get('screen').width * .40;
+    const size = props.size ?? Dimensions.get('screen').width * .40;
     const { colors } = useTheme() as Prefs.Theme;
 
     const navigation: Navigator = useNavigation();
 
     function on_press(){
-        navigation.push("Playlist", {uri: props.album_data.title.uri, compact_playlist: props.album_data});;
+        if(props.album_data.album_type !== "SONG"){
+            navigation.push("Playlist", {uri: props.album_data.title.uri, compact_playlist: props.album_data});;
+        }
+        else if(props.album_data.song_track) {
+            play(props.album_data.song_track, "Artist Watch", () => [props.album_data.song_track!]);
+        }
     }
-
+    
     function on_hold(){
-
+        
     }
 
     const year = new Date(props.album_data.date ?? 0).getFullYear();
@@ -35,7 +42,7 @@ export default function Album(props: {
                 <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 16, paddingTop: 5, width: size}} numberOfLines={1}>{props.album_data.title.name}</Text>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
                     {props.album_data.explicit === "EXPLICIT" ? <MaterialIcons name="explicit" size={20} color={colors.secondary} style={{}}/> : null}
-                    <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 15, top: 0}}>{empty_join_dot([single_case(props.album_data.album_type ?? ""), second_line])}</Text>
+                    <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 15, top: 0}}>{empty_join_dot([single_case(props.album_data.album_type ?? "..."), second_line])}</Text>
                 </View>
             </View>
         </TouchableOpacity>

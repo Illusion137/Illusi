@@ -4,6 +4,7 @@ import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_
 import * as SQLUtils from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_utils';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
+import * as SQLNewReleases from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_new_releases';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton'
@@ -17,6 +18,7 @@ export default function ExtraDangerScreen() {
 		<ScrollView style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
             <View style={styles.line_long}/>
             <View style={{height: 30}}/>
+            <ExtrasSectionButton show_arrow={false} text='Clear New Releases Cache' icon='trash-outline' onPress={async() => if_confirm("Clear new releases cache?", "Are You Sure?", SQLNewReleases.delete_all_from_new_releases)}/>
             <ExtrasSectionButton show_arrow={false} text='Clear Thumbnail Cache' icon='trash-outline' onPress={async() => if_confirm("Clear thumbnail cache?", "Are You Sure?", SQLTracks.clean_thumbnail_cache)}/>
             <ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", async () => {await Prefs.reset_prefs(); Prefs.pref_set_theme(GLOBALS.global_var.set_theme);})}/>
             <View style={styles.line_short}/>

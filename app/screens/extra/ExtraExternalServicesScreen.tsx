@@ -104,6 +104,7 @@ export default function ExternalServicesScreen() {
                         key={key}
                         source={{ uri: url }} 
 						style={{ flex: 1 }}
+                        javaScriptCanOpenWindowsAutomatically={true}
                         onShouldStartLoadWithRequest={event => {  
                             if (event.url.startsWith("about:"))
                                 return false;

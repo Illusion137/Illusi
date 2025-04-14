@@ -198,9 +198,9 @@ export default function Playlist(params: {route: Route<unknown>}){
     async function try_continuation(){
         if(!is_empty(continuation) && "uri" in ts_route.params){
             const split = split_uri(ts_route.params.uri);
-            const playlist_continuation = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist_continuation!(continuation);
-            if(playlist_continuation.error !== undefined) {
-                alert_error(playlist_continuation.error[0]);
+            const playlist_continuation: Types.MusicServicePlaylistContinuation|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist_continuation!(continuation).catch(json_catch);
+            if("error" in playlist_continuation) {
+                alert_error(playlist_continuation as ResponseError);
                 return false;
             }
             const o_playlist_data = playlist_data!;
@@ -312,6 +312,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                 {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
                     <LibraryTrackList
                         is_focused={is_focused}
+                        refresh_query_on_focus={true}
                         edit_mode='NONE'
                         ref={library_ref}
                         write_playlist_uuid={ts_route.params.write_playlist_uuid}

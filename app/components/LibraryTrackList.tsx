@@ -27,6 +27,7 @@ function LibraryTrackList(props: {
     header_item?: () => React.JSX.Element
     adjusted_alphabet_scroll?: number
     is_focused: boolean
+	refresh_query_on_focus?: boolean
 }, ref: any){
 
 	const { colors } = useTheme() as Prefs.Theme;
@@ -49,7 +50,9 @@ function LibraryTrackList(props: {
         refresh_data,
     }));    
     useEffect( () => {
-        search_query = "";
+		if(props.refresh_query_on_focus ?? false){
+			search_query = "";
+		}
 		refresh_data(search_query);
 	}, [props.is_focused]);
     useEffect( () => {
@@ -58,11 +61,11 @@ function LibraryTrackList(props: {
 
 	async function refresh_data(query: (string|undefined) = undefined){
 		search_query = query ?? "";
-		await SQLTracks.fetch_track_data();
 		
-        let tracks = track_query_filter([...GLOBALS.global_var.sql_tracks], search_query);
-        if(props.write_playlist_uuid !== undefined) await SQLPlaylists.add_saved_data_to_write_playlist_tracks(props.write_playlist_uuid, tracks);
-        const section_map = track_section_map(tracks);
+		if(is_empty(query)) await SQLTracks.fetch_track_data();
+		
+        const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
+		const section_map = track_section_map(tracks);
 
 		set_all_data({char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length});
 	}
@@ -85,11 +88,11 @@ function LibraryTrackList(props: {
 
 	const render_track = (item: {item: Track}) => (
 		<TrackComponent 
-			track_data={ item.item } 
+			track_data={ props.write_playlist_uuid ? SQLPlaylists.add_saved_data_to_write_playlist_track_sync(props.write_playlist_uuid, item.item) : item.item } 
 			track_callback={() => [...GLOBALS.global_var.sql_tracks]} 
 			from={"My Library"} 
 			edit_mode={props.edit_mode} 
-			write_playlist_uuid={props.write_playlist_uuid} 
+			write_playlist_uuid={props.write_playlist_uuid}
 			refresh_data={async () => await refresh_data(search_query)} 
 			trim_track={(show: boolean, track_data: Track|null) => set_trim_track_state({show: show, track_data: track_data})}/>);
 	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20}/>;
