@@ -58,7 +58,8 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
                 style={{height: '60%'}}
                 data={playlists}
                 renderItem={compact_playlist_component}
-                renderFooter={null}
+                renderFooter={() => (<View style={{height: 100}}/>)}
+                footerHeight={100}
                 renderHeader={null}
                 keyExtractor={(_, i) => String(i)}
                 itemHeight={61}

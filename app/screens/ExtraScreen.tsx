@@ -88,10 +88,7 @@ function ExtraScreen() {
 
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='GitHub' icon='logo-github' onPress={async () => {
-						if(await Linking.canOpenURL('vnd.github://Illusion137')){
-							await Linking.openURL('vnd.github://Illusion137')
-						}
-						else await Linking.openURL('https://github.com/Illusion137');
+						await Linking.openURL('https://github.com/Illusion137')
 					}}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='Statistics' icon='stats-chart-outline' onPress={async () => navigation.navigate('Statistics')}/>
@@ -111,7 +108,7 @@ function ExtraScreen() {
 					</> : null
 				}
 				
-				<Text style={styles.description_txt}>Illusi Version: {appConfig.version} Beta</Text>
+				<Text style={styles.description_txt}>Illusi Version: {appConfig.version}</Text>
 				<Text style={styles.description_txt}>Last Synced: {Prefs.get_pref('last_synced').toLocaleString()}</Text>
 				<Text style={styles.description_txt}>Battery Level: {battery}</Text>
 			</ScrollView>

@@ -19,8 +19,8 @@ function NewPlaylist(props: {
 		
 	const input_ref = useRef<TextInput>();
 
-	const [playlistName, setPlaylistName] = useState("");
-	const [isInvalidName, setIsInvalidName] = useState(true);
+	const [playlist_name, set_playlist_name] = useState("");
+	const [is_invalid_name, set_is_invalid_name] = useState(true);
 
 	useImperativeHandle(ref, () => ({
 		focusInput: () => { input_ref.current?.focus() }
@@ -31,19 +31,19 @@ function NewPlaylist(props: {
 		input_ref.current?.blur();
 	}
 	async function onCreateValid(){
-		setIsInvalidName(true);
-		await SQLPlaylists.create_playlist(playlistName);
+		set_is_invalid_name(true);
+		await SQLPlaylists.create_playlist(playlist_name);
 		await props.refresh_playlists_data();
 		input_ref.current?.clear();
 		input_ref.current?.blur();
 		props.close_panel();
 	}
 	async function onNameUpdate(name: string){
-		setPlaylistName(name);
+		set_playlist_name(name);
 		const lname = name.toLowerCase();
 		if(!name || !name.trim() || lname == 'tracks' || lname == 'recently_played_tracks' || lname == 'backpack' || lname == 'playlists' || lname == 'audiobooks')
-			 setIsInvalidName(true);
-		else setIsInvalidName(false);
+			 set_is_invalid_name(true);
+		else set_is_invalid_name(false);
 	}
 
 	return(
@@ -52,8 +52,8 @@ function NewPlaylist(props: {
 				<View style={{marginLeft:-50}}></View>
 				<Button title='Cancel' color={colors.primary} onPress={onCancel}></Button>
 				<Text style={{color: colors.text, fontWeight:'500', fontSize: 18}}>New Playlist</Text>
-				{isInvalidName && <Button title='Create' color={colors.searchPlaceholder} ></Button>}
-				{!isInvalidName && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
+				{is_invalid_name && <Button title='Create' color={colors.searchPlaceholder} ></Button>}
+				{!is_invalid_name && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
             <View style={{height: 0.6, backgroundColor: colors.line}}/>

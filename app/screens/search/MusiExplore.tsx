@@ -25,6 +25,10 @@ export default function MusiExplore(){
 
     useEffect(() => {
         (async function() {
+            if(musi_explore_data) {
+                set_musi_explore(musi_explore_data);
+                return;
+            }
             const explore = await Origin.Musi.explore();
             if("error" in explore) return;
             musi_explore_data = musi_parse_explore(explore);

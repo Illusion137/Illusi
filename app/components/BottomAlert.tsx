@@ -5,6 +5,7 @@ import { useTheme } from "@react-navigation/native";
 import { useEffect, useRef } from "react";
 import { is_empty } from "../../lib-origin/origin/src/utils/util";
 import { BottomAlertType } from "../../lib-origin/Illusive/src/types";
+import * as Haptics from 'expo-haptics';
 
 export default function BottomAlert(props: {
     type: BottomAlertType
@@ -18,6 +19,7 @@ export default function BottomAlert(props: {
 
     useEffect(() => {
         if(is_empty(props.uuid)) return;
+        Haptics.notificationAsync(type_map[props.type].haptic);
         Animated.timing(position_animated, {
             'useNativeDriver': false,
             'toValue': 85,
@@ -35,17 +37,20 @@ export default function BottomAlert(props: {
     const type_map = {
         "GOOD": {
             icon: "checkmark-circle-sharp",
-            color: "#00FF00"
+            color: "#00FF00",
+            haptic: Haptics.NotificationFeedbackType.Success,
         },
         "INFO": {
             icon: "information-circle-sharp",
-            color: "#00FFFF"
+            color: "#00FFFF",
+            haptic: Haptics.NotificationFeedbackType.Warning
         },
         "WARN": {
             icon: "warning-sharp",
-            color: "#FFFF00"
+            color: "#FFFF00",
+            haptic: Haptics.NotificationFeedbackType.Error
         }
-    }
+    } as const;
 
     return (
     <Animated.View style={{

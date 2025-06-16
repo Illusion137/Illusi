@@ -5,6 +5,7 @@ import Equalizer from "../../components/Equalizer";
 
 export default function ExtraDevTestScreen(){
     const { colors } = useTheme() as Prefs.Theme;
+    colors;
 
     return (
         <View>

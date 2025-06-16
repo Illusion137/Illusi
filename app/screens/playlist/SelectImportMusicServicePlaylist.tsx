@@ -33,14 +33,13 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 	useEffect(() => {
 		(async function() {
 			set_header();
-			if(Prefs.get_pref('get_account_playlists_in_get_playlist')){
-				if(music_service !== undefined){
-                    if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
-                        const playlist_map = await music_service.user_playlists_map!();
-						if("error" in playlist_map && playlist_map.error !== undefined) alert_errors(playlist_map.error);
-                        set_title_data(playlist_map.map);
-						set_titles([...playlist_map.map.keys()]);
-					}
+			if(music_service !== undefined){
+				if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
+					const playlist_map = await music_service.user_playlists_map!();
+					console.log(false);
+					if("error" in playlist_map && playlist_map.error !== undefined) alert_errors(playlist_map.error);
+					set_title_data(playlist_map.map);
+					set_titles([...playlist_map.map.keys()]);
 				}
 			}
 		})()

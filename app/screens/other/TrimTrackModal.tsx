@@ -14,6 +14,7 @@ import {
 } from '@simform_solutions/react-native-audio-waveform';
 import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { Ionicons } from '@expo/vector-icons';
+import { round_decimal_place } from '../../../lib-origin/origin/src/utils/util';
   
 
 type ModalData = {show: boolean, track_data: Track|null};
@@ -107,7 +108,7 @@ export default function TrimTrackModal(props: {
                         waveColor={colors.text}
                         containerStyle={{height: 100}}
                         onPlayerStateChange={player_state => set_playerstate(player_state)}
-                        onCurrentProgressChange={scrubber_position => set_scrubber(Math.round(scrubber_position))}
+                        onCurrentProgressChange={scrubber_position => set_scrubber(round_decimal_place(scrubber_position, 2))}
                     /> : null
                 }
                 <View style={{height: 70}}/>

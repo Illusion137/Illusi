@@ -6,7 +6,6 @@ import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
 import * as SQLTracks from "../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks";
 import * as SQLPlaylists from "../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
-import TrackPlaceholderComponent from "./TrackPlaceholderComponent";
 import { AlphabetScroll, EditMode, Track } from "../../lib-origin/Illusive/src/types";
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "../../lib-origin/Illusive/src/illusi/src/play";
@@ -65,7 +64,7 @@ function LibraryTrackList(props: {
 		if(is_empty(query)) await SQLTracks.fetch_track_data();
 		
         const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
-		const section_map = track_section_map(tracks);
+		const section_map = track_section_map(tracks, !is_empty(query));
 
 		set_all_data({char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length});
 	}
@@ -107,8 +106,6 @@ function LibraryTrackList(props: {
 				renderItem={render_track}
 				keyExtractor={(item, _) => item.uid}
 				renderHeader={props.header_item ?? header_component}
-                placeholder={true}
-                placeholderComponent={<TrackPlaceholderComponent/>}
 				renderSectionHeader={section_header}
 				renderFooter={section_footer}
 				sectionHeaderHeight={30}

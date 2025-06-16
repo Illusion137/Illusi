@@ -91,7 +91,7 @@ function ExtrasStackScreen() {
 const PlaylistsStack = createNativeStackNavigator();
 function PlaylistsStackScreen() {
     return (
-        <PlaylistsStack.Navigator screenOptions={{ headerShown: false }}>
+        <PlaylistsStack.Navigator screenOptions={{ headerShown: false}}>
             <PlaylistsStack.Screen options={{ headerShown: false }} name="PlaylistScreen" component={PlaylistScreen}/>
             <PlaylistsStack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist}
                         options={(_) => ({
@@ -148,7 +148,6 @@ function Tabs() {
             <Tab.Screen name="Playlists" component={PlaylistsStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="musical-notes" size={25} color={color} />),
-                    unmountOnBlur: false,
                 }}
             />
             <Tab.Screen name="Explore" component={SearchStackScreen}

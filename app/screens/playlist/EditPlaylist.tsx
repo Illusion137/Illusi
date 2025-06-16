@@ -45,7 +45,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
         ,"LAST_PLAYED_DATE_LOWHI"
         ,"LAST_SAMPLED_DATE_HILOW"
         ,"LAST_SAMPLED_DATE_LOWHI"];
-    const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK"];
+    const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK", "INTERSECTION"];
 
     const [playlist_data, set_playlist_data] = useState<Playlist>(ExampleObj.playlist_example0);
     const [playlist_title, set_playlist_title] = useState("");
@@ -84,6 +84,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     useEffect(() => {
         (async() => {
             const pdata = await SQLPlaylists.playlist_data(ts_route.params.uuid);
+            if(pdata === undefined) return;
             set_playlist_data(pdata);
             set_playlist_title(pdata.title);
 
@@ -180,7 +181,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                         const title = SQLPlaylists.playlist_name_sync(item.uuid);
                         return (
                             <View key={i}>
-                                <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center'}}>
+                                <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 40}}>
                                     <Text style={title ? styles.inherit_text : styles.unavailable_inherit_text} numberOfLines={1}>{title ?? item.uuid} - {item.mode}</Text>
                                     <IoniconsTouchableOpacity icon_name="close-outline" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_playlist(item)} hitslop={10}/>
                                 </View>
@@ -208,7 +209,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                 {
                     (playlist_data?.inherited_searchs ?? [])?.map((item, i) => (
                         <View key={i}>
-                            <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center'}}>
+                            <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 50}}>
                                 <Text style={styles.inherit_text} numberOfLines={1}>{item.query} - {item.mode}</Text>
                                 <IoniconsTouchableOpacity icon_name="close-outline" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_search(item)} hitslop={10}/>
                             </View>
@@ -257,14 +258,16 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         color: colors.text,
         fontSize: 16,
         paddingBottom: 10,
-        width: "80%"
+        width: "80%",
+        top: 5
     },
     unavailable_inherit_text: {
         marginLeft: 10,
         color: colors.red,
         fontSize: 16,
         paddingBottom: 10,
-        width: "80%"
+        width: "80%",
+        top: 5
     },
     playlist_buttons_container:{
         flexDirection: 'row',

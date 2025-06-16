@@ -6,7 +6,7 @@ import FourTrackArtwork from './FourTrackArtwork';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 
 const { width } = Dimensions.get("screen");
-const item_size = width * .3;
+const item_size = width * .29;
 export default function DefaultPlaylistComponent(props: {
     navigation: NavigationProp<any, any>,
     four_track: Track[]
