@@ -22,6 +22,7 @@ import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-men
 import * as Haptics from 'expo-haptics';
 import { undownload_track } from '../../lib-origin/Illusive/src/illusi/src/downloader';
 import { try_download_track_lyrics, undownload_track_lyrics } from '../../lib-origin/Illusive/src/illusi/src/lyrics';
+import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 
 function TrackComponent(props: {
 		track_data: Track;
@@ -54,7 +55,7 @@ function TrackComponent(props: {
 	
     const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
     const notdisabled_from_write_playlist = disabled_from_write_playlist ? !is_empty(props.track_data.media_uri) : false;
-	const disabled_from_edit_mode = Prefs.get_pref("edit_mode_disables_playing") && props.edit_mode !== undefined && props.edit_mode  !== "NONE";
+	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode  !== "NONE";
 
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
 
@@ -63,14 +64,14 @@ function TrackComponent(props: {
 
     let interval: any;
 	useEffect(() => {
-        const depth = Prefs.get_pref('download_queue_max_length');
+        const depth = Constants.download_queue_max_length;
         const index = GLOBALS.downloading.slice(0, depth).findIndex(item => item?.uid === props.track_data.uid);
         const is_currently_downloading = index !== -1;
         if(is_currently_downloading){
             set_is_downloading(true);
             set_downloading_progress(GLOBALS.downloading[index]?.progress);
             interval = setInterval(() => {
-                const inner_depth = Prefs.get_pref('download_queue_max_length');
+                const inner_depth = Constants.download_queue_max_length;
                 const inner_index = GLOBALS.downloading.slice(0, inner_depth).findIndex(item => item?.uid === props.track_data.uid);
                 if(inner_index === -1){
                     set_is_downloading(false);
@@ -193,7 +194,7 @@ function TrackComponent(props: {
 							systemName: 'arrow.down.circle',
 						},
 					},
-					menuAttributes: !is_downloaded ? ['hidden'] : undefined
+					menuAttributes: is_downloaded ? ['hidden'] : undefined
 				},
 				{
 					actionKey: "track-delete-media",
@@ -204,7 +205,7 @@ function TrackComponent(props: {
 							systemName: 'trash',
 						},
 					},
-					menuAttributes: is_downloaded ? ['hidden'] : ['destructive']
+					menuAttributes: !is_downloaded ? ['hidden'] : ['destructive']
 				},
 				{
 					actionKey: "track-download-lyrics",
@@ -379,7 +380,7 @@ function TrackComponent(props: {
 						break;
 
 					case "track-download-media": 
-						await download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress);
+						await download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress);
 						break;
 					case "track-delete-media":
 						await undownload_track(props.track_data);
@@ -421,7 +422,7 @@ function TrackComponent(props: {
 						break;
 					
 					case "track-delete":
-						delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data);
+						if_confirm(`Delete:\n ${props.track_data.title}?`, "This action can't be undone.", () => delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data));
 						break;
 					default: break;
 				}
@@ -481,8 +482,8 @@ function TrackComponent(props: {
 						insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved, props.refresh_data);
 					}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
-				{props.edit_mode === "DOWNLOAD" && (!is_downloaded || Prefs.get_pref('can_redownload')) && is_empty(props.track_data.imported_id) && !is_downloading && 
-                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={is_downloaded && Prefs.get_pref('can_redownload') ? colors.orange : colors.primary} icon_style={{left: 10}}/>
+				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
+                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
 				}
 				{is_downloading && 
 					<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{downloading_progress}%</Text>

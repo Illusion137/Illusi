@@ -7,6 +7,7 @@ import * as Battery from 'expo-battery';
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
+import { single_case } from '../../lib-origin/Illusive/src/illusive_utilts';
 
 function ExtraScreen() {
 	const navigation: NavigationProp<any, any> = useNavigation();
@@ -15,7 +16,7 @@ function ExtraScreen() {
 	const styles = theme_styles(colors);
 	
     async function change_theme(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
-        const theme_key = event.nativeEvent.value as Prefs.PossibleThemes;
+        const theme_key = event.nativeEvent.value.toLowerCase() as Prefs.PossibleThemes;
         await Prefs.save_pref('theme', theme_key);
         Prefs.pref_set_theme(GLOBALS.global_var.set_theme);
     }
@@ -25,7 +26,7 @@ function ExtraScreen() {
 	useEffect(() => {
 		const interval_id = setInterval(async() => {  //assign interval to a variable to clear it.
 			set_battery(await Battery.getBatteryLevelAsync());
-		}, 2000)
+		}, 2000);
 		return () => clearInterval(interval_id); //This is important
 	}, [])
 
@@ -51,7 +52,7 @@ function ExtraScreen() {
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Settings' icon='settings-outline' onPress={async () => navigation.navigate('Settings') }/>
 					<View style={styles.line_short}/>	
-					<ExtrasSectionButton show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => navigation.navigate('Sleep Timer')}/>
+					<ExtrasSectionButton indev={true} show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => navigation.navigate('Sleep Timer')}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.line_long}/>
@@ -60,8 +61,8 @@ function ExtraScreen() {
 
 				<View style={styles.line_long}/>
 					<ExtrasSectionButton show_arrow={true} text='Batch Downloader' icon='file-tray-stacked-outline' onPress={async () => navigation.navigate('Batch Downloader')}/>
-					{Prefs.get_pref('hide_batch_undownloader') ? null : <ExtrasSectionButton show_arrow={true} text='Batch Un-Downloader' icon='arrow-undo-outline' onPress={async () => navigation.navigate('Batch Un-Downloader')}/> }
-					<ExtrasSectionButton show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
+					<ExtrasSectionButton show_arrow={true} text='Batch Un-Downloader' icon='arrow-undo-outline' onPress={async () => navigation.navigate('Batch Un-Downloader')}/>
+					<ExtrasSectionButton indev={true} show_arrow={true} text='Playlist Converter' icon='list-circle-outline' onPress={async () => navigation.navigate('Playlist Converter')}/>
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton indev={true} show_arrow={true} text='Linker' icon='link-outline' onPress={async () => navigation.navigate('Linker')}/>
 				<View style={styles.line_long}/>
@@ -78,7 +79,7 @@ function ExtraScreen() {
 					<ExtrasSectionButton show_arrow={true} text='Themes' icon='brush-outline' onPress={async () => navigation.navigate('Themes')}/>
 					<View style={styles.line_short}/>
 					<SegmentedControl
-						values={Prefs.all_themes()}
+						values={Prefs.all_themes().map(val => single_case(val))}
 						selectedIndex={Prefs.all_themes().findIndex(item => item === Prefs.get_pref('theme'))}
 						onChange={async(event) => await change_theme(event)}
 						style={{backgroundColor: colors.background}}
@@ -93,7 +94,7 @@ function ExtraScreen() {
 					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='Statistics' icon='stats-chart-outline' onPress={async () => navigation.navigate('Statistics')}/>
 					<ExtrasSectionButton show_arrow={true} text='Changelog' icon='list-outline' onPress={async () => navigation.navigate('Changelog')}/>
-					<ExtrasSectionButton show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
+					<ExtrasSectionButton indev={true} show_arrow={true} text='Help' icon='help-outline' onPress={async () => navigation.navigate('Help')}/>
 					<View style={styles.line_short}/>
 				<View style={styles.line_long}/>
 				<Text style={styles.description_txt}>Get to know Illusi</Text>

@@ -3,14 +3,17 @@ import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { CompactPlaylist } from "../../lib-origin/Illusive/src/types";
-import { best_thumbnail, empty_join_dot, single_case } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail, single_case } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Navigator } from "../../lib-origin/Illusive/src/illusi/src/types";
-import { play } from "../../lib-origin/Illusive/src/illusi/src/play";
-import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { play, play_track_next, push_track_to_playing_queue } from "../../lib-origin/Illusive/src/illusi/src/play";
+import { empty_join_dot, is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { useEffect, useState } from "react";
 import * as Haptics from "expo-haptics";
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
+import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
+import { insert_into_write_playlist } from "../../lib-origin/Illusive/src/illusi/src/components/track";
+import { Constants } from "../../lib-origin/Illusive/src/constants";
 
 export type SecondLineType = "YEAR"|"ARTIST";
 export default function Album(props: {
@@ -24,6 +27,10 @@ export default function Album(props: {
     const navigation: Navigator = useNavigation();
 
     const [target_view_node, set_target_view_node] = useState();
+
+    const [song_libary_saved, set_song_libary_saved] = useState(props.album_data.song_track ? SQLTracks.track_exists(props.album_data.song_track) : false);
+
+    const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
     
     useEffect(() => {
         return () => {
@@ -61,7 +68,7 @@ export default function Album(props: {
                                 systemName: 'text.append',
                             },
                         },
-                        menuAttributes: !GLOBALS.global_var.is_playing || props.album_data.album_type !== "SONG" ? ['hidden'] : undefined
+                        menuAttributes: !is_playing_music || props.album_data.album_type !== "SONG" ? ['hidden'] : undefined
                     },
                     {
                         actionKey: "album-song-play-next",
@@ -72,7 +79,7 @@ export default function Album(props: {
                                 systemName: 'text.insert',
                             },
                         },
-                        menuAttributes: !GLOBALS.global_var.is_playing || props.album_data.album_type !== "SONG" ? ['hidden'] : undefined
+                        menuAttributes: !is_playing_music || props.album_data.album_type !== "SONG" ? ['hidden'] : undefined
                     },
                     {
                         actionKey: "album-song-add-to-library",
@@ -83,41 +90,41 @@ export default function Album(props: {
                                 systemName: 'plus',
                             },
                         },
-                        menuAttributes: props.album_data.album_type !== "SONG" ? ['hidden'] : undefined
+                        menuAttributes: props.album_data.album_type !== "SONG" ? ['hidden'] : song_libary_saved ? ['disabled'] : undefined
                     },
-                    {
-                        menuTitle: "Push To Queue",
-                        menuItems: [
-                            {
-                                actionKey: "album-push-to-queue-ordered",
-                                actionTitle: "Ordered",
-                                icon: {
-                                    type: 'IMAGE_SYSTEM',
-                                    imageValue: {
-                                        systemName: 'music.note.list',
-                                    },
-                                },
-                                menuAttributes: props.album_data.album_type === "SONG" ? ['hidden'] : undefined
-                            },
-                            {
-                                actionKey: "album-push-to-queue-shuffled",
-                                actionTitle: "Shuffled",
-                                icon: {
-                                    type: 'IMAGE_SYSTEM',
-                                    imageValue: {
-                                        systemName: 'shuffle',
-                                    },
-                                },
-                                menuAttributes: props.album_data.album_type === "SONG" ? ['hidden'] : undefined
-                            },
-                        ],
-                        icon: {
-                            type: 'IMAGE_SYSTEM',
-                            imageValue: {
-                                systemName: 'text.append',
-                            },
-                        },
-                    },
+                    // {
+                    //     menuTitle: "Push To Queue",
+                    //     menuItems: [
+                    //         {
+                    //             actionKey: "album-push-to-queue-ordered",
+                    //             actionTitle: "Ordered",
+                    //             icon: {
+                    //                 type: 'IMAGE_SYSTEM',
+                    //                 imageValue: {
+                    //                     systemName: 'music.note.list',
+                    //                 },
+                    //             },
+                    //             menuAttributes: props.album_data.album_type === "SONG" ? ['hidden'] : undefined
+                    //         },
+                    //         {
+                    //             actionKey: "album-push-to-queue-shuffled",
+                    //             actionTitle: "Shuffled",
+                    //             icon: {
+                    //                 type: 'IMAGE_SYSTEM',
+                    //                 imageValue: {
+                    //                     systemName: 'shuffle',
+                    //                 },
+                    //             },
+                    //             menuAttributes: props.album_data.album_type === "SONG" ? ['hidden'] : undefined
+                    //         },
+                    //     ],
+                    //     icon: {
+                    //         type: 'IMAGE_SYSTEM',
+                    //         imageValue: {
+                    //             systemName: 'text.append',
+                    //         },
+                    //     },
+                    // },
                     {
                         actionKey: "album-view-artist",
                         actionTitle: "View Artist",
@@ -131,21 +138,27 @@ export default function Album(props: {
                 ],
             }}
             onMenuWillShow={() => {
+                set_is_playing_music(GLOBALS.global_var.is_playing);
+                set_song_libary_saved(props.album_data.song_track ? SQLTracks.track_exists(props.album_data.song_track) : false);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             onPressMenuItem={({nativeEvent}) => {
                 switch(nativeEvent.actionKey){
                     case "album-song-enqueue":
+                        push_track_to_playing_queue(props.album_data.song_track!);
                         break;
                     case"album-song-play-next":
+                        play_track_next(props.album_data.song_track!);
                         break;
                     case "album-song-add-to-library":
+                        insert_into_write_playlist(props.album_data.song_track!, Constants.library_write_playlist, song_libary_saved, set_song_libary_saved, () => {});
                         break;
                     case "album-push-to-queue-ordered":
                         break;
                     case "album-push-to-queue-shuffled":
                         break;
                     case "album-view-artist":
+						navigation.push("Artist", {uri: props.album_data.artist[0].uri ?? props.album_data.song_track?.artists[0].uri});
                         break;
                     default: break;
                 }

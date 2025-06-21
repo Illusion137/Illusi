@@ -16,9 +16,9 @@ import FourTrackArtwork from '../../components/FourTrackArtwork';
 import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { default_playlists } from '../../../lib-origin/Illusive/src/illusi/src/default_playlists';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
-import { best_thumbnail, empty_join_dot, make_https, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail, make_https, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { ExampleObj } from '../../../lib-origin/Illusive/src/illusi/src/example_objs';
-import { is_empty, json_catch } from '../../../lib-origin/origin/src/utils/util';
+import { empty_join_dot, is_empty, json_catch } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
@@ -195,7 +195,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     async function initial_data(){
         tracks_ref = [];
         if("default_playlist_title" in ts_route.params) set_playlist_data( Object.assign({...ExampleObj.playlist_example0}, {title: ts_route.params.default_playlist_title}) );
-        else if("uuid" in ts_route.params) set_playlist_data(await SQLPlaylists.playlist_data(ts_route.params.uuid));
+        else if("uuid" in ts_route.params) set_playlist_data(await SQLPlaylists.playlist_data(ts_route.params.uuid, "IGNORE"));
         else if("uri" in ts_route.params) {
             const cached = GLOBALS.global_var.playlist_cache.get(ts_route.params.uri);
             const cached_hit = cached !== undefined;
@@ -218,7 +218,7 @@ export default function Playlist(params: {route: Route<unknown>}){
             const playlist: Types.MusicServicePlaylist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1])).catch(json_catch);
 
             if("error" in playlist!) {
-                alert_error(playlist.error as any, true);
+                alert_error(playlist.error as any);
                 return;
             }
             const id_continuation = playlist!.continuation;
@@ -314,7 +314,6 @@ export default function Playlist(params: {route: Route<unknown>}){
         await Promise.all(promised_playlist_tracks);
         navigation.goBack();
     } 
-
     async function play_order(play_tracks: Track[]){
         const prev_always_shuffle = Prefs.prefs.always_shuffle.current_value;
         Prefs.prefs.always_shuffle.current_value = false;
@@ -346,8 +345,8 @@ export default function Playlist(params: {route: Route<unknown>}){
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
             <FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={Dimensions.get('screen').width / 2} base_view_style={{top: -Dimensions.get('screen').height / 6}}/>
-            <BlurView intensity={50} tint='dark' style={{width: Dimensions.get('screen').width, height: 800, bottom: 130 - (("write_playlist_uuid" in ts_route.params) ? 100 : 0) + 20, justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
-                <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 250}}/>
+            <BlurView intensity={50} tint='dark' style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+                <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 260}}/>
             </BlurView>
             <View style={{alignItems: 'center', width: '75%', top: 60, height: 40, zIndex: 2}}>
                 <View style={{right: 10, zIndex: 3}}>
@@ -362,10 +361,10 @@ export default function Playlist(params: {route: Route<unknown>}){
                 <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
             </View>
             <View style={{height: 5}}/>
-            <View style={{flexDirection: 'row', top: 10}}>
-                <View style={{...styles.playlist_buttons_container, right: 50}}>
+            <View style={{flexDirection: 'row', top: 10, width: '100%'}}>
+                <View style={styles.playlist_buttons_container}>
                     {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={() => { play_order(tracks); }} 
-                                        style={{...styles.playlist_button, height: 55, width: 55, borderRadius: 70, right: "default_playlist_title" in ts_route.params ? 120 : 40, top: "default_playlist_title" in ts_route.params ? -40 : -8, backgroundColor: colors.primary_dark}} icon_name='play-sharp' icon_size={35} icon_color={colors.primary} icon_style={{left:4}}/> : null }
+                        style={styles.playlist_button} icon_name='play-sharp' icon_size={25} icon_color={colors.primary} icon_style={{left:3}}/> : null}
                     {"uuid" in ts_route.params ?
                         <>
                             <IoniconsTouchableOpacity on_press={() => { 
@@ -374,13 +373,13 @@ export default function Playlist(params: {route: Route<unknown>}){
                             <MaterialCommunityIconsTouchableOpacity on_press={() => {
                                 navigation.navigate('Edit Playlist', {uuid: (ts_route.params as {uuid: string}).uuid });
                             }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                            <FontAwesomeTouchableOpacity on_press={() => share_item({link: `https://illusi.dev/playlist/${(ts_route.params as {uuid: string}).uuid}`})} style={styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                        </> 
+                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={() => share_item({link: `https://illusi.dev/playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                        </>
                     : null}
                 </View>
             </View>
             {!("write_playlist_uuid" in ts_route.params) ? 
-                <ShufflePlayButton text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => {force_order ? play_order(tracks): play_shuffle(track_query_filter(tracks, search_query_state))}} top={"default_playlist_title" in ts_route.params ? -80 : -50 }/>
+                <ShufflePlayButton text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => {force_order ? play_order(tracks): play_shuffle(track_query_filter(tracks, search_query_state))}} top={-50}/>
             : null}
         </View>	
     );
@@ -434,12 +433,12 @@ export default function Playlist(params: {route: Route<unknown>}){
                         edit_mode='NONE'
                         ref={library_ref}
                         write_playlist_uuid={ts_route.params.write_playlist_uuid}
-                        header_height={"uuid" in ts_route.params ? 450 : "write_playlist_uuid" in ts_route.params ? 360 : 425}
+                        header_height={"write_playlist_uuid" in ts_route.params ? 360 : 450}
                         header_item={header_component}
                         adjusted_alphabet_scroll={-35}
                         />
                     : <BigList style={{backgroundColor: colors.background}} 
-                        headerHeight={"uuid" in ts_route.params ? 460 : "write_playlist_uuid" in ts_route.params ? 360 : 425} 
+                        headerHeight={"write_playlist_uuid" in ts_route.params ? 360 : 450} 
                         itemHeight={61} 
                         footerHeight={50}
                         renderHeader={header_component} 
@@ -447,7 +446,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                         renderFooter={footer_component}
                         data={track_query_filter(tracks, search_query_state)}
                         onEndReached={try_continuation}
-                        onEndReachedThreshold={0.15}
+                        onEndReachedThreshold={0.3}
                         />
                 }
             </View>
@@ -480,9 +479,13 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         fontWeight: 'bold'
     },
     playlist_buttons_container:{
+        flex: 1,
         flexDirection: 'row',
         top: 28,
-        marginBottom: 95
+        marginBottom: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        right: 10
     },
     playlist_button:{
         borderRadius: 20, 

@@ -48,7 +48,7 @@ function NewPlaylist(props: {
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1, borderRadius: 15}}>
-			<View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 55, width: '100%', backgroundColor: colors.shelf, borderTopLeftRadius: 15, borderTopRightRadius: 15}}>
+			<View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 55, width: '100%', backgroundColor: colors.shelf, borderTopLeftRadius: 15, borderTopRightRadius: 15, borderColor: colors.deeptext, borderWidth: 1}}>
 				<View style={{marginLeft:-50}}></View>
 				<Button title='Cancel' color={colors.primary} onPress={onCancel}></Button>
 				<Text style={{color: colors.text, fontWeight:'500', fontSize: 18}}>New Playlist</Text>

@@ -19,7 +19,7 @@ export default function AlbumList(props: {
         refresh_data: () => Promise<(CompactPlaylist|ResponseError)[]|ResponseError>;
     }
     second_line_type?: SecondLineType;
-    is_loading: boolean;
+    is_loading?: boolean;
 }) {
     const { colors } = useTheme() as Prefs.Theme;
 

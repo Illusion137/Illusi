@@ -14,7 +14,8 @@ export default function FourTrackArtwork(props: {
 }) {
     const background = (props.background ?? false);
     const thumbnail_uri = props.thumbnail_uri?.includes("https:") ? props.thumbnail_uri : custom_thumbnail_directory(props.thumbnail_uri!);
-    const all_same_album = new Set(props.four_track.map(track => track.album?.name).filter(uri => !is_empty(uri))).size === 1;
+    const album_names = (props.four_track ?? []).map(track => track.album?.name ?? "").filter(name => !is_empty(name));
+    const all_same_album = new Set<string>(album_names).size === 1 && album_names.length >= 4;
     return (
         <View style={{...props.base_view_style as object, backgroundColor: "black", borderRadius: 5, position: background ? 'absolute' : undefined, zIndex: background ? -1 : undefined}}>
             {!is_empty(props.thumbnail_uri) && <Image source={{"uri": thumbnail_uri}} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}

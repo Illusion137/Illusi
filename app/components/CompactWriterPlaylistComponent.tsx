@@ -5,6 +5,7 @@ import { NavigationProp, useNavigation, useTheme } from '@react-navigation/nativ
 import FourTrackArtwork from './FourTrackArtwork';
 import { CompactPlaylistData, Playlist, SerializedCompactPlaylistData } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function CompactWriterPlaylistComponent(props: {
 	playlist_data: CompactPlaylistData;
@@ -49,6 +50,7 @@ export default function CompactWriterPlaylistComponent(props: {
 					<View style={{flexDirection: 'column', left: 20}}>
 						<Text style={{color: '#FFFFFF', fontSize:15}}>{props.playlist_data.title}</Text>
 						<View style={{flexDirection: 'row', top: 5}}>
+							{(props.playlist_data.pinned ?? false) ? (<MaterialIcons name="push-pin" size={20} color={colors.primary}/> ) : null}
 							<Text style={{color: '#AAAAAA'}}>{visual_data?.track_count ?? 0} Tracks</Text>
 						</View>
 					</View>

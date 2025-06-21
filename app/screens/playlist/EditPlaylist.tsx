@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity, ActionSheetIOS } from "react-native";
+import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity } from "react-native";
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode, Route, SortType } from "../../../lib-origin/Illusive/src/types";
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
@@ -15,6 +15,8 @@ import { is_empty } from '../../../lib-origin/origin/src/utils/util';
 import { upload_playlist_thumbnail } from "../../../lib-origin/Illusive/src/illusi/src/document_picker";
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import { Navigator } from "../../../lib-origin/Illusive/src/illusi/src/types";
+import { default_playlists } from "../../../lib-origin/Illusive/src/illusi/src/default_playlists";
+import { ContextMenuButton } from "react-native-ios-context-menu";
 
 type KeyValue = {key: string, value: string};
 type Action = "ADD"|"REMOVE";
@@ -57,30 +59,6 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     const [inherited_search_query, set_inherited_search_query] = useState("");
     const [inherited_search_segment_mode, set_inherited_search_segment_mode] = useState<PlaylistInheritanceMode>("INCLUDE");
     
-    const edit_artwork_actions = () => {
-        ActionSheetIOS.showActionSheetWithOptions(
-            {
-                options: is_empty(playlist_data.thumbnail_uri) ? ["Cancel", "Upload New Artwork"] : ["Cancel", "Upload New Artwork", "Remove Artwork"],
-                destructiveButtonIndex: 2,
-                cancelButtonIndex: 0,
-                userInterfaceStyle: 'dark'
-            }, async(i) => {
-                if (i === 0) {} 
-                else if (i === 1) { 
-                    await upload_playlist_thumbnail(playlist_data, async(updated_playlist) => {
-                        set_playlist_data({...updated_playlist});
-                        GLOBALS.global_var.bottom_alert?.("Updated Playlist Artwork", "INFO");
-                    } ); 
-                }
-                else if (i === 2) { 
-                    await SQLPlaylists.update_playlist(playlist_data.uuid, {...playlist_data, thumbnail_uri: ''}); 
-                    set_playlist_data({...playlist_data, thumbnail_uri: ''});
-                    GLOBALS.global_var.bottom_alert?.("Removed Playlist Artwork", "INFO");
-                }
-            }
-        );
-    }
-
     useEffect(() => {
         (async() => {
             const pdata = await SQLPlaylists.playlist_data(ts_route.params.uuid);
@@ -90,8 +68,10 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 
             const playlists = await SQLPlaylists.all_playlists_data();
 			const playlists_entries: {key: string, value: string}[] = [];
-			for (let i = 0; i < playlists.length; i++)
-				playlists_entries.push({key: playlists[i].uuid, value: playlists[i].title});
+			for (const playlist of playlists)
+				playlists_entries.push({key: playlist.uuid, value: playlist.title});
+            for(const default_playlist of default_playlists)
+				playlists_entries.push({key: default_playlist.name, value: default_playlist.name});
             set_inherited_playlist_key_values(playlists_entries);
         })();
     }, []);
@@ -133,16 +113,59 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
 
     return (
         <ScrollView style={styles.top_container}>
-            <TouchableOpacity style={{justifyContent: 'center', alignItems: 'center', paddingTop: 20}} onPress={edit_artwork_actions}>
-                <Ionicons style={{position: 'absolute', zIndex: 10, top: "45%"}} size={50} name='pencil-outline' color={'white'}/>
-                <FourTrackArtwork size={100} thumbnail_uri={playlist_data.thumbnail_uri} four_track={playlist_data.visual_data?.four_track ?? []} dim={true} dim_amount={0.4}/>
-            </TouchableOpacity>
+            <ContextMenuButton
+                menuConfig={{
+                    menuTitle: "", 
+                    menuItems: [
+                        {
+                            actionKey: "playlist-edit-upload-artwork",
+                            actionTitle: "Upload New Artwork",
+                            icon: {
+                                type: 'IMAGE_SYSTEM',
+                                imageValue: {
+                                    systemName: 'photo.artframe',
+                                },
+                            },
+                        },
+                        {
+                            actionKey: "playlist-edit-remove-artwork",
+                            actionTitle: "Remove Artwork",
+                            menuAttributes: is_empty(playlist_data.thumbnail_uri) ? ['hidden', 'destructive'] : ['destructive'],
+                            icon: {
+                                type: 'IMAGE_SYSTEM',
+                                imageValue: {
+                                    systemName: 'trash',
+                                },
+                            },
+                        },
+                    ]}} 
+            onPressMenuItem={async({nativeEvent}) => {
+                switch(nativeEvent.actionKey){
+                    case "playlist-edit-upload-artwork":
+                        await upload_playlist_thumbnail(playlist_data, async(updated_playlist) => {
+                            set_playlist_data({...updated_playlist});
+                            GLOBALS.global_var.bottom_alert?.("Updated Playlist Artwork", "INFO");
+                        });
+                        break;
+                    case "playlist-edit-remove-artwork":
+                        await SQLPlaylists.update_playlist(playlist_data.uuid, {...playlist_data, thumbnail_uri: ''}); 
+                        set_playlist_data({...playlist_data, thumbnail_uri: ''});
+                        GLOBALS.global_var.bottom_alert?.("Removed Playlist Artwork", "INFO");
+                        break;
+                    default: break;
+                }
+            }}>
+                <TouchableOpacity style={{justifyContent: 'center', alignItems: 'center', paddingTop: 20}}>
+                    <Ionicons style={{position: 'absolute', zIndex: 10, top: "45%"}} size={50} name='pencil-outline' color={'white'}/>
+                    <FourTrackArtwork size={100} thumbnail_uri={playlist_data.thumbnail_uri} four_track={playlist_data.visual_data?.four_track ?? []} dim={true} dim_amount={0.4}/>
+                </TouchableOpacity>
+            </ContextMenuButton>
             <TextInput value={playlist_title} autoCorrect={false} placeholder='Enter Title' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={(text) => {set_playlist_title(text)}} onEndEditing={change_playlist_title} onSubmitEditing={change_playlist_title}/>
             <View style={{alignSelf: 'center', height: 0.2, backgroundColor: colors.text, width: '70%'}}/>
             <View style={{height: 30}}/>
             {/* <Text style={styles.info_text}>Sort Mode</Text> */}
             <ExtrasSectionButton show_arrow={true} text="Edit Sort Mode" icon="NONE" onPress={() => navigation.push("MultiOption", {options: sort_modes, current_value: sort_modes.find(item => item === playlist_data?.sort), press: update_sort_mode.bind(undefined)})}/>
-            <View style={{height: 30}}/>
+            <View style={{height: 20}}/>
             {/* <SegmentedControl
                 fontStyle={{color: colors.text}}
                 values={sort_modes.map(mode => mode.toLowerCase())}
@@ -154,12 +177,6 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                 <Text style={styles.info_text}>Inherited Playlists</Text>
                 <View style={{borderColor: colors.text, borderWidth: 0.4, margin: 2}}>
                     <View style={{padding: 5}}>
-                        <SegmentedControl
-                            fontStyle={{color: colors.text}}
-                            values={inheritance_modes.map(mode => mode.toLowerCase())}
-                            selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
-                            onChange={async(event) => set_inherited_playlist_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
-                            style={{backgroundColor: colors.background}}/>
                         <SelectList 
                             setSelected={(key: string) => set_inherited_playlist_selected_key(key)}
                             data={inherited_playlist_key_values}
@@ -173,6 +190,12 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                             dropdownStyles={{backgroundColor: colors.track}}
                             dropdownTextStyles={{color: 'white'}}
                         />
+                        <SegmentedControl
+                            fontStyle={{color: colors.text}}
+                            values={inheritance_modes.map(mode => mode.toLowerCase())}
+                            selectedIndex={inheritance_modes.findIndex(item => item === inherited_playlist_segment_mode)}
+                            onChange={async(event) => set_inherited_playlist_segment_mode(event.nativeEvent.value.toUpperCase() as PlaylistInheritanceMode)}
+                            style={{backgroundColor: colors.background}}/>
                         <ExtrasSectionButton show_arrow={false} text='Create New Playlist Inheritance' icon='pencil-sharp' onPress={add_inherited_playlist}/>
                     </View>
                 </View>
@@ -298,6 +321,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         fontWeight: 'bold',
         marginLeft: 10,
 		width: '90%',
+        height: 40,
 		borderRadius: 10,// Top Right Corner
 	},
 });

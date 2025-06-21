@@ -1,6 +1,6 @@
 
 import React,  { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Button, TextInput, Dimensions } from 'react-native';
 import { NavigationProp, useNavigation, useTheme } from '@react-navigation/native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { MusicService, MusicServiceMappedPlaylist, MusicServiceType, Route } from '../../../lib-origin/Illusive/src/types';
@@ -36,7 +36,6 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 			if(music_service !== undefined){
 				if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
 					const playlist_map = await music_service.user_playlists_map!();
-					console.log(false);
 					if("error" in playlist_map && playlist_map.error !== undefined) alert_errors(playlist_map.error);
 					set_title_data(playlist_map.map);
 					set_titles([...playlist_map.map.keys()]);
@@ -97,6 +96,7 @@ export default function SelectImportMusicServicePlaylist( params: {route: any} )
 					save="value"
 					arrowicon={<></>}
 					searchicon={<></>}
+					maxHeight={Dimensions.get('screen').height * .5}
 					searchPlaceholder={"Select Playlist"}
 					placeholder="Select Playlist"
 					inputStyles={{backgroundColor: colors.track, color: 'white'}}

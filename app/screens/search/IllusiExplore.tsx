@@ -15,7 +15,7 @@ import { musi_parse_explore } from "../../../lib-origin/Illusive/src/gen/musi_pa
 import TrackHorizontalScrolls from "../../components/TrackHorizontalScrolls";
 import HorizontalRowArtists from '../../components/HorizontalRowArtists';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
-import { get_most_played_artists } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { push_abortion } from '../../../lib-origin/origin/src/utils/orifetch';
 
 type MusiExplore = ReturnType<typeof musi_parse_explore>;
@@ -30,6 +30,7 @@ export default function IllusiExplore(){
     const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(cached_new_releases);
     const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(cached_new_releases.length === 0);
 
+    const unique_artists = get_unique_artists(GLOBALS.global_var.sql_tracks);
     const is_focused = useIsFocused();
 
     const [musi_explore, set_musi_explore] = useState<MusiExplore>();
@@ -102,10 +103,15 @@ export default function IllusiExplore(){
                 {new_releases.length !== 0 ? <Text style={{color: colors.text, right: 15, fontSize: 20, fontWeight: '800'}}>View All {'->'}</Text> : null}
             </TouchableOpacity>
             <View style={{height: 10}}/>
-            <View style={{height: 1, width: '100%', backgroundColor: colors.line}}/>
+            <View style={{height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center'}}/>
             <View style={{height: 10}}/>
             <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text>
-            <HorizontalRowArtists artists={get_most_played_artists(GLOBALS.global_var.sql_tracks).map(artist => ({name: artist, is_official_artist_channel: true, profile_artwork_url: 'https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg'}))}/>
+            <HorizontalRowArtists artists={sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks)}/>
+            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => navigation.navigate("ArtistGridRenderer", {artist_data: unique_artists})}>
+                {unique_artists.length !== 0 ? <Text style={{color: colors.text, right: 15, fontSize: 20, fontWeight: '800'}}>View All {'->'}</Text> : null}
+            </TouchableOpacity>
+            <View style={{height: 10}}/>
+            <View style={{height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center'}}/>
             <View style={{height: 10}}/>
             {
                 musi_explore !== undefined ?

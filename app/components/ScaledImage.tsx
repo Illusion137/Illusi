@@ -29,7 +29,7 @@ export default function ScaledImage(props: {
             }
             set_image_loading(false);
         }, (error) => {
-            console.log("ScaledImage,Image.getSize failed with error: ", error)
+            console.error(error);
         })
     }, [])
 

@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import { CompactPlaylist } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
-import { is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
+import { empty_join_dot, is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
-import { best_thumbnail, empty_join_dot } from '../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 
 export default function CompactPlaylistComponent(props: {

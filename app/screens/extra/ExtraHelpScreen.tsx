@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Text, ScrollView } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { QUERY_FLAGS } from '../../../lib-origin/Illusive/src/query_flags';
+import { TRACK_QUERY_FLAGS } from '../../../lib-origin/Illusive/src/query_flags';
 
 export default function ExtraHelpScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
@@ -13,7 +13,7 @@ export default function ExtraHelpScreen() {
 			<ScrollView>
 				<Text style={styles.header_text}>Query Flags</Text>
 				{
-					QUERY_FLAGS.map(flag => (
+					TRACK_QUERY_FLAGS.map(flag => (
 						<Text key={flag.flag} style={styles.description_text}>{flag.flag}: {flag.description}</Text>
 					))
 				}

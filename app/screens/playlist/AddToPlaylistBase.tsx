@@ -4,10 +4,12 @@ import { CompactPlaylistData } from "../../../lib-origin/Illusive/src/types";
 import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
 import { Button, StyleSheet, Text, View } from "react-native";
 import { useEffect, useState } from "react";
-import { compact_playlists, default_compact_playlists } from "../../../lib-origin/Illusive/src/illusi/src/default_playlists";
+import { default_compact_playlists } from "../../../lib-origin/Illusive/src/illusi/src/default_playlists";
 import { Route } from "../../../lib-origin/Illusive/src/types";
 import BigList from "react-native-big-list";
 import CompactWriterPlaylistComponent from "../../components/CompactWriterPlaylistComponent";
+import { compact_playlists } from "../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
+import { sort_compact_playlists_data } from "../../../lib-origin/Illusive/src/illusi/src/playlist";
 
 export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
 	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
@@ -56,7 +58,7 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
             </View>
             <BigList 
                 style={{height: '60%'}}
-                data={playlists}
+                data={sort_compact_playlists_data(playlists)}
                 renderItem={compact_playlist_component}
                 renderFooter={() => (<View style={{height: 100}}/>)}
                 footerHeight={100}

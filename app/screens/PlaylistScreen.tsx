@@ -18,6 +18,7 @@ import ArchivedPlaylists from './playlist/ArchivedPlaylists';
 import SearchBarV1 from '../components/SearchBarV1';
 import { PLAYLIST_QUERY_FLAGS } from '../../lib-origin/Illusive/src/query_flags';
 
+let last_playlists_count = 0;
 function PlaylistScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
@@ -35,20 +36,24 @@ function PlaylistScreen() {
 
 	useEffect( () => {
 		if(is_focused){
-			refresh_data();
+			refresh_data(undefined, true);
 		}
 	}, [is_focused]);
 
-	async function refresh_data(update_with?: Playlist){
+	async function refresh_data(update_with?: Playlist, force_update?: boolean){
         try {
+			resolved_default_playlists().then(rdefault_playlists => set_default_playlists(rdefault_playlists));
 			if(update_with){
 				const new_playlist_state = [...playlists_state];
 				const update_index = playlists_state.findIndex(playlist => update_with.uuid === playlist.uuid);
 				new_playlist_state[update_index] = update_with;
 				set_playlists(new_playlist_state);
 			}
-			SQLPlaylists.all_playlists_data().then(playlists => set_playlists(playlists));
-			resolved_default_playlists().then(rdefault_playlists => set_default_playlists(rdefault_playlists));
+			const new_last_playlists_count = await SQLPlaylists.playlists_count();
+			if(last_playlists_count !== new_last_playlists_count || force_update){
+				last_playlists_count = new_last_playlists_count;
+				SQLPlaylists.all_playlists_data().then(playlists => set_playlists(playlists));
+			}
         } catch (error) {}
 	}
 
@@ -94,10 +99,10 @@ function PlaylistScreen() {
             </View>
 			<View style={{width: '100%', height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30}}/>
 			<BigList style={{height: '71%'}} data={sort_playlists(playlist_query_filter(playlists_state.filter(playlist => !playlist.archived), query))} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={() => (<View style={{height:100}}></View>)}/>
-			<SlidingUpPanel allowDragging={false} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={new_playlist_panel_ref as any} animatedValue={new Animated.Value(0)}>
-                <NewPlaylist ref={new_playlist_ref as any} close_panel={hide_new_playlist_panel} refresh_playlists_data={refresh_data}/>
+			<SlidingUpPanel backdropStyle={{zIndex: 11}} containerStyle={{zIndex: 12}} allowDragging={false} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={new_playlist_panel_ref as any} animatedValue={new Animated.Value(0)}>
+				<NewPlaylist ref={new_playlist_ref as any} close_panel={hide_new_playlist_panel} refresh_playlists_data={refresh_data}/>
 			</SlidingUpPanel>
-			<SlidingUpPanel allowDragging={false} containerStyle={{backgroundColor: colors.background}} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={archived_playlists_panel_ref as any} animatedValue={new Animated.Value(0)}>
+			<SlidingUpPanel backdropStyle={{zIndex: 11}} containerStyle={{zIndex: 12}} allowDragging={false} draggableRange={{top: Dimensions.get('screen').height * 0.8, bottom: 0}} ref={archived_playlists_panel_ref as any} animatedValue={new Animated.Value(0)}>
 				<ArchivedPlaylists refresh_data={refresh_data} close_panel={hide_archived_playlists_panel} playlists={sort_playlists(playlist_query_filter(playlists_state.filter(playlist => playlist.archived), query))} />
 			</SlidingUpPanel>
 		</View>

@@ -113,7 +113,7 @@ export default function ExtraThemesScreen(){
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     sectionContainer:{
 		width: '100%', 
-		height: 50, 
+		height: 45, 
 		backgroundColor: colors.track,
 		flexDirection: 'row', 
 		alignItems: 'center'
