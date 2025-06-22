@@ -29,6 +29,10 @@ export default function ScaledImage(props: {
             }
             set_image_loading(false);
         }, (error) => {
+            set_width(props.width);
+            set_height(props.width);
+            props.set_size?.({width: props.width!, height: props.width!});
+            set_image_loading(false);
             console.error(error);
         })
     }, [])

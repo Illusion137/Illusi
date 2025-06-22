@@ -116,10 +116,10 @@ export default function TrimTrackModal(props: {
                     <Ionicons name={playerstate === PlayerState.playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                 </TouchableOpacity>
                 <View style={{flexDirection: 'row'}}>
-                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(Math.floor(scrubber / 1000))}>
+                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(round_decimal_place(scrubber / 1000, 2))}>
                         <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Left</Text> 
                     </TouchableOpacity>
-                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(Math.floor(scrubber / 1000))}>
+                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(round_decimal_place(scrubber / 1000, 2))}>
                         <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Right</Text> 
                     </TouchableOpacity>
                 </View>

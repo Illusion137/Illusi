@@ -19,7 +19,7 @@ export default function ArchivedPlaylists(props: {
     const render_footer = () => (
         <View style={{padding: 10}}>
             <Text style={{color: colors.subtext}}>Note: Archived-Playlists don't have "Playlists Inheritance Preview" to help speed up Illusi.</Text>
-            <View style={{height: 100}}/>
+            <View style={{height: 200}}/>
         </View>
     )
 
@@ -32,7 +32,7 @@ export default function ArchivedPlaylists(props: {
                 <Text style={{color: colors.text, fontWeight:'500', fontSize: 18, alignSelf: 'center'}}>Archived Playlists</Text>
             </View>
             <View style={{height: 0.6, backgroundColor: colors.line}}/>
-            <BigList style={{height: '71%'}} data={props.playlists.filter(playlist => playlist.archived)} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={render_footer}/>
+            <BigList style={{height: '70%'}} data={props.playlists.filter(playlist => playlist.archived)} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={500} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={render_footer}/>
         </View>
     )
 }

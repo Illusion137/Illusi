@@ -286,6 +286,7 @@ function AudioPlayer(props: {
                         <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
                         <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
                     </View>
+                    <View style={{height: 45}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
                     <View style={player_state_metadata.album?.name ? {...styles.timestampslidercontainer, bottom: 30} : styles.timestampslidercontainer}>
                         <Slider
@@ -490,10 +491,11 @@ function AudioPlayer(props: {
                                 onValueChange={async (value) => { await TrackPlayer.setRate((value[0])); set_player_state_trackplayer({...player_state_trackplayer, rate: value[0]}) }}
                                 thumbTintColor={colors.primary}
                                 thumbStyle={{ width: 15, height: 15 }}
-                                thumbTouchSize={{ width: 40, height: 40 }}
+                                thumbTouchSize={{ width: 1, height: 1 }}
                                 minimumTrackTintColor={colors.primary}
                                 maximumTrackTintColor='#DADADA40'
                                 step={0.01}
+                                debugTouchArea={true}
                                 maximumValue={2}
                             />
                         </View>
@@ -562,10 +564,9 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
         top: 10,
-        height: 100,
         marginLeft: 40,
         marginRight: 40,
-        zIndex: 10
+        zIndex: 10,
     },
     tsstyle: {
         color: '#808080'
