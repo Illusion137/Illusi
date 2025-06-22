@@ -7,8 +7,8 @@ import { Button, Image } from 'react-native';
 import appConfig from './app.config';
 
 import * as uuid from 'react-native-uuid';
-import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import * as GLOBALS from './lib-origin/Illusive/src/illusi/src/globals';
+import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import { filter_play_tracks } from './lib-origin/Illusive/src/illusi/src/play';
 import { Prefs } from './lib-origin/Illusive/src/prefs';
 import { BottomAlertType, PlayingState, Track } from './lib-origin/Illusive/src/types';
@@ -50,9 +50,9 @@ import BottomAlert from './app/components/BottomAlert';
 import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
 import Artist from './app/screens/other/Artist';
 import MultiOption from './app/screens/other/MultiOption';
-import * as Haptics from 'expo-haptics';
 import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
 import ExtraStatisticsScreen from './app/screens/extra/ExtraStatisticsScreen';
+import ArtistGridRenderer from './app/screens/search/ArtistGridRenderer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -91,7 +91,7 @@ function ExtrasStackScreen() {
 const PlaylistsStack = createNativeStackNavigator();
 function PlaylistsStackScreen() {
     return (
-        <PlaylistsStack.Navigator screenOptions={{ headerShown: false }}>
+        <PlaylistsStack.Navigator screenOptions={{ headerShown: false}}>
             <PlaylistsStack.Screen options={{ headerShown: false }} name="PlaylistScreen" component={PlaylistScreen}/>
             <PlaylistsStack.Screen name="SelectImportMusicServicePlaylist" component={SelectImportMusicServicePlaylist}
                         options={(_) => ({
@@ -116,6 +116,7 @@ function SearchStackScreen() {
             <SearchStack.Screen options={{ headerShown: false }} name="Playlist" component={Playlist as any} />
             <SearchStack.Screen options={{ headerShown: false }} name="Artist" component={Artist as any} />
             <SearchStack.Screen options={{ headerShown: false }} name="AlbumGridRenderer" component={AlbumGridRenderer as any} />
+            <SearchStack.Screen options={{ headerShown: false }} name="ArtistGridRenderer" component={ArtistGridRenderer as any} />
         </SearchStack.Navigator>
     );
 }
@@ -148,7 +149,6 @@ function Tabs() {
             <Tab.Screen name="Playlists" component={PlaylistsStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Ionicons name="musical-notes" size={25} color={color} />),
-                    unmountOnBlur: false,
                 }}
             />
             <Tab.Screen name="Explore" component={SearchStackScreen}
@@ -159,6 +159,7 @@ function Tabs() {
             <Tab.Screen name="Extras" component={ExtrasStackScreen}
                 options={{
                     tabBarIcon: ({ color }) => (<Entypo name="dots-three-horizontal" size={25} color={color} />),
+                    unmountOnBlur: true,
                 }}
             />
         </Tab.Navigator>
@@ -236,7 +237,6 @@ export default function App() {
             text,
             type
         });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     return (
         <GlobalStateProvider>

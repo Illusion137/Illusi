@@ -1,5 +1,5 @@
 import React,  { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ActionSheetIOS, Text, TextInput } from "react-native";
+import { View, StyleSheet, Text, Image, Dimensions, TouchableOpacity } from "react-native";
 import { NavigationProp, useTheme } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import TrackComponent from '../../components/TrackComponent';
@@ -11,31 +11,40 @@ import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { EditMode, NamedUUID, Route, Track } from '../../../lib-origin/Illusive/src/types';
 import * as Types from '../../../lib-origin/Illusive/src/types';
-
+import { BlurView } from 'expo-blur';
 import FourTrackArtwork from '../../components/FourTrackArtwork';
+import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { default_playlists } from '../../../lib-origin/Illusive/src/illusi/src/default_playlists';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
-import { best_thumbnail, empty_join_dot, make_https, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { best_thumbnail, make_https, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { ExampleObj } from '../../../lib-origin/Illusive/src/illusi/src/example_objs';
-import { is_empty, json_catch } from '../../../lib-origin/origin/src/utils/util';
+import { empty_join_dot, is_empty, json_catch } from '../../../lib-origin/origin/src/utils/util';
 import { Constants } from '../../../lib-origin/Illusive/src/constants';
-import ShufflePlayButton from '../../components/ShufflePlayButton';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
-import LibraryTrackList from '../../components/LibraryTrackList';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
 import { share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { ResponseError } from '../../../lib-origin/origin/src/utils/types';
+import { Ionicons } from '@expo/vector-icons';
+import { ContextMenuButton, MenuConfig } from 'react-native-ios-context-menu';
+import LibraryTrackList from '../../components/LibraryTrackList';
+import TrimTrackModal from '../other/TrimTrackModal';
+import SearchBarV1 from '../../components/SearchBarV1';
+import { TRACK_QUERY_FLAGS } from '../../../lib-origin/Illusive/src/query_flags';
 
 let search_query = "";
 let tracks_ref: Track[] = [];
+const shortcuts_app_icon = Image.resolveAssetSource(
+    require('../../../assets/shortcut.png')
+);
+
 export default function Playlist(params: {route: Route<unknown>}){
     const ts_route = params.route as Route<{uuid: string}|{uri: string, compact_playlist?: Types.CompactPlaylist}|{default_playlist_title: string, force_order?: boolean}|{write_playlist_uuid: string, serialized_playlist_data: Types.SerializedCompactPlaylistData}>;
 
     const force_order = "force_order" in ts_route.params && (ts_route.params.force_order ?? false);
     const force_hide_audioplayer = "write_playlist_uuid" in ts_route.params && ts_route.params.write_playlist_uuid !== Constants.library_write_playlist;
     const pre_always_shuffle = Prefs.get_pref('always_shuffle');
-    const pre_hide_audioplayer = Prefs.get_pref('play_no_popup');
+    const pre_hide_audioplayer = Prefs.get_pref('play_without_popup');
 
     const writing_from_library: boolean = "write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist;
 
@@ -51,6 +60,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     const [edit_mode_state, set_edit_mode_state] = useState<EditMode>("NONE");
     const [continuation, set_continuation] = useState<unknown>();
     const [search_query_state, set_search_query_state] = useState<string>("");
+    const [trim_track_state, set_trim_track_state] = useState({show: false, track_data: null as Track|null});    
 
     function getShortcut(): ShortcutOptions{
         const key = "uuid" in ts_route.params ? ts_route.params.uuid : ("default_playlist_title" in ts_route.params) ? ts_route.params.default_playlist_title : "";
@@ -69,45 +79,103 @@ export default function Playlist(params: {route: Route<unknown>}){
         }
     }
 
-    const actions = () => {
-        if("uuid" in ts_route.params || "default_playlist_title" in ts_route.params){
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ["Cancel", "Default Mode", "Download Mode", "Delete Mode", "Shortcut's"],
-                    destructiveButtonIndex: 3,
-                    cancelButtonIndex: 0,
-                    userInterfaceStyle: 'dark'
-                }, (i) => {
-                    if (i === 0) {} 
-                    else if (i === 1) { set_edit_mode_state("NONE"); }
-                    else if (i === 2) { set_edit_mode_state("DOWNLOAD"); }
-                    else if (i === 3) { set_edit_mode_state("DELETE"); }
-                    else if (i === 4) { presentShortcut(getShortcut(), (data) => data) }
+    const menuconfig_local_playlist: MenuConfig = {
+        menuTitle: '',
+        menuItems: [
+            {
+                menuTitle: "Batch Modes",
+                menuOptions: ['displayInline'],
+                menuItems: [
+                    {
+                        actionKey  : 'playlist-actions-default-mode',
+                        actionTitle: 'Default',
+                        menuAttributes: edit_mode_state === "NONE" ? ['disabled'] : undefined,
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageValue: {
+                                systemName: 'scribble',
+                            },
+                        },
+                    }, 
+                    {
+                        actionKey  : 'playlist-actions-download-mode',
+                        actionTitle: 'Download',
+                        menuAttributes: edit_mode_state === "DOWNLOAD" ? ['disabled'] : undefined,
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageOptions: {
+                                tint: colors.primary,
+                                renderingMode: 'alwaysOriginal',
+                            },
+                            imageValue: {
+                                systemName: 'square.and.arrow.down',
+                            },
+                        },
+                    }, 
+                    {
+                        actionKey  : 'playlist-actions-delete-mode',
+                        actionTitle: 'Delete',
+                        menuAttributes: edit_mode_state === "DELETE" ? ['disabled'] : ['destructive'],
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageOptions: {
+                                tint: colors.red,
+                                renderingMode: 'alwaysOriginal',
+                            },
+                            imageValue: {
+                                systemName: 'trash',
+                            },
+                        },
+                    },
+                ],
+                icon: {
+                    type: 'IMAGE_SYSTEM',
+                    imageValue: {
+                        systemName: 'folder',
+                    },
+                },
+            },
+            {
+                actionKey  : 'playlist-actions-shortcut',
+                actionTitle: 'Make Shortcut',
+                icon: {
+                    iconType: 'REQUIRE',
+                    iconValue: shortcuts_app_icon,
                 }
-            );
-        }
-        else if("uri" in ts_route.params) {
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options: ["Cancel", "Save Playlist", "Add Tracks To Library"],
-                    destructiveButtonIndex: 2,
-                    cancelButtonIndex: 0,
-                    userInterfaceStyle: 'dark'
-                }, async(i) => {
-                    if (i === 0) {} 
-                    else if (i === 1) { await save_to_playlist(playlist_data?.title!); }
-                    else if (i === 2) { await add_tracks_to_library(); }
-                }
-            );
-        }
-        else return;
+            }
+        ],
+    };
+    const menuconfig_external_playlist: MenuConfig = {
+        menuTitle: '',
+        menuItems: [
+            {
+                actionKey: 'playlist-actions-save-to-playlist',
+                actionTitle: 'Save Playlist',
+                icon: {
+                    type: 'IMAGE_SYSTEM',
+                    imageValue: {
+                        systemName: 'list.bullet',
+                    },
+                },
+            },
+            {
+                actionKey: 'playlist-actions-add-tracks-to-library',
+                actionTitle: 'Add Tracks To Library',
+                icon: {
+                    type: 'IMAGE_SYSTEM',
+                    imageValue: {
+                        systemName: 'books.vertical',
+                    },
+                },
+            }
+        ]
     }
 
     const is_focused = useIsFocused();
     useEffect( () => {
         search_query = "";
         if(force_order) Prefs.prefs.always_shuffle.current_value = false;
-        if(force_hide_audioplayer) Prefs.prefs.play_no_popup.current_value = true;
+        if(force_hide_audioplayer) Prefs.prefs.play_without_popup.current_value = true;
         initial_data();
         return () => exit_handler();
     }, []);
@@ -120,20 +188,20 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     function exit_handler(){
         if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
-        if(force_hide_audioplayer) Prefs.prefs.play_no_popup.current_value = pre_hide_audioplayer;
+        if(force_hide_audioplayer) Prefs.prefs.play_without_popup.current_value = pre_hide_audioplayer;
         search_query = "";
     }
 
     async function initial_data(){
         tracks_ref = [];
         if("default_playlist_title" in ts_route.params) set_playlist_data( Object.assign({...ExampleObj.playlist_example0}, {title: ts_route.params.default_playlist_title}) );
-        else if("uuid" in ts_route.params) set_playlist_data(await SQLPlaylists.playlist_data(ts_route.params.uuid));
+        else if("uuid" in ts_route.params) set_playlist_data(await SQLPlaylists.playlist_data(ts_route.params.uuid, "IGNORE"));
         else if("uri" in ts_route.params) {
             const cached = GLOBALS.global_var.playlist_cache.get(ts_route.params.uri);
             const cached_hit = cached !== undefined;
             let thumbnail_url;
             if(ts_route.params.compact_playlist !== undefined) {
-                thumbnail_url = !is_empty(ts_route.params.compact_playlist.artwork_thumbnails) ? best_thumbnail(ts_route.params.compact_playlist.artwork_thumbnails!)?.url : ts_route.params.compact_playlist.artwork_url;
+                thumbnail_url = await Illusive.get_highest_quality_service_thumbnail_uri( (!is_empty(ts_route.params.compact_playlist.artwork_thumbnails) ? best_thumbnail(ts_route.params.compact_playlist.artwork_thumbnails!)?.url : ts_route.params.compact_playlist.artwork_url) ?? "");
                 set_playlist_data({title: ts_route.params.compact_playlist.title.name, creator: ts_route.params.compact_playlist.artist, thumbnail_uri: thumbnail_url, date: ts_route.params.compact_playlist.date, uuid: ""});
             }
             else thumbnail_url = undefined;
@@ -150,11 +218,11 @@ export default function Playlist(params: {route: Route<unknown>}){
             const playlist: Types.MusicServicePlaylist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_playlist(make_https(split[1])).catch(json_catch);
 
             if("error" in playlist!) {
-                alert_error(playlist.error as any, true);
+                alert_error(playlist.error as any);
                 return;
             }
             const id_continuation = playlist!.continuation;
-            const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {...playlist_data, title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: thumbnail_url ?? playlist!.artwork_url, creator: playlist!.creator, date: playlist!.date });
+            const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {...playlist_data, title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: await Illusive.get_highest_quality_service_thumbnail_uri(thumbnail_url ?? playlist!.artwork_url ?? ""), creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
@@ -246,10 +314,12 @@ export default function Playlist(params: {route: Route<unknown>}){
         await Promise.all(promised_playlist_tracks);
         navigation.goBack();
     } 
-
-    function play_order(play_tracks: Track[]){
+    async function play_order(play_tracks: Track[]){
+        const prev_always_shuffle = Prefs.prefs.always_shuffle.current_value;
+        Prefs.prefs.always_shuffle.current_value = false;
         const cloned_tracks = [...play_tracks].slice(GLOBALS.global_var.past_track_index);
-        GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+        await GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+        Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
     }
     function play_shuffle(play_tracks: Track[]){
         const cloned_tracks = Illusive.shuffle_tracks("SHUFFLE", [...play_tracks]);
@@ -266,35 +336,50 @@ export default function Playlist(params: {route: Route<unknown>}){
                         track_callback={() => [...tracks]} 
                         track_data={item.item} 
                         from={playlist_data?.title}
+                        display_plays={"default_playlist_title" in ts_route.params && ts_route.params.default_playlist_title === "Most Played"}
                         edit_mode={edit_mode_state} 
+                        trim_track={(show: boolean, track_data: Track|null) => set_trim_track_state({show: show, track_data: track_data})}
                         write_playlist_uuid={"uri" in ts_route.params ? Constants.library_write_playlist : "write_playlist_uuid" in ts_route.params ? ts_route.params.write_playlist_uuid : undefined} 
                         refresh_data={refresh_data}/>
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
-            <TextInput autoCorrect={false} placeholder='Search Playlist' placeholderTextColor={colors.subtext} style={styles.search_input} onChangeText={on_edit_text}></TextInput>
-            <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
-            <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75}/>
-            <View style={{top: 15, alignItems: 'center'}}>
-                <Text style={{color: colors.text, fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
-                <Text style={{color: colors.text, fontSize: 20}}>{playlist_data?.description}</Text>
-                <Text style={{color: colors.subtext, fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
+            <FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={Dimensions.get('screen').width / 2} base_view_style={{top: -Dimensions.get('screen').height / 6}}/>
+            <BlurView intensity={50} tint='dark' style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+                <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 260}}/>
+            </BlurView>
+            <View style={{alignItems: 'center', width: '75%', top: 60, height: 40, zIndex: 2}}>
+                <View style={{right: 10, zIndex: 3}}>
+                    <SearchBarV1 placeholder='Search Playlist' background_color={colors.primary_dark} query_flags={TRACK_QUERY_FLAGS} onChangeText={on_edit_text}/>
+                </View>
+                <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20, top: 5}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
             </View>
-            <View style={styles.playlist_buttons_container}>
-                {"uuid" in ts_route.params ?
-                    <>
-                        <IoniconsTouchableOpacity on_press={() => { 
-                            navigation.navigate('AddToPlaylistBase', {write_playlist_uuid: (ts_route.params as {uuid: string}).uuid }); }} 
-                                style={styles.playlist_button} icon_name='add' icon_size={35} icon_color={colors.primary} icon_style={{left:1}}/>
-                        <MaterialCommunityIconsTouchableOpacity on_press={() => {
-                            navigation.navigate('Edit Playlist', {uuid: (ts_route.params as {uuid: string}).uuid });
-                        }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                        <FontAwesomeTouchableOpacity on_press={() => share_item({link: `https://illusi.dev/playlist/${(ts_route.params as {uuid: string}).uuid}`})} style={styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                    </> 
-                : null}
+            <View style={{height: 220}}/>
+            <View style={{top: 40, alignItems: 'center'}}>
+                <Text numberOfLines={1} style={{color: colors.text, fontSize: 20, fontWeight: 'bold'}}>{playlist_data?.title}</Text>
+                <Text numberOfLines={1} style={{color: colors.text, fontSize: 20}}>{playlist_data?.description}</Text>
+                <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 12, top: -8}}>{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}</Text>
+            </View>
+            <View style={{height: 5}}/>
+            <View style={{flexDirection: 'row', top: 10, width: '100%'}}>
+                <View style={styles.playlist_buttons_container}>
+                    {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={() => { play_order(tracks); }} 
+                        style={styles.playlist_button} icon_name='play-sharp' icon_size={25} icon_color={colors.primary} icon_style={{left:3}}/> : null}
+                    {"uuid" in ts_route.params ?
+                        <>
+                            <IoniconsTouchableOpacity on_press={() => { 
+                                navigation.navigate('AddToPlaylistBase', {write_playlist_uuid: (ts_route.params as {uuid: string}).uuid }); }} 
+                                    style={styles.playlist_button} icon_name='add' icon_size={35} icon_color={colors.primary} icon_style={{left:1}}/>
+                            <MaterialCommunityIconsTouchableOpacity on_press={() => {
+                                navigation.navigate('Edit Playlist', {uuid: (ts_route.params as {uuid: string}).uuid });
+                            }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={() => share_item({link: `https://illusi.dev/playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                        </>
+                    : null}
+                </View>
             </View>
             {!("write_playlist_uuid" in ts_route.params) ? 
-                <ShufflePlayButton text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => {force_order ? play_order(tracks): play_shuffle(track_query_filter(tracks, search_query_state))}} top={-40}/>
+                <ShufflePlayButton text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => {force_order ? play_order(tracks): play_shuffle(track_query_filter(tracks, search_query_state))}} top={-50}/>
             : null}
         </View>	
     );
@@ -306,9 +391,41 @@ export default function Playlist(params: {route: Route<unknown>}){
         <View style={styles.top_container}>
             <View style={styles.header} pointerEvents='box-none'>
                 <AntDesignTouchableOpacity on_press={() => navigation.goBack()} style={{}} icon_name='left' icon_size={30} icon_color={colors.primary} icon_style={{}}/>
-                {!("write_playlist_uuid" in ts_route.params) ? <IoniconsTouchableOpacity on_press={actions} style={{}} icon_name='ellipsis-horizontal-outline' icon_size={40} icon_color={colors.primary} icon_style={{}} hitslop={40}/> : null }
+                {!("write_playlist_uuid" in ts_route.params) ? 
+                    <TouchableOpacity>
+                        <ContextMenuButton
+                            menuConfig={"uuid" in ts_route.params || "default_playlist_title" in ts_route.params ? 
+                                menuconfig_local_playlist : "uri" in ts_route.params ? 
+                                    menuconfig_external_playlist : undefined}
+                            onPressMenuItem={async({nativeEvent}) => {
+                                switch(nativeEvent.actionKey){
+                                    case "playlist-actions-default-mode":
+                                        set_edit_mode_state("NONE");
+                                        break;
+                                    case "playlist-actions-download-mode":
+                                        set_edit_mode_state("DOWNLOAD");
+                                        break;
+                                    case "playlist-actions-delete-mode":
+                                        set_edit_mode_state("DELETE");
+                                        break;
+                                    case "playlist-actions-shortcut":
+                                        presentShortcut(getShortcut(), (data) => data);
+                                        break;
+                                    case "playlist-actions-save-to-playlist":
+                                        await save_to_playlist(playlist_data?.title!);
+                                        break;
+                                    case "playlist-actions-add-tracks-to-library":
+                                        await add_tracks_to_library();
+                                        break;
+                                }
+                            }}
+                        >
+                            <Ionicons name='ellipsis-horizontal-outline' size={40} color={colors.primary}/>
+                        </ContextMenuButton> 
+                    </TouchableOpacity>
+                    : null }
             </View>
-            <View style={{height: '94%'}}>
+            <View style={{height: '100%', bottom: 40}}>
                 {"write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist ? 
                     <LibraryTrackList
                         is_focused={is_focused}
@@ -316,21 +433,24 @@ export default function Playlist(params: {route: Route<unknown>}){
                         edit_mode='NONE'
                         ref={library_ref}
                         write_playlist_uuid={ts_route.params.write_playlist_uuid}
-                        header_height={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 330 : 395}
+                        header_height={"write_playlist_uuid" in ts_route.params ? 360 : 450}
                         header_item={header_component}
                         adjusted_alphabet_scroll={-35}
                         />
                     : <BigList style={{backgroundColor: colors.background}} 
-                        headerHeight={"uuid" in ts_route.params ? 425 : "write_playlist_uuid" in ts_route.params ? 330 : 395} 
+                        headerHeight={"write_playlist_uuid" in ts_route.params ? 360 : 450} 
                         itemHeight={61} 
                         footerHeight={50}
                         renderHeader={header_component} 
                         renderItem={render_track}
                         renderFooter={footer_component}
                         data={track_query_filter(tracks, search_query_state)}
-                        onEndReached={try_continuation}/>
+                        onEndReached={try_continuation}
+                        onEndReachedThreshold={0.3}
+                        />
                 }
             </View>
+            <TrimTrackModal modal_data={trim_track_state} set_modal_data={set_trim_track_state} callback={() => {}}/>
         </View>
     );
 }
@@ -338,7 +458,8 @@ export default function Playlist(params: {route: Route<unknown>}){
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     top_container:{
         flex: 1,
-        backgroundColor: colors.background
+        // backgroundColor: "blue",
+        backgroundColor: colors.background,
     },
     header:{
         top: 60,
@@ -348,8 +469,9 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         zIndex: 1
     },
     playlist_list_header:{
-        top: 50,
-        alignItems: 'center'
+        top: 0,
+        alignItems: 'center',
+        zIndex: 2
     },
     info_text:{
         color: colors.text,
@@ -357,9 +479,13 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         fontWeight: 'bold'
     },
     playlist_buttons_container:{
+        flex: 1,
         flexDirection: 'row',
         top: 28,
-        marginBottom: 95
+        marginBottom: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+        right: 10
     },
     playlist_button:{
         borderRadius: 20, 

@@ -1,13 +1,14 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useIsFocused, useTheme } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { upload_music_files } from '../../lib-origin/Illusive/src/illusi/src/document_picker';
 import { cycle, } from '../../lib-origin/Illusive/src/illusive_utilts';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { EditMode, HexColor } from '../../lib-origin/Illusive/src/types';
 import LibraryTrackList from '../components/LibraryTrackList';
+import { TRACK_QUERY_FLAGS } from '../../lib-origin/Illusive/src/query_flags';
+import SearchBarV1 from '../components/SearchBarV1';
 
 export default function LibraryScreen() {
     const { colors } = useTheme() as Prefs.Theme;
@@ -26,7 +27,7 @@ export default function LibraryScreen() {
 
 	function cycle_edit_mode(){
         const current_edit_mode = edit_mode;
-        const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE", "EDIT"]);
+        const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE"]);
 		set_edit_mode(next_edit_mode);
 	}
     const is_focused = useIsFocused();
@@ -36,15 +37,17 @@ export default function LibraryScreen() {
 			<View style={styles.header}>
 				<Text style={styles.top_text}>My Library</Text>
 				<View style={styles.search_container}>
-					<TouchableOpacity style={{bottom: 6, left: 6}} onPress={cycle_edit_mode} onLongPress={() => set_edit_mode("NONE")}>
+					<TouchableOpacity style={{bottom: 6, left: 3}} onPress={cycle_edit_mode} onLongPress={() => set_edit_mode("NONE")}>
 						<MaterialCommunityIcons name="pencil" size={25} color={edit_mode_colors[edit_mode]}/>
 					</TouchableOpacity>
-					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={styles.icon}/>
-					<TextInput autoCorrect={false} placeholder='Search My Library' placeholderTextColor={colors.searchPlaceholder} style={styles.search_input} onChangeText={async(query) => { (library_ref.current as any)?.refresh_data(query)}}></TextInput>
-					<TouchableOpacity style={{bottom: 6, left: 7}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data)}>
+					<View style={{width: '75%', bottom: 5, right: 10}}>
+						<SearchBarV1 placeholder='Search My Library' query_flags={TRACK_QUERY_FLAGS} onChangeText={async(query) => (library_ref.current as any)?.refresh_data(query)}/>
+					</View>
+					<TouchableOpacity style={{bottom: 4}} onPress={async() => upload_music_files((library_ref.current as any)?.refresh_data)}>
 						<Ionicons name="cloud-upload" size={25} color={colors.inactive}/>
 					</TouchableOpacity>
 				</View>
+
 			</View>
             <LibraryTrackList edit_mode={edit_mode} ref={library_ref} is_focused={is_focused}/>
 		</View>
@@ -64,6 +67,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		top: 0,
 		justifyContent: 'flex-end',
 		alignItems: 'center',
+		zIndex: 2
 	},
 	top_text:{
 		bottom: 20,
@@ -82,7 +86,8 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		borderBottomRightRadius: 10, // Bottom Right Corner
 	},
 	search_container:{
-		justifyContent: 'center',
+		justifyContent: 'space-evenly',
+		alignItems: 'center',
 		height: '24%',
 		left:-5,
 		width: '100%',
@@ -98,5 +103,5 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		left: 10,
 		borderRadius:10,
 		zIndex: 1
-	},
+	}
 });

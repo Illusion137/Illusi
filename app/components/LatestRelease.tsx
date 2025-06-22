@@ -3,7 +3,7 @@ import { CompactPlaylist } from "../../lib-origin/Illusive/src/types";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { empty_join_dot } from "../../lib-origin/Illusive/src/illusive_utilts";
+import { empty_join_dot } from "../../lib-origin/origin/src/utils/util";
 import { Navigator } from "../../lib-origin/Illusive/src/illusi/src/types";
 
 export default function LatestRelease(props: {album_data: CompactPlaylist}){

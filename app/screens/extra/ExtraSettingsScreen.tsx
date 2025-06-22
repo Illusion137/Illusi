@@ -58,10 +58,6 @@ function ExtraSettingsScreen() {
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
 			<SectionList sections={settings_data} renderItem={render_item} renderSectionHeader={render_section_header} ListHeaderComponent={<View style={styles.line_long}/>} ListFooterComponent={
 				<>
-					<View style={styles.line_long}/>
-					<View style={{height: 30}}/>
-					<ExtrasSectionButton show_arrow={true} text='Miscellaneous Settings' icon='settings-outline' onPress={() => navigation.navigate("Miscellaneous Settings")}/>
-					<Text style={styles.description_text}>Usually one-time settings that you'd forget about</Text>
 					<ExtrasSectionButton show_arrow={true} text='Experimental Settings' icon='settings-outline' onPress={() => navigation.navigate("Experimental Settings")}/>
 					<Text style={styles.description_text}>Settings that have a chance of breaking things; use with caution; all disabled by default</Text>
 					<View style={{height: 30}}/>
@@ -71,7 +67,11 @@ function ExtraSettingsScreen() {
 					<ExtrasSectionButton show_arrow={false} text='Shuffle Library Shortcut' icon='library-outline' onPress={() => presentShortcut(getShortcut(), (data) => data)}/>
 					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
 					<ExtrasSectionButton show_arrow={false} text='Speed Sample Library' icon='search-circle' onPress={async() => {
-						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, Prefs.get_pref('speed_sample_super_speed'));
+						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
+						GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");
+					}}/>
+					<ExtrasSectionButton show_arrow={false} text='Super Speed Sample Library' icon='search-circle' onPress={async() => {
+						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
 						GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");
 					}}/>
 					<ExtrasSectionButton show_arrow={false} text='Convert all YouTube Tracks to YouTube Music' icon='construct-outline' onPress={async() => {
@@ -111,7 +111,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         marginLeft: 10,
         marginTop: 5,
         marginBottom: 10,
-        fontSize: 16
+        fontSize: 12
     },
 	header_text: {
 		paddingTop: 16,

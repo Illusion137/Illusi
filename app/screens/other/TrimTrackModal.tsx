@@ -14,6 +14,7 @@ import {
 } from '@simform_solutions/react-native-audio-waveform';
 import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { Ionicons } from '@expo/vector-icons';
+import { round_decimal_place } from '../../../lib-origin/origin/src/utils/util';
   
 
 type ModalData = {show: boolean, track_data: Track|null};
@@ -107,7 +108,7 @@ export default function TrimTrackModal(props: {
                         waveColor={colors.text}
                         containerStyle={{height: 100}}
                         onPlayerStateChange={player_state => set_playerstate(player_state)}
-                        onCurrentProgressChange={scrubber_position => set_scrubber(Math.round(scrubber_position))}
+                        onCurrentProgressChange={scrubber_position => set_scrubber(round_decimal_place(scrubber_position, 2))}
                     /> : null
                 }
                 <View style={{height: 70}}/>
@@ -115,10 +116,10 @@ export default function TrimTrackModal(props: {
                     <Ionicons name={playerstate === PlayerState.playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                 </TouchableOpacity>
                 <View style={{flexDirection: 'row'}}>
-                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(Math.floor(scrubber / 1000))}>
+                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(round_decimal_place(scrubber / 1000, 2))}>
                         <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Left</Text> 
                     </TouchableOpacity>
-                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(Math.floor(scrubber / 1000))}>
+                    <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(round_decimal_place(scrubber / 1000, 2))}>
                         <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Right</Text> 
                     </TouchableOpacity>
                 </View>

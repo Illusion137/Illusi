@@ -22,8 +22,8 @@ export default function SearchHomeScreen(){
 
     return(
         <>
-            {!search_screen_state && <SearchScreen></SearchScreen>}
-            {search_screen_state && 
+            {!search_screen_state ? <SearchScreen/>
+            : ( 
             <LinearGradient
                 colors={[colors.primary, colors.background]}
                 locations={[0.05, 0.2]}
@@ -34,7 +34,7 @@ export default function SearchHomeScreen(){
                 </View>
                 {/* <MusiExplore/> */}
                 <IllusiExplore/>
-            </LinearGradient>}
+            </LinearGradient>)}
         </>
     );
 }

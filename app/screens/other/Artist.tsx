@@ -55,7 +55,7 @@ export default function Artist(params: {route: Route<unknown>}){
         }
         const artist: MusicServiceArtist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_artist!(split[1]).catch(json_catch);
         if("error" in artist!) {
-            alert_error(artist as any , true);
+            alert_error(artist as any);
             return;
         }
         artist.tracks = await SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);

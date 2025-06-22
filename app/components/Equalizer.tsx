@@ -2,7 +2,6 @@ import { Text, View } from "react-native"
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { useTheme } from "@react-navigation/native";
 import Slider from '@react-native-community/slider';
-import { Illusive } from "../../lib-origin/Illusive/src/illusive";
 
 export default function Equalizer(props: {
     bands_ranges: number[]

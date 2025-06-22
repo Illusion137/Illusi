@@ -1,28 +1,29 @@
-import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
-import { Animated, Button, Dimensions, Easing, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Button, Dimensions, Easing, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-track-player';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import NavLink from '../../components/NavLink';
 import SongComponentQueue from '../../components/SongComponentQueue';
-
+import * as SQLfs from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_fs';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
-import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
-import { catch_function_async } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
-import { artist_string, recreate, shuffle_array } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { artist_string, shuffle_array } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import AddToPlaylistsModal from './AddToPlaylistsModal';
-import AirPlayButton from "react-native-airplay-button";
+import { read_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
+import ScaledImage from '../../components/ScaledImage';
+import { ContextMenuButton } from 'react-native-ios-context-menu';
+import * as Haptics from 'expo-haptics';
 
 const top_padding = Dimensions.get('screen').height * 0.08;
 function AudioPlayer(props: {
@@ -50,6 +51,7 @@ function AudioPlayer(props: {
     const [add_to_playlist_state, set_add_to_playlist_state] = useState({show: false, track_data: null as IllusiveType.Track|null});
 
     const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
+    const [tint_size, set_tint_size] = useState<{width: number, height: number}>({width: 0, height: 0});
     const [player_state_metadata, set_player_state_metadata] = useState({
         title: props.tracks[0]?.title,
         artist: artist_string(props.tracks[0]),
@@ -65,6 +67,7 @@ function AudioPlayer(props: {
         loop_track: false,
     });
     const [player_state_type, set_player_state_type] = useState<State>(State.None);
+    const [playing_track, set_playing_track] = useState<IllusiveType.Track>(props.tracks[0]);
     // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
     const panel_min_height = 135 + top_padding;
     const panel_max_height = Dimensions.get('screen').height;
@@ -81,21 +84,6 @@ function AudioPlayer(props: {
         return panel_animated.interpolate({ 'inputRange': [panel_min_height, panel_max_height], 'outputRange': output_range, 'extrapolate': 'clamp' });
     }
 
-    async function share_track() {
-        catch_function_async(async() => {
-            const UTI = 'public.item';
-            const current_track = await TrackPlayer.getActiveTrackIndex();
-            if(current_track === undefined) return;
-            const illusi_track = GLOBALS.global_var.playing_tracks[current_track];
-            if (!is_empty(illusi_track.media_uri) && !Prefs.get_pref('share_as_original'))
-                await Sharing.shareAsync(FileSystem.documentDirectory + Illusive.media_archive_path + illusi_track.media_uri, { UTI });
-            else if (!is_empty(illusi_track.youtube_id))
-                await Sharing.shareAsync(`https://www.youtube.com/watch?v=${illusi_track.youtube_id}`);
-            else if (!is_empty(illusi_track.soundcloud_permalink))
-                await Sharing.shareAsync(illusi_track.soundcloud_permalink!);
-        });
-    }
-
     async function reshuffle(){
         const reshuffled_tracks = shuffle_array([...props.tracks]);
         await setup(reshuffled_tracks);
@@ -109,7 +97,7 @@ function AudioPlayer(props: {
     }
 
     async function setup(reshuffled_tracks?: IllusiveType.Track[]) {
-        if((!Prefs.get_pref('play_no_popup') || TrackPlayer.getActiveTrack().catch(e => e) instanceof Error)) 
+        if((!Prefs.get_pref('play_without_popup') || TrackPlayer.getActiveTrack().catch(e => e) instanceof Error)) 
             panel_ref.current?.show();
         const is_setup = await setup_track_player();
         await TrackPlayer.reset();
@@ -194,6 +182,7 @@ function AudioPlayer(props: {
         }
         else if(event.type === Event.PlaybackActiveTrackChanged){
             if(event.index === undefined) return;
+            set_playing_track(GLOBALS.global_var.playing_tracks[event.index]);
             set_artist_data(GLOBALS.global_var.playing_tracks[event.index].artists[0]);
             set_player_state_metadata({
                 title: GLOBALS.global_var.playing_tracks[event.index]?.title,
@@ -225,6 +214,7 @@ function AudioPlayer(props: {
         if(current_track_index === undefined) return;
         const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
         if(global_index !== -1){
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
             GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
             const tp_queue = await TrackPlayer.getQueue();
             const tp_index = tp_queue.findIndex((track, i) => track.title === item.title && i >= current_track_index);
@@ -235,6 +225,9 @@ function AudioPlayer(props: {
 
     const renderNowPlayingItem = (item: { item: IllusiveType.QueueTrack }) => <SongComponentQueue track_data={item.item} />;
 
+    const tint = GLOBALS.global_var.tint_table.get(playing_track.uid);
+
+    const begdur = playing_track.meta?.begdur ?? 0, enddur = playing_track.meta?.enddur ?? playing_track.duration;
     return (
         <SlidingUpPanel ref={panel_ref}
             allowDragging={!now_playing_state.now_playing_visible}
@@ -280,9 +273,22 @@ function AudioPlayer(props: {
                 </View>
                 <Animated.View pointerEvents={panel_state.is_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
                     {/* <Image source={player_state.artwork as number} height={220} style={{ backgroundColor: sample_artwork_color, width: "auto", opacity: 0.5, maxHeight: 220, minHeight: 220, resizeMode: "contain" }} /> */}
-                    <Image source={player_state_metadata.artwork as number} height={220} style={{width: "auto", opacity: player_state_type === State.Buffering ? 0.7 : 0.8, maxHeight: 220, minHeight: 220,}}/>
+                    <View style={{width: '100%', alignItems: 'center', maxHeight: 450, minHeight: 350, overflow: 'hidden'}}>
+                        <View style={{flexGrow: 1, height: 50}}/>
+                        <ScaledImage set_size={set_tint_size} artwork={player_state_metadata.artwork} width={Dimensions.get('screen').width * .8} style={{ opacity: player_state_type === State.Buffering ? 0.7 : 0.9, maxHeight: Dimensions.get('screen').height / 2, maxWidth: Dimensions.get('screen').width - 20, height: undefined, width: Dimensions.get('screen').width - 20, borderRadius: 10}}/>
+                        {is_empty(tint) ? null : <View style={{top: 50, borderRadius: 10, width: tint_size.width, height: tint_size.height, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
+                    </View>
+                    <View style={{height: 10}}/>
+                    {/* <Image source={player_state_metadata.artwork as number} width={Dimensions.get('screen').width - 20} style={{ opacity: player_state_type === State.Buffering ? 0.7 : 0.8, maxHeight: Dimensions.get('screen').height / 2, maxWidth: Dimensions.get('screen').width - 20, height: undefined, width: Dimensions.get('screen').width - 20, resizeMode: 'contain'}}/> */}
+                    {/* TITLE & ARTIST ----------------------------------------------------*/}
+                    <View style={styles.textcontainer}>
+                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
+                        <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
+                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
+                    </View>
+                    <View style={{height: 45}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
-                    <View style={styles.timestampslidercontainer}>
+                    <View style={player_state_metadata.album?.name ? {...styles.timestampslidercontainer, bottom: 30} : styles.timestampslidercontainer}>
                         <Slider
                             value={player_state_trackplayer.elapsed_time}
                             onValueChange={async (val) => { await TrackPlayer.seekTo(val[0]); }}
@@ -294,19 +300,17 @@ function AudioPlayer(props: {
                             minimumValue={0}
                             maximumValue={player_state_metadata.duration}
                         />
+                        <View style={{height: 10, width: 1, left: `${get_restart_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
+                        <View style={{height: 10, width: 1, left: `${get_metadata_update_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
+                        {playing_track.meta?.begdur && begdur !== 0 ? <View style={{height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: 'absolute'}}/> : null}
+                        {playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: 'absolute'}}/> : null}
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 10, marginRight: 10, bottom: 30 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 40, bottom: player_state_metadata.album?.name ? 40 : 60 }}>
                         <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
                         <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
                     </View>
-                    {/* TITLE & ARTIST ----------------------------------------------------*/}
-                    <View style={styles.textcontainer}>
-                        <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
-                        <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
-                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
-                    </View>
                     {/* PLAY CONTROLS ----------------------------------------------------*/}
-                    <View style={{ bottom: 20 }}>
+                    <View style={{ bottom: player_state_metadata.album?.name ? 35 : 55 }}>
                         <View style={styles.playbackcontainer}>
                             <TouchableOpacity onPress={reshuffle}>
                                 <Ionicons name="shuffle-sharp" size={35} color={colors.primary} />
@@ -325,7 +329,7 @@ function AudioPlayer(props: {
                             </TouchableOpacity>
                         </View>
                         {/* VOLUME CONTROLS ----------------------------------------------------*/}
-                        <View style={{top: 10}}>
+                        {/* <View style={{top: 10}}>
                             <Ionicons name="volume-off-sharp" size={20} color='#656565' style={{ top: 30, left: 15 }} />
                             <View style={styles.volumeslidercontainer}>
                                 <Slider
@@ -346,13 +350,10 @@ function AudioPlayer(props: {
                                 prioritizesVideoDevices={false}
                                 style={{ width: 20, height: 20, bottom: 50, alignSelf: 'flex-end', right: 15 }}
                             />
-                            {/* <TouchableOpacity> */}
-                                {/* <MaterialCommunityIcons name="cast-audio-variant" size={20} color='#656565' style={{ bottom: 50, alignSelf: 'flex-end', right: 15 }} /> */}
-                            {/* </TouchableOpacity> */}
-
-                        </View>
+                        </View> */}
+                        <View style={{height: 30}}/>
                         {/* EXTRA CONTROLS ----------------------------------------------------*/}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginLeft: 15, marginRight: 15, top: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 35, top: 10 }}>
                             <TouchableOpacity onPress={async() => {
                                 const current_track_index = await TrackPlayer.getActiveTrackIndex();
                                 if(current_track_index === undefined) return;
@@ -368,7 +369,13 @@ function AudioPlayer(props: {
                             <TouchableOpacity onPress={async () => {
                                 const current_track_index = await TrackPlayer.getActiveTrackIndex();
                                 if(current_track_index === undefined) return;
-                                const lyrics = await Illusive.get_track_lryics(GLOBALS.global_var.playing_tracks[current_track_index])
+                                const track = GLOBALS.global_var.playing_tracks[current_track_index];
+                                const read_lyrics = await read_track_lyrics(track);
+                                if(read_lyrics) {
+                                    set_lyrics_state({ 'lyrics_visible': true, 'lyrics': read_lyrics });
+                                    return;
+                                }
+                                const lyrics = await Illusive.get_track_lryics(track);
                                 if(typeof lyrics === "object"){
                                     if(!lyrics.error.message.includes('YouTube')) {
                                         alert_error(lyrics);
@@ -380,8 +387,47 @@ function AudioPlayer(props: {
                             }}>
                                 <Ionicons name="mic-outline" size={28} color={colors.primary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={share_track}>
-                                <Ionicons name="share-outline" size={28} color={colors.primary} />
+                            <TouchableOpacity>
+                                <ContextMenuButton menuConfig={{menuTitle: "", menuItems: [
+                                    {
+                                        actionKey: "track-share-original",
+                                        actionTitle: "Raw Link",
+                                        icon: {
+                                            type: 'IMAGE_SYSTEM',
+                                            imageValue: {
+                                                systemName: 'link',
+                                            },
+                                        },
+                                    },
+                                    {
+                                        actionKey: "track-share-downloaded",
+                                        actionTitle: "Downloaded File",
+                                        menuAttributes: is_empty(playing_track.media_uri) ? ['hidden'] : undefined,
+                                        icon: {
+                                            type: 'IMAGE_SYSTEM',
+                                            imageValue: {
+                                                systemName: 'folder.circle',
+                                            },
+                                        },
+                                    },
+                                ]}} 
+                                onPressMenuItem={async({nativeEvent}) => {
+                                    const UTI = 'public.item';
+                                    switch(nativeEvent.actionKey){
+                                        case "track-share-original": 
+                                            if (!is_empty(playing_track.youtube_id))
+                                                await Sharing.shareAsync(`https://www.youtube.com/watch?v=${playing_track.youtube_id}`);
+                                            else if (!is_empty(playing_track.soundcloud_permalink))
+                                                await Sharing.shareAsync(playing_track.soundcloud_permalink!);
+                                            break;
+                                        case "track-share-downloaded": 
+                                            await Sharing.shareAsync(SQLfs.media_directory(playing_track.media_uri!) , { UTI });
+                                            break;
+                                        default: break;
+                                    }
+                                }}>
+                                    <Ionicons name="share-outline" size={28} color={colors.primary} />
+                                </ContextMenuButton>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -445,10 +491,11 @@ function AudioPlayer(props: {
                                 onValueChange={async (value) => { await TrackPlayer.setRate((value[0])); set_player_state_trackplayer({...player_state_trackplayer, rate: value[0]}) }}
                                 thumbTintColor={colors.primary}
                                 thumbStyle={{ width: 15, height: 15 }}
-                                thumbTouchSize={{ width: 40, height: 40 }}
+                                thumbTouchSize={{ width: 1, height: 1 }}
                                 minimumTrackTintColor={colors.primary}
                                 maximumTrackTintColor='#DADADA40'
                                 step={0.01}
+                                debugTouchArea={true}
                                 maximumValue={2}
                             />
                         </View>
@@ -510,15 +557,16 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     timestampslidercontainer: {
         alignItems: 'stretch',
         justifyContent: 'center',
-        bottom: 20
+        bottom: 50,
+        marginHorizontal: 40
     },
     textcontainer: {
         justifyContent: 'flex-start',
-        alignItems: 'center',
-        bottom: 0,
-        height: 100,
+        alignItems: 'flex-start',
+        top: 10,
         marginLeft: 40,
-        marginRight: 40
+        marginRight: 40,
+        zIndex: 10,
     },
     tsstyle: {
         color: '#808080'

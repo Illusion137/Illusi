@@ -1,9 +1,9 @@
 import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
-import { CompactArtist, CompactPlaylist, MusicSearchResponse, Track } from '../../lib-origin/Illusive/src/types';
+import { CompactArtist, CompactPlaylist, MusicSearchResponse, SearchSuggestion, Track } from '../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../lib-origin/Illusive/src/prefs';
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
 import { is_empty, json_catch } from '../../lib-origin/origin/src/utils/util';
@@ -14,6 +14,7 @@ import CompactPlaylistComponent from '../components/CompactPlaylistComponent';
 import CompactArtistComponent from '../components/CompactArtistComponent';
 import { ResponseError } from '../../lib-origin/origin/src/utils/types';
 import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
+import { debounce } from "lodash";
 
 function SearchScreen() {
     const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
@@ -27,7 +28,7 @@ function SearchScreen() {
     const [search_service, set_search_service] = useState<SearchService>(search_services[0]);
 
 	const [search_result, set_search_result] = useState<MusicSearchResponse>(empty_search_result);
-	const [searching_data, set_searching_data] = useState([] as string[]);
+	const [searching_data, set_searching_data] = useState<SearchSuggestion[]>([]);
 	const [is_searching, set_is_searching] = useState(true);
 	const [search_query_state, set_search_query_state] = useState('');
 	
@@ -40,12 +41,24 @@ function SearchScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
+	const input_ref = useRef<any>();
+
 	useEffect(() => {
 		(async function() { 
-			// inputRef.current?.focus();
+			input_ref.current?.focus();
 		})()
 	}, []);
-
+	const on_debounce_search_suggestion = debounce((search_query: string) => {
+		(async() => {
+			set_searching_data(
+				await Promise.all(
+					(await Illusive.get_suggestions(search_query))
+						.map(async(s) => typeof s === "string" 
+							? s 
+							: await SQLTracks.add_playback_saved_data_to_track(s))));
+		})()
+	}, 500);
+	
 	function add_from(show: boolean, track: Track|null){
 		set_modal_data({'show':show, 'track_data': track})
 	}
@@ -55,13 +68,11 @@ function SearchScreen() {
 	}
 	async function search(query: string) {
         if(is_empty(query.trim())) return false;
-		set_search_result({...empty_search_result});
-		
         await Prefs.add_to_recent_searches(query);
-
+		
 		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(search_service)!.search!(query).catch(json_catch);
 		if("error" in music_search_result){
-			alert_error(music_search_result as ResponseError);
+			alert_error(music_search_result.error as ResponseError[]);
 			return false;
 		}
 		music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
@@ -94,7 +105,7 @@ function SearchScreen() {
 				return;
 			}
 			set_is_searching(true);
-			set_searching_data(await Illusive.get_suggestions(search_query));
+			on_debounce_search_suggestion(search_query);
 		} catch (error) { Alert.alert("Error", String(error)); }
 	}
 	useEffect(() => {
@@ -104,6 +115,7 @@ function SearchScreen() {
 		get_suggestions(search_query_state);
 	},[search_query_state]);
 
+	const suggestion_value = (suggestion: SearchSuggestion) => typeof suggestion === "string" ? 0 : 1;
 
 	const render_chip_header_component = () => (
 		<View style={{height: 40}}>
@@ -129,15 +141,16 @@ function SearchScreen() {
                     <CompactPlaylistComponent playlist_data={item.item}/>
                         : <CompactArtistComponent artist_data={item.item}/>
 	)};
-	const render_query_items = (item: {item: string}) => (
-		<>
-			<TouchableHighlight style={styles.queryItems} onPress={async () => {set_search_query_state(item.item); if(await search(item.item) === true) set_is_searching(false);}}>
+	const render_query_items = (item: {item: SearchSuggestion}) => (
+		typeof item.item === "string" ? 
+		(<>
+			<TouchableHighlight style={styles.queryItems} onPress={async () => {set_search_query_state(item.item as string); if(await search(item.item as string) === true) set_is_searching(false);}}>
 				<>
 					{is_using_recent_searches && <Ionicons name={'time-outline'} color={'#808080'} size={24} style={{left: 20,}} />}
 					<Text style={styles.queryItemsText} numberOfLines={1}>{item.item}</Text>
 					<View style={{flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end', right: 50}}>
 					{is_using_recent_searches &&< TouchableOpacity hitSlop={20} onPress={async () => {
-				        set_searching_data(await Prefs.try_remove_from_recent_searches(item.item));
+				        set_searching_data(await Prefs.try_remove_from_recent_searches(item.item as string));
 					}}>
 							<Octicons name={'x'} color={colors.red} size={24} style={{left: 50, padding: 10, paddingRight: 40}} />
 						</TouchableOpacity> }
@@ -145,13 +158,13 @@ function SearchScreen() {
 				</>
 			</TouchableHighlight>
 			<View style={{width: '93%', height: 1, backgroundColor: colors.line, left: 10}}/>
-		</>
+		</>) : <TrackComponent track_data={item.item} add_from={add_from} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
 	);
 		
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
-				<TextInput value={search_query_state} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
+				<TextInput ref={input_ref} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
 					onFocus={get_previous_searches}
 					onPress={get_previous_searches}
 					onChangeText={on_text_update} 
@@ -161,7 +174,7 @@ function SearchScreen() {
 			</View>
 			<View style={styles.searchview}>
                 {render_chip_header_component()}
-            	{is_searching ? <FlatList style={styles.searchlist} data={searching_data} renderItem={render_query_items}/> : null }
+            	{is_searching ? <FlatList style={styles.searchlist} data={searching_data.sort((a, b) => suggestion_value(b) - suggestion_value(a))} renderItem={render_query_items}/> : null }
 				{!is_searching ? 
                 <FlatList
                     style={styles.searchlist}

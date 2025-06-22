@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
-import { empty_join_dot } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { empty_join_dot } from '../../../lib-origin/origin/src/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 

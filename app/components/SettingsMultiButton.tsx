@@ -53,7 +53,7 @@ function SettingsMultiButton(props: {
 const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	sectionContainer:{
 		width: '100%', 
-		height: 50, 
+		height: 40, 
 		backgroundColor: colors.track, 
 		flexDirection: 'row', 
 		alignItems: 'center'
