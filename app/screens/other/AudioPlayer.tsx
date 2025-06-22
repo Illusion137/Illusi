@@ -15,7 +15,7 @@ import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
 import * as IllusiveType from '../../../lib-origin/Illusive/src/types';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { is_empty, remove_topic } from '../../../lib-origin/origin/src/utils/util';
-import { illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
+import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, setup_track_player, track_player_next, track_player_previous } from '../../../lib-origin/Illusive/src/illusi/src/track_player_service';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { artist_string, shuffle_array } from '../../../lib-origin/Illusive/src/illusive_utilts';
@@ -23,7 +23,6 @@ import AddToPlaylistsModal from './AddToPlaylistsModal';
 import { read_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
 import ScaledImage from '../../components/ScaledImage';
 import { ContextMenuButton } from 'react-native-ios-context-menu';
-import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import * as Haptics from 'expo-haptics';
 
 const top_padding = Dimensions.get('screen').height * 0.08;
@@ -300,8 +299,8 @@ function AudioPlayer(props: {
                             minimumValue={0}
                             maximumValue={player_state_metadata.duration}
                         />
-                        <View style={{height: 10, width: 1, left: `${((begdur + ((enddur - begdur)) * Constants.previous_restart_threshold) / playing_track.duration) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
-                        <View style={{height: 10, width: 1, left: `${((begdur + ((enddur - begdur)) * Constants.update_track_threshold) / playing_track.duration) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
+                        <View style={{height: 10, width: 1, left: `${get_restart_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
+                        <View style={{height: 10, width: 1, left: `${get_metadata_update_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
                         {playing_track.meta?.begdur && begdur !== 0 ? <View style={{height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: 'absolute'}}/> : null}
                         {playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: 'absolute'}}/> : null}
                     </View>
@@ -565,7 +564,8 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         top: 10,
         height: 100,
         marginLeft: 40,
-        marginRight: 40
+        marginRight: 40,
+        zIndex: 10
     },
     tsstyle: {
         color: '#808080'

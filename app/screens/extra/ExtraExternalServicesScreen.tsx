@@ -11,7 +11,6 @@ import { MusicServiceType, SetState } from '../../../lib-origin/Illusive/src/typ
 import { if_confirm } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import ExtrasSectionButton from '../../components/ExtrasSectionButton';
 import { is_empty } from '../../../lib-origin/origin/src/utils/util';
-import { alert_info } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 
 let current_service: MusicServiceType|null = null;
 
@@ -124,7 +123,7 @@ export default function ExternalServicesScreen() {
 			</View> }
 			<ScrollView>
                 <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin-outline' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
-                { Prefs.get_pref('dev_mode') ? <ExtrasSectionButton show_arrow={false} text='Log Soundcloud Cookies' icon='accessibility' onPress={
+                {/* { Prefs.get_pref('dev_mode') ? <ExtrasSectionButton show_arrow={false} text='Log Soundcloud Cookies' icon='accessibility' onPress={
                     async () => 
                         alert_info(
                             Prefs
@@ -132,7 +131,7 @@ export default function ExternalServicesScreen() {
                                 .getCookies()
                                 .map(cookie => JSON.stringify(cookie.getData())).join('\n\n')
                         )
-                }/> : null}            
+                }/> : null} */}
 				<Text style={styles.descriptiontxt}>Click the external service you wish to add and sign into your account on the WebView</Text>
                 {illusive_external_service.map((service, i) => (
                     <ServiceSwitcher key={i} service={service} url={url!} set_url={set_url} cookies_enabled={external_services_cookies_enabled[service]}/>

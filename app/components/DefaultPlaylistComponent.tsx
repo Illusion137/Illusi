@@ -7,8 +7,8 @@ import { useState } from 'react';
 import FourTrackArtwork from './FourTrackArtwork';
 import * as SQLPlaylists from "../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
-import * as Haptics from "expo-haptics";
 import { ContextMenuView } from 'react-native-ios-context-menu';
+import { Constants } from '../../lib-origin/Illusive/src/constants';
 
 const { width } = Dimensions.get("screen");
 const item_size = width * .29;
@@ -47,7 +47,6 @@ export default function DefaultPlaylistComponent(props: {
 			}}
 			onMenuWillShow={() => {
 				set_is_playing_music(GLOBALS.global_var.is_playing);
-				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			}}
 			onPressMenuItem={async({nativeEvent}) => {
 				switch(nativeEvent.actionKey){
@@ -56,7 +55,7 @@ export default function DefaultPlaylistComponent(props: {
 				}
 			}}
 		>
-			<TouchableHighlight style={styles.default_playlist_button} onPress={navigate}>
+			<TouchableHighlight onLongPress={() => {}} delayLongPress={Constants.long_press_delay} style={styles.default_playlist_button} onPress={navigate}>
 				<View style={{justifyContent: 'center', alignItems: 'center'}}>
 					<Text style={styles.default_playlist_text}>{props.title}</Text>
 					<FourTrackArtwork four_track={props.four_track} size={item_size/2} dim={true}/>

@@ -19,7 +19,6 @@ import { upload_track_thumbnail } from '../../lib-origin/Illusive/src/illusi/src
 import { Illusive } from '../../lib-origin/Illusive/src/illusive';
 import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-menu';
-import * as Haptics from 'expo-haptics';
 import { undownload_track } from '../../lib-origin/Illusive/src/illusi/src/downloader';
 import { try_download_track_lyrics, undownload_track_lyrics } from '../../lib-origin/Illusive/src/illusi/src/lyrics';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
@@ -346,7 +345,6 @@ function TrackComponent(props: {
 			}}
 			onMenuWillShow={() => {
 				set_is_playing_music(GLOBALS.global_var.is_playing);
-				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			}}
 			onPressMenuItem={async({nativeEvent}) => {
 				const UTI = 'public.item';
@@ -365,7 +363,7 @@ function TrackComponent(props: {
 					case "track-view-artist":
 						navigation.push("Artist", {uri: props.track_data.artists[0].uri});
 						break;
-					case "track-play-album": 
+					case "track-view-album": 
 						navigation.push("Playlist", {uri: props.track_data.album!.uri});
 						break;
 
@@ -436,6 +434,7 @@ function TrackComponent(props: {
 		<TouchableOpacity
             activeOpacity={disabled_from_write_playlist ? 0.9 : 0.2}
 			disabled={disabled_from_edit_mode || (disabled_from_write_playlist && !notdisabled_from_write_playlist)}
+			onLongPress={() => {}} delayLongPress={Constants.long_press_delay}
 			style={{backgroundColor: colors.track, opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
 			onPress={async() => {
 				if(notdisabled_from_write_playlist){

@@ -50,7 +50,6 @@ import BottomAlert from './app/components/BottomAlert';
 import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
 import Artist from './app/screens/other/Artist';
 import MultiOption from './app/screens/other/MultiOption';
-import * as Haptics from 'expo-haptics';
 import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
 import ExtraStatisticsScreen from './app/screens/extra/ExtraStatisticsScreen';
 import ArtistGridRenderer from './app/screens/search/ArtistGridRenderer';
@@ -238,7 +237,6 @@ export default function App() {
             text,
             type
         });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     return (
         <GlobalStateProvider>

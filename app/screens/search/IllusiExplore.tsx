@@ -59,10 +59,11 @@ export default function IllusiExplore(){
         const updated_new_releases_length = await SQLNewReleases.new_releases_count();
         if(updated_new_releases_length - new_releases_length !== 0)
             GLOBALS.global_var.bottom_alert(`Refreshed New Releases (${updated_new_releases_length - new_releases_length})`, "INFO");
-        return get_persistant_new_releases();
+        return get_persistant_new_releases(true);
     }
 
-    async function get_persistant_new_releases(){
+    async function get_persistant_new_releases(refreshed?: boolean){
+        if(cached_new_releases.length !== 0 && refreshed !== true) return [];
         const not_seen_new_releases = await SQLNewReleases.get_not_seen_new_releases();
         cached_new_releases = not_seen_new_releases;
         set_new_releases(not_seen_new_releases);
@@ -76,19 +77,20 @@ export default function IllusiExplore(){
                 if(yt_music.has_credentials() &&
                     new Date().getTime() - Prefs.get_pref('automatic_new_releases_last_refreshed').getTime() >= milliseconds_of({days: 1}) 
                     || (new Date().getMinutes() <= 10 && new Date().getTime() - Prefs.get_pref('automatic_new_releases_last_refreshed').getTime() >= milliseconds_of({minutes: 1}))  ){
-                        push_abortion(11 * 1000, 1);
+                        push_abortion(10 * 1000, 1);
                         call_wtimeout(
-                        (async() => {
-                            const external_new_releases = await yt_music.get_new_releases!();
-                            const new_releases_length = await SQLNewReleases.new_releases_count();
-                            await SQLNewReleases.insert_all_into_new_releases(external_new_releases);
-                            const updated_new_releases_length = await SQLNewReleases.new_releases_count();
-                            await Prefs.save_pref('automatic_new_releases_last_refreshed', new Date());
-                            if(updated_new_releases_length - new_releases_length !== 0)
-                                GLOBALS.global_var.bottom_alert(`Refreshed New Releases from YTMusic (${updated_new_releases_length - new_releases_length})`, "INFO");
-                        }), 10 * 1000);
-                }
-
+                            (async() => {
+                                const external_new_releases = await yt_music.get_new_releases!();
+                                const new_releases_length = await SQLNewReleases.new_releases_count();
+                                await SQLNewReleases.insert_all_into_new_releases(external_new_releases);
+                                const updated_new_releases_length = await SQLNewReleases.new_releases_count();
+                                await Prefs.save_pref('automatic_new_releases_last_refreshed', new Date());
+                                if(updated_new_releases_length - new_releases_length !== 0)
+                                    GLOBALS.global_var.bottom_alert(`Refreshed New Releases from YTMusic (${updated_new_releases_length - new_releases_length})`, "INFO");
+                                await get_persistant_new_releases(true);
+                                set_is_loading_new_releases(false);
+                            }), 8 * 1000);
+                    }
                 await get_persistant_new_releases();
                 set_is_loading_new_releases(false);
             }

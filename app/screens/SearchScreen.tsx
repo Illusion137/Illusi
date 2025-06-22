@@ -68,13 +68,11 @@ function SearchScreen() {
 	}
 	async function search(query: string) {
         if(is_empty(query.trim())) return false;
-		set_search_result({...empty_search_result});
-		
         await Prefs.add_to_recent_searches(query);
-
+		
 		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(search_service)!.search!(query).catch(json_catch);
 		if("error" in music_search_result){
-			alert_error(music_search_result as ResponseError);
+			alert_error(music_search_result.error as ResponseError[]);
 			return false;
 		}
 		music_search_result.tracks = await SQLTracks.add_playback_saved_data_to_tracks(music_search_result.tracks);
@@ -166,7 +164,7 @@ function SearchScreen() {
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
-				<TextInput ref={input_ref} value={search_query_state} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
+				<TextInput ref={input_ref} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
 					onFocus={get_previous_searches}
 					onPress={get_previous_searches}
 					onChangeText={on_text_update} 

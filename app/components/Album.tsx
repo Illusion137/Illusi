@@ -9,7 +9,6 @@ import { play, play_track_next, push_track_to_playing_queue } from "../../lib-or
 import { empty_join_dot, is_empty, remove_topic } from '../../lib-origin/origin/src/utils/util';
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { useEffect, useState } from "react";
-import * as Haptics from "expo-haptics";
 import * as GLOBALS from '../../lib-origin/Illusive/src/illusi/src/globals';
 import * as SQLTracks from '../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import { insert_into_write_playlist } from "../../lib-origin/Illusive/src/illusi/src/components/track";
@@ -140,7 +139,6 @@ export default function Album(props: {
             onMenuWillShow={() => {
                 set_is_playing_music(GLOBALS.global_var.is_playing);
                 set_song_libary_saved(props.album_data.song_track ? SQLTracks.track_exists(props.album_data.song_track) : false);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             onPressMenuItem={({nativeEvent}) => {
                 switch(nativeEvent.actionKey){
@@ -164,7 +162,7 @@ export default function Album(props: {
                 }
                 }}
         >
-            <TouchableOpacity style={{padding: 5}} onPress={on_press}>
+            <TouchableOpacity style={{padding: 5}} onPress={on_press} onLongPress={() => {}} delayLongPress={Constants.long_press_delay}>
                 <Image source={{uri: is_empty(props.album_data.artwork_url) ? best_thumbnail(props.album_data.artwork_thumbnails)?.url : props.album_data.artwork_url}} style={{width: size, height: size, borderRadius: 5}}/>
                 <View style={{width: size}}>
                     <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 16, paddingTop: 5, width: size}} numberOfLines={1}>{props.album_data.title.name}</Text>

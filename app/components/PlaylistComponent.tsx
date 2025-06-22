@@ -6,7 +6,6 @@ import {
 	useNavigation,
 	useTheme,
 } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
 import * as SQLPlaylists from "../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
 import FourTrackArtwork from "./FourTrackArtwork";
@@ -15,6 +14,7 @@ import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { if_confirm } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 import { sprinkle_into_queue } from "../../lib-origin/Illusive/src/illusi/src/play";
+import { Constants } from "../../lib-origin/Illusive/src/constants";
 
 export default function PlaylistComponent(props: {
 	playlist_data: Playlist;
@@ -210,7 +210,6 @@ export default function PlaylistComponent(props: {
 			isContextMenuEnabled={select_mode === false}
 			onMenuWillShow={() => {
 				set_is_playing_music(GLOBALS.global_var.is_playing);
-				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			}}
 			onPressMenuItem={async({nativeEvent}) => {
 				switch(nativeEvent.actionKey){
@@ -230,6 +229,7 @@ export default function PlaylistComponent(props: {
 					opacity: disabled ? 0.5 : 1.0,
 					height: compact ? 55 : 80,
 				}}
+				onLongPress={() => {}} delayLongPress={Constants.long_press_delay}
 				onPress={select_mode ? toggle_state : on_press}
 				onLayout={!target_view_node && (({nativeEvent}: any) => {
 					set_target_view_node(nativeEvent.target)
