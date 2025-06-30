@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
 import { Slider } from '@miblanchard/react-native-slider';
 import { useTheme } from '@react-navigation/native';
-import { Animated, Button, Dimensions, Easing, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Button, Dimensions, Easing, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-track-player';
@@ -20,11 +20,13 @@ import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { artist_string, shuffle_array } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import AddToPlaylistsModal from './AddToPlaylistsModal';
-import { read_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
+import { save_track_lyrics, read_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
 import ScaledImage from '../../components/ScaledImage';
 import { ContextMenuButton } from 'react-native-ios-context-menu';
 import * as Haptics from 'expo-haptics';
+import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 
+type LyricsLoadingState = "NONE"|"LOADING"|"FAILED"|"DOWNLOADED";
 const top_padding = Dimensions.get('screen').height * 0.08;
 function AudioPlayer(props: {
     tracks: IllusiveType.Track[],
@@ -68,6 +70,8 @@ function AudioPlayer(props: {
     });
     const [player_state_type, set_player_state_type] = useState<State>(State.None);
     const [playing_track, set_playing_track] = useState<IllusiveType.Track>(props.tracks[0]);
+    const [does_track_exist, set_does_track_exist] = useState<boolean>(true);
+    const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>("NONE");
     // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
     const panel_min_height = 135 + top_padding;
     const panel_max_height = Dimensions.get('screen').height;
@@ -183,6 +187,8 @@ function AudioPlayer(props: {
         else if(event.type === Event.PlaybackActiveTrackChanged){
             if(event.index === undefined) return;
             set_playing_track(GLOBALS.global_var.playing_tracks[event.index]);
+            set_does_track_exist(SQLTracks.track_exists(GLOBALS.global_var.playing_tracks[event.index]));
+            set_lyrics_loading_state(!is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri) ? "DOWNLOADED" : "NONE")
             set_artist_data(GLOBALS.global_var.playing_tracks[event.index].artists[0]);
             set_player_state_metadata({
                 title: GLOBALS.global_var.playing_tracks[event.index]?.title,
@@ -226,7 +232,6 @@ function AudioPlayer(props: {
     const renderNowPlayingItem = (item: { item: IllusiveType.QueueTrack }) => <SongComponentQueue track_data={item.item} />;
 
     const tint = GLOBALS.global_var.tint_table.get(playing_track.uid);
-
     const begdur = playing_track.meta?.begdur ?? 0, enddur = playing_track.meta?.enddur ?? playing_track.duration;
     return (
         <SlidingUpPanel ref={panel_ref}
@@ -255,8 +260,8 @@ function AudioPlayer(props: {
                         </TouchableOpacity>
                     </Animated.View>
                     <TouchableOpacity style={{ alignItems: 'center', justifyContent: 'center', width: 250 }} disabled={panel_state.is_visible} onPress={() => panel_ref.current.show()}>
-                        <Text style={{ color: '#808080', fontSize: 12, top: panel_state.is_visible ? -4 : 19 }} numberOfLines={1}>{panel_state.is_visible ? "PLAYING FROM" : remove_topic(player_state_metadata.artist)}</Text>
-                        <Text numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state_metadata.title}</Text>
+                        <Text style={{ color: colors.subtext, fontSize: 12, top: panel_state.is_visible ? -4 : 19 }} numberOfLines={1}>{panel_state.is_visible ? "PLAYING FROM" : remove_topic(player_state_metadata.artist)}</Text>
+                        <Text numberOfLines={1} style={{ color: colors.text, fontWeight: 'bold', top: panel_state.is_visible ? -2 : -15 }}> {panel_state.is_visible ? props.playing_from : player_state_metadata.title}</Text>
                     </TouchableOpacity>
                     {panel_state.is_visible ?
                         <TouchableOpacity hitSlop={{ 'left': 20, 'top': 20, 'bottom': 20, 'right': 20 }} style={{ top: 0, right: 20 }} onPress={async () => {
@@ -284,11 +289,11 @@ function AudioPlayer(props: {
                     <View style={styles.textcontainer}>
                         <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
                         <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
-                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/>
+                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={() => panel_ref.current.hide()}/> 
                     </View>
                     <View style={{height: 45}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
-                    <View style={player_state_metadata.album?.name ? {...styles.timestampslidercontainer, bottom: 30} : styles.timestampslidercontainer}>
+                    <View style={styles.timestampslidercontainer}>
                         <Slider
                             value={player_state_trackplayer.elapsed_time}
                             onValueChange={async (val) => { await TrackPlayer.seekTo(val[0]); }}
@@ -305,12 +310,12 @@ function AudioPlayer(props: {
                         {playing_track.meta?.begdur && begdur !== 0 ? <View style={{height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: 'absolute'}}/> : null}
                         {playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: 'absolute'}}/> : null}
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 40, bottom: player_state_metadata.album?.name ? 40 : 60 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 40, bottom: 40 }}>
                         <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
                         <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
                     </View>
                     {/* PLAY CONTROLS ----------------------------------------------------*/}
-                    <View style={{ bottom: player_state_metadata.album?.name ? 35 : 55 }}>
+                    <View style={{ bottom: 35 }}>
                         <View style={styles.playbackcontainer}>
                             <TouchableOpacity onPress={reshuffle}>
                                 <Ionicons name="shuffle-sharp" size={35} color={colors.primary} />
@@ -355,38 +360,48 @@ function AudioPlayer(props: {
                         {/* EXTRA CONTROLS ----------------------------------------------------*/}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 35, top: 10 }}>
                             <TouchableOpacity onPress={async() => {
-                                const current_track_index = await TrackPlayer.getActiveTrackIndex();
-                                if(current_track_index === undefined) return;
-                                set_add_to_playlist_state({ 'show': true, 'track_data': GLOBALS.global_var.playing_tracks[current_track_index]});
+                                if(playing_track === undefined) return;
+                                else if(!does_track_exist) {
+                                    await SQLTracks.insert_track(playing_track);
+                                    set_does_track_exist(true);
+                                }
+                                else set_add_to_playlist_state({ 'show': true, 'track_data': playing_track});
                             }}>
-                                <View style={{ backgroundColor: colors.primary, height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}>
-                                    <Text>+ Add</Text>
+                                <View style={{ backgroundColor: colors.primary, height: 35, width: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
+                                    <Ionicons name={does_track_exist ? "add" : "library-outline"} size={14} color={colors.background} />
+                                    <Text>{does_track_exist ? "Add" : " Add"}</Text>
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => {set_settings_state({ 'settings_visible': true })}}>
                                 <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={async () => {
+                            { lyrics_loading_state === "LOADING" ? <ActivityIndicator size={28}/> :
+                            <TouchableOpacity disabled={lyrics_loading_state === "FAILED"} onPress={async () => {
+                                set_lyrics_loading_state("LOADING");
                                 const current_track_index = await TrackPlayer.getActiveTrackIndex();
                                 if(current_track_index === undefined) return;
                                 const track = GLOBALS.global_var.playing_tracks[current_track_index];
                                 const read_lyrics = await read_track_lyrics(track);
                                 if(read_lyrics) {
+                                    set_lyrics_loading_state("DOWNLOADED");
                                     set_lyrics_state({ 'lyrics_visible': true, 'lyrics': read_lyrics });
                                     return;
                                 }
                                 const lyrics = await Illusive.get_track_lryics(track);
                                 if(typeof lyrics === "object"){
+                                    set_lyrics_loading_state("FAILED");
                                     if(!lyrics.error.message.includes('YouTube')) {
                                         alert_error(lyrics);
                                         return;
                                     }
                                     return;
                                 }
+                                save_track_lyrics(track, lyrics);
+                                set_lyrics_loading_state("DOWNLOADED");
                                 set_lyrics_state({ 'lyrics_visible': true, 'lyrics': lyrics });
                             }}>
-                                <Ionicons name="mic-outline" size={28} color={colors.primary} />
-                            </TouchableOpacity>
+                                <Ionicons name="mic-outline" style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}} size={28} color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary} />
+                            </TouchableOpacity>}
                             <TouchableOpacity>
                                 <ContextMenuButton menuConfig={{menuTitle: "", menuItems: [
                                     {
@@ -443,7 +458,7 @@ function AudioPlayer(props: {
                         <View style={{ marginLeft: 10 }}>
                             <Button color={colors.primary} title='close' onPress={() => { set_now_playing_state({ now_playing_visible: false, queue_data: [] }) }} />
                         </View>
-                        <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Up Next</Text>
+                        <Text style={{ left: 85, color: colors.text, fontWeight: "bold", fontSize: 17 }}>Up Next</Text>
                     </View>
                     <View style={{ flex: 1, backgroundColor: colors.background }}>
                         <SwipeListView
@@ -451,9 +466,9 @@ function AudioPlayer(props: {
                             renderItem={renderNowPlayingItem}
                             ListHeaderComponent={() =>
                                 <View style={{ flex: 1, width: '100%', height: 140 }}>
-                                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Now Playing</Text>
+                                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', padding: 10 }}>Now Playing</Text>
                                     <SongComponentQueue track_data={now_playing_state.queue_data[0]}/>
-                                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700', padding: 10 }}>Up Next</Text>
+                                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', padding: 10 }}>Up Next</Text>
                                 </View>
                             }
                             renderHiddenItem={({item}) => (
@@ -545,19 +560,19 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         flexDirection: 'row'
     },
     topfrom: {
-        color: '#808080',
+        color: colors.subtext,
         fontSize: 12,
         top: -4
     },
     toptitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         top: -2
     },
     timestampslidercontainer: {
         alignItems: 'stretch',
         justifyContent: 'center',
-        bottom: 50,
+        bottom: 30,
         marginHorizontal: 40
     },
     textcontainer: {
@@ -569,15 +584,15 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         zIndex: 10,
     },
     tsstyle: {
-        color: '#808080'
+        color: colors.subtext
     },
     title: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 20,
         fontWeight: 'bold',
     },
     artist: {
-        color: '#808080'
+        color: colors.subtext
     },
     playbackcontainer: {
         justifyContent: 'space-evenly',
@@ -595,6 +610,11 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         fontSize: 24,
         margin: 15,
         marginVertical: 10
+    },
+    icon_glow: {
+        textShadowColor: colors.secondary, 
+        textShadowOffset: { width: 2, height: 2 }, 
+        textShadowRadius: 3,
     }
 });
 export default AudioPlayer;

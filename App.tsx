@@ -15,7 +15,7 @@ import { BottomAlertType, PlayingState, Track } from './lib-origin/Illusive/src/
 import GlobalStateProvider from './app/components/GlobalContext';
 import ExtraBatchDownloaderScreen from './app/screens/extra/ExtraBatchDownloaderScreen';
 import ExtraDeveloperScreen from './app/screens/extra/ExtraDeveloperScreen';
-import ExternalServicesScreen from './app/screens/extra/ExtraExternalServicesScreen';
+import ExtraExternalServicesScreen from './app/screens/extra/ExtraExternalServicesScreen';
 import ExtraLinkerScreen from './app/screens/extra/ExtraLinkerScreen';
 import ExtraPlaylistConverter from './app/screens/extra/ExtraPlaylistConverter';
 import ExtraRecoveryScreen from './app/screens/extra/ExtraRecoveryScreen';
@@ -53,6 +53,7 @@ import MultiOption from './app/screens/other/MultiOption';
 import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
 import ExtraStatisticsScreen from './app/screens/extra/ExtraStatisticsScreen';
 import ArtistGridRenderer from './app/screens/search/ArtistGridRenderer';
+import ExtraDiscordIntegrationScreen from './app/screens/extra/ExtraDiscordIntegrationScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -69,7 +70,8 @@ function ExtrasStackScreen() {
             <ExtrasStack.Screen name="Settings" component={ExtraSettingsScreen} />
             <ExtrasStack.Screen name="Miscellaneous Settings" component={ExtraMiscSettingsScreen} />
             <ExtrasStack.Screen name="Experimental Settings" component={ExtraExperimentalSettingsScreen} />
-            <ExtrasStack.Screen name="External Services" component={ExternalServicesScreen} />
+            <ExtrasStack.Screen name="Discord Integration" component={ExtraDiscordIntegrationScreen} />
+            <ExtrasStack.Screen name="External Services" component={ExtraExternalServicesScreen} />
             <ExtrasStack.Screen name="Batch Downloader" component={ExtraBatchDownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Batch Un-Downloader" component={ExtraBatchUndownloaderScreen} options={{}} />
             <ExtrasStack.Screen name="Linker" component={ExtraLinkerScreen} />

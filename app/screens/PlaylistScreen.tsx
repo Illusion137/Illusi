@@ -35,9 +35,7 @@ function PlaylistScreen() {
 	const new_playlist_ref = useRef<{ focusInput: () => void }>();
 
 	useEffect( () => {
-		if(is_focused){
-			refresh_data(undefined, true);
-		}
+		refresh_data(undefined, is_focused);
 	}, [is_focused]);
 
 	async function refresh_data(update_with?: Playlist, force_update?: boolean){

@@ -54,6 +54,8 @@ function ExtraScreen() {
 					<View style={styles.line_short}/>	
 					<ExtrasSectionButton indev={true} show_arrow={true} text='Sleep Timer' icon='timer-outline' onPress={async () => navigation.navigate('Sleep Timer')}/>
 					<View style={styles.line_short}/>
+					<ExtrasSectionButton show_arrow={true} text='Discord Integration' icon='logo-discord' onPress={async () => navigation.navigate('Discord Integration')}/>
+					<View style={styles.line_short}/>
 					<ExtrasSectionButton show_arrow={true} text='External Services' icon='cog-outline' onPress={async () => navigation.navigate('External Services')}/>
 				<View style={styles.line_long}/>
 

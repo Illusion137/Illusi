@@ -19,8 +19,9 @@
     "@distube/ytdl-core": "^4.14.4",
     "@expo/config-plugins": "~9.0.0",
     "@expo/metro-config": "~0.19.0",
-    "@expo/vector-icons": "^14.0.2",
+    "@expo/vector-icons": "~14.0.4",
     "@miblanchard/react-native-slider": "^2.6.0",
+    "@op-engineering/op-sqlite": "^14.1.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-clipboard/clipboard": "^1.12.1",
     "@react-native-community/cookies": "^5.0.1",
@@ -37,14 +38,14 @@
     "@types/probe-image-size": "^7.2.4",
     "@types/react-native-multi-slider": "^0.3.5",
     "axios": "^1.6.8",
-    "babel-plugin-react-compiler": "^19.0.0-beta-b2e8e9c-20241220",
+    "babel-plugin-react-compiler": "^19.0.0-beta-af1b7da-20250417",
     "babel-preset-expo": "^12.0.8",
     "canvas": "^3.0.0",
     "cheerio-without-node-native": "^1.0.0-rc.2",
     "eas": "^0.1.0",
     "eas-cli-local-build-plugin": "^1.0.152",
     "eslint-plugin-react-compiler": "^19.0.0-beta-b2e8e9c-20241220",
-    "expo": "^52.0.0",
+    "expo": "~52.0.47",
     "expo-audio": "~0.3.5",
     "expo-av": "~15.0.2",
     "expo-background-fetch": "~13.0.5",
@@ -62,7 +63,7 @@
     "expo-linking": "~7.0.5",
     "expo-network": "~7.0.5",
     "expo-sharing": "~13.0.1",
-    "expo-splash-screen": "~0.29.21",
+    "expo-splash-screen": "~0.29.24",
     "expo-sqlite": "~15.1.2",
     "expo-status-bar": "~2.0.1",
     "expo-task-manager": "~12.0.5",
@@ -148,5 +149,19 @@
     "typescript": "~5.3.3",
     "typescript-eslint": "^7.7.0"
   },
-  "private": true
+  "private": true,
+  "op-sqlite": {
+    "sqlcipher": false,
+    "crsqlite": false,
+    "performanceMode": true,
+    "iosSqlite": false,
+    "sqliteFlags": "-DSQLITE_DQS=0",
+    "fts5": true,
+    "rtree": true,
+    "libsql": true,
+    "sqliteVec": true,
+    "tokenizers": [
+      "simple_tokenizer"
+    ]
+  }
 }

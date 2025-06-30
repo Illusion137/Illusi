@@ -78,6 +78,10 @@ function ExtraSettingsScreen() {
 						await mass_sample_youtube_to_youtube_music();
 						GLOBALS.global_var.bottom_alert?.("FINISHED CONVERTING TRACKS", "INFO");
 					}}/>
+					<ExtrasSectionButton show_arrow={false} text='Fix Tracks Added Metadata' icon='construct-outline' onPress={async() => {
+						await SQLTracks.fix_track_added_metadata();
+						GLOBALS.global_var.bottom_alert?.("FINISHED FIXING TRACKS METADATA", "INFO");
+					}}/>
 					<Text style={styles.description_text}>Useful for those who had Illusi pre-Illusi.14.0.0</Text>
 					<ExtrasSectionButton show_arrow={false} text='Zip All Data' icon='file-tray-full-outline' onPress={async () => await zip_data()}/>
 					<View style={{height: 200}}/>

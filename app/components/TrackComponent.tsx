@@ -22,6 +22,9 @@ import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-men
 import { undownload_track } from '../../lib-origin/Illusive/src/illusi/src/downloader';
 import { try_download_track_lyrics, undownload_track_lyrics } from '../../lib-origin/Illusive/src/illusi/src/lyrics';
 import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { play_track_discord_send } from '../../lib-origin/Illusive/src/discord';
+
+const discord_app_icon = Image.resolveAssetSource(require("../../assets/discord.png"));
 
 function TrackComponent(props: {
 		track_data: Track;
@@ -34,6 +37,7 @@ function TrackComponent(props: {
 		refresh_data?: () => Promise<void>;
 		add_from?: (show: boolean, track: Track|null) => any;
 		trim_track?: (show: boolean, track_data: Track|null) => any;
+		view_info?: (show: boolean, track_data: Track|null) => any;
 	}) {
 
 	const navigation: Navigator = useNavigation();
@@ -61,29 +65,35 @@ function TrackComponent(props: {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
+    let outer_interval: any;
     let interval: any;
 	useEffect(() => {
-        const depth = Constants.download_queue_max_length;
-        const index = GLOBALS.downloading.slice(0, depth).findIndex(item => item?.uid === props.track_data.uid);
-        const is_currently_downloading = index !== -1;
-        if(is_currently_downloading){
-            set_is_downloading(true);
-            set_downloading_progress(GLOBALS.downloading[index]?.progress);
-            interval = setInterval(() => {
-                const inner_depth = Constants.download_queue_max_length;
-                const inner_index = GLOBALS.downloading.slice(0, inner_depth).findIndex(item => item?.uid === props.track_data.uid);
-                if(inner_index === -1){
-                    set_is_downloading(false);
-                    clearInterval(interval);
-                    const idx = GLOBALS.global_var.sql_tracks.findIndex(item => item.uid === props.track_data.uid);
-                    if(idx !== -1 && !is_empty(GLOBALS.global_var.sql_tracks[idx].media_uri))
-                        set_is_downloaded(true);
-                    return;
-                }
-                set_downloading_progress(GLOBALS.downloading[index]?.progress);
-            }, 4000)
-        }
-        return () => clearInterval(interval);
+		outer_interval = setInterval(() => {
+			const index = GLOBALS.downloading.findIndex(item => item?.uid === props.track_data.uid);
+			const is_currently_downloading = index !== -1;
+			if(is_currently_downloading){
+				clearInterval(outer_interval);
+				set_is_downloading(true);
+				set_downloading_progress(GLOBALS.downloading[index]?.progress);
+				interval = setInterval(() => {
+					const inner_depth = Constants.download_queue_max_length;
+					const inner_index = GLOBALS.downloading.slice(0, inner_depth).findIndex(item => item?.uid === props.track_data.uid);
+					if(inner_index === -1){
+						set_is_downloading(false);
+						clearInterval(interval);
+						const idx = GLOBALS.global_var.sql_tracks.findIndex(item => item.uid === props.track_data.uid);
+						if(idx !== -1 && !is_empty(GLOBALS.global_var.sql_tracks[idx].media_uri))
+							set_is_downloaded(true);
+						return;
+					}
+					set_downloading_progress(GLOBALS.downloading[index]?.progress);
+				}, 2000);
+			}
+		}, 2000);
+        return () => {
+			clearInterval(outer_interval);
+			clearInterval(interval);
+		};
     }, []);
   
 	useEffect(() => {
@@ -94,19 +104,20 @@ function TrackComponent(props: {
 
 	useEffect(() => {
 		set_artwork(props.track_data.playback!.artwork);
+		set_is_downloaded(!is_empty(props.track_data.media_uri));
+		set_is_lyrics_downloaded(!is_empty(props.track_data.lyrics_uri));
+		set_is_thumbnail_downloaded(!is_empty(props.track_data.thumbnail_uri));
 	}, [props.track_data]);
 
 	const menuconfig_more: MenuElementConfig[] = [
 		{
-			actionKey: "track-trim-media",
-			actionTitle: "Trim Media",
+			actionKey: "track-push-discord",
+			actionTitle: "Push Discord",
 			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'timeline.selection',
-				},
+				iconType: 'REQUIRE',
+				iconValue: discord_app_icon,
 			},
-			menuAttributes: !is_downloaded ? ['hidden'] : undefined
+			menuAttributes: is_empty(Prefs.get_pref('discord_webhook_url')) || !is_empty(props.track_data.imported_id) ? ['hidden'] : undefined
 		},
 		props.track_data.artists.length <= 1 ? {
 			actionKey: "track-view-artist",
@@ -142,6 +153,38 @@ function TrackComponent(props: {
 				},
 			},
 			menuAttributes: is_empty(props.track_data.album?.uri) ? ['hidden'] : undefined
+		},
+		{
+			menuTitle: "Attributes",
+			icon: {
+				type: 'IMAGE_SYSTEM',
+				imageValue: {
+					systemName: 'list.clipboard',
+				},
+			},
+			menuItems: [
+				{
+					actionKey: "track-trim-media",
+					actionTitle: "Trim Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'timeline.selection',
+						},
+					},
+					menuAttributes: !is_downloaded ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-view-info",
+					actionTitle: "View Track Info",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'scope',
+						},
+					},
+				},
+			]
 		},
 		{
 			menuTitle: "Share",
@@ -349,6 +392,9 @@ function TrackComponent(props: {
 			onPressMenuItem={async({nativeEvent}) => {
 				const UTI = 'public.item';
 				switch(nativeEvent.actionKey){
+					case "track-push-discord": 
+						play_track_discord_send(Prefs.get_pref('discord_webhook_url'), props.track_data);
+						break;
 					case "track-enqueue":
 						push_track_to_playing_queue(props.track_data);
 						break;
@@ -358,6 +404,9 @@ function TrackComponent(props: {
 
 					case "track-trim-media": 
 						props.trim_track?.(true, props.track_data);
+						break;
+					case "track-view-info": 
+						props.view_info?.(true, props.track_data);
 						break;
 
 					case "track-view-artist":
@@ -449,10 +498,10 @@ function TrackComponent(props: {
 				<View style={styles.centered}>
 					<Image source={artwork} style={styles.image}/>
 					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
-					{props.track_data.duration !== undefined && !isNaN(props.track_data.duration) && 
+					{!isNaN(props.track_data.duration) && !is_empty(props.track_data.duration) ? 
 						<View style={{position: 'absolute', left: duration_to_string(props.track_data.duration).left - 14, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
 							<Text style={{color:'white', fontSize:10}}>{duration_to_string(props.track_data.duration).duration}</Text>
-						</View>
+						</View> : null
 					}
 				</View>
 				<View style={{ width: props.write_playlist_uuid != undefined ? '60%' : '65%', top: 5, left: 20 }}>
@@ -463,7 +512,8 @@ function TrackComponent(props: {
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {(props.track_data?.meta?.unavailable ?? false) ? <MaterialCommunityIcons name="file-hidden" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
-                        {is_thumbnail_downloaded                    ? <Ionicons name="image-outline" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
+                        {is_thumbnail_downloaded                    ? <Ionicons name="image" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
+                        {is_lyrics_downloaded                       ? <MaterialIcons name="closed-caption" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {(is_downloaded)                            ? <Ionicons name="save-sharp" size={15} color={colors.primary} style={styles.icon_thin}/> : null}
                         {(is_downloading)                           ? <MaterialIcons name="downloading" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.youtube_id)     ? <Ionicons name="logo-youtube" size={15} color={colors.primary} style={styles.icon_thin}/> : null}
@@ -473,7 +523,6 @@ function TrackComponent(props: {
                         {!is_empty(props.track_data.applemusic_id)  ? <MaterialCommunityIcons name="apple" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.amazonmusic_id) ? <Ionicons name="logo-amazon" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {!is_empty(props.track_data.meta?.begdur) || !is_empty(props.track_data.meta?.enddur) ? <Ionicons name="cut" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
-                        {is_lyrics_downloaded                       ? <MaterialIcons name="closed-caption" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
 					</View>
 				</View>
 				{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist &&
@@ -482,13 +531,13 @@ function TrackComponent(props: {
 					}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
 				}
 				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
-                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download-outline' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
+                    <IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
 				}
 				{is_downloading && 
 					<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{downloading_progress}%</Text>
 				}
 				{props.edit_mode === "DELETE" && !is_downloading &&
-                    <IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data)} style={styles.centered} icon_name='trash-outline' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
+                    <IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid, props.refresh_data)} style={styles.centered} icon_name='trash' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
 				}
 				{props.edit_mode === "NONE" && (props.display_plays ?? false) ?
                     <Text style={{color: colors.text, left: 20, fontWeight: '200', fontSize: 30, alignSelf: 'center'}}>{props.track_data.meta?.plays ?? 0}</Text>

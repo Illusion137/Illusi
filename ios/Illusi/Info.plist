@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>16.0.2</string>
+    <string>16.1.4</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -27,6 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>illusi</string>
           <string>com.illusion137.Illusi</string>
         </array>
       </dict>
@@ -50,8 +51,6 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
     <key>NSMicrophoneUsageDescription</key>

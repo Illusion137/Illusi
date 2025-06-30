@@ -31,7 +31,7 @@ function SongComponentBackpack(props: {
 					set_disabled(true);
                     await SQLBackpack.toss_from_backpack(props.track_data)
 				}}>
-					<Ionicons name='swap-horizontal-outline' size={24} color={colors.primary}/>
+					<Ionicons name='swap-horizontal' size={24} color={colors.primary}/>
 				</TouchableOpacity>}
             </View>
 			<View style={styles.line}/>
