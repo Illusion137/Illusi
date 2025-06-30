@@ -119,27 +119,6 @@ function TrackComponent(props: {
 			},
 			menuAttributes: is_empty(Prefs.get_pref('discord_webhook_url')) || !is_empty(props.track_data.imported_id) ? ['hidden'] : undefined
 		},
-		{
-			actionKey: "track-trim-media",
-			actionTitle: "Trim Media",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'timeline.selection',
-				},
-			},
-			menuAttributes: !is_downloaded ? ['hidden'] : undefined
-		},
-		{
-			actionKey: "track-view-info",
-			actionTitle: "View Track Info",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'scope',
-				},
-			},
-		},
 		props.track_data.artists.length <= 1 ? {
 			actionKey: "track-view-artist",
 			actionTitle: "View Artist",
@@ -174,6 +153,38 @@ function TrackComponent(props: {
 				},
 			},
 			menuAttributes: is_empty(props.track_data.album?.uri) ? ['hidden'] : undefined
+		},
+		{
+			menuTitle: "Attributes",
+			icon: {
+				type: 'IMAGE_SYSTEM',
+				imageValue: {
+					systemName: 'list.clipboard',
+				},
+			},
+			menuItems: [
+				{
+					actionKey: "track-trim-media",
+					actionTitle: "Trim Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'timeline.selection',
+						},
+					},
+					menuAttributes: !is_downloaded ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-view-info",
+					actionTitle: "View Track Info",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'scope',
+						},
+					},
+				},
+			]
 		},
 		{
 			menuTitle: "Share",

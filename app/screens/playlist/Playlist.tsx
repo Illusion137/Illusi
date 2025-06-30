@@ -35,6 +35,7 @@ import { TRACK_QUERY_FLAGS } from '../../../lib-origin/Illusive/src/query_flags'
 import { download_track_list } from '../../../lib-origin/Illusive/src/illusi/src/downloader';
 import { batch_download_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
 import TrackInfoModal from '../other/TrackInfoModal';
+import { debounce } from 'lodash';
 
 let search_query = "";
 let tracks_ref: Track[] = [];
@@ -252,6 +253,12 @@ export default function Playlist(params: {route: Route<unknown>}){
         }
 	}, [is_focused]);
 
+    const on_debounce_uri_refresh = debounce(() => {
+        (async() => {
+            set_tracks((tracks) => SQLTracks.add_playback_saved_data_to_tracks(tracks))
+        })()
+    }, 1000);
+
     function exit_handler(){
         if(force_order) Prefs.prefs.always_shuffle.current_value = pre_always_shuffle;
         if(force_hide_audioplayer) Prefs.prefs.play_without_popup.current_value = pre_hide_audioplayer;
@@ -304,8 +311,14 @@ export default function Playlist(params: {route: Route<unknown>}){
 
     async function refresh_data(query?: string){
         if(writing_from_library) return;
-		search_query = query ?? (search_query ?? "");
+
+        search_query = query ?? (search_query ?? "");
         set_search_query_state(search_query);
+
+        if("uri" in ts_route.params) {
+            on_debounce_uri_refresh();
+            return;
+        }
         if(tracks.length === 0 && !("write_playlist_uuid" in ts_route.params) || "uuid" in ts_route.params){
             let playlist_tracks = initial_tracks;
             if("default_playlist_title" in ts_route.params){

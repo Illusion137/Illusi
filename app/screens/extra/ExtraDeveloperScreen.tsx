@@ -30,7 +30,7 @@ export default function ExtraDeveloperScreen(){
 
 	async function runSQL(sql_statement: string){
 		if(!sql_statement.trim()) return;
-		const result = await SQLDatabase.db.runAsync(sql_statement);
+		const result = await SQLDatabase.db.execute(sql_statement);
 		Alert.alert("SQL Result", JSON.stringify(result));
 	}
 
