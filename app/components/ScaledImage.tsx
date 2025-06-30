@@ -14,27 +14,35 @@ export default function ScaledImage(props: {
     const [image_loading, set_image_loading] = useState<boolean>(true);
 
     useEffect(() => {
-        Image.getSize(typeof props.artwork === "object" ? props.artwork.uri : props.artwork as any, (width1, height1) => {
-            if (props.width && !props.height) {
-                set_width(props.width);
-                set_height(props.width);
-                props.set_size?.({width: props.width, height: props.width});
-                // set_height(height1 * (props.width / width1));
-            } else if (!props.width && props.height) {
-                set_width(width1 * (props.height / height1));
-                set_height(props.height);
-            } else {
-                set_width(width1);
-                set_height(height1);
-            }
-            set_image_loading(false);
-        }, (error) => {
-            set_width(props.width);
-            set_height(props.width);
-            props.set_size?.({width: props.width!, height: props.width!});
-            set_image_loading(false);
-            console.error(error);
-        })
+        set_width(props.width);
+        set_height(props.width);
+        props.set_size?.({width: props.width!, height: props.width!});
+        set_image_loading(false);
+        // Image.getSize(typeof props.artwork === "object" ? props.artwork.uri : props.artwork as any, (width1, height1) => {
+        //     width1; height1;
+        //     set_width(props.width);
+        //     set_height(props.width);
+        //     props.set_size?.({width: props.width!, height: props.width!});
+        //     // if (props.width && !props.height) {
+        //     //     set_width(props.width);
+        //     //     set_height(props.width);
+        //     //     props.set_size?.({width: props.width, height: props.width});
+        //     //     // set_height(height1 * (props.width / width1));
+        //     // } else if (!props.width && props.height) {
+        //     //     set_width(width1 * (props.height / height1));
+        //     //     set_height(props.height);
+        //     // } else {
+        //     //     set_width(width1);
+        //     //     set_height(height1);
+        //     // }
+        //     set_image_loading(false);
+        // }, (error) => {
+        //     set_width(props.width);
+        //     set_height(props.width);
+        //     props.set_size?.({width: props.width!, height: props.width!});
+        //     set_image_loading(false);
+        //     console.error(error);
+        // })
     }, [])
 
 

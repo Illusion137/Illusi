@@ -18,7 +18,6 @@ import { debounce } from "lodash";
 
 function SearchScreen() {
     const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
-    
     type SearchMode = "Smart" | "Tracks" | "Albums" | "Artists" | "Playlists";
     const search_modes: SearchMode[] = ["Tracks", "Albums", "Artists", "Playlists"];
     const [search_mode, set_search_mode] = useState<SearchMode>("Smart");
@@ -146,7 +145,7 @@ function SearchScreen() {
 		(<>
 			<TouchableHighlight style={styles.queryItems} onPress={async () => {set_search_query_state(item.item as string); if(await search(item.item as string) === true) set_is_searching(false);}}>
 				<>
-					{is_using_recent_searches && <Ionicons name={'time-outline'} color={'#808080'} size={24} style={{left: 20,}} />}
+					{is_using_recent_searches && <Ionicons name={'time'} color={'#808080'} size={24} style={{left: 20,}} />}
 					<Text style={styles.queryItemsText} numberOfLines={1}>{item.item}</Text>
 					<View style={{flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end', right: 50}}>
 					{is_using_recent_searches &&< TouchableOpacity hitSlop={20} onPress={async () => {
@@ -164,7 +163,7 @@ function SearchScreen() {
 	return (
 		<View style={styles.topcontainer}>
 			<View style={styles.wrapper}>
-				<TextInput ref={input_ref} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
+				<TextInput value={search_query_state} ref={input_ref} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
 					onFocus={get_previous_searches}
 					onPress={get_previous_searches}
 					onChangeText={on_text_update} 

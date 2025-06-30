@@ -58,7 +58,7 @@ export function clear_webview_data(){
     CookieManager.clearAll(true);
 }
 
-export default function ExternalServicesScreen() {
+export default function ExtraExternalServicesScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
@@ -122,7 +122,7 @@ export default function ExternalServicesScreen() {
 						/>
 			</View> }
 			<ScrollView>
-                <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin-outline' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
+                <ExtrasSectionButton show_arrow={false} text='Clear WebView Data' icon='trash-bin' onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)}/>            
                 {/* { Prefs.get_pref('dev_mode') ? <ExtrasSectionButton show_arrow={false} text='Log Soundcloud Cookies' icon='accessibility' onPress={
                     async () => 
                         alert_info(

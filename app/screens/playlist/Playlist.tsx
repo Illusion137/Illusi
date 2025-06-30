@@ -7,6 +7,7 @@ import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals';
+import * as SQLUtils from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_utils';
 import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks';
 import * as SQLPlaylists from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
 import { EditMode, NamedUUID, Route, Track } from '../../../lib-origin/Illusive/src/types';
@@ -31,6 +32,9 @@ import LibraryTrackList from '../../components/LibraryTrackList';
 import TrimTrackModal from '../other/TrimTrackModal';
 import SearchBarV1 from '../../components/SearchBarV1';
 import { TRACK_QUERY_FLAGS } from '../../../lib-origin/Illusive/src/query_flags';
+import { download_track_list } from '../../../lib-origin/Illusive/src/illusi/src/downloader';
+import { batch_download_track_lyrics } from '../../../lib-origin/Illusive/src/illusi/src/lyrics';
+import TrackInfoModal from '../other/TrackInfoModal';
 
 let search_query = "";
 let tracks_ref: Track[] = [];
@@ -49,7 +53,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     const writing_from_library: boolean = "write_playlist_uuid" in ts_route.params && ts_route.params.serialized_playlist_data.type === Constants.library_write_playlist;
 
     const navigation: NavigationProp<any, any> = useNavigation();
-    const { colors } = useTheme() as Prefs.Theme;
+    const { colors, dark } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
 
 	const library_ref = useRef<typeof LibraryTrackList>();
@@ -60,7 +64,8 @@ export default function Playlist(params: {route: Route<unknown>}){
     const [edit_mode_state, set_edit_mode_state] = useState<EditMode>("NONE");
     const [continuation, set_continuation] = useState<unknown>();
     const [search_query_state, set_search_query_state] = useState<string>("");
-    const [trim_track_state, set_trim_track_state] = useState({show: false, track_data: null as Track|null});    
+    const [trim_track_state, set_trim_track_state] = useState({show: false, track_data: null as Track|null}); 
+    const [track_info_state, set_track_info_state] = useState({show: false, track_data: null as Track|null});   
 
     function getShortcut(): ShortcutOptions{
         const key = "uuid" in ts_route.params ? ts_route.params.uuid : ("default_playlist_title" in ts_route.params) ? ts_route.params.default_playlist_title : "";
@@ -83,7 +88,7 @@ export default function Playlist(params: {route: Route<unknown>}){
         menuTitle: '',
         menuItems: [
             {
-                menuTitle: "Batch Modes",
+                menuTitle: "Quick Modes",
                 menuOptions: ['displayInline'],
                 menuItems: [
                     {
@@ -136,6 +141,66 @@ export default function Playlist(params: {route: Route<unknown>}){
                 },
             },
             {
+                menuTitle: "Batch Download",
+                menuItems: [
+                    {
+                        actionKey  : 'playlist-actions-batch-download-media',
+                        actionTitle: 'Download Media',
+                        menuAttributes: tracks.every(track => !is_empty(track.media_uri)) ? ['disabled'] : undefined,
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageOptions: {
+                                tint: colors.secondary,
+                                renderingMode: 'alwaysOriginal',
+                            },
+                            imageValue: {
+                                systemName: 'music.note',
+                            },
+                        },
+                    }, 
+                    {
+                        actionKey  : 'playlist-actions-batch-download-thumbnails',
+                        actionTitle: 'Download Thumbnails',
+                        menuAttributes: tracks.every(track => !is_empty(track.thumbnail_uri)) ? ['disabled'] : undefined,
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageOptions: {
+                                tint: colors.secondary,
+                                renderingMode: 'alwaysOriginal',
+                            },
+                            imageValue: {
+                                systemName: 'photo.artframe',
+                            },
+                        },
+                    }, 
+                    {
+                        actionKey  : 'playlist-actions-batch-download-lyrics',
+                        actionTitle: 'Download Lyrics',
+                        menuAttributes: tracks.every(track => !is_empty(track.lyrics_uri)) ? ['disabled'] : undefined,
+                        icon: {
+                            type: 'IMAGE_SYSTEM',
+                            imageOptions: {
+                                tint: colors.secondary,
+                                renderingMode: 'alwaysOriginal',
+                            },
+                            imageValue: {
+                                systemName: 'mic.fill',
+                            },
+                        },
+                    },
+                ],
+                icon: {
+                    type: 'IMAGE_SYSTEM',
+                    imageOptions: {
+                        tint: colors.secondary,
+                        renderingMode: 'alwaysOriginal',
+                    },
+                    imageValue: {
+                        systemName: 'square.and.arrow.down',
+                    },
+                },
+            },
+            {
                 actionKey  : 'playlist-actions-shortcut',
                 actionTitle: 'Make Shortcut',
                 icon: {
@@ -182,6 +247,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     useEffect( () => {
         if(is_focused){
             search_query = "";
+            SQLUtils.set_global_sql_tracks_update_callback(refresh_data);
             refresh_data();
         }
 	}, [is_focused]);
@@ -339,13 +405,14 @@ export default function Playlist(params: {route: Route<unknown>}){
                         display_plays={"default_playlist_title" in ts_route.params && ts_route.params.default_playlist_title === "Most Played"}
                         edit_mode={edit_mode_state} 
                         trim_track={(show: boolean, track_data: Track|null) => set_trim_track_state({show: show, track_data: track_data})}
+                        view_info={(show: boolean, track_data: Track|null) => set_track_info_state({show: show, track_data: track_data})}
                         write_playlist_uuid={"uri" in ts_route.params ? Constants.library_write_playlist : "write_playlist_uuid" in ts_route.params ? ts_route.params.write_playlist_uuid : undefined} 
                         refresh_data={refresh_data}/>
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
             <FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={Dimensions.get('screen').width / 2} base_view_style={{top: -Dimensions.get('screen').height / 6}}/>
-            <BlurView intensity={50} tint='dark' style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+            <BlurView intensity={50} tint={dark ? 'dark' : 'extraLight'} style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
                 <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 260}}/>
             </BlurView>
             <View style={{alignItems: 'center', width: '75%', top: 60, height: 40, zIndex: 2}}>
@@ -408,6 +475,18 @@ export default function Playlist(params: {route: Route<unknown>}){
                                     case "playlist-actions-delete-mode":
                                         set_edit_mode_state("DELETE");
                                         break;
+                                    case "playlist-actions-batch-download-media":
+                                        await download_track_list(tracks);
+                                        refresh_data();
+                                        break;
+                                    case "playlist-actions-batch-download-thumbnails":
+                                        await SQLTracks.restore_thumbnail_cache(tracks);
+                                        GLOBALS.global_var.bottom_alert("Downloaded all available thumbnails", "INFO");
+                                        break;
+                                    case "playlist-actions-batch-download-lyrics":
+                                        await batch_download_track_lyrics(tracks);
+                                        GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
+                                        break;
                                     case "playlist-actions-shortcut":
                                         presentShortcut(getShortcut(), (data) => data);
                                         break;
@@ -420,7 +499,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                                 }
                             }}
                         >
-                            <Ionicons name='ellipsis-horizontal-outline' size={40} color={colors.primary}/>
+                            <Ionicons name='ellipsis-horizontal' size={40} color={colors.primary}/>
                         </ContextMenuButton> 
                     </TouchableOpacity>
                     : null }
@@ -451,6 +530,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                 }
             </View>
             <TrimTrackModal modal_data={trim_track_state} set_modal_data={set_trim_track_state} callback={() => {}}/>
+            <TrackInfoModal modal_data={track_info_state} set_modal_data={set_track_info_state} callback={() => {}}/>
         </View>
     );
 }

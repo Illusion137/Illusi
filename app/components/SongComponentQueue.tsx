@@ -45,7 +45,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		left: 20
 	},
 	title:{
-		color: '#D0D0D0',
+		color: colors.text,
 		fontSize:15,
 	},
 	artist:{

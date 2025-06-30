@@ -156,7 +156,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                 }
             }}>
                 <TouchableOpacity style={{justifyContent: 'center', alignItems: 'center', paddingTop: 20}}>
-                    <Ionicons style={{position: 'absolute', zIndex: 10, top: "45%"}} size={50} name='pencil-outline' color={'white'}/>
+                    <Ionicons style={{position: 'absolute', zIndex: 10, top: "45%"}} size={50} name='pencil' color={'white'}/>
                     <FourTrackArtwork size={100} thumbnail_uri={playlist_data.thumbnail_uri} four_track={playlist_data.visual_data?.four_track ?? []} dim={true} dim_amount={0.4}/>
                 </TouchableOpacity>
             </ContextMenuButton>
@@ -206,7 +206,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                             <View key={i}>
                                 <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 40}}>
                                     <Text style={title ? styles.inherit_text : styles.unavailable_inherit_text} numberOfLines={1}>{title ?? item.uuid} - {item.mode}</Text>
-                                    <IoniconsTouchableOpacity icon_name="close-outline" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_playlist(item)} hitslop={10}/>
+                                    <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_playlist(item)} hitslop={10}/>
                                 </View>
                                 <View style={styles.line}/>
                             </View>
@@ -234,7 +234,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
                         <View key={i}>
                             <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 50}}>
                                 <Text style={styles.inherit_text} numberOfLines={1}>{item.query} - {item.mode}</Text>
-                                <IoniconsTouchableOpacity icon_name="close-outline" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_search(item)} hitslop={10}/>
+                                <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_search(item)} hitslop={10}/>
                             </View>
                             <View style={styles.line}/>
                         </View>

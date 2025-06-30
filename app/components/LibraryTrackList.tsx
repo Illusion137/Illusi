@@ -4,19 +4,18 @@ import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import * as GLOBALS from "../../lib-origin/Illusive/src/illusi/src/globals";
-import * as SQLTracks from "../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks";
+import * as SQLUtils from "../../lib-origin/Illusive/src/illusi/src/sql/sql_utils";
 import * as SQLPlaylists from "../../lib-origin/Illusive/src/illusi/src/sql/sql_playlists";
 import { AlphabetScroll, EditMode, Track } from "../../lib-origin/Illusive/src/types";
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "../../lib-origin/Illusive/src/illusi/src/play";
 import { track_query_filter, track_section_map } from '../../lib-origin/Illusive/src/illusive_utilts';
-// import { ExampleObj } from "../../lib-origin/Illusive/src/illusi/src/example_objs";
-// import EditTrackModal from "./EditTrackModal";
 import { on_alphabet_scroll_update } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 import ShufflePlayButton from "./ShufflePlayButton";
 import React from "react";
 import { is_empty } from "../../lib-origin/origin/src/utils/util";
 import TrimTrackModal from "../screens/other/TrimTrackModal";
+import TrackInfoModal from "../screens/other/TrackInfoModal";
 
 let search_query = "";
 function LibraryTrackList(props: {
@@ -35,6 +34,7 @@ function LibraryTrackList(props: {
 	const [all_data, set_all_data] = useState({char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0});
 	// const [edit_track_modal_data, _] = useState({visible: false, track: ExampleObj.track_example0});
 	const [trim_track_state, set_trim_track_state] = useState({show: false, track_data: null as Track|null});
+	const [track_info_state, set_track_info_state] = useState({show: false, track_data: null as Track|null});
 
     const alphabet_scroll: AlphabetScroll = {
 		all_alphabet_fast_scroll_locations: [] as number[],
@@ -49,6 +49,7 @@ function LibraryTrackList(props: {
         refresh_data,
     }));    
     useEffect( () => {
+		SQLUtils.set_global_sql_tracks_update_callback(refresh_data);
 		if(props.refresh_query_on_focus ?? false){
 			search_query = "";
 		}
@@ -59,12 +60,10 @@ function LibraryTrackList(props: {
 	}, [props.edit_mode]);
 
 	async function refresh_data(query: (string|undefined) = undefined){
-		search_query = query ?? "";
-		
-		if(is_empty(query)) await SQLTracks.fetch_track_data();
+		search_query = query ?? (search_query ?? "");
 		
         const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
-		const section_map = track_section_map(tracks, !is_empty(query));
+		const section_map = track_section_map(tracks, !is_empty(search_query));
 
 		set_all_data({char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length});
 	}
@@ -93,7 +92,8 @@ function LibraryTrackList(props: {
 			edit_mode={props.edit_mode} 
 			write_playlist_uuid={props.write_playlist_uuid}
 			refresh_data={async () => await refresh_data(search_query)} 
-			trim_track={(show: boolean, track_data: Track|null) => set_trim_track_state({show: show, track_data: track_data})}/>);
+			trim_track={(show: boolean, track_data: Track|null) => set_trim_track_state({show: show, track_data: track_data})}
+			view_info={(show: boolean, track_data: Track|null) => set_track_info_state({show: show, track_data: track_data})}/>);
 	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20}/>;
 
 	const section_header = (index: number) => <View style={styles.section_header}><Text style={styles.section_text}>{all_data.char_data[index]}</Text></View>
@@ -139,7 +139,7 @@ function LibraryTrackList(props: {
 				))}
 			</Animated.View>
 			<TrimTrackModal modal_data={trim_track_state} set_modal_data={set_trim_track_state} callback={() => {}}/>
-            {/* <EditTrackModal visible={edit_track_modal_data.visible} track={edit_track_modal_data.track}/> */}
+			<TrackInfoModal modal_data={track_info_state} set_modal_data={set_track_info_state} callback={() => {}}/>
         </>
     )
 }

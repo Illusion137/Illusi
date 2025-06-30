@@ -66,6 +66,8 @@ export default function TrimTrackModal(props: {
             props.set_modal_data({'show':false, 'track_data': null});
         }}>
             <View style={{flex: 1, backgroundColor: colors.background}}>
+                {props.modal_data.show ? (
+                <>
                 <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
                     <Button color={colors.primary} title={'Cancel'} onPress={() => {
                         props.set_modal_data({'show':false, 'track_data': null});
@@ -134,6 +136,7 @@ export default function TrimTrackModal(props: {
                 <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, top: "10%", backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center'}} onPress={async() => save_selection()}>
                     <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Save Trimming</Text>
                 </TouchableOpacity>
+                </>) : null}
             </View>
         </Modal>
     );

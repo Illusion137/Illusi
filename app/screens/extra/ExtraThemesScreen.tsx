@@ -119,7 +119,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 		alignItems: 'center'
 	},
 	btnsectionText:{
-		color: '#FFFFFF',
+		color: colors.text,
 		fontSize: 16,
 		left:20
 	},
@@ -141,12 +141,12 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         flexDirection: 'row'
     },
     topfrom: {
-        color: '#808080',
+        color: colors.subtext,
         fontSize: 12,
         top: -4
     },
     toptitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         top: -2
     },
@@ -164,15 +164,15 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         marginRight: 40
     },
     tsstyle: {
-        color: '#808080'
+        color: colors.subtext
     },
     title: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 20,
         fontWeight: 'bold',
     },
     artist: {
-        color: '#808080'
+        color: colors.subtext
     },
     playbackcontainer: {
         justifyContent: 'space-evenly',
