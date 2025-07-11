@@ -27,7 +27,7 @@ export default function SearchHomeScreen(){
             <LinearGradient
                 colors={[colors.primary, colors.background]}
                 locations={[0.05, 0.2]}
-                end={{x: 1.5, y: 2}}
+                end={{x: 1.5, y: 2.3}}
                 style={styles.topContainer}>
                 <View style={styles.wrapper}>
                     <TextInput onPressIn={() => {toggle = !toggle; set_search_screen_state(toggle)}} autoCorrect={false} placeholder='Search' placeholderTextColor={'#808080'} style={styles.searchinput}/>

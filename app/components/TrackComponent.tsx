@@ -61,6 +61,7 @@ function TrackComponent(props: {
 	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode  !== "NONE";
 
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
+	const is_saved = playlist_saved || (props.track_data.downloading_data?.saved ?? false);
 
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
@@ -187,6 +188,94 @@ function TrackComponent(props: {
 			]
 		},
 		{
+			menuTitle: "Offline",
+			icon: {
+				type: 'IMAGE_SYSTEM',
+				imageValue: {
+					systemName: 'arrow.down.circle.dotted',
+				},
+			},
+			menuItems: [
+				{
+					actionKey: "track-download-thumbnail",
+					actionTitle: "Download Thumbnail",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_thumbnail_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-upload-artwork",
+					actionTitle: "Upload Artwork",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'photo.artframe',
+						},
+					},
+					menuAttributes: !is_saved? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-download-media",
+					actionTitle: "Download Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-download-lyrics",
+					actionTitle: "Download Lyrics",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_lyrics_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-remove-artwork",
+					actionTitle: "Remove Artwork",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_thumbnail_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+				{
+					actionKey: "track-delete-media",
+					actionTitle: "Delete Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+				{
+					actionKey: "track-delete-lyrics",
+					actionTitle: "Delete Lyrics",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_lyrics_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+			]
+		},
+		{
 			menuTitle: "Share",
 			icon: {
 				type: 'IMAGE_SYSTEM',
@@ -219,104 +308,6 @@ function TrackComponent(props: {
 			]
 		},
 		{
-			menuTitle: "Offline",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'arrow.down.circle.dotted',
-				},
-			},
-			menuItems: [
-				{
-					actionKey: "track-download-media",
-					actionTitle: "Download Media",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-delete-media",
-					actionTitle: "Delete Media",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_downloaded ? ['hidden'] : ['destructive']
-				},
-				{
-					actionKey: "track-download-lyrics",
-					actionTitle: "Download Lyrics",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_lyrics_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-delete-lyrics",
-					actionTitle: "Delete Lyrics",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_lyrics_downloaded ? ['hidden'] : ['destructive']
-				},
-			]
-		},
-		{
-			menuTitle: "Artwork",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'photo',
-				},
-			},
-			menuItems: [
-				{
-					actionKey: "track-download-thumbnail",
-					actionTitle: "Download Thumbnail",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_thumbnail_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-upload-artwork",
-					actionTitle: "Upload Artwork",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'photo.artframe',
-						},
-					}
-				},
-				{
-					actionKey: "track-remove-artwork",
-					actionTitle: "Remove Artwork",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_thumbnail_downloaded ? ['hidden'] : ['destructive']
-				},
-			]
-		},
-		{
 			menuTitle: "Destructive",
 			menuOptions: ['destructive'],
 			icon: {
@@ -329,7 +320,7 @@ function TrackComponent(props: {
 				{
 					actionKey: "track-delete",
 					actionTitle: "Delete",
-					menuAttributes: ['destructive'],
+					menuAttributes:  !is_saved ? ['hidden'] : ['destructive'],
 					icon: {
 						type: 'IMAGE_SYSTEM',
 						imageValue: {

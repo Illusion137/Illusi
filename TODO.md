@@ -1,6 +1,6 @@
 # Misc
 # Bugs
-
+- [ ] Allow for other query flags when using strict mode
 # Features
 - [ ] Store track play iso-dates in SQLite Database
 - [ ] Equalizer

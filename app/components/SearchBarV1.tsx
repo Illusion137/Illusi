@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { is_empty } from "../../lib-origin/origin/src/utils/util";
 import { QueryFlag } from "../../lib-origin/Illusive/src/types";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
+import { ANTI_QUERY_FLAG_PREFIX } from "../../lib-origin/Illusive/src/query_flags";
 
 export default function SearchBarV1(props: TextInputProps & {query_flags?: QueryFlag<any>[]} & {background_color?: string}) {
     const { colors } = useTheme() as Prefs.Theme;
@@ -19,20 +20,27 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
     const autocomplete_scrollview_ref = useRef<ScrollView>(null);
 
     function on_selection_change(e: NativeSyntheticEvent<TextInputSelectionChangeEventData>){
-        if(query_ref.current.includes('@')){
-            let start_prefix_index = e.nativeEvent.selection.start - 1;
+        const strict_mode_change = (use_strict_search ? 4 : 0);
+        if(query_ref.current.includes('@') || query_ref.current.includes('!')){
+            let start_prefix_index = e.nativeEvent.selection.start - 1 + strict_mode_change;
             for(let i = start_prefix_index; i >= 0; i--){
                 if(is_empty(query_ref.current[i])){
                     start_prefix_index = -1;
                     break;
                 }
-                if(query_ref.current[i] === '@'){
+                if(query_ref.current[i] === '!'){
                     start_prefix_index = i;
+                    break;
+                }
+                if(query_ref.current[i] === '@'){
+                    if(query_ref.current[i - 1] === "!")
+                        start_prefix_index = i - 1;
+                    else start_prefix_index = i;
                     break;
                 }
             }
             if(start_prefix_index !== -1){
-                const section = query_ref.current.slice(start_prefix_index, e.nativeEvent.selection.start);
+                const section = query_ref.current.slice(start_prefix_index, e.nativeEvent.selection.start + strict_mode_change);
                 set_flag_query_section(section);
                 autocomplete_scrollview_ref.current?.flashScrollIndicators();
             }
@@ -63,7 +71,9 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
         autocomplete_scrollview_ref.current?.flashScrollIndicators();
     },[autocomplete_scrollview_ref.current])
 
-    const filtered_query_flags = (props.query_flags ?? []).filter(flag => flag.flag.startsWith(flag_query_section ?? "-"));
+    const maybe_query_flags = props.query_flags ?? [];
+    const filtered_query_flags = maybe_query_flags.concat(maybe_query_flags.map(query_flag => ({...query_flag, flag: ANTI_QUERY_FLAG_PREFIX + query_flag.flag, description: "NOT " + query_flag.description})))
+        .filter(flag => flag.flag.startsWith(flag_query_section ?? "-"));
 
     return (
         <>
@@ -96,11 +106,11 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
                     borderBottomRightRadius: 10, // Bottom Right Corner
                 }}/>
                 <IoniconsTouchableOpacity icon_name="scan-circle-outline" icon_color={use_strict_search ? colors.primary : colors.subtext} icon_size={25} icon_style={{}} on_press={on_toggle_strict_mode} hitslop={5} style={{position: 'absolute', left: show_clear_button ? '83%' : '92%', top: '15%'}}/>
-                {show_clear_button ? <IoniconsTouchableOpacity icon_name="close-circle-outline" icon_color={colors.subtext} icon_size={25} icon_style={{}} on_press={() => {input_ref.current?.clear(); on_change_text("")}} hitslop={5} style={{position: 'absolute', left: '92%', top: '15%'}}/> : null}
+                {show_clear_button ? <IoniconsTouchableOpacity icon_name="close-circle-outline" icon_color={colors.subtext} icon_size={25} icon_style={{}} on_press={() => {input_ref.current?.clear(); on_change_text(""); set_flag_query_section(undefined);}} hitslop={5} style={{position: 'absolute', left: '92%', top: '15%'}}/> : null}
             </View>
-            {!use_strict_search && props.query_flags && flag_query_section && input_focused && filtered_query_flags.length !== 0 ? <ScrollView ref={autocomplete_scrollview_ref} style={{position: 'absolute', width: "103%", maxHeight: 400, backgroundColor: '#000000B0', top: 40, zIndex: 5, paddingHorizontal: 10}}>
-                {filtered_query_flags.map(flag => (
-                    <View key={flag.flag} style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 1}}>
+            {props.query_flags && flag_query_section && input_focused && filtered_query_flags.length !== 0 ? <ScrollView ref={autocomplete_scrollview_ref} style={{position: 'absolute', width: "103%", maxHeight: 400, backgroundColor: '#000000B0', top: 40, zIndex: 5, paddingHorizontal: 10}}>
+                {filtered_query_flags.map((flag, i) => (
+                    <View key={flag.flag + String(i)} style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 1}}>
                         <Text style={{color: colors.text}}>{flag.flag}</Text>
                         <View style={{width: 20}}/>
                         <Text style={{color: colors.text}}>{flag.description}</Text>

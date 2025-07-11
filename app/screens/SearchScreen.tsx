@@ -15,6 +15,7 @@ import CompactArtistComponent from '../components/CompactArtistComponent';
 import { ResponseError } from '../../lib-origin/origin/src/utils/types';
 import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
 import { debounce } from "lodash";
+import { IoniconsTouchableOpacity } from '../components/TouchableIconOpacity';
 
 const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
 const empty_statefull_search_result: StatefullMusicSearchResponse = {state: "NONE", search_data: empty_search_result};
@@ -30,6 +31,8 @@ function SearchScreen() {
 	const [search_result, set_search_result] = useState<StatefullMusicSearchResponse>(empty_statefull_search_result);
 	const [searching_data, set_searching_data] = useState<SearchSuggestion[]>([]);
 	const [search_query_state, set_search_query_state] = useState('');
+
+    const [show_clear_button, set_show_clear_button] = useState<boolean>(false);
 	
     const [modal_data, set_modal_data] = useState({'show': false, 'track_data': null as Track|null});
 
@@ -59,7 +62,7 @@ function SearchScreen() {
 	}
 	function get_previous_searches(){
 		set_search_result(empty_statefull_search_result);
-		set_searching_data(Prefs.get_pref('recent_searches'));
+		get_suggestions(search_query_state);
 	}
 	async function search(query: string, service?: MusicServiceType) {
         if(is_empty(query.trim())) return;
@@ -80,7 +83,9 @@ function SearchScreen() {
 		await search(search_query_state);
 	}
 	async function on_text_update(search_query: string){
-		set_search_query_state(search_query); 
+		set_search_query_state(search_query);
+		if(search_query.length > 0) set_show_clear_button(true);
+        else set_show_clear_button(false);
 	}
     function on_search_service_chip_press(service: SearchService){
         set_search_service(service);
@@ -156,14 +161,15 @@ function SearchScreen() {
 		
 	return (
 		<View style={styles.topcontainer}>
+			<View style={{height: 70}}/>
 			<View style={styles.wrapper}>
 				<TextInput value={search_query_state} ref={input_ref} autoCorrect={false} placeholder='Search' placeholderTextColor={colors.subtext} style={styles.searchinput} 
 					onFocus={get_previous_searches}
 					onPress={get_previous_searches}
 					onChangeText={on_text_update} 
-					onEndEditing={on_end_editing}
-					// onSubmitEditing={async() => {if(await Search(searchQuery) == null){return;} setSearchingMode(false)}}
+					onSubmitEditing={on_end_editing}
 					/>
+				{show_clear_button ? <IoniconsTouchableOpacity icon_name="close-circle-outline" icon_color={colors.subtext} icon_size={25} icon_style={{}} on_press={() => {input_ref.current?.clear(); on_text_update("");}} hitslop={5} style={{position: 'absolute', left: '85%', top: '22%'}}/> : null}
 			</View>
 			<View style={styles.searchview}>
                 {render_chip_header_component()}
@@ -187,13 +193,12 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	},
 	wrapper:{
 		// justifyContent: 'center',
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	searchinput:{
 		color: '#F0F0F0',
 		backgroundColor: colors.searchInput,
 		padding: 15,
-		top: 70,
 		borderRadius: 30,
 		width: '90%',
 	},
@@ -201,7 +206,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 
 	},searchview:{
 		backgroundColor: colors.background,
-		top: 80,
+		top: 10,
 		height: '83%'
 	},
 	queryItemsText:{
