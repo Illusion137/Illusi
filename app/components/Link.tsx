@@ -5,6 +5,7 @@ import { LinkerLink } from "../../lib-origin/Illusive/src/types";
 import { Prefs } from "../../lib-origin/Illusive/src/prefs";
 import { Illusive } from "../../lib-origin/Illusive/src/illusive";
 import { music_service_uri_to_music_service, split_uri } from "../../lib-origin/Illusive/src/illusive_utilts";
+import { resolved_artwork } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 
 export default function Link(props: {
 	linker_link: LinkerLink
@@ -30,7 +31,7 @@ export default function Link(props: {
 				flexDirection: "row",
 			}}>
 				<Image 
-					source={ (typeof from_service!.app_icon === "number" ) ? from_service!.app_icon : {uri: from_service.app_icon, cache: 'force-cache'}}
+					source={resolved_artwork(from_service!.app_icon)}
 					style={{ marginLeft: 5, width: 30, height: 30, borderRadius: 5}}
 				/>
 				<View style={{flexDirection: 'column', marginLeft: 8, width: '40%'}}>
@@ -38,7 +39,7 @@ export default function Link(props: {
 					<Text numberOfLines={1} style={{color: colors.text}}>Full Sample: {String(props.linker_link.full_sample)}</Text>
 				</View>
 				<Image 
-					source={ (typeof to_service!.app_icon === "number" ) ? to_service!.app_icon : {uri: to_service.app_icon, cache: 'force-cache'}}
+					source={resolved_artwork(to_service!.app_icon)}
 					style={{ marginLeft: 5, width: 30, height: 30, borderRadius: 5}}
 				/>
 				<View style={{flexDirection: 'column', marginLeft: 8}}>

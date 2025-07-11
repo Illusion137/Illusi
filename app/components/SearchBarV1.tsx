@@ -12,8 +12,10 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
     const [flag_query_section, set_flag_query_section] = useState<string>();
     const [input_focused, set_input_focused] = useState<boolean>(false);
     const [show_clear_button, set_show_clear_button] = useState<boolean>(false);
+    const [use_strict_search, set_use_strict_search] = useState<boolean>(Prefs.get_pref('default_to_strict_search'));
     const input_ref = useRef<TextInput>(null);
-    const query_ref = useRef<string>("");
+    const strict_equals_flag = "@eq";
+    const query_ref = useRef<string>(Prefs.get_pref('default_to_strict_search') ? strict_equals_flag + ' ' : "");
     const autocomplete_scrollview_ref = useRef<ScrollView>(null);
 
     function on_selection_change(e: NativeSyntheticEvent<TextInputSelectionChangeEventData>){
@@ -39,11 +41,22 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
         else set_flag_query_section(undefined);
     }
 
-    function on_change_text(query: string){
-        query_ref.current = query;
-        props?.onChangeText?.(query);
-        if(query.length > 0) set_show_clear_button(true);
+    function on_change_text(query: string, force_strict_mode?: boolean){
+        const modified_query = ((use_strict_search && force_strict_mode !== false) || force_strict_mode === true) ? strict_equals_flag + ' ' + query : query;
+        query_ref.current = modified_query;
+        props?.onChangeText?.(modified_query);
+        if(modified_query.length > 0 && modified_query.trim() !== strict_equals_flag) set_show_clear_button(true);
         else set_show_clear_button(false);
+    }
+
+    function on_toggle_strict_mode(){
+        if(!use_strict_search){
+            on_change_text(query_ref.current, true);
+        }
+        else {
+            on_change_text(query_ref.current.replace(/^@eq /, ''), false);
+        }
+        set_use_strict_search((prev) => !prev); 
     }
 
     useEffect(() => {
@@ -82,9 +95,10 @@ export default function SearchBarV1(props: TextInputProps & {query_flags?: Query
                     borderTopRightRadius: 10,// Top Right Corner
                     borderBottomRightRadius: 10, // Bottom Right Corner
                 }}/>
+                <IoniconsTouchableOpacity icon_name="scan-circle-outline" icon_color={use_strict_search ? colors.primary : colors.subtext} icon_size={25} icon_style={{}} on_press={on_toggle_strict_mode} hitslop={5} style={{position: 'absolute', left: show_clear_button ? '83%' : '92%', top: '15%'}}/>
                 {show_clear_button ? <IoniconsTouchableOpacity icon_name="close-circle-outline" icon_color={colors.subtext} icon_size={25} icon_style={{}} on_press={() => {input_ref.current?.clear(); on_change_text("")}} hitslop={5} style={{position: 'absolute', left: '92%', top: '15%'}}/> : null}
             </View>
-            {props.query_flags && flag_query_section && input_focused && filtered_query_flags.length !== 0 ? <ScrollView ref={autocomplete_scrollview_ref} style={{position: 'absolute', width: "103%", maxHeight: 400, backgroundColor: '#000000B0', top: 40, zIndex: 5, paddingHorizontal: 10}}>
+            {!use_strict_search && props.query_flags && flag_query_section && input_focused && filtered_query_flags.length !== 0 ? <ScrollView ref={autocomplete_scrollview_ref} style={{position: 'absolute', width: "103%", maxHeight: 400, backgroundColor: '#000000B0', top: 40, zIndex: 5, paddingHorizontal: 10}}>
                 {filtered_query_flags.map(flag => (
                     <View key={flag.flag} style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 1}}>
                         <Text style={{color: colors.text}}>{flag.flag}</Text>

@@ -69,6 +69,6 @@ export default function BottomAlert(props: {
         height: '7%', 
         borderRadius: 20}}>
         <Ionicons name={type_map[props.type].icon as any} size={40} color={type_map[props.type].color} style={{paddingLeft: 10}}/>
-        <Text style={{color: "white", paddingLeft: 10, fontSize: 16, fontWeight: 'bold'}}>{props.text}</Text>
+        <Text style={{color: "white", paddingLeft: 10, fontSize: 12, fontWeight: 'bold'}}>{props.text}</Text>
     </Animated.View>);
 }

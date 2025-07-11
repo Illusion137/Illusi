@@ -21,8 +21,9 @@ import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-menu';
 import { undownload_track } from '../../lib-origin/Illusive/src/illusi/src/downloader';
 import { try_download_track_lyrics, undownload_track_lyrics } from '../../lib-origin/Illusive/src/illusi/src/lyrics';
-import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { if_confirm, resolved_artwork } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { play_track_discord_send } from '../../lib-origin/Illusive/src/discord';
+import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
 
 const discord_app_icon = Image.resolveAssetSource(require("../../assets/discord.png"));
 
@@ -39,7 +40,6 @@ function TrackComponent(props: {
 		trim_track?: (show: boolean, track_data: Track|null) => any;
 		view_info?: (show: boolean, track_data: Track|null) => any;
 	}) {
-
 	const navigation: Navigator = useNavigation();
 
 	const [artwork, set_artwork] = useState( props.track_data.playback?.artwork );
@@ -393,7 +393,7 @@ function TrackComponent(props: {
 				const UTI = 'public.item';
 				switch(nativeEvent.actionKey){
 					case "track-push-discord": 
-						play_track_discord_send(Prefs.get_pref('discord_webhook_url'), props.track_data);
+						play_track_discord_send(Prefs.get_pref('discord_webhook_url'), props.track_data, (e) => alert_error(e));
 						break;
 					case "track-enqueue":
 						push_track_to_playing_queue(props.track_data);
@@ -496,7 +496,7 @@ function TrackComponent(props: {
 			}>
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
-					<Image source={artwork} style={styles.image}/>
+					<Image source={resolved_artwork(artwork ?? 1)} style={styles.image}/>
 					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
 					{!isNaN(props.track_data.duration) && !is_empty(props.track_data.duration) ? 
 						<View style={{position: 'absolute', left: duration_to_string(props.track_data.duration).left - 14, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>

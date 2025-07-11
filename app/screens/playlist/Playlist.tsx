@@ -24,7 +24,7 @@ import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
-import { share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { resolved_artwork, share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { ResponseError } from '../../../lib-origin/origin/src/utils/types';
 import { Ionicons } from '@expo/vector-icons';
 import { ContextMenuButton, MenuConfig } from 'react-native-ios-context-menu';
@@ -297,6 +297,13 @@ export default function Playlist(params: {route: Route<unknown>}){
             const id_continuation = playlist!.continuation;
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {...playlist_data, title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: await Illusive.get_highest_quality_service_thumbnail_uri(thumbnail_url ?? playlist!.artwork_url ?? ""), creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
+            const first_album_uri = id_tracks?.[0]?.album?.uri;
+            if(id_tracks.every(track => track.album?.uri && first_album_uri && track.album.name === id_playlist_data.title && track.album.uri === first_album_uri)){
+                for(const track of id_tracks){
+                    if(!track.playback) continue;
+                    track.playback.artwork = resolved_artwork(id_playlist_data.thumbnail_uri);
+                }
+            }
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
             tracks_ref = id_tracks;

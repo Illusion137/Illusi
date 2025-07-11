@@ -16,6 +16,7 @@ import React from "react";
 import { is_empty } from "../../lib-origin/origin/src/utils/util";
 import TrimTrackModal from "../screens/other/TrimTrackModal";
 import TrackInfoModal from "../screens/other/TrackInfoModal";
+import { extract_query_flags, TRACK_QUERY_FLAGS } from "../../lib-origin/Illusive/src/query_flags";
 
 let search_query = "";
 function LibraryTrackList(props: {
@@ -63,7 +64,7 @@ function LibraryTrackList(props: {
 		search_query = query ?? (search_query ?? "");
 		
         const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
-		const section_map = track_section_map(tracks, !is_empty(search_query));
+		const section_map = track_section_map(tracks, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query) );
 
 		set_all_data({char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length});
 	}
