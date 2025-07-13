@@ -21,8 +21,9 @@ import { Navigator } from '../../lib-origin/Illusive/src/illusi/src/types';
 import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-menu';
 import { undownload_track } from '../../lib-origin/Illusive/src/illusi/src/downloader';
 import { try_download_track_lyrics, undownload_track_lyrics } from '../../lib-origin/Illusive/src/illusi/src/lyrics';
-import { if_confirm } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { if_confirm, resolved_artwork } from '../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { play_track_discord_send } from '../../lib-origin/Illusive/src/discord';
+import { alert_error } from '../../lib-origin/Illusive/src/illusi/src/alert';
 
 const discord_app_icon = Image.resolveAssetSource(require("../../assets/discord.png"));
 
@@ -39,7 +40,6 @@ function TrackComponent(props: {
 		trim_track?: (show: boolean, track_data: Track|null) => any;
 		view_info?: (show: boolean, track_data: Track|null) => any;
 	}) {
-
 	const navigation: Navigator = useNavigation();
 
 	const [artwork, set_artwork] = useState( props.track_data.playback?.artwork );
@@ -61,6 +61,7 @@ function TrackComponent(props: {
 	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode  !== "NONE";
 
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
+	const is_saved = playlist_saved || (props.track_data.downloading_data?.saved ?? false);
 
 	const { colors } = useTheme() as Prefs.Theme;
 	const styles = theme_styles(colors);
@@ -187,6 +188,94 @@ function TrackComponent(props: {
 			]
 		},
 		{
+			menuTitle: "Offline",
+			icon: {
+				type: 'IMAGE_SYSTEM',
+				imageValue: {
+					systemName: 'arrow.down.circle.dotted',
+				},
+			},
+			menuItems: [
+				{
+					actionKey: "track-download-thumbnail",
+					actionTitle: "Download Thumbnail",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_thumbnail_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-upload-artwork",
+					actionTitle: "Upload Artwork",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'photo.artframe',
+						},
+					},
+					menuAttributes: !is_saved? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-download-media",
+					actionTitle: "Download Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-download-lyrics",
+					actionTitle: "Download Lyrics",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'arrow.down.circle',
+						},
+					},
+					menuAttributes: is_lyrics_downloaded || !is_saved ? ['hidden'] : undefined
+				},
+				{
+					actionKey: "track-remove-artwork",
+					actionTitle: "Remove Artwork",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_thumbnail_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+				{
+					actionKey: "track-delete-media",
+					actionTitle: "Delete Media",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+				{
+					actionKey: "track-delete-lyrics",
+					actionTitle: "Delete Lyrics",
+					icon: {
+						type: 'IMAGE_SYSTEM',
+						imageValue: {
+							systemName: 'trash',
+						},
+					},
+					menuAttributes: !is_lyrics_downloaded || !is_saved ? ['hidden'] : ['destructive']
+				},
+			]
+		},
+		{
 			menuTitle: "Share",
 			icon: {
 				type: 'IMAGE_SYSTEM',
@@ -219,104 +308,6 @@ function TrackComponent(props: {
 			]
 		},
 		{
-			menuTitle: "Offline",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'arrow.down.circle.dotted',
-				},
-			},
-			menuItems: [
-				{
-					actionKey: "track-download-media",
-					actionTitle: "Download Media",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-delete-media",
-					actionTitle: "Delete Media",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_downloaded ? ['hidden'] : ['destructive']
-				},
-				{
-					actionKey: "track-download-lyrics",
-					actionTitle: "Download Lyrics",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_lyrics_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-delete-lyrics",
-					actionTitle: "Delete Lyrics",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_lyrics_downloaded ? ['hidden'] : ['destructive']
-				},
-			]
-		},
-		{
-			menuTitle: "Artwork",
-			icon: {
-				type: 'IMAGE_SYSTEM',
-				imageValue: {
-					systemName: 'photo',
-				},
-			},
-			menuItems: [
-				{
-					actionKey: "track-download-thumbnail",
-					actionTitle: "Download Thumbnail",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'arrow.down.circle',
-						},
-					},
-					menuAttributes: is_thumbnail_downloaded ? ['hidden'] : undefined
-				},
-				{
-					actionKey: "track-upload-artwork",
-					actionTitle: "Upload Artwork",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'photo.artframe',
-						},
-					}
-				},
-				{
-					actionKey: "track-remove-artwork",
-					actionTitle: "Remove Artwork",
-					icon: {
-						type: 'IMAGE_SYSTEM',
-						imageValue: {
-							systemName: 'trash',
-						},
-					},
-					menuAttributes: !is_thumbnail_downloaded ? ['hidden'] : ['destructive']
-				},
-			]
-		},
-		{
 			menuTitle: "Destructive",
 			menuOptions: ['destructive'],
 			icon: {
@@ -329,7 +320,7 @@ function TrackComponent(props: {
 				{
 					actionKey: "track-delete",
 					actionTitle: "Delete",
-					menuAttributes: ['destructive'],
+					menuAttributes:  !is_saved ? ['hidden'] : ['destructive'],
 					icon: {
 						type: 'IMAGE_SYSTEM',
 						imageValue: {
@@ -393,7 +384,7 @@ function TrackComponent(props: {
 				const UTI = 'public.item';
 				switch(nativeEvent.actionKey){
 					case "track-push-discord": 
-						play_track_discord_send(Prefs.get_pref('discord_webhook_url'), props.track_data);
+						play_track_discord_send(Prefs.get_pref('discord_webhook_url'), props.track_data, (e) => alert_error(e));
 						break;
 					case "track-enqueue":
 						push_track_to_playing_queue(props.track_data);
@@ -496,7 +487,7 @@ function TrackComponent(props: {
 			}>
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
-					<Image source={artwork} style={styles.image}/>
+					<Image source={resolved_artwork(artwork ?? 1)} style={styles.image}/>
 					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
 					{!isNaN(props.track_data.duration) && !is_empty(props.track_data.duration) ? 
 						<View style={{position: 'absolute', left: duration_to_string(props.track_data.duration).left - 14, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>

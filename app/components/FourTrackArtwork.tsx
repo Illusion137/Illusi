@@ -1,7 +1,8 @@
-import { View, Image, ImageSourcePropType, StyleProp, ViewStyle } from "react-native";
+import { View, Image, StyleProp, ViewStyle } from "react-native";
 import { Track } from '../../lib-origin/Illusive/src/types';
 import { is_empty } from '../../lib-origin/origin/src/utils/util';
 import { custom_thumbnail_directory } from "../../lib-origin/Illusive/src/illusi/src/sql/sql_fs";
+import { resolved_artwork } from "../../lib-origin/Illusive/src/illusi/src/illusi_utils";
 
 export default function FourTrackArtwork(props: {
     four_track: Track[]
@@ -20,16 +21,16 @@ export default function FourTrackArtwork(props: {
         <View style={{...props.base_view_style as object, backgroundColor: "black", borderRadius: 5, position: background ? 'absolute' : undefined, zIndex: background ? -1 : undefined}}>
             {!is_empty(props.thumbnail_uri) && <Image source={{"uri": thumbnail_uri}} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
             {props.four_track.length == 0 && is_empty(props.thumbnail_uri) && <Image source={require('../../assets/notfound.png')} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
-            {props.four_track.length !== 0 && is_empty(props.thumbnail_uri) && props.four_track.length < 4 && <Image source={props.four_track[0].playback!.artwork as ImageSourcePropType} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
-            {props.four_track.length >= 4 && is_empty(props.thumbnail_uri) && all_same_album && <Image source={props.four_track[0].playback!.artwork as ImageSourcePropType} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
+            {props.four_track.length !== 0 && is_empty(props.thumbnail_uri) && props.four_track.length < 4 && <Image source={resolved_artwork(props.four_track[0].playback!.artwork)} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
+            {props.four_track.length >= 4 && is_empty(props.thumbnail_uri) && all_same_album && <Image source={resolved_artwork(props.four_track[0].playback!.artwork)} style={{ width: props.size * 2, height: props.size * 2, borderRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1 }}/>}
             {props.four_track.length >= 4 && is_empty(props.thumbnail_uri) && !all_same_album && <View>
                 <View style={{flexDirection: 'row'}}>
-                    {props.four_track[0] != undefined && <Image source={props.four_track[0].playback!.artwork as ImageSourcePropType} style={{width: props.size, height: props.size, borderTopLeftRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
-                    {props.four_track[1] != undefined && <Image source={props.four_track[1].playback!.artwork as ImageSourcePropType} style={{width: props.size, height: props.size, borderTopRightRadius: 5 ,opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
+                    {props.four_track[0] != undefined && <Image source={resolved_artwork(props.four_track[0].playback!.artwork)} style={{width: props.size, height: props.size, borderTopLeftRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
+                    {props.four_track[1] != undefined && <Image source={resolved_artwork(props.four_track[1].playback!.artwork)} style={{width: props.size, height: props.size, borderTopRightRadius: 5 ,opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
                 </View>
                 <View style={{flexDirection: 'row'}}>
-                    {props.four_track[2] != undefined && <Image source={props.four_track[2].playback!.artwork as ImageSourcePropType} style={{width: props.size, height: props.size, borderBottomLeftRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
-                    {props.four_track[3] != undefined && <Image source={props.four_track[3].playback!.artwork as ImageSourcePropType} style={{width: props.size, height: props.size, borderBottomRightRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
+                    {props.four_track[2] != undefined && <Image source={resolved_artwork(props.four_track[2].playback!.artwork)} style={{width: props.size, height: props.size, borderBottomLeftRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
+                    {props.four_track[3] != undefined && <Image source={resolved_artwork(props.four_track[3].playback!.artwork)} style={{width: props.size, height: props.size, borderBottomRightRadius: 5, opacity: props.dim ? (props.dim_amount ?? 0.8) : 1}}/>}
                 </View>
             </View>}
         </View>

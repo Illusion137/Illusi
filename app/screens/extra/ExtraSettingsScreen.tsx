@@ -65,7 +65,7 @@ function ExtraSettingsScreen() {
 					<View style={styles.line_long}/>
 					<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
 					<ExtrasSectionButton show_arrow={false} text='Shuffle Library Shortcut' icon='library-outline' onPress={() => presentShortcut(getShortcut(), (data) => data)}/>
-					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={SQLTracks.restore_thumbnail_cache}/>
+					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={() => SQLTracks.restore_thumbnail_cache()}/>
 					<ExtrasSectionButton show_arrow={false} text='Speed Sample Library' icon='search-circle' onPress={async() => {
 						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
 						GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");

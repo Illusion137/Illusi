@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons, FontAwesome, AntDesign } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, FontAwesome, AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import { Icon } from "@expo/vector-icons/build/createIconSet";
 import { Insets, StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native";
 
@@ -31,6 +31,20 @@ export function FontAwesomeTouchableOpacity(props: IconTouchableOpacityProps<typ
     return (
         <TouchableOpacity disabled={props.disabled} style={props.style} onPress={props.on_press} hitSlop={props.hitslop}>
             <FontAwesome name={props.icon_name} size={props.icon_size} color={props.icon_color} style={props.icon_style}/>
+        </TouchableOpacity>
+    )
+}
+export function FontAwesome5TouchableOpacity(props: IconTouchableOpacityProps<typeof FontAwesome5>){
+    return (
+        <TouchableOpacity disabled={props.disabled} style={props.style} onPress={props.on_press} hitSlop={props.hitslop}>
+            <FontAwesome5 name={props.icon_name} size={props.icon_size} color={props.icon_color} style={props.icon_style}/>
+        </TouchableOpacity>
+    )
+}
+export function FontAwesome6TouchableOpacity(props: IconTouchableOpacityProps<typeof FontAwesome6>){
+    return (
+        <TouchableOpacity disabled={props.disabled} style={props.style} onPress={props.on_press} hitSlop={props.hitslop}>
+            <FontAwesome6 name={props.icon_name} size={props.icon_size} color={props.icon_color} style={props.icon_style}/>
         </TouchableOpacity>
     )
 }

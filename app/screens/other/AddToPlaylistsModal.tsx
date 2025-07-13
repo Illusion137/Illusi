@@ -10,6 +10,7 @@ import { Playlist, SetState, Track } from '../../../lib-origin/Illusive/src/type
 import { Prefs } from '../../../lib-origin/Illusive/src/prefs';
 import { artist_string } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import PlaylistComponent from '../../components/PlaylistComponent';
+import { resolved_artwork } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 
 type ModalData = {show: boolean, track_data: Track|null};
 function AddToPlaylistsModal(props: {
@@ -62,7 +63,7 @@ function AddToPlaylistsModal(props: {
                     }}/>
                     <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 18, right: '30%'}}>Add To Playlist</Text>
                 </View>
-                <Image source={props.modal_data.track_data === null ? undefined : props.modal_data.track_data.playback?.artwork} resizeMode="cover" style={{
+                <Image source={props.modal_data.track_data === null ? undefined : resolved_artwork(props.modal_data.track_data.playback!.artwork)} resizeMode="cover" style={{
                     width: '100%',
                     height: '21%',
                     opacity: 0.7

@@ -24,7 +24,7 @@ import { Constants } from '../../../lib-origin/Illusive/src/constants';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '../../components/TouchableIconOpacity';
 import { alert_error } from '../../../lib-origin/Illusive/src/illusi/src/alert';
 import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
-import { share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
+import { resolved_artwork, share_item } from '../../../lib-origin/Illusive/src/illusi/src/illusi_utils';
 import { ResponseError } from '../../../lib-origin/origin/src/utils/types';
 import { Ionicons } from '@expo/vector-icons';
 import { ContextMenuButton, MenuConfig } from 'react-native-ios-context-menu';
@@ -67,6 +67,7 @@ export default function Playlist(params: {route: Route<unknown>}){
     const [search_query_state, set_search_query_state] = useState<string>("");
     const [trim_track_state, set_trim_track_state] = useState({show: false, track_data: null as Track|null}); 
     const [track_info_state, set_track_info_state] = useState({show: false, track_data: null as Track|null});   
+    const filtered_tracks = track_query_filter(tracks, search_query_state);
 
     function getShortcut(): ShortcutOptions{
         const key = "uuid" in ts_route.params ? ts_route.params.uuid : ("default_playlist_title" in ts_route.params) ? ts_route.params.default_playlist_title : "";
@@ -147,7 +148,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                     {
                         actionKey  : 'playlist-actions-batch-download-media',
                         actionTitle: 'Download Media',
-                        menuAttributes: tracks.every(track => !is_empty(track.media_uri)) ? ['disabled'] : undefined,
+                        menuAttributes: filtered_tracks.every(track => !is_empty(track.media_uri)) ? ['disabled'] : undefined,
                         icon: {
                             type: 'IMAGE_SYSTEM',
                             imageOptions: {
@@ -162,7 +163,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                     {
                         actionKey  : 'playlist-actions-batch-download-thumbnails',
                         actionTitle: 'Download Thumbnails',
-                        menuAttributes: tracks.every(track => !is_empty(track.thumbnail_uri)) ? ['disabled'] : undefined,
+                        menuAttributes: filtered_tracks.every(track => !is_empty(track.thumbnail_uri)) ? ['disabled'] : undefined,
                         icon: {
                             type: 'IMAGE_SYSTEM',
                             imageOptions: {
@@ -177,7 +178,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                     {
                         actionKey  : 'playlist-actions-batch-download-lyrics',
                         actionTitle: 'Download Lyrics',
-                        menuAttributes: tracks.every(track => !is_empty(track.lyrics_uri)) ? ['disabled'] : undefined,
+                        menuAttributes: filtered_tracks.every(track => !is_empty(track.lyrics_uri)) ? ['disabled'] : undefined,
                         icon: {
                             type: 'IMAGE_SYSTEM',
                             imageOptions: {
@@ -297,6 +298,13 @@ export default function Playlist(params: {route: Route<unknown>}){
             const id_continuation = playlist!.continuation;
             const id_playlist_data = Object.assign({...ExampleObj.playlist_example0}, {...playlist_data, title: playlist!.title, description: playlist!.description ?? "", thumbnail_uri: await Illusive.get_highest_quality_service_thumbnail_uri(thumbnail_url ?? playlist!.artwork_url ?? ""), creator: playlist!.creator, date: playlist!.date });
             const id_tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist!.tracks);
+            const first_album_uri = id_tracks?.[0]?.album?.uri;
+            if(id_tracks.every(track => track.album?.uri && first_album_uri && track.album.name === id_playlist_data.title && track.album.uri === first_album_uri)){
+                for(const track of id_tracks){
+                    if(!track.playback) continue;
+                    track.playback.artwork = resolved_artwork(id_playlist_data.thumbnail_uri);
+                }
+            }
             set_continuation(id_continuation);
             set_playlist_data(id_playlist_data);
             tracks_ref = id_tracks;
@@ -425,7 +433,7 @@ export default function Playlist(params: {route: Route<unknown>}){
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
             <FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={Dimensions.get('screen').width / 2} base_view_style={{top: -Dimensions.get('screen').height / 6}}/>
-            <BlurView intensity={50} tint={dark ? 'dark' : 'extraLight'} style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+            <BlurView intensity={50} tint={dark ? 'prominent' : 'extraLight'} style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (("write_playlist_uuid" in ts_route.params) ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
                 <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 260}}/>
             </BlurView>
             <View style={{alignItems: 'center', width: '75%', top: 60, height: 40, zIndex: 2}}>
@@ -489,15 +497,15 @@ export default function Playlist(params: {route: Route<unknown>}){
                                         set_edit_mode_state("DELETE");
                                         break;
                                     case "playlist-actions-batch-download-media":
-                                        await download_track_list(tracks);
+                                        await download_track_list(filtered_tracks);
                                         refresh_data();
                                         break;
                                     case "playlist-actions-batch-download-thumbnails":
-                                        await SQLTracks.restore_thumbnail_cache(tracks);
+                                        await SQLTracks.restore_thumbnail_cache(filtered_tracks);
                                         GLOBALS.global_var.bottom_alert("Downloaded all available thumbnails", "INFO");
                                         break;
                                     case "playlist-actions-batch-download-lyrics":
-                                        await batch_download_track_lyrics(tracks);
+                                        await batch_download_track_lyrics(filtered_tracks);
                                         GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
                                         break;
                                     case "playlist-actions-shortcut":
@@ -536,7 +544,7 @@ export default function Playlist(params: {route: Route<unknown>}){
                         renderHeader={header_component} 
                         renderItem={render_track}
                         renderFooter={footer_component}
-                        data={track_query_filter(tracks, search_query_state)}
+                        data={filtered_tracks}
                         onEndReached={try_continuation}
                         onEndReachedThreshold={0.3}
                         />

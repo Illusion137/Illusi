@@ -6,7 +6,7 @@ import * as GLOBALS from '../../../lib-origin/Illusive/src/illusi/src/globals'
 import * as SQLNewReleases from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_new_releases'
 import * as SQLTracks from '../../../lib-origin/Illusive/src/illusi/src/sql/sql_tracks'
 import * as Origin from "../../../lib-origin/origin/src/index";
-import { call_wtimeout, json_catch, milliseconds_of } from "../../../lib-origin/origin/src/utils/util";
+import { call_wtimeout, json_catch } from "../../../lib-origin/origin/src/utils/util";
 import { ResponseError } from "../../../lib-origin/origin/src/utils/types";
 import { Prefs } from "../../../lib-origin/Illusive/src/prefs";
 import { NavigationProp, useIsFocused, useNavigation, useTheme } from "@react-navigation/native";
@@ -15,7 +15,7 @@ import { musi_parse_explore } from "../../../lib-origin/Illusive/src/gen/musi_pa
 import TrackHorizontalScrolls from "../../components/TrackHorizontalScrolls";
 import HorizontalRowArtists from '../../components/HorizontalRowArtists';
 import { Illusive } from '../../../lib-origin/Illusive/src/illusive';
-import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists } from '../../../lib-origin/Illusive/src/illusive_utilts';
+import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists, should_automatic_refresh } from '../../../lib-origin/Illusive/src/illusive_utilts';
 import { push_abortion } from '../../../lib-origin/origin/src/utils/orifetch';
 
 type MusiExplore = ReturnType<typeof musi_parse_explore>;
@@ -74,9 +74,7 @@ export default function IllusiExplore(){
         (async() => {
             const yt_music = Illusive.music_service.get('YouTube Music')!;
             if(cached_new_releases.length === 0){
-                if(yt_music.has_credentials() &&
-                    new Date().getTime() - Prefs.get_pref('automatic_new_releases_last_refreshed').getTime() >= milliseconds_of({days: 1}) 
-                    || (new Date().getMinutes() <= 10 && new Date().getTime() - Prefs.get_pref('automatic_new_releases_last_refreshed').getTime() >= milliseconds_of({minutes: 1}))  ){
+                if(yt_music.has_credentials() && should_automatic_refresh(Prefs.get_pref('automatic_new_releases_last_refreshed')) ){
                         push_abortion(10 * 1000, 1);
                         call_wtimeout(
                             (async() => {

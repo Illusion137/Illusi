@@ -8,7 +8,7 @@ import { Slider } from '@miblanchard/react-native-slider';
 
 export default function ExtraKeepDeleteScreen() {
 	const { colors } = useTheme() as Prefs.Theme;
-	const styles = theme_styles(colors);
+	const styles = theme_styles(colors); styles;
 
 	const thumbnail_uri = 'https://lh3.googleusercontent.com/3YbnDqW0BYPlYMHC9d_4KOpviYqqKslkCi1wr7rJTN0noPl12hBndRasAQ_R5fC2H4hOZXfaCylH4PM1=w544-h544-l90-rj';
 
