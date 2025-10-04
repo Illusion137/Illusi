@@ -1,9 +1,12 @@
+import { ExpoConfig, ConfigContext } from 'expo/config';
+
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
-export default {
+export default (config: ConfigContext['config']): ExpoConfig => ({
+    ...config,
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "16.2.5",
+    "version": "17.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -35,21 +38,27 @@ export default {
                 "audio",
                 "fetch"
             ]
-        }
+        },
+        "associatedDomains": ["applinks:illusi.dev"]
     },
     "web": {
         "favicon": "./assets/favicon.png"
     },
     "plugins": [
         "expo-font",
-        "expo-sqlite"
+        "expo-router",
+        [
+            "@sentry/react-native/expo",
+            {
+                "url": "https://sentry.io/",
+                "project": "react-native",
+                "organization": "illusion-ke"
+            }
+        ]
     ],
     "experiments": {
-        "reactCompiler": true
+        "reactCompiler": true,
+        "typedRoutes": true
     },
-    "expo":{
-        "experiments": {
-            "reactCompiler": true
-        },
-    }
-}
+    "newArchEnabled": true
+});

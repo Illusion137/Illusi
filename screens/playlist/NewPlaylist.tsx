@@ -1,0 +1,97 @@
+
+import React,  { useState, useRef,useImperativeHandle, forwardRef, Ref } from 'react';
+import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { SQLPlaylists } from '@illusive/sql/sql_playlists';
+import { Prefs } from '@illusive/prefs';
+import ImportServiceComponent from '@components/ImportServiceComponent';
+import { Illusive } from '@illusive/illusive';
+import usePTheme from '@hooks/usePTheme';
+
+function NewPlaylist(props: {
+		close_panel: () => void
+		refresh_playlists_data: () => void
+	}, ref: Ref<any>) {
+	
+	const navigation: NavigationProp<any, any> = useNavigation();
+	
+	const { colors } = usePTheme();
+	const styles = theme_styles(colors);
+		
+	const input_ref = useRef<TextInput>();
+
+	const [playlist_name, set_playlist_name] = useState("");
+	const [is_invalid_name, set_is_invalid_name] = useState(true);
+
+	useImperativeHandle(ref, () => ({
+		focusInput: () => { input_ref.current?.focus() }
+	}))
+
+	function onCancel(){
+		props.close_panel(); 
+		input_ref.current?.blur();
+	}
+	async function onCreateValid(){
+		set_is_invalid_name(true);
+		await SQLPlaylists.create_playlist(playlist_name);
+		await props.refresh_playlists_data();
+		input_ref.current?.clear();
+		input_ref.current?.blur();
+		props.close_panel();
+	}
+	async function onNameUpdate(name: string){
+		set_playlist_name(name);
+		const lname = name.toLowerCase();
+		if(!name || !name.trim() || lname == 'tracks' || lname == 'recently_played_tracks' || lname == 'backpack' || lname == 'playlists' || lname == 'audiobooks')
+			 set_is_invalid_name(true);
+		else set_is_invalid_name(false);
+	}
+
+	return(
+		<View style={{backgroundColor: colors.background, width: '100%', flex: 1, borderRadius: 15}}>
+			<View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 55, width: '100%', backgroundColor: colors.shelf, borderTopLeftRadius: 15, borderTopRightRadius: 15, borderColor: colors.deeptext, borderWidth: 1}}>
+				<View style={{marginLeft:-50}}></View>
+				<Button title='Cancel' color={colors.primary} onPress={onCancel}></Button>
+				<Text style={{color: colors.text, fontWeight:'500', fontSize: 18}}>New Playlist</Text>
+				{is_invalid_name && <Button title='Create' color={colors.searchPlaceholder} ></Button>}
+				{!is_invalid_name && <Button title='Create' color={colors.primary} onPress={onCreateValid}></Button>}
+				<View style={{marginRight:-50}}></View>
+			</View>
+            <View style={{height: 0.6, backgroundColor: colors.line}}/>
+			<TextInput maxLength={45} ref={input_ref as any} placeholder='Playlist name' placeholderTextColor={colors.searchPlaceholder} style={styles.name_input} onChangeText={onNameUpdate}></TextInput>
+			<View style={{height:40}}></View>
+            {[...Illusive.music_service.keys()].map((key, i) => (
+                <View key={i}>
+			        <ImportServiceComponent disabled={!(Illusive.music_service.get(key)!.has_credentials() || Illusive.music_service.get(key)!.cookie_jar_callback === undefined || Illusive.free_music_services.includes(key))} service_name={key} navigation={navigation} artwork={resolved_artwork(Illusive.music_service.get(key)!.app_icon)}/>
+                </View>
+            ))}
+		</View>
+	);
+}
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
+	name_input:{
+		backgroundColor: colors.track,
+		height: 60,
+		color: colors.text,
+		width: '100%',
+		padding: 10,
+	},
+	import_from:{
+		height: 45,
+		width: '100%',
+		backgroundColor: colors.track,
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	import_from_text:{
+		color: colors.text,
+		fontSize: 16
+	},
+	line:{
+		width: '100%',
+		height: 0.8,
+		backgroundColor: colors.line,
+		marginHorizontal: 10,
+	}
+});
+export default forwardRef(NewPlaylist);

@@ -12,48 +12,69 @@ import { illusi_startup } from './lib-origin/Illusive/src/illusi/src/startup';
 import { filter_play_tracks } from './lib-origin/Illusive/src/illusi/src/play';
 import { Prefs } from './lib-origin/Illusive/src/prefs';
 import { BottomAlertType, PlayingState, Track } from './lib-origin/Illusive/src/types';
-import GlobalStateProvider from './app/components/GlobalContext';
-import ExtraBatchDownloaderScreen from './app/screens/extra/ExtraBatchDownloaderScreen';
-import ExtraDeveloperScreen from './app/screens/extra/ExtraDeveloperScreen';
-import ExtraExternalServicesScreen from './app/screens/extra/ExtraExternalServicesScreen';
-import ExtraLinkerScreen from './app/screens/extra/ExtraLinkerScreen';
-import ExtraPlaylistConverter from './app/screens/extra/ExtraPlaylistConverter';
-import ExtraRecoveryScreen from './app/screens/extra/ExtraRecoveryScreen';
-import ExtraSettingsScreen from './app/screens/extra/ExtraSettingsScreen';
-import ExtraScreen from './app/screens/ExtraScreen';
-import LibraryScreen from './app/screens/LibraryScreen';
-import AudioPlayer from './app/screens/other/AudioPlayer';
-import SelectImportMusicServicePlaylist from './app/screens/playlist/SelectImportMusicServicePlaylist';
-import Playlist from './app/screens/playlist/Playlist';
-import PlaylistScreen from './app/screens/PlaylistScreen';
-import SearchHomeScreen from './app/screens/SearchHomeScreen';
-import AddToPlaylistBase from './app/screens/playlist/AddToPlaylistBase';
-import ExtraSleepTimerScreen from './app/screens/extra/ExtraSleepTimerScreen';
-import ExtraBackpackScreen from './app/screens/extra/ExtraBackpackScreen';
-import EditPlaylist from './app/screens/playlist/EditPlaylist';
-import ExtraExperimentalSettingsScreen from './app/screens/extra/ExtraExperimentalSettingsScreen';
-import ExtraMiscSettingsScreen from './app/screens/extra/ExtraMiscSettingsScreen';
-import ExtraThemesScreen from './app/screens/extra/ExtraThemesScreen';
+import GlobalStateProvider from '@components/GlobalContext';
+import ExtraBatchDownloaderScreen from '@screens/extra/ExtraBatchDownloaderScreen';
+import ExtraDeveloperScreen from '@screens/extra/ExtraDeveloperScreen';
+import ExtraExternalServicesScreen from '@screens/extra/ExtraExternalServicesScreen';
+import ExtraLinkerScreen from '@screens/extra/ExtraLinkerScreen';
+import ExtraPlaylistConverter from '@screens/extra/ExtraPlaylistConverter';
+import ExtraRecoveryScreen from '@screens/extra/ExtraRecoveryScreen';
+import ExtraSettingsScreen from '@screens/extra/ExtraSettingsScreen';
+import ExtraScreen from '@screens/ExtraScreen';
+import LibraryScreen from '@screens/LibraryScreen';
+import AudioPlayer from '@screens/other/AudioPlayer';
+import SelectImportMusicServicePlaylist from '@screens/playlist/SelectImportMusicServicePlaylist';
+import Playlist from '@screens/playlist/Playlist';
+import PlaylistScreen from '@screens/PlaylistScreen';
+import SearchHomeScreen from '@screens/SearchHomeScreen';
+import AddToPlaylistBase from '@screens/playlist/AddToPlaylistBase';
+import ExtraSleepTimerScreen from '@screens/extra/ExtraSleepTimerScreen';
+import ExtraBackpackScreen from '@screens/extra/ExtraBackpackScreen';
+import EditPlaylist from '@screens/playlist/EditPlaylist';
+import ExtraExperimentalSettingsScreen from '@screens/extra/ExtraExperimentalSettingsScreen';
+import ExtraMiscSettingsScreen from '@screens/extra/ExtraMiscSettingsScreen';
+import ExtraThemesScreen from '@screens/extra/ExtraThemesScreen';
 import { addShortcutListener, getInitialShortcut } from 'react-native-siri-shortcut';
-import ExtraBatchUndownloaderScreen from './app/screens/extra/ExtraBatchUndownloader';
+import ExtraBatchUndownloaderScreen from '@screens/extra/ExtraBatchUndownloader';
 import { Illusive } from './lib-origin/Illusive/src/illusive';
 import { playlist_tracks } from './lib-origin/Illusive/src/illusi/src/sql/sql_playlists';
-import { is_empty } from './lib-origin/origin/src/utils/util';
+import { is_empty } from '@common/utils/util';
 import { default_playlists } from './lib-origin/Illusive/src/illusi/src/default_playlists';
 import { Constants } from './lib-origin/Illusive/src/constants';
-import ExtraDangerScreen from './app/screens/extra/ExtraDangerScreen';
-import ExtraHelpScreen from './app/screens/extra/ExtraHelpScreen';
-import ExtraMarkdownRenderScreen from './app/screens/extra/ExtraMarkdownRenderScreen';
-import ExtraKeepDeleteScreen from './app/screens/extra/ExtraKeepDeleteScreen';
-import ExtraCreateLinkScreen from './app/screens/extra/ExtraCreateLinkScreen';
-import BottomAlert from './app/components/BottomAlert';
-import ExtraDevTestScreen from './app/screens/extra/ExtraDevTestScreen';
-import Artist from './app/screens/other/Artist';
-import MultiOption from './app/screens/other/MultiOption';
-import AlbumGridRenderer from './app/screens/search/AlbumGridRenderer';
-import ExtraStatisticsScreen from './app/screens/extra/ExtraStatisticsScreen';
-import ArtistGridRenderer from './app/screens/search/ArtistGridRenderer';
-import ExtraDiscordIntegrationScreen from './app/screens/extra/ExtraDiscordIntegrationScreen';
+import ExtraDangerScreen from '@screens/extra/ExtraDangerScreen';
+import ExtraHelpScreen from '@screens/extra/ExtraHelpScreen';
+import ExtraMarkdownRenderScreen from '@screens/extra/ExtraMarkdownRenderScreen';
+import ExtraKeepDeleteScreen from '@screens/extra/ExtraKeepDeleteScreen';
+import ExtraCreateLinkScreen from '@screens/extra/ExtraCreateLinkScreen';
+import BottomAlert from '@components/BottomAlert';
+import ExtraDevTestScreen from '@screens/extra/ExtraDevTestScreen';
+import Artist from '@screens/other/Artist';
+import MultiOption from '@screens/other/MultiOption';
+import AlbumGridRenderer from '@screens/search/AlbumGridRenderer';
+import ExtraStatisticsScreen from '@screens/extra/ExtraStatisticsScreen';
+import ArtistGridRenderer from '@screens/search/ArtistGridRenderer';
+import ExtraDiscordIntegrationScreen from '@screens/extra/ExtraDiscordIntegrationScreen';
+import * as Sentry from '@sentry/react-native';
+import usePTheme from '@hooks/usePTheme';
+
+Sentry.init({
+  dsn: 'https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -134,7 +155,7 @@ function LibraryStackScreen() {
     );
 }
 function Tabs() {
-    const theme = useTheme() as Prefs.Theme;
+    const theme = usePTheme();
     return (
         <Tab.Navigator initialRouteName={'My Library'}
             screenOptions={{
@@ -168,7 +189,7 @@ function Tabs() {
     )
 }
 
-export default function App() {
+export default Sentry.wrap(function App() {
     const [theme, set_theme] = useState<Prefs.Theme>(Prefs.get_theme(Prefs.get_pref('theme')));
     const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
     const [playing_from, set_playing_from] = useState("");
@@ -252,4 +273,4 @@ export default function App() {
             </NavigationContainer>
         </GlobalStateProvider>
     );
-}
+});

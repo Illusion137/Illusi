@@ -1,0 +1,27 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "3HJCW252T6.3HJCW252T6.illusion.illusi.com"
+        ],
+        "components": [
+          {
+            "/": "*",
+            "comment": "Matches all routes"
+          }
+        ]
+      }
+    ]
+  },
+  "activitycontinuation": {
+    "apps": [
+      "3HJCW252T6.3HJCW252T6.illusion.illusi.com"
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "3HJCW252T6.3HJCW252T6.illusion.illusi.com"
+    ]
+  }
+}
