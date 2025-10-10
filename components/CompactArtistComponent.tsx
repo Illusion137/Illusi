@@ -1,14 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { CompactArtist } from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { is_empty } from '@common/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Navigator } from '@illusive/illusi/src/types';
 import usePTheme from '@hooks/usePTheme';
 import IImage from './IImage';
 import { remove_topic } from '@common/utils/clean_util';
+import { SharedRouter } from '@utils/shared_routes';
 
 
 export default function CompactArtistComponent(props: {
@@ -17,11 +16,9 @@ export default function CompactArtistComponent(props: {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const navigation: Navigator = useNavigation();
-
 	async function navigate(){
 		if(is_empty(props.artist_data.name.uri)) return;
-		navigation.push("Artist", {"uri": props.artist_data.name.uri});
+		SharedRouter.goto_shared_artist( props.artist_data.name.uri ?? "" );
 	}
 	return(
         <>

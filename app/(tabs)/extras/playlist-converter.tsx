@@ -10,7 +10,7 @@ import { Prefs } from '@illusive/prefs';
 import { Illusive } from '@illusive/illusive';
 import { alert_error } from '@illusive/illusi/src/alert';
 import { Constants } from '@illusive/constants';
-import { create_uri, music_service_to_music_service_uri } from '@illusive/illusive_utilts';
+import { create_uri, music_service_to_music_service_uri } from '@illusive/illusive_utils';
 import { is_empty } from '@common/utils/util';
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import usePTheme from '@hooks/usePTheme';

@@ -35,13 +35,14 @@ function SettingsMultiButton(props: {
 		<View style={styles.sectionContainer}>
 			<Ionicons name={'settings-outline'} size={25} color={colors.primary} style={{left: 10}}/>
 			<Text style={styles.btnsectionText}>{settings_key}</Text>
-			<View style={{flex: 1, alignItems: 'flex-end', right:10}}>
+			<View style={{flex: 1, alignItems: 'flex-end', right: 0}}>
 				{props.settings_pref.type === "NUMBER" ? 
 					<TextInput maxLength={3} style={{color: colors.text, fontSize: 18, width: 80, paddingRight: 20, paddingVertical: 5, backgroundColor: colors.shelf}} textAlign='right'  inputMode='numeric' placeholder='1' value={number_settings_value} onChangeText={(val) => { set_number_settings_value(val) } }
 					onBlur={async() => await number_on_value_change()}/> : null
 				}
 				{props.settings_pref.type === "BOOLEAN" ?
-					<Switch value={boolean_settings_value} 
+					<Switch style={{alignSelf: 'flex-end', right: 10}}
+							value={boolean_settings_value} 
 							onValueChange={boolean_on_value_change} 
 							thumbColor={'#ffffff'} 
 							trackColor={{false: '#ffffff', true: colors.primary}}

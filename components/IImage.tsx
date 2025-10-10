@@ -18,7 +18,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
     const [source, set_source] = useState<Artwork|undefined|null>(props.source);
     useEffect(() => {
         if(typeof source !== "string") return;
-        if(source.includes("https:")) return;
+        if(source.includes("https:") || source.includes("http:")) return;
         (async() => {
             const source_file_info = await fs().get_info(source);
             if(!source_file_info.exists || source_file_info.is_directory){

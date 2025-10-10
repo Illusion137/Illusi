@@ -1,9 +1,9 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { ArtistSortMode, CompactArtist, NamedUUID, Route } from "@illusive/types";
+import { ArtistSortMode, CompactArtist, NamedUUID } from "@illusive/types";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
 import { useState } from "react";
-import { artist_query_filter, sort_compact_artists } from "@illusive/illusive_utilts";
+import { artist_query_filter, sort_compact_artists } from "@illusive/illusive_utils";
 import { COMPACT_ARTIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
@@ -11,8 +11,9 @@ import { GLOBALS } from '@illusive/globals'
 import RowArtist from "@components/RowArtist";
 import usePTheme from "@hooks/usePTheme";
 
-export default function ArtistGridRenderer(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{artist_data: NamedUUID[]}>;
+export default function ArtistGridRenderer(props: {
+    artist_data: NamedUUID[];
+}){
     const { colors } = usePTheme();
     
     const artist_size = Dimensions.get('screen').width * .28;
@@ -20,7 +21,7 @@ export default function ArtistGridRenderer(params: {route: Route<unknown>}){
     const [query, set_query] = useState<string>("");
     const [sort_mode, set_sort_mode] = useState<ArtistSortMode>("NEWEST");
 
-    const artists = artist_query_filter(sort_compact_artists(sort_mode, ts_route.params.artist_data ?? [], GLOBALS.global_var.sql_tracks), query);
+    const artists = artist_query_filter(sort_compact_artists(sort_mode, props.artist_data ?? [], GLOBALS.global_var.sql_tracks), query);
     const split_artists: [CompactArtist, CompactArtist, CompactArtist][] = artists.reduce((result_array: any[], item, index) => { 
         const chunk_index = Math.floor(index / columns)
       

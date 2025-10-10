@@ -2,6 +2,7 @@ import { Dimensions, FlatList, ScrollView, View } from "react-native";
 import { Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { Constants } from "@illusive/constants";
+import { BASE_WIDTH_FN } from "./TrackComponentBase";
 
 export default function TrackHorizontalScrolls(props: {
     height: number;
@@ -23,7 +24,7 @@ export default function TrackHorizontalScrolls(props: {
     const render_track_component = (item: {item: Track}) =>
     (
         <View style={{width: track_width}}>
-            <TrackComponent key={item.item.uid} track_data={item.item} write_playlist_uuid={Constants.library_write_playlist} from={"Illusi"} track_callback={() => props.tracks}/>
+            <TrackComponent key={item.item.uid} track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={"Illusi"} track_callback={() => props.tracks}/>
         </View>
     );
 

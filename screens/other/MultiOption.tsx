@@ -1,9 +1,9 @@
 import { FlatList, StyleSheet, Text, TouchableHighlight, View } from "react-native";
 import { Prefs } from "@illusive/prefs";
-import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { Route, SetState } from "@illusive/types";
+import { SetState } from "@illusive/types";
 import { useState } from "react";
+import usePTheme from "@hooks/usePTheme";
 
 function OptionItem(props: {
     title: string,
@@ -35,17 +35,19 @@ function OptionItem(props: {
     )
 }
 
-export default function MultiOption(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{options: string[], current_value: string, press: () => void}>;
-    
+export default function MultiOption(props: {
+    options: string[];
+    current_value: string;
+    on_press: (mode: string) => void;
+}){
     const { colors } = usePTheme();
     
-    const [selected, set_selected] = useState(ts_route.params.current_value);
-    const render_item = (item: {item: string}) => <OptionItem on_press={ts_route.params.press} title={item.item} selected_option={selected} set_selected_option={set_selected}/>;
+    const [selected, set_selected] = useState(props.current_value);
+    const render_item = (item: {item: string}) => <OptionItem on_press={props.on_press} title={item.item} selected_option={selected} set_selected_option={set_selected}/>;
 
     return (
         <View style={{backgroundColor: colors.background, flex: 1}}>
-            <FlatList data={ts_route.params.options} renderItem={render_item} ListFooterComponent={() => (<View style={{height: 100}}></View>)}/>
+            <FlatList data={props.options} renderItem={render_item} ListFooterComponent={() => (<View style={{height: 100}}></View>)}/>
         </View>
     )
 }

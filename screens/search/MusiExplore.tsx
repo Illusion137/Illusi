@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Prefs } from "@illusive/prefs";
 import { NavigationProp, useNavigation, useTheme } from "@react-navigation/native";
 import { Musi } from '../../../lib-origin/origin/src';
-import { create_uri } from '@illusive/illusive_utilts';
+import { create_uri } from '@illusive/illusive_utils';
 import { CompactPlaylist } from '@illusive/types';
 import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import { clean_youtube_title } from '@illusive/gen/youtube_parser';

@@ -1,36 +1,102 @@
-import { Text, View } from "react-native"
-import Slider from '@react-native-community/slider';
-import usePTheme from "@hooks/usePTheme";
+// EqualizerCurve.tsx
+import React, { useMemo } from "react";
+import { View, StyleSheet, Text } from "react-native";
+import Svg, { Path, Circle, Defs, LinearGradient, Stop } from "react-native-svg";
+import Animated, { useAnimatedProps, withTiming } from "react-native-reanimated";
 
-export default function Equalizer(props: {
-    bands_ranges: number[]
-}){
-    const { colors } = usePTheme();
-    
-    function numstring(band: number): string{
-        return band < 1000 ? String(band) : String(Math.floor(band / 1000)) + 'k';
-    }
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-    return (
-        <View style={{backgroundColor: colors.shelf, height: 320, width: '90%', borderRadius: 10, alignSelf: 'center'}}>
-            {
-                props.bands_ranges.map((range, i) => (
-                    <View key={i} style={{position: 'absolute'}}>
-                        <View style={{transform:[{rotate: "90deg"}]}}>
-                            <Slider 
-                                style={{width: 270, height: 10, top: 110 - (i * 38), left: 140}}
-                                minimumValue={0}
-                                value={0.5}
-                                maximumValue={1}
-                                minimumTrackTintColor={colors.background}
-                                maximumTrackTintColor={colors.primary}      
-                                thumbTintColor={colors.secondary}
-                            />
-                        </View>
-                        <Text style={{color: colors.primary, fontWeight: '600', fontSize: 14, top: 255, left: 15 + (i * 38)}}>{numstring(range)}</Text>
-                    </View>
-                ))
-            }
-        </View>
-    )
+type EqualizerCurveProps = {
+  values: number[]; // e.g. [-6, -2, 0, 3, 6]
+  freqs?: string[];
+  width?: number;
+  height?: number;
+  active?: boolean;
+};
+
+export default function Equalizer({
+  values,
+  freqs = ["60Hz", "150Hz", "400Hz", "1KHz", "2.4KHz", "15KHz"],
+  width = 350,
+  height = 200,
+  active = true,
+}: EqualizerCurveProps) {
+  const points = useMemo(() => {
+    const count = values.length;
+    const stepX = width / (count - 1);
+    return values.map((v, i) => {
+      const clamped = Math.max(-12, Math.min(12, v));
+      const y = height - ((clamped + 12) / 24) * height;
+      return { x: i * stepX, y };
+    });
+  }, [values, width, height]);
+
+  const path = useMemo(() => generateSmoothPath(points), [points]);
+
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Svg width={width} height={height}>
+        <Defs>
+          <LinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%" stopColor="#1DB954" stopOpacity="0.9" />
+            <Stop offset="100%" stopColor="#1DB954" stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Underglow */}
+        <Path d={`${path} L ${width} ${height} L 0 ${height} Z`} fill="url(#grad)" />
+
+        {/* Main line */}
+        <AnimatedPath
+          d={path}
+          stroke="#1DB954"
+          strokeWidth={3}
+          fill="none"
+          animatedProps={useAnimatedProps(() => ({
+            strokeOpacity: withTiming(active ? 1 : 0.3),
+          }))}
+        />
+
+        {/* Control points */}
+        {points.map((p, i) => (
+          <Circle key={i} cx={p.x} cy={p.y} r={7} fill="#fff" />
+        ))}
+      </Svg>
+
+      {/* Frequency labels */}
+      <View style={styles.labelsRow}>
+        {freqs.map((f, i) => (
+          <View key={i} style={{ width: width / freqs.length, alignItems: "center" }}>
+            <Text style={styles.label}>{f}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 }
+
+function generateSmoothPath(points: { x: number; y: number }[]) {
+  if (points.length < 2) return "";
+  const d = points
+    .map((p, i, arr) => {
+      if (i === 0) return `M ${p.x},${p.y}`;
+      const prev = arr[i - 1];
+      const cx = (prev.x + p.x) / 2;
+      return `C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
+    })
+    .join(" ");
+  return d;
+}
+
+const styles = StyleSheet.create({
+  labelsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 6,
+  },
+  label: {
+    color: "#aaa",
+    fontSize: 12,
+  },
+});

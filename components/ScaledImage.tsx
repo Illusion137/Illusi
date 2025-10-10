@@ -44,7 +44,7 @@ export default function ScaledImage(props: {
         //     set_image_loading(false);
         //     console.error(error);
         // })
-    }, [])
+    }, [props.artwork]);
 
 
     return (

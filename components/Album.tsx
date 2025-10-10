@@ -1,9 +1,7 @@
-import { useNavigation } from "@react-navigation/native";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { CompactPlaylist } from "@illusive/types";
-import { best_thumbnail, track_exists } from '@illusive/illusive_utilts';
-import { Navigator } from "@illusive/illusi/src/types";
+import { best_thumbnail, track_exists } from '@illusive/illusive_utils';
 import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { useEffect, useState } from "react";
@@ -14,6 +12,7 @@ import usePTheme from "@hooks/usePTheme";
 import { empty_join_dot, is_empty, single_case } from "@common/utils/util";
 import IImage from "./IImage";
 import { remove_topic } from "@common/utils/clean_util";
+import { SharedRouter } from "@utils/shared_routes";
 
 export type SecondLineType = "YEAR"|"ARTIST";
 export default function Album(props: {
@@ -23,8 +22,6 @@ export default function Album(props: {
 }){
     const size = props.size ?? Dimensions.get('screen').width * .40;
     const { colors } = usePTheme();
-
-    const navigation: Navigator = useNavigation();
 
     const [target_view_node, set_target_view_node] = useState();
 
@@ -40,7 +37,7 @@ export default function Album(props: {
 
     function on_press(){
         if(props.album_data.album_type !== "SONG"){
-            navigation.push("Playlist", {uri: props.album_data.title.uri, compact_playlist: props.album_data});;
+            SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {compact_playlist: props.album_data} );
         }
         else if(props.album_data.song_track) {
             play(props.album_data.song_track, "Artist Watch", () => [props.album_data.song_track!]);
@@ -156,12 +153,12 @@ export default function Album(props: {
                         break;
                     case "album-push-to-queue-shuffled":
                         break;
-                    case "album-view-artist":
-						navigation.push("Artist", {uri: props.album_data.artist[0].uri ?? props.album_data.song_track?.artists[0].uri});
+                    case "album-view-artist":       
+                        SharedRouter.goto_shared_artist( props.album_data.artist[0].uri ?? props.album_data.song_track?.artists[0].uri ?? "" );
                         break;
                     default: break;
                 }
-                }}
+            }}
         >
             <TouchableOpacity style={{padding: 5}} onPress={on_press} onLongPress={() => {}} delayLongPress={Constants.long_press_delay}>
                 <IImage source={is_empty(props.album_data.artwork_url) ? best_thumbnail(props.album_data.artwork_thumbnails)?.url : props.album_data.artwork_url} style={{width: size, height: size, borderRadius: 5}}/>

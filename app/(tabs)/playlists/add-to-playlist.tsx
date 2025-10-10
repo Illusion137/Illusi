@@ -11,10 +11,9 @@ import CompactWriterPlaylistComponent from "@components/CompactWriterPlaylistCom
 import { sort_compact_playlists_data } from "@illusive/illusi/src/playlist";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import usePTheme from '@hooks/usePTheme';
+import { router } from 'expo-router';
 
 export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
-	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
-
     const ts_route = params.route as Route<{write_playlist_uuid: string}>;
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -38,7 +37,7 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
         <View style={{flex: 1, backgroundColor: colors.background}}>
             <View style={styles.header}>
                 <View style={{left: 5}}>
-                    <Button title="Back" color={colors.primary} onPress={navigation.goBack}/>
+                    <Button title="Back" color={colors.primary} onPress={router.back}/>
                 </View>
             </View>
             <View style={styles.list_break}>

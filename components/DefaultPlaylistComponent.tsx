@@ -1,4 +1,3 @@
-import { NavigationProp } from '@react-navigation/native';
 import { View, Text, TouchableHighlight, StyleSheet, Dimensions } from "react-native";
 import { Track } from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
@@ -10,11 +9,11 @@ import { ContextMenuView } from 'react-native-ios-context-menu';
 import { Constants } from '@illusive/constants';
 import usePTheme from '@hooks/usePTheme';
 import { GLOBALS } from '@illusive/globals';
+import { SharedRouter } from "@utils/shared_routes";
 
 const { width } = Dimensions.get("screen");
 const item_size = width * .29;
 export default function DefaultPlaylistComponent(props: {
-    navigation: NavigationProp<any, any>,
     four_track: Track[]
     title: string,
     force_order?: boolean,
@@ -25,7 +24,7 @@ export default function DefaultPlaylistComponent(props: {
 	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
 
     async function navigate(){
-        props.navigation.navigate('Playlist', {'default_playlist_title': props.title, 'force_order': props.force_order});
+		SharedRouter.goto_shared_playlist( props.title, "DEFAULT_PLAYLIST", {force_order: props.force_order ? "1" : "0"} );
     }
 
     return (

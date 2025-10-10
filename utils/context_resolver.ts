@@ -7,14 +7,13 @@ import { GLOBALS } from "@illusive/globals";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { if_confirm, share_item } from "@illusive/illusi/src/illusi_utils";
 import { play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
-import { Illusive } from "@illusive/illusive";
-import { track_to_illusive_uri } from "@illusive/illusive_utilts";
+import { track_to_illusive_uri } from "@illusive/illusive_utils";
 import { Prefs } from "@illusive/prefs";
 import { SQLfs } from "@illusive/sql/sql_fs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { Track } from "@illusive/types";
-import { router } from "expo-router";
-import { reinterpret_cast } from '../lib-origin/common/cast';
+import { SharedRouter } from './shared_routes';
+import { alert_error } from "@illusive/illusi/src/alert";
 
 export namespace ContextResolver{
     export type TrackContextKeys = 
@@ -42,10 +41,11 @@ export namespace ContextResolver{
         | "track-delete-playlist"
         | "track-add-to-library"
         | "track-add-to-playlist";
-    export async function resolve_track_context(track: Track, action_key: TrackContextKeys){
+    export async function resolve_track_context(track: Track|undefined, write_playlist_uuid: string|undefined, action_key: TrackContextKeys){
+        if(track === undefined) return;
         if(action_key.includes('track-view-artist-')){
             const index = parseInt(action_key.replace('track-view-artist-', ''));
-            router.push({ pathname: "/(tabs)/(shared)/artist/[uri]", params: {uri: reinterpret_cast<string>(track.artists[index].uri)}});
+            SharedRouter.goto_shared_artist( track.artists[index].uri ?? "" );
         }
         switch(action_key){
             case "track-push-discord": 
@@ -59,20 +59,20 @@ export namespace ContextResolver{
                 break;
 
             case "track-trim-media": 
-                router.push({ pathname: "/(tabs)/(shared)/track-trim/[uid]", params: {uid: track.uid} });
+                SharedRouter.goto_shared_track_trim(track.uid);
                 break;
             case "track-view-info": 
-                router.push({ pathname: "/(tabs)/(shared)/track-info/[uid]", params: {uid: track.uid} });
+                SharedRouter.goto_shared_track_info(track.uid);
                 break;
             case "track-edit-info": 
-                router.push({ pathname: "/(tabs)/(shared)/track-edit/[uid]", params: {uid: track.uid} });
+                SharedRouter.goto_shared_track_edit(track.uid);
                 break;
 
             case "track-view-artist":
-                router.push({ pathname: "/(tabs)/(shared)/artist/[uri]", params: {uri: reinterpret_cast<string>(track.artists[0].uri)}});
+                SharedRouter.goto_shared_artist(track.artists[0].uri ?? "");
                 break;
             case "track-view-album": 
-                router.push({ pathname: "/(tabs)/(shared)/playlist/[uri]", params: {uri: reinterpret_cast<string>(track.album?.uri)}});
+                SharedRouter.goto_shared_playlist(track.album?.uri ?? "", "URI", {});
                 break;
 
             case "track-share-original": 
@@ -89,21 +89,21 @@ export namespace ContextResolver{
                 break;
 
             case "track-download-media": 
-                await download_track(track, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress);
+                await download_track(track, false);
                 break;
             case "track-delete-media":
                 await undownload_track(track);
-                set_is_downloaded(false);
+                // set_is_downloaded(false);
                 break;
             case "track-download-lyrics": 
                 const lyrics_result = await SQLTracks.try_download_track_lyrics(track);
-                set_is_lyrics_downloaded(lyrics_result === "ok");
+                // set_is_lyrics_downloaded(lyrics_result === "ok");
                 GLOBALS.global_var.bottom_alert?.(lyrics_result === "ok" ? "Downloaded Track Lyrics" : "Failed to Download Track Lyrics",lyrics_result === "ok" ? "GOOD" : "WARN");
                 break;
             case "track-delete-lyrics": 
                 await SQLTracks.undownload_track_lyrics(track);
                 GLOBALS.global_var.bottom_alert?.("Removed Track Lyrics", "INFO");
-                set_is_lyrics_downloaded(false);
+                // set_is_lyrics_downloaded(false);
                 break;
             
             case "track-download-thumbnail":
@@ -112,26 +112,26 @@ export namespace ContextResolver{
                     GLOBALS.global_var.bottom_alert?.("Failed to Downloaded Track Artwork", "WARN");
                     return
                 }
-                set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...track, thumbnail_uri: downloaded_thumbnail_uri ?? ''}));
-                set_is_thumbnail_downloaded(downloaded_thumbnail_uri !== undefined);
+                // set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...track, thumbnail_uri: downloaded_thumbnail_uri ?? ''}));
+                // set_is_thumbnail_downloaded(downloaded_thumbnail_uri !== undefined);
                 GLOBALS.global_var.bottom_alert?.("Downloaded Track Artwork", "INFO");
                 break;
             case "track-upload-artwork": 
                 await upload_track_thumbnail(track, async(updated_track) => {
-                    set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), updated_track));
-                    set_is_thumbnail_downloaded(true);
+                    // set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), updated_track));
+                    // set_is_thumbnail_downloaded(true);
                     GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");
                 } ); 
                 break;
             case "track-remove-artwork": 
                 await SQLTracks.update_track(track.uid, {...track, thumbnail_uri: ''}); 
-                set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...track, thumbnail_uri: ''}));
-                set_is_thumbnail_downloaded(false);
+                // set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), {...track, thumbnail_uri: ''}));
+                // set_is_thumbnail_downloaded(false);
                 GLOBALS.global_var.bottom_alert?.("Removed Track Artwork", "INFO");
                 break;
             
             case "track-delete":
-                if_confirm(`Delete:\n ${track.title}?`, "This action can't be undone.", () => delete_track(track, props.write_playlist_uuid, props.refresh_data));
+                if_confirm(`Delete:\n ${track.title}?`, "This action can't be undone.", () => delete_track(track, write_playlist_uuid));
                 break;
         }
     }

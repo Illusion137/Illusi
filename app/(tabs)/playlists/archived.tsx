@@ -1,22 +1,52 @@
 import { Button, Text, View } from "react-native";
 import usePTheme from "@hooks/usePTheme";
 import BigList from "react-native-big-list";
-import useParsedLocalSearchParams from "@hooks/useParsedLocalSearchParams";
 import type { Playlist } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import PlaylistComponent from "@components/PlaylistComponent";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { sort_playlists } from "@illusive/playlist_utils";
+import { playlist_query_filter } from "@illusive/illusive_utils";
+import { SQLPlaylists } from "@illusive/sql/sql_playlists";
+import { useIsFocused } from "@react-navigation/native";
 
-export interface ArchivedPlaylistsParams {
-    _playlists: Playlist[];
-};
-
+let last_playlists_count = 0;
 export default function ArchivedPlaylists(){
-    const { _playlists } = useParsedLocalSearchParams<ArchivedPlaylistsParams>();
+    const { query } = useLocalSearchParams<{query: string}>();
     const { colors } = usePTheme();
-    
 
-    // TODO remove refresh callbacks, screens should just know
+    const is_focused = useIsFocused();
+    
+    const [playlists_state, set_playlists] = useState<Playlist[]>([]);
+
+    const sorted_queried_playlists = sort_playlists(
+        playlist_query_filter(
+            playlists_state.filter((playlist) => playlist.archived),
+            query
+        )
+    );
+
+    useEffect(() => {
+        refresh_data(undefined, is_focused);
+    }, [is_focused]);
+
+    async function refresh_data(update_with?: Playlist, force_update?: boolean) {
+        try {
+            if (update_with) {
+                const new_playlist_state = [...playlists_state];
+                const update_index = playlists_state.findIndex((playlist) => update_with.uuid === playlist.uuid);
+                new_playlist_state[update_index] = update_with;
+                set_playlists(new_playlist_state);
+            }
+            const new_last_playlists_count = await SQLPlaylists.playlists_count();
+            if (last_playlists_count !== new_last_playlists_count || force_update) {
+                last_playlists_count = new_last_playlists_count;
+                SQLPlaylists.all_playlists_data().then((playlists) => set_playlists(playlists));
+            }
+        } catch (error) {}
+    }
+
     const render_item = (item: {item: Playlist}) => (
         <PlaylistComponent refresh_data={() => {}} playlist_data={item.item} compact={Prefs.get_pref('compact_playlists')}/>
     );
@@ -42,7 +72,7 @@ export default function ArchivedPlaylists(){
                 <Text style={{color: colors.text, fontWeight:'500', fontSize: 18, alignSelf: 'center'}}>Archived Playlists</Text>
             </View>
             <View style={{height: 0.6, backgroundColor: colors.line}}/>
-            <BigList style={{height: '70%'}} data={_playlists} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={500} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={render_footer}/>
+            <BigList style={{height: '70%'}} data={sorted_queried_playlists} keyExtractor={(item, _) => String(item.uuid)} itemHeight={Prefs.get_pref('compact_playlists') ? 56 : 81} headerHeight={0} footerHeight={500} renderItem={render_item} renderHeader={() => (<></>)} renderFooter={render_footer}/>
         </View>
     )
 }

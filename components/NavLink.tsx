@@ -1,8 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleProp, TextStyle } from 'react-native';
 import { is_empty } from '@common/utils/util';
-import { useNavigation } from '@react-navigation/native';
-import { Navigator } from '@illusive/illusi/src/types';
+import { SharedRouter } from '@utils/shared_routes';
 
 export default function NavLink(props: {
     text: string
@@ -11,8 +10,6 @@ export default function NavLink(props: {
     text_style: StyleProp<TextStyle>
     callforward?: () => void
 }) {
-	const navigation: Navigator = useNavigation();
-
 	// const { colors } = usePTheme();
 	// const styles = theme_styles(colors);
 
@@ -22,11 +19,11 @@ export default function NavLink(props: {
         switch(props.type){
             case "album":
             case "playlist": {
-        		navigation.navigate('My Library', {screen: 'Playlist', params: {uri: props.uri}}); 
+                SharedRouter.goto_shared_playlist( props.uri, "URI", {} );
                 break; 
             }
             case "artist": {
-        		navigation.navigate('My Library', {screen: 'Artist', params: {uri: props.uri}}); 
+                SharedRouter.goto_shared_artist( props.uri );
                 break;
             }
         }

@@ -14,7 +14,7 @@ export default function FourTrackArtwork(props: {
     base_view_style?: StyleProp<ViewStyle>
 }) {
     const background = (props.background ?? false);
-    const thumbnail_uri = props.thumbnail_uri?.includes("https:") ? props.thumbnail_uri : SQLfs.custom_thumbnail_directory(props.thumbnail_uri!);
+    const thumbnail_uri = is_empty(props.thumbnail_uri) ? undefined : props.thumbnail_uri?.includes("https:") ? props.thumbnail_uri : SQLfs.custom_thumbnail_directory(props.thumbnail_uri!);
     const album_names = (props.four_track ?? []).map(track => track.album?.name ?? "").filter(name => !is_empty(name));
     const all_same_album = (new Set<string>(album_names).size === 1 && album_names.length >= 4) || (props.four_track.length >= 4 && props.four_track.slice(0,4).every(track => !is_empty(track.imported_id)));
     

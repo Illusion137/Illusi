@@ -1,18 +1,16 @@
-import { useNavigation } from "@react-navigation/native";
 import { CompactPlaylist } from "@illusive/types";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { empty_join_dot } from "@common/utils/util";
-import { Navigator } from "@illusive/illusi/src/types";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
+import { SharedRouter } from '../utils/shared_routes';
 
 export default function LatestRelease(props: {album_data: CompactPlaylist}){
     const { colors } = usePTheme();
-    const navigation: Navigator = useNavigation();
 
     function on_press(){
-        navigation.push("Playlist", {uri: props.album_data.title.uri})
+        SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {} );
     }
 
     return (

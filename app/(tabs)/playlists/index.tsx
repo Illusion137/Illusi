@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
 import PlaylistComponent from "@components/PlaylistComponent";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import { useIsFocused } from "@react-navigation/native";
 import DefaultPlaylistComponent from "@components/DefaultPlaylistComponent";
 import { Prefs } from "@illusive/prefs";
 import { Playlist, ResolvedDefaultPlaylist } from "@illusive/types";
-import { playlist_query_filter } from "@illusive/illusive_utilts";
+import { playlist_query_filter } from "@illusive/illusive_utils";
 import BigList from "react-native-big-list";
 import { sort_playlists } from "@illusive/illusi/src/playlist";
 import { empty_resolved_default_playlists, resolved_default_playlists } from "@illusive/default_playlists";
@@ -16,15 +15,12 @@ import SearchBarV1 from "@components/SearchBarV1";
 import { PLAYLIST_QUERY_FLAGS } from "@illusive/query_flags";
 import usePTheme from "@hooks/usePTheme";
 import { router } from "expo-router";
-import { encodeLocalSearchParams } from "@hooks/useParsedLocalSearchParams";
-import type { ArchivedPlaylistsParams } from "./archived";
 
 let last_playlists_count = 0;
 export default function Playlists() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const navigation: NavigationProp<any, any> = useNavigation();
 	const is_focused = useIsFocused();
 
 	const [query, set_query] = useState<string>("");
@@ -33,7 +29,7 @@ export default function Playlists() {
 
 	const sorted_queried_playlists = sort_playlists(
 		playlist_query_filter(
-			playlists_state,
+			playlists_state.filter((playlist) => !playlist.archived),
 			query
 		)
 	);
@@ -64,8 +60,7 @@ export default function Playlists() {
 	function show_archived(){
 		router.push({
 			pathname: '/playlists/archived', 
-			params: {"_playlists": [0,1,2]}
-			// encodeLocalSearchParams<ArchivedPlaylistsParams>({_playlists: sorted_queried_playlists.filter((playlist) => playlist.archived)})
+			params: {"query": query}
 		});
 	}
 	function show_create(){
@@ -95,7 +90,7 @@ export default function Playlists() {
 				<ScrollView horizontal={true}>
 					{default_playlists_state.map((default_playlist, i) => (
 						<View key={i}>
-							<DefaultPlaylistComponent title={default_playlist.name} force_order={default_playlist.force_order} four_track={default_playlist.four_tracks} navigation={navigation} />
+							<DefaultPlaylistComponent title={default_playlist.name} force_order={default_playlist.force_order} four_track={default_playlist.four_tracks} />
 						</View>
 					))}
 				</ScrollView>
@@ -103,7 +98,7 @@ export default function Playlists() {
 			<View style={{ width: "100%", height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30 }} />
 			<BigList
 				style={{ height: "71%" }}
-				data={sorted_queried_playlists.filter((playlist) => !playlist.archived)}
+				data={sorted_queried_playlists}
 				keyExtractor={(item, _) => String(item.uuid)}
 				itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81}
 				headerHeight={0}

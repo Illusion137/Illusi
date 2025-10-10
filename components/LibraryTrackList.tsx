@@ -5,18 +5,17 @@ import { Prefs } from "@illusive/prefs";
 import { AlphabetScroll, EditMode, Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "@illusive/illusi/src/play";
-import { track_query_filter, track_section_map } from "@illusive/illusive_utilts";
+import { track_query_filter, track_section_map } from "@illusive/illusive_utils";
 import { on_alphabet_scroll_update } from "@illusive/illusi/src/illusi_utils";
 import ShufflePlayButton from "./ShufflePlayButton";
 import React from "react";
 import { is_empty } from "@common/utils/util";
-import TrimTrackModal from "@screens/other/TrimTrackModal";
-import TrackInfoModal from "@screens/other/TrackInfoModal";
 import { extract_query_flags, TRACK_QUERY_FLAGS } from "@illusive/query_flags";
-import usePTheme from "@hooks/usePTheme";
 import { SQLGlobal } from "@illusive/sql/sql_global";
 import { GLOBALS } from "@illusive/globals";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
+import usePTheme from "@hooks/usePTheme";
+import { BASE_WIDTH_FN } from "./TrackComponentBase";
 
 let search_query = "";
 function LibraryTrackList(
@@ -35,9 +34,6 @@ function LibraryTrackList(
 	const styles = theme_styles(colors);
 
 	const [all_data, set_all_data] = useState({ char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0 });
-	// const [edit_track_modal_data, _] = useState({visible: false, track: ExampleObj.track_example0});
-	const [trim_track_state, set_trim_track_state] = useState({ show: false, track_data: null as Track | null });
-	const [track_info_state, set_track_info_state] = useState({ show: false, track_data: null as Track | null });
 
 	const alphabet_scroll: AlphabetScroll = {
 		all_alphabet_fast_scroll_locations: [] as number[],
@@ -92,10 +88,9 @@ function LibraryTrackList(
 			track_callback={() => [...GLOBALS.global_var.sql_tracks]}
 			from={"My Library"}
 			edit_mode={props.edit_mode}
+			width_fn={() => BASE_WIDTH_FN(props.write_playlist_uuid)}
 			write_playlist_uuid={props.write_playlist_uuid}
-			refresh_data={async () => await refresh_data(search_query)}
-			trim_track={(show: boolean, track_data: Track | null) => set_trim_track_state({ show: show, track_data: track_data })}
-			view_info={(show: boolean, track_data: Track | null) => set_track_info_state({ show: show, track_data: track_data })}
+			// refresh_data={async () => await refresh_data(search_query)}
 		/>
 	);
 	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20} />;
@@ -140,8 +135,6 @@ function LibraryTrackList(
 					</View>
 				))}
 			</Animated.View>
-			<TrimTrackModal modal_data={trim_track_state} set_modal_data={set_trim_track_state} callback={() => {}} />
-			<TrackInfoModal modal_data={track_info_state} set_modal_data={set_track_info_state} callback={() => {}} />
 		</>
 	);
 }

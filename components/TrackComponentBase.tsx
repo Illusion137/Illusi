@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
-import { artist_string, duration_to_string } from '@illusive/illusive_utilts';
+import { StyleSheet, Text, TouchableOpacity, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
+import { artist_string, duration_to_string } from '@illusive/illusive_utils';
 import { Prefs } from '@illusive/prefs';
 import { Track } from '@illusive/types';
 import { Constants } from '@illusive/constants';
@@ -11,6 +11,9 @@ import { GLOBALS } from '@illusive/globals';
 import { reinterpret_cast } from '../lib-origin/common/cast';
 import IImage from './IImage';
 
+export const SMALL_WIDTH_PERCENT = "60%";
+export const BASE_WIDTH_PERCENT = "65%";
+export const BASE_WIDTH_FN = (value: unknown|undefined) => value !== undefined ? SMALL_WIDTH_PERCENT : BASE_WIDTH_PERCENT;
 export default function TrackComponentBase(props: {
 		track_data: Track;
         is_downloading?: boolean;
@@ -20,8 +23,9 @@ export default function TrackComponentBase(props: {
         on_press: (() => any)|undefined;
         on_long_press: () => any;
         children?: React.ReactNode;
+		width_fn?: () => DimensionValue|undefined;
 	}) {
-
+	
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
 
 	const { colors } = usePTheme();
@@ -44,8 +48,7 @@ export default function TrackComponentBase(props: {
 						</View> : null
 					}
 				</View>
-                {/* TODO investigate this style params */}
-				<View style={{ top: 5, left: 20 }}>
+				<View style={{ width: props.width_fn ? props.width_fn() !== undefined ? props.width_fn() : BASE_WIDTH_PERCENT : BASE_WIDTH_PERCENT, top: 5, left: 20 }}>
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{artist_string(props.track_data)}</Text>
                     <View style={{flexDirection: 'row'}}>
@@ -66,7 +69,7 @@ export default function TrackComponentBase(props: {
                         {!is_empty(props.track_data.meta?.begdur) || !is_empty(props.track_data.meta?.enddur) ? <Ionicons name="cut" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
 					</View>
 				</View>
-                ...props.children
+				{props.children}
 			</View>
 			<View style={styles.line}/>
 		</TouchableOpacity>

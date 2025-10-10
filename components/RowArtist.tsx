@@ -1,10 +1,10 @@
 import { Text, TouchableOpacity } from "react-native";
 import { CompactArtist } from "@illusive/types";
-import { useNavigation } from "@react-navigation/native";
-import { Navigator } from "@illusive/illusi/src/types";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 import { remove_topic } from "@common/utils/clean_util";
+import { router } from "expo-router";
+import { SharedRouter } from "@utils/shared_routes";
 
 export default function RowArtist(props: {
     artist_data: CompactArtist;
@@ -12,10 +12,8 @@ export default function RowArtist(props: {
 }){
     const { colors } = usePTheme();
 
-    const navigation: Navigator = useNavigation();
-    
     function on_press(){
-        navigation.push("Artist", {uri: props.artist_data.name.uri})
+        SharedRouter.goto_shared_artist(props.artist_data.name.uri ?? "");
     }
 
     const size = props.size ?? 100;

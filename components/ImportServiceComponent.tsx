@@ -19,7 +19,6 @@ export default function ImportServiceComponent(props: {
         || Illusive.free_music_services.includes(props.service_name));
     
     function navigate_or_alert(){
-        // TODO {title: `Import ${props.service_name} Playlist`}
         // TODO more usefull messages
         if(!disabled){
             router.dismiss();

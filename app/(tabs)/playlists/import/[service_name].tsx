@@ -7,10 +7,11 @@ import { Illusive } from '@illusive/illusive';
 import { Prefs } from '@illusive/prefs';
 import { is_empty, urlid } from '@common/utils/util';
 import { alert_errors } from '@illusive/illusi/src/alert';
-import { create_uri, music_service_to_music_service_uri } from '@illusive/illusive_utilts';
+import { create_uri, music_service_to_music_service_uri } from '@illusive/illusive_utils';
 import usePTheme from '@hooks/usePTheme';
-import { router, useNavigation } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import useParsedLocalSearchParams from '@hooks/useParsedLocalSearchParams';
+import { SharedRouter } from '@utils/shared_routes';
 
 export interface ImportPlaylistParams {
 	service_name: MusicServiceType;
@@ -62,12 +63,12 @@ export default function ImportPlaylist() {
     function set_nav_enabled(data: string|MusicServiceMappedPlaylist){
         if(typeof data === "string"){
             navigation.setOptions({ headerRight: () => (
-                <Button title="Next" color='blue' onPress={() => router.navigate({pathname: "/playlists/playlist", params: {'uri': make_uri(data)}})} />
+                <Button title="Next" color='blue' onPress={() => SharedRouter.goto_shared_playlist( make_uri(data), "URI", {} ) } />
             )});
         }
         else if(typeof data === "object"){
             navigation.setOptions({ headerRight: () => (
-                <Button title="Next" color='blue' onPress={() => router.navigate({pathname: "/playlists/playlist", params: {'uri': make_uri(data.url), 'compact_playlist_string': JSON.stringify(data.compact_playlist) }} )} />
+                <Button title="Next" color='blue' onPress={() => SharedRouter.goto_shared_playlist( make_uri(data.url), "URI", {compact_playlist: data.compact_playlist} ) } />
             )});
         }
     }

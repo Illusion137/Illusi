@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import {
-	NavigationProp,
-	useNavigation,
-} from "@react-navigation/native";
 import * as GLOBALS from "@illusive/illusi/src/globals";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import FourTrackArtwork from "./FourTrackArtwork";
@@ -15,6 +11,7 @@ import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import { sprinkle_into_queue } from "@illusive/illusi/src/play";
 import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
+import { SharedRouter } from "@utils/shared_routes";
 
 export default function PlaylistComponent(props: {
 	playlist_data: Playlist;
@@ -25,8 +22,6 @@ export default function PlaylistComponent(props: {
 	compact?: boolean;
 	refresh_data: (update_with?: Playlist) => void;
 }) {
-	const navigation: NavigationProp<any, any> = useNavigation();
-
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
@@ -103,7 +98,7 @@ export default function PlaylistComponent(props: {
 	}
 
 	async function on_press() {
-		navigation.navigate("Playlist", { uuid: props.playlist_data.uuid });
+		SharedRouter.goto_shared_playlist(props.playlist_data.uuid, "UUID", {});
 	}
 
 	async function toggle_pin() {

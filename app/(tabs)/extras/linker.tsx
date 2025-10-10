@@ -3,16 +3,15 @@ import { View, StyleSheet } from 'react-native';
 import { NavigationProp, useIsFocused, useNavigation } from '@react-navigation/native';
 import Link from '@components/Link';
 import { Prefs } from '@illusive/prefs';
-import { create_uri } from '@illusive/illusive_utilts';
+import { create_uri } from '@illusive/illusive_utils';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import usePTheme from '@hooks/usePTheme';
+import { router } from 'expo-router';
 
 export default function ExtraLinkerScreen() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 	styles;
-
-	const navigation: NavigationProp<any, any> = useNavigation();
 
 	const focused = useIsFocused();
 
@@ -22,7 +21,7 @@ export default function ExtraLinkerScreen() {
 
 	return(
 		<View style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
-			<ExtrasSectionButton text='Create New Link' icon='NONE' show_arrow={false} onPress={() => {navigation.navigate("Link")}}/>
+			<ExtrasSectionButton text='Create New Link' icon='NONE' show_arrow={false} onPress={() => {router.navigate("Link")}}/>
 			
 			<Link linker_link={{link_uuid: "", full_sample: false, uuid_uri: create_uri('illusi', ''), to_service: "Spotify", to: {'title': '', 'uuid_uri': create_uri('spotify', '')} }}/>
 		</View>

@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
 import FourTrackArtwork from './FourTrackArtwork';
 import { CompactPlaylistData, Playlist, SerializedCompactPlaylistData } from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { MaterialIcons } from '@expo/vector-icons';
 import usePTheme from '@hooks/usePTheme';
-import { track_exists } from '@illusive/illusive_utilts';
+import { track_exists } from '@illusive/illusive_utils';
 import { GLOBALS } from '@illusive/globals';
+import { SharedRouter } from '@utils/shared_routes';
 
 export default function CompactWriterPlaylistComponent(props: {
 	playlist_data: CompactPlaylistData;
     write_playlist_uuid: string;
 }) {
-	const navigation: NavigationProp<any, any> & {push: (route: string, params: any) => void} = useNavigation();
-
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
@@ -26,10 +24,7 @@ export default function CompactWriterPlaylistComponent(props: {
 				tracks.filter(async (track) => await track_exists(track, GLOBALS.global_var.sql_tracks) ) : tracks,
             type: props.playlist_data.type
         };
-        navigation.push("Playlist", {
-            write_playlist_uuid: props.write_playlist_uuid,
-            serialized_playlist_data: serialized_data,
-        });           
+		SharedRouter.goto_shared_playlist( props.write_playlist_uuid, "WRITE_PLAYLIST", {serialized_playlist_data: serialized_data} );
     }
 
 	const [visual_data, set_visual_data] = useState<Playlist['visual_data']>();

@@ -1,28 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { CompactPlaylist } from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { empty_join_dot, is_empty } from '@common/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
-import { best_thumbnail } from '@illusive/illusive_utilts';
-import { Navigator } from '@illusive/illusi/src/types';
+import { best_thumbnail } from '@illusive/illusive_utils';
 import usePTheme from '@hooks/usePTheme';
 import IImage from './IImage';
 import { remove_topic } from '@common/utils/clean_util';
+import { SharedRouter } from '@utils/shared_routes';
 
 export default function CompactPlaylistComponent(props: {
 	playlist_data: CompactPlaylist
 }) {
     const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.artwork_url!;
-	const navigation: Navigator = useNavigation();
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
     async function navigate(){
         if(is_empty(props.playlist_data.title.uri)) return;
-        navigation.push("Playlist", {"uri": props.playlist_data.title.uri, compact_playlist: props.playlist_data});
+		SharedRouter.goto_shared_playlist( props.playlist_data.title.uri ?? "", "URI", {compact_playlist: props.playlist_data} );
     }
 
 	return(

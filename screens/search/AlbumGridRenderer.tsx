@@ -1,18 +1,19 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { AlbumSortMode, CompactPlaylist, Route } from "@illusive/types";
+import { AlbumSortMode, CompactPlaylist } from "@illusive/types";
 import Album from "@components/Album";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
 import { useState } from "react";
-import { album_query_filter, sort_compact_playlists } from "@illusive/illusive_utilts";
+import { album_query_filter, sort_compact_playlists } from "@illusive/illusive_utils";
 import { COMPACT_PLAYLIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
 import { GLOBALS } from '@illusive/globals'
 import usePTheme from "@hooks/usePTheme";
 
-export default function AlbumGridRenderer(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{album_data: CompactPlaylist[]}>;
+export default function AlbumGridRenderer(props: {
+    album_data: CompactPlaylist[]
+}){
     const { colors } = usePTheme();
     
     const album_size = Dimensions.get('screen').width * .3;
@@ -20,7 +21,7 @@ export default function AlbumGridRenderer(params: {route: Route<unknown>}){
     const [query, set_query] = useState<string>("");
     const [sort_mode, set_sort_mode] = useState<AlbumSortMode>("NEWEST");
 
-    const albums = sort_compact_playlists(sort_mode, album_query_filter(ts_route.params.album_data ?? [], query), GLOBALS.global_var.sql_tracks);
+    const albums = sort_compact_playlists(sort_mode, album_query_filter(props.album_data ?? [], query), GLOBALS.global_var.sql_tracks);
     const split_albums: [CompactPlaylist, CompactPlaylist, CompactPlaylist][] = albums.reduce((result_array: any[], item, index) => { 
         const chunk_index = Math.floor(index / columns)
       

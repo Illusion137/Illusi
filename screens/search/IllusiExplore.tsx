@@ -1,35 +1,35 @@
 import { ScrollView, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { CompactPlaylist } from "@illusive/types";
 import AlbumList from "@components/AlbumList";
-import { artist_watch } from "@illusive/illusi/src/artist_watch";
 import { GLOBALS } from '@illusive/globals'
-import * as SQLNewReleases from '@illusive/illusi/src/sql/sql_new_releases'
-import * as SQLTracks from '@illusive/illusi/src/sql/sql_tracks'
 import * as Origin from "@origin/index";
-import { call_wtimeout, json_catch } from "@common/utils/util";
-import { ResponseError } from "@origin/utils/types";
 import { Prefs } from "@illusive/prefs";
-import { NavigationProp, useIsFocused, useNavigation, useTheme } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
-import { musi_parse_explore } from "@illusive/gen/musi_parser";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { Illusive } from '@illusive/illusive';
-import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists, should_automatic_refresh } from '@illusive/illusive_utilts';
+import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists, should_automatic_refresh } from '@illusive/illusive_utils';
 import { push_abortion } from '@origin/utils/orifetch';
 import usePTheme from '@hooks/usePTheme';
+import { musi_parse_explore } from '@illusive/parsers/musi_parser';
+import type { ResponseError } from '@common/types';
+import { artist_watch } from '@illusive/artist_watch';
+import { json_catch } from '@common/utils/util';
+import { call_wtimeout } from '@common/utils/timed_util';
+import { SQLNewReleases } from '@illusive/sql/sql_new_releases';
+import { SQLTracks } from '@illusive/sql/sql_tracks';
+import { router } from 'expo-router';
+import { shared_values } from '@utils/shared_values';
 
 type MusiExplore = ReturnType<typeof musi_parse_explore>;
-let cached_new_releases: CompactPlaylist[] = [];
 let musi_explore_data: MusiExplore;
 export default function IllusiExplore(){
     const { colors } = usePTheme();
     const styles = theme_styles(colors);
 
-    const navigation: NavigationProp<any, any> = useNavigation();
-
-    const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(cached_new_releases);
-    const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(cached_new_releases.length === 0);
+    const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(shared_values.cached_new_releases);
+    const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(shared_values.cached_new_releases.length === 0);
 
     const unique_artists = get_unique_artists(GLOBALS.global_var.sql_tracks);
     const is_focused = useIsFocused();
@@ -64,9 +64,9 @@ export default function IllusiExplore(){
     }
 
     async function get_persistant_new_releases(refreshed?: boolean){
-        if(cached_new_releases.length !== 0 && refreshed !== true) return [];
+        if(shared_values.cached_new_releases.length !== 0 && refreshed !== true) return [];
         const not_seen_new_releases = await SQLNewReleases.get_not_seen_new_releases();
-        cached_new_releases = not_seen_new_releases;
+        shared_values.cached_new_releases = not_seen_new_releases;
         set_new_releases(not_seen_new_releases);
         return not_seen_new_releases;
     }
@@ -74,7 +74,7 @@ export default function IllusiExplore(){
     useEffect(() => {
         (async() => {
             const yt_music = Illusive.music_service.get('YouTube Music')!;
-            if(cached_new_releases.length === 0){
+            if(shared_values.cached_new_releases.length === 0){
                 if(yt_music.has_credentials() && should_automatic_refresh(Prefs.get_pref('automatic_new_releases_last_refreshed')) ){
                         push_abortion(10 * 1000, 1);
                         call_wtimeout(
@@ -100,7 +100,7 @@ export default function IllusiExplore(){
         <ScrollView>
             <View style={{height: 100}}/>
             <AlbumList second_line_type="ARTIST" is_loading={is_loading_new_releases} refresh={{last_refresh: Prefs.get_pref('new_releases_last_refreshed'), refresh_data: refresh_new_releases}} title="New Releases" else_type="ALBUM" albums={new_releases}/>
-            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => navigation.navigate("AlbumGridRenderer", {album_data: new_releases})}>
+            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => router.push("/explore/new_releases_grid")}>
                 {new_releases.length !== 0 ? <Text style={{color: colors.text, right: 15, fontSize: 20, fontWeight: '800'}}>View All {'->'}</Text> : null}
             </TouchableOpacity>
             <View style={{height: 10}}/>
@@ -108,7 +108,7 @@ export default function IllusiExplore(){
             <View style={{height: 10}}/>
             <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text>
             <HorizontalRowArtists artists={sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks)}/>
-            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => navigation.navigate("ArtistGridRenderer", {artist_data: unique_artists})}>
+            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => router.push("/explore/artists_grid")}>
                 {unique_artists.length !== 0 ? <Text style={{color: colors.text, right: 15, fontSize: 20, fontWeight: '800'}}>View All {'->'}</Text> : null}
             </TouchableOpacity>
             <View style={{height: 10}}/>

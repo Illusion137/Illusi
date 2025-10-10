@@ -1,4 +1,3 @@
-import * as SQLTracks from '@illusive/illusi/src/sql/sql_tracks'
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
@@ -8,14 +7,15 @@ import { Illusive } from '@illusive/illusive';
 import { is_empty, json_catch } from '@common/utils/util';
 import { Constants } from '@illusive/constants';
 import TrackComponent from '@components/TrackComponent';
-import AddToPlaylistsModal from './other/AddToPlaylistsModal';
 import CompactPlaylistComponent from '@components/CompactPlaylistComponent';
 import CompactArtistComponent from '@components/CompactArtistComponent';
-import { ResponseError } from '@origin/utils/types';
 import { alert_error } from '@illusive/illusi/src/alert';
 import { debounce } from "lodash";
 import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import usePTheme from '@hooks/usePTheme';
+import { BASE_WIDTH_FN } from '@components/TrackComponentBase';
+import type { ResponseError } from '@common/types';
+import { SQLTracks } from '@illusive/sql/sql_tracks';
 
 const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
 const empty_statefull_search_result: StatefullMusicSearchResponse = {state: "NONE", search_data: empty_search_result};
@@ -34,12 +34,10 @@ function SearchScreen() {
 
     const [show_clear_button, set_show_clear_button] = useState<boolean>(false);
 	
-    const [modal_data, set_modal_data] = useState({'show': false, 'track_data': null as Track|null});
-
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const input_ref = useRef<any>();
+	const input_ref = useRef<any>(null);
 
 	useEffect(() => {
 		(async function() { 
@@ -51,15 +49,10 @@ function SearchScreen() {
 			set_searching_data(
 				await Promise.all(
 					(await Illusive.get_suggestions(search_query))
-						.map(async(s) => typeof s === "string" 
-							? s 
-							: await SQLTracks.add_playback_saved_data_to_track(s))));
+						.map(suggestion => typeof suggestion === "string" ? suggestion : SQLTracks.add_playback_saved_data_to_track(suggestion))));
 		})()
 	}, 500);
 	
-	function add_from(show: boolean, track: Track|null){
-		set_modal_data({'show':show, 'track_data': track})
-	}
 	function get_previous_searches(){
 		set_search_result(empty_statefull_search_result);
 		get_suggestions(search_query_state);
@@ -71,7 +64,7 @@ function SearchScreen() {
 		
 		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(service ?? search_service)!.search!(query).catch(json_catch);
 		if("error" in music_search_result){
-			alert_error(music_search_result.error as ResponseError[]);
+			alert_error(music_search_result.error as ResponseError);
 			set_search_result({state: "NONE", search_data: empty_search_result});
 			return;
 		}
@@ -134,7 +127,7 @@ function SearchScreen() {
     const render_misc_component = (item: {item: Track|CompactArtist|CompactPlaylist}) => { 
         return (
         "uid" in item.item ?
-            <TrackComponent add_from={add_from} track_data={item.item} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
+            <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
                 : "artist" in item.item ? 
                     <CompactPlaylistComponent playlist_data={item.item}/>
                         : <CompactArtistComponent artist_data={item.item}/>
@@ -156,7 +149,7 @@ function SearchScreen() {
 				</>
 			</TouchableHighlight>
 			<View style={{width: '93%', height: 1, backgroundColor: colors.line, left: 10}}/>
-		</>) : <TrackComponent track_data={item.item} add_from={add_from} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
+		</>) : <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
 	);
 		
 	return (
@@ -181,7 +174,6 @@ function SearchScreen() {
                     	renderItem={render_misc_component}/>
 				}
 			</View>
-			<AddToPlaylistsModal set_modal_data={set_modal_data} modal_data={modal_data} callback={() => {}}/>
 		</View>
 	);
 }

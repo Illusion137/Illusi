@@ -1,4 +1,4 @@
-import type { IconConfig, MenuAttributes, MenuElementConfig } from "react-native-ios-context-menu";
+import type { IconConfig, MenuAttributes, MenuConfig, MenuElementConfig, UIMenuOptions } from "react-native-ios-context-menu";
 import type { ContextResolver } from "./context_resolver";
 import type { ImageItemConfig, ImageResolvedAssetSource } from "react-native-ios-utilities";
 import { Image } from "react-native";
@@ -7,6 +7,7 @@ import { Prefs } from "@illusive/prefs";
 import type { Track } from "@illusive/types";
 import { reinterpret_cast } from '../lib-origin/common/cast';
 import { GLOBALS } from "@illusive/globals";
+import { Constants } from "@illusive/constants";
 
 type Icon = ImageResolvedAssetSource|string;
 function resolve_icon(icon?: Icon): IconConfig|ImageItemConfig|undefined{
@@ -23,7 +24,7 @@ function resolve_icon(icon?: Icon): IconConfig|ImageItemConfig|undefined{
         },
     };
 }
-function base_menu_item<Keys extends string>(key: Keys, title: string, attributes?: () => MenuAttributes[]|undefined, icon?: Icon){
+export function base_menu_item<Keys extends string>(key: Keys, title: string, attributes?: () => MenuAttributes[]|undefined, icon?: Icon){
     return {
         actionKey: key,
         actionTitle: title,
@@ -31,26 +32,31 @@ function base_menu_item<Keys extends string>(key: Keys, title: string, attribute
         menuAttributes: attributes?.()
     }
 }
-function menu_folder(title: string, items: MenuElementConfig[], icon?: Icon): MenuElementConfig{
+export function menu_folder(title: string, items: MenuElementConfig[], icon?: Icon, attributes?: UIMenuOptions[]): MenuConfig{
     return {
         menuTitle: title,
         icon: resolve_icon(icon),
-        menuItems: items
+        menuItems: items,
+        menuOptions: attributes
     };
 }
-function extract_menu_items<Keys extends string>(items: MenuElementConfig[], keys: Keys[]): MenuElementConfig[] {
+export function extract_menu_items<Keys extends string>(items: MenuElementConfig[], keys: Keys[]): MenuElementConfig[] {
     return items.filter(item => keys.includes(reinterpret_cast<{actionKey: Keys}>(item).actionKey));
 }
-
-const track_menu_item = (key: ContextResolver.TrackContextKeys, title: string, attributes?: () => MenuAttributes[]|undefined, icon?: Icon): MenuElementConfig => 
-    base_menu_item<ContextResolver.TrackContextKeys>(key, title, attributes, icon);
-
-const discord_app_icon = Image.resolveAssetSource(require("../assets/discord.png"));
-
+export function get_menu_item<Keys extends string>(items: MenuElementConfig[], key: Keys){
+    return items.find(item => reinterpret_cast<{actionKey: Keys}>(item).actionKey === key)!;
+}
 export namespace TrackContextMenu {
-    const track_all_functions = (track: Track) => {
-        const is_saved = false;
-        const is_playlist_saved = false;
+    const track_menu_item = (key: ContextResolver.TrackContextKeys, title: string, attributes?: () => MenuAttributes[]|undefined, icon?: Icon): MenuElementConfig => 
+        base_menu_item<ContextResolver.TrackContextKeys>(key, title, attributes, icon);
+    
+    const discord_app_icon = Image.resolveAssetSource(require("../assets/discord.png"));
+    export const track_all_functions = (track: Track, write_playlist_uuid: string) => {
+        const is_playlist_saved = 
+            ((track.downloading_data?.playlist_saved ?? false) 
+            && write_playlist_uuid !== Constants.library_write_playlist) 
+                || ((track.downloading_data?.saved ?? false) && write_playlist_uuid === Constants.library_write_playlist);
+    	const is_saved = is_playlist_saved || (track.downloading_data?.saved ?? false);
         return [
             track_menu_item("track-push-discord", "Push Discord", () => is_empty(Prefs.get_pref('discord_webhook_url')) || !is_empty(track.imported_id) ? ['hidden'] : undefined, discord_app_icon),
             track.artists.length <= 1 ? 
@@ -70,7 +76,7 @@ export namespace TrackContextMenu {
             track_menu_item("track-remove-artwork", "Remove Artwork", () => is_empty(track.thumbnail_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
             track_menu_item("track-delete-media", "Delete Media", () => is_empty(track.media_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
             track_menu_item("track-delete-lyrics", "Delete Lyrics", () => is_empty(track.lyrics_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
-            track_menu_item("track-delete", "Delete", () => !is_saved ? !is_saved ? ['hidden'] : ['destructive'], 'trash'),
+            track_menu_item("track-delete", "Delete", () => !is_saved ? ['hidden'] : ['destructive'], 'trash'),
             track_menu_item("track-delete-playlist", "Delete From Playlist", () => !is_playlist_saved ? ['hidden'] : ['destructive'], 'trash'),
             track_menu_item("track-share-illusi", "Illusi Link", () => undefined, 'link'),    
             track_menu_item("track-share-original", "Source Link", () => undefined, 'link'),    
@@ -79,61 +85,64 @@ export namespace TrackContextMenu {
             track_menu_item("track-play-next", "Play Next", () => !GLOBALS.global_var.is_playing ? ['hidden'] : undefined, 'text.insert') 
         ]
     }
-    const extract_track_menu_items = () => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions, );
+    export const track_extracted_attributes = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
+        "track-trim-media",
+        "track-view-info",
+        "track-edit-info"
+    ]);
+    export const track_attributes_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Attributes", track_extracted_attributes(track, write_playlist_uuid), 'list.clipboard');
 
-    const track_extracted_attributes = extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions, );
+    export const track_extracted_offline = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
+        "track-download-media",
+        "track-upload-artwork",
+        "track-download-thumbnail",
+        "track-download-lyrics",
+        "track-remove-artwork",
+        "track-delete-media",
+        "track-delete-lyrics"
+    ]);
+    export const track_offline_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Offline", track_extracted_offline(track, write_playlist_uuid), 'arrow.down.circle.dotted');
 
-    const menuconfig_more: MenuElementConfig[] = [
-        {
-            menuTitle: "Attributes",
-            icon: {
-                type: 'IMAGE_SYSTEM',
-                imageValue: {
-                    systemName: 'list.clipboard',
-                },
-            },
-            menuItems: []
-        },
-        {
-            menuTitle: "Offline",
-            icon: {
-                type: 'IMAGE_SYSTEM',
-                imageValue: {
-                    systemName: '',
-                },
-            },
-            menuItems: []
-        },
-        {
-            menuTitle: "Share",
-            icon: {
-                type: 'IMAGE_SYSTEM',
-                imageValue: {
-                    systemName: 'square.and.arrow.up',
-                },
-            },
-            menuItems: []
-        },
-        {
-            menuTitle: "Destructive",
-            menuOptions: ['destructive'],
-            icon: {
-                type: 'IMAGE_SYSTEM',
-                imageValue: {
-                    systemName: 'trash',
-                },
-            },
-            menuItems: []
-        }
+    export const track_extracted_share = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
+        "track-share-illusi",
+        "track-share-original",
+        "track-share-downloaded",
+    ]);
+    export const track_share_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Share", track_extracted_share(track, write_playlist_uuid), 'square.and.arrow.up');
+
+    export const track_extracted_destructive = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
+        "track-share-illusi",
+        "track-share-original",
+        "track-share-downloaded",
+    ]);
+    export const track_destructive_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Destructive", track_extracted_destructive(track, write_playlist_uuid), 'trash', ['destructive']);
+
+    export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => [
+        track_attributes_folder(track, write_playlist_uuid),
+        track_offline_folder(track, write_playlist_uuid),
+        track_share_folder(track, write_playlist_uuid),
+        track_destructive_folder(track, write_playlist_uuid)
     ];
-    const menuconfig_more_options: MenuElementConfig = 						{
-        menuTitle: "More Options",
-        menuItems: menuconfig_more,
-        icon: {
-            type: 'IMAGE_SYSTEM',
-            imageValue: {
-                systemName: 'option',
-            },
-        }
-    };
+
+    const track_component_more_options_folder = (track: Track, write_playlist_uuid: string) => 
+        menu_folder("More Options", track_component_inner_context_menu(track, write_playlist_uuid), 'option');
+
+    export const track_component_context_menu = (track: Track, write_playlist_uuid: string) => menu_folder("", [
+        get_menu_item<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), "track-enqueue"),
+        get_menu_item<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), "track-play-next"),
+        ...(GLOBALS.global_var.is_playing ? [
+            track_component_more_options_folder(track, write_playlist_uuid)
+        ] : track_component_inner_context_menu(track, write_playlist_uuid))
+    ]);
+
+    // const menuconfig_more_options: MenuElementConfig = 						{
+    //     menuTitle: "More Options",
+    //     menuItems: menuconfig_more,
+    //     icon: {
+    //         type: 'IMAGE_SYSTEM',
+    //         imageValue: {
+    //             systemName: 'option',
+    //         },
+    //     }
+    // };
 }

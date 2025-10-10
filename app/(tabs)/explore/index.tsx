@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, TextInput } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
-// import SearchScreen from "@screens/SearchScreen";
 import { Prefs } from "@illusive/prefs";
 import { LinearGradient } from "expo-linear-gradient";
 import usePTheme from "@hooks/usePTheme";
-// import MusiExplore from "./search/MusiExplore";
-// import IllusiExplore from "@screens/search/IllusiExplore";
+import IllusiExplore from "@screens/search/IllusiExplore";
+import SearchScreen from "@screens/SearchScreen";
 
 export default function Explore() {
 	const { colors } = usePTheme();
@@ -24,8 +23,7 @@ export default function Explore() {
 	return (
 		<>
 			{!search_screen_state ? (
-				// <SearchScreen />
-				<></>
+				<SearchScreen />
 			) : (
 				<LinearGradient colors={[colors.primary, colors.background]} locations={[0.05, 0.2]} end={{ x: 1.5, y: 2.3 }} style={styles.topContainer}>
 					<View style={styles.wrapper}>
@@ -40,8 +38,7 @@ export default function Explore() {
 							style={styles.searchinput}
 						/>
 					</View>
-					{/* <MusiExplore/> */}
-					{/* <IllusiExplore /> */}
+					<IllusiExplore />
 				</LinearGradient>
 			)}
 		</>

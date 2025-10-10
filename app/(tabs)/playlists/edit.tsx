@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode, Route, SortType } from "@illusive/types";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { Prefs } from "@illusive/prefs";
@@ -14,40 +13,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { is_empty } from '@common/utils/util';
 import { upload_playlist_thumbnail } from "@illusive/document_picker";
 import { GLOBALS } from '@illusive/globals';
-import { Navigator } from "@illusive/illusi/src/types";
 import { default_playlists } from "@illusive/default_playlists";
 import { ContextMenuButton } from "react-native-ios-context-menu";
 import usePTheme from "@hooks/usePTheme";
+import { router, useLocalSearchParams } from "expo-router";
 
 type KeyValue = {key: string, value: string};
 type Action = "ADD"|"REMOVE";
-export default function EditPlaylist(params: {route: Route<unknown>}){
-    const ts_route = params.route as Route<{uuid: string}>;
+export default function EditPlaylist(){
+    const { uuid } = useLocalSearchParams<{uuid: string}>();
     
     const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-    const navigation: Navigator = useNavigation();
 
-    const sort_modes: SortType[] = [
-        "OLDEST"
-        ,"NEWEST" 
-        ,"ALPHABETICAL" 
-        ,"ALPHABETICAL_REVERSE"    
-        ,"DURATION_HILOW"
-        ,"DURATION_LOWHI" 
-        ,"PLAYS_HILOW"
-        ,"PLAYS_LOWHI" 
-        ,"VIEWS_HILOW"
-        ,"VIEWS_LOWHI"
-        ,"ADDED_DATE_HILOW"
-        ,"ADDED_DATE_LOWHI"
-        ,"DOWNLOAD_DATE_HILOW"
-        ,"DOWNLOAD_DATE_LOWHI"
-        ,"LAST_PLAYED_DATE_HILOW"
-        ,"LAST_PLAYED_DATE_LOWHI"
-        ,"LAST_SAMPLED_DATE_HILOW"
-        ,"LAST_SAMPLED_DATE_LOWHI"];
     const inheritance_modes: PlaylistInheritanceMode[] = ["INCLUDE", "EXCLUDE", "MASK", "INTERSECTION"];
 
     const [playlist_data, set_playlist_data] = useState<Playlist>(ExampleObj.playlist_example0);
@@ -62,7 +41,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     
     useEffect(() => {
         (async() => {
-            const pdata = await SQLPlaylists.playlist_data(ts_route.params.uuid);
+            const pdata = await SQLPlaylists.playlist_data(uuid);
             if(pdata === undefined) return;
             set_playlist_data(pdata);
             set_playlist_title(pdata.title);
@@ -78,17 +57,10 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
     }, []);
 
     async function change_playlist_title(){
-        await SQLPlaylists.update_playlist_title(ts_route.params.uuid, playlist_title);
+        await SQLPlaylists.update_playlist_title(uuid, playlist_title);
         GLOBALS.global_var.bottom_alert?.("Updated Playlist Title", "INFO");
     }
-    async function change_sort_mode(event: NativeSyntheticEvent<NativeSegmentedControlIOSChangeEvent>){
-        const new_sort_mode: SortType = event.nativeEvent.value.toUpperCase() as SortType;
-        await SQLPlaylists.update_playlist_sort_mode(ts_route.params.uuid, new_sort_mode);
-    } change_sort_mode;
-    function update_sort_mode(mode: SortType){
-        if(sort_modes.includes(mode))
-            SQLPlaylists.update_playlist_sort_mode(ts_route.params.uuid, mode);
-    }
+
     async function inherited_playlist_action(type: Action, item?: InheritedPlaylist){
         const inherited_playlist: InheritedPlaylist = item ?? {
             "mode": inherited_playlist_segment_mode,
@@ -165,7 +137,7 @@ export default function EditPlaylist(params: {route: Route<unknown>}){
             <View style={{alignSelf: 'center', height: 0.2, backgroundColor: colors.text, width: '70%'}}/>
             <View style={{height: 30}}/>
             {/* <Text style={styles.info_text}>Sort Mode</Text> */}
-            <ExtrasSectionButton show_arrow={true} text="Edit Sort Mode" icon="NONE" onPress={() => navigation.push("MultiOption", {options: sort_modes, current_value: sort_modes.find(item => item === playlist_data?.sort), press: update_sort_mode.bind(undefined)})}/>
+            <ExtrasSectionButton show_arrow={true} text="Edit Sort Mode" icon="NONE" onPress={() => router.push({pathname: "/playlists/edit-sort", params: { uuid }})}/>
             <View style={{height: 20}}/>
             {/* <SegmentedControl
                 fontStyle={{color: colors.text}}

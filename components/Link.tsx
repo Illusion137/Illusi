@@ -3,7 +3,7 @@ import { View, StyleSheet, Image, Text } from "react-native";
 import { LinkerLink } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { Illusive } from "@illusive/illusive";
-import { music_service_uri_to_music_service, split_uri } from "@illusive/illusive_utilts";
+import { music_service_uri_to_music_service, split_uri } from "@illusive/illusive_utils";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 

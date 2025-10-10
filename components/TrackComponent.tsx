@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, type DimensionValue } from 'react-native';
 import { Prefs } from '@illusive/prefs';
 import { EditMode, Track } from '@illusive/types';
 import { play } from '@illusive/illusi/src/play';
 import { delete_track, insert_into_write_playlist, download_track } from '@illusive/illusi/src/components/track';
 import { Constants } from '@illusive/constants';
 import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
-import { ContextMenuView, MenuElementConfig } from 'react-native-ios-context-menu';
+import { ContextMenuView, type MenuConfig } from 'react-native-ios-context-menu';
 import { is_empty } from '@common/utils/util';
 import usePTheme from '@hooks/usePTheme';
 import { GLOBALS } from '@illusive/globals';
 import { ContextResolver } from '@utils/context_resolver';
 import { reinterpret_cast } from '../lib-origin/common/cast';
 import TrackComponentBase from './TrackComponentBase';
+import { TrackContextMenu } from '@utils/context_menu';
+import { track_downloader } from '@illusive/downloader';
 
 function TrackComponent(props: {
 		track_data: Track;
@@ -22,26 +24,25 @@ function TrackComponent(props: {
 		edit_mode?: EditMode;
 		display_plays?: boolean;
         track_callback?: () => Track[];
+		width_fn?: () => DimensionValue|undefined;
 	}) {
-	const [artwork, set_artwork] = useState( props.track_data.playback?.artwork );
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
-	const [is_thumbnail_downloaded, set_is_thumbnail_downloaded] = useState(!is_empty(props.track_data.thumbnail_uri));
-	const [is_lyrics_downloaded, set_is_lyrics_downloaded] = useState(!is_empty(props.track_data.lyrics_uri));
 	const [playlist_saved, set_playlist_saved] = useState(
 		((props.track_data.downloading_data?.playlist_saved ?? false) 
 		&& props.write_playlist_uuid !== Constants.library_write_playlist) 
 		|| ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
-		const [downloading_progress, set_downloading_progress] = useState(0);
-		const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
-
-	const [target_view_node, set_target_view_node] = useState();
+	const [downloading_progress, set_downloading_progress] = useState(0);
 	
+	const [context_menu, set_context_menu] = useState<MenuConfig>(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ""));
+	const [target_view_node, set_target_view_node] = useState();
+
     const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
     const notdisabled_from_write_playlist = disabled_from_write_playlist ? !is_empty(props.track_data.media_uri) : false;
 	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode  !== "NONE";
 
-	const is_saved = playlist_saved || (props.track_data.downloading_data?.saved ?? false);
+	// TODO Fix this also inside of the ContextMenuItemTrack
+	// const is_saved = playlist_saved || (props.track_data.downloading_data?.saved ?? false);
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -50,16 +51,13 @@ function TrackComponent(props: {
     let interval: any;
 	useEffect(() => {
 		outer_interval = setInterval(() => {
-			const index = GLOBALS.downloading.findIndex(item => item?.uid === props.track_data.uid);
-			const is_currently_downloading = index !== -1;
-			if(is_currently_downloading){
-				clearInterval(outer_interval);
+			const is_currently_downloading_track = track_downloader?.get(props.track_data.uid);
+			if(is_currently_downloading_track !== undefined){
 				set_is_downloading(true);
-				set_downloading_progress(GLOBALS.downloading[index]?.progress);
+				set_downloading_progress(is_currently_downloading_track?.progress);
 				interval = setInterval(() => {
-					const inner_depth = Constants.download_queue_max_length;
-					const inner_index = GLOBALS.downloading.slice(0, inner_depth).findIndex(item => item?.uid === props.track_data.uid);
-					if(inner_index === -1){
+					const is_currently_downloading_track = track_downloader?.get(props.track_data.uid);
+					if(!is_currently_downloading_track || !track_downloader.in_pop_range(props.track_data.uid)){
 						set_is_downloading(false);
 						clearInterval(interval);
 						const idx = GLOBALS.global_var.sql_tracks.findIndex(item => item.uid === props.track_data.uid);
@@ -67,8 +65,9 @@ function TrackComponent(props: {
 							set_is_downloaded(true);
 						return;
 					}
-					set_downloading_progress(GLOBALS.downloading[index]?.progress);
+					set_downloading_progress(is_currently_downloading_track?.progress);
 				}, 2000);
+				clearInterval(outer_interval);
 			}
 		}, 2000);
         return () => {
@@ -83,17 +82,6 @@ function TrackComponent(props: {
 		}
 	}, []);
 
-	const menuconfig_more_options: MenuElementConfig = 						{
-		menuTitle: "More Options",
-		menuItems: menuconfig_more,
-		icon: {
-			type: 'IMAGE_SYSTEM',
-			imageValue: {
-				systemName: 'option',
-			},
-		}
-	};
-
 	async function on_press(){
 		if(notdisabled_from_write_playlist){
 			const clone: Track = JSON.parse(JSON.stringify(props.track_data));
@@ -106,67 +94,36 @@ function TrackComponent(props: {
 
 	return (
 		<ContextMenuView
-			previewConfig={{
-				targetViewNode: target_view_node,
-			}}
-			menuConfig={{
-				menuTitle: ``,
-				menuItems: [
-					{
-						actionKey: "track-enqueue",
-						actionTitle: "Enqueue Track",
-						icon: {
-							type: 'IMAGE_SYSTEM',
-							imageValue: {
-								systemName: 'text.append',
-							},
-						},
-						menuAttributes: !is_playing_music ? ['hidden'] : undefined
-					},
-					{
-						actionKey: "track-play-next",
-						actionTitle: "Play Next",
-						icon: {
-							type: 'IMAGE_SYSTEM',
-							imageValue: {
-								systemName: 'text.insert',
-							},
-						},
-						menuAttributes: !is_playing_music ? ['hidden'] : undefined
-					},
-					...(is_playing_music ? [
-						menuconfig_more_options
-					] : menuconfig_more)
-				],
-			}}
+			previewConfig={{targetViewNode: target_view_node}}
+			menuConfig={context_menu}
 			onMenuWillShow={() => {
-				set_is_playing_music(GLOBALS.global_var.is_playing);
+				set_context_menu(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ""));
 			}}
 			onPressMenuItem={async({nativeEvent}) => {
-				ContextResolver.resolve_track_context(track, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
-				props.refresh_data?.();
+				ContextResolver.resolve_track_context(props.track_data, props.write_playlist_uuid, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
 			}}
 		>
-			<TrackComponentBase track_data={track}
+			<TrackComponentBase track_data={props.track_data}
 				active_opacity={disabled_from_write_playlist ? 0.9 : 0.2}
+				width_fn={props.width_fn}
 				disabled={disabled_from_edit_mode || (disabled_from_write_playlist && !notdisabled_from_write_playlist)}
 				style={{opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
 				on_press={on_press} on_long_press={() => {}}
 			>
-					{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist &&
+					{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist ?
 						<IoniconsTouchableOpacity on_press={() => {
 							insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved);
 						}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
-					}
-					{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading && 
-						<IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded, set_downloading_progress)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
-					}
-					{is_downloading && 
-						<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{downloading_progress}%</Text>
-					}
-					{props.edit_mode === "DELETE" && !is_downloading &&
+					: null}
+					{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ?
+						<IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
+					: null}
+					{is_downloading ?
+						<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{Math.floor(downloading_progress * 100)}%</Text>
+					: null}
+					{props.edit_mode === "DELETE" && !is_downloading ?
 						<IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name='trash' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
-					}
+					: null}
 					{props.edit_mode === "NONE" && (props.display_plays ?? false) ?
 						<Text style={{color: colors.text, left: 20, fontWeight: '200', fontSize: 30, alignSelf: 'center'}}>{props.track_data.meta?.plays ?? 0}</Text>
 					: null}
