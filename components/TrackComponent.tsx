@@ -15,7 +15,9 @@ import { reinterpret_cast } from '../lib-origin/common/cast';
 import TrackComponentBase from './TrackComponentBase';
 import { TrackContextMenu } from '@utils/context_menu';
 import { track_downloader } from '@illusive/downloader';
+import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 
+// TODO crown top tracks
 function TrackComponent(props: {
 		track_data: Track;
 		write_playlist_uuid?: typeof Constants.library_write_playlist | string;
@@ -26,6 +28,9 @@ function TrackComponent(props: {
         track_callback?: () => Track[];
 		width_fn?: () => DimensionValue|undefined;
 	}) {
+
+	const [track_data, set_track_data] = useState(props.track_data);
+
 	const [is_downloading, set_is_downloading] = useState( GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
 	const [playlist_saved, set_playlist_saved] = useState(
@@ -40,9 +45,6 @@ function TrackComponent(props: {
     const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
     const notdisabled_from_write_playlist = disabled_from_write_playlist ? !is_empty(props.track_data.media_uri) : false;
 	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode  !== "NONE";
-
-	// TODO Fix this also inside of the ContextMenuItemTrack
-	// const is_saved = playlist_saved || (props.track_data.downloading_data?.saved ?? false);
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -66,7 +68,7 @@ function TrackComponent(props: {
 						return;
 					}
 					set_downloading_progress(is_currently_downloading_track?.progress);
-				}, 2000);
+				}, 100);
 				clearInterval(outer_interval);
 			}
 		}, 2000);
@@ -77,10 +79,30 @@ function TrackComponent(props: {
     }, []);
   
 	useEffect(() => {
-	  	return () => {
+		(async() => {
+			if(props.write_playlist_uuid && props.write_playlist_uuid !== Constants.library_write_playlist){
+				const temp_track_data = track_data;
+				const new_track_data = {
+					...temp_track_data, 
+					downloading_data: {
+						saved: true, 
+						progress: 0, 
+						playlist_saved: await SQLPlaylists.track_exists_in_playlist({uuid: props.write_playlist_uuid, track_uid: temp_track_data.uid})}
+				};
+				set_track_data(new_track_data);
+				set_playlist_saved(((new_track_data.downloading_data?.playlist_saved ?? false) 
+				&& props.write_playlist_uuid !== Constants.library_write_playlist) 
+				|| ((new_track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
+			}
+		})()
+		return () => {
 			set_target_view_node(undefined);
 		}
 	}, []);
+
+	useEffect(() => {
+		set_track_data(props.track_data);
+	}, [props.track_data])
 
 	async function on_press(){
 		if(notdisabled_from_write_playlist){
@@ -97,7 +119,7 @@ function TrackComponent(props: {
 			previewConfig={{targetViewNode: target_view_node}}
 			menuConfig={context_menu}
 			onMenuWillShow={() => {
-				set_context_menu(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ""));
+				set_context_menu(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? props.playlist_uuid ?? ""));
 			}}
 			onPressMenuItem={async({nativeEvent}) => {
 				ContextResolver.resolve_track_context(props.track_data, props.write_playlist_uuid, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));

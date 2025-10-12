@@ -1,13 +1,9 @@
-import { router } from "expo-router";
+import ModalHeader from "@components/ModalHeader";
 
 export default function LyricsShare(){
-    function back(){
-        if(!router.canDismiss()) return;
-        router.dismiss();
-    }
-    
     return (
         <>
+            <ModalHeader title={"Lyrics Share"}/>
         </>
     );
 }

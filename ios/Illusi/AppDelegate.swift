@@ -47,8 +47,15 @@ public class AppDelegate: ExpoAppDelegate {
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
+    if RNSSSiriShortcuts.application(
+        application,
+        continue: userActivity,
+        restorationHandler: restorationHandler) {
+      return true
+    }
     let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
     return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+    // return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
 }
 

@@ -64,7 +64,7 @@ function SearchScreen() {
 		
 		const music_search_result: ResponseError|MusicSearchResponse = await Illusive.music_service.get(service ?? search_service)!.search!(query).catch(json_catch);
 		if("error" in music_search_result){
-			alert_error(music_search_result.error as ResponseError);
+			alert_error(music_search_result as ResponseError);
 			set_search_result({state: "NONE", search_data: empty_search_result});
 			return;
 		}
@@ -134,9 +134,10 @@ function SearchScreen() {
 	)};
 	const render_query_items = (item: {item: SearchSuggestion}) => (
 		typeof item.item === "string" ? 
-		(<>
+		(
+			<>
 			<TouchableHighlight style={styles.queryItems} onPress={async () => {set_search_query_state(item.item as string); search(item.item as string)}}>
-				<>
+				<View style={{flex: 1, flexDirection: 'row', alignItems: 'center'}}>
 					{is_empty(search_query_state) && <Ionicons name={'time'} color={'#808080'} size={24} style={{left: 20,}} />}
 					<Text style={styles.queryItemsText} numberOfLines={1}>{item.item}</Text>
 					<View style={{flex: 1, justifyContent: 'flex-end', alignItems: 'flex-end', right: 50}}>
@@ -146,10 +147,13 @@ function SearchScreen() {
 							<Octicons name={'x'} color={colors.red} size={24} style={{left: 50, padding: 10, paddingRight: 40}} />
 						</TouchableOpacity> }
 					</View>
-				</>
+				</View>
 			</TouchableHighlight>
 			<View style={{width: '93%', height: 1, backgroundColor: colors.line, left: 10}}/>
-		</>) : <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
+			</>
+		) 
+		: render_misc_component(item as {item: Track})
+		// <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
 	);
 		
 	return (

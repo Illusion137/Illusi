@@ -1,3 +1,4 @@
+import ModalHeader from "@components/ModalHeader";
 import { GLOBALS } from "@illusive/globals";
 import { useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
@@ -7,6 +8,8 @@ export default function EditTrackModal(){
     const track_ref = useRef(GLOBALS.global_var.sql_tracks.find(track => track.uid === uid));
 
     return (
-        <></>
+        <>
+            <ModalHeader title={"Edit Track"}/>
+        </>
     );
 }

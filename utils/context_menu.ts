@@ -60,24 +60,24 @@ export namespace TrackContextMenu {
         return [
             track_menu_item("track-push-discord", "Push Discord", () => is_empty(Prefs.get_pref('discord_webhook_url')) || !is_empty(track.imported_id) ? ['hidden'] : undefined, discord_app_icon),
             track.artists.length <= 1 ? 
-                track_menu_item("track-view-artist", "View Artist", () => is_empty(track.artists[0].uri) ? ['hidden'] : undefined, "music.mic")
+                track_menu_item("track-view-artist", "View Artist", () => is_empty(track.artists?.[0]?.uri) ? ['hidden'] : undefined, "music.mic")
                 :
                 menu_folder("View Artists", 
-                    track.artists.map((artist, i) => track_menu_item(`track-view-artist-${i}`, `View Artist - ${artist.name}`, () => is_empty(track.artists[i].uri) ? ['hidden'] : undefined, 'music.mic'))
+                    track.artists.map((artist, i) => track_menu_item(`track-view-artist-${i}`, `View Artist - ${artist.name}`, () => is_empty(track.artists[i]?.uri) ? ['hidden'] : undefined, 'music.mic'))
                 ),
             track_menu_item("track-view-album", "View Album", () => is_empty(track.album?.uri) ? ['hidden'] : undefined, 'list.bullet'),    
-            track_menu_item("track-trim-media", "Trim Media", () => !is_empty(track.media_uri) ? ['hidden'] : undefined, 'timeline.selection'),    
+            track_menu_item("track-trim-media", "Trim Media", () => is_empty(track.media_uri) ? ['hidden'] : undefined, 'timeline.selection'),    
             track_menu_item("track-view-info", "View Track Info", () => !is_saved? ['hidden'] : undefined, 'scope'),    
             track_menu_item("track-edit-info", "Edit Track Info", () => !is_saved? ['hidden'] : undefined, 'scope'),    
-            track_menu_item("track-download-thumbnail", "Download Thumbnail", () => !is_empty(track.thumbnail_uri) || !is_saved ? ['hidden'] : undefined, 'arrow.down.circle'),    
+            track_menu_item("track-download-thumbnail", "Download Thumbnail", () => !is_empty(track.thumbnail_uri) || !is_saved || !is_empty(track.imported_id) ? ['hidden'] : undefined, 'arrow.down.circle'),    
             track_menu_item("track-upload-artwork", "Upload Artwork", () => !is_saved? ['hidden'] : undefined, 'photo.artframe'),    
             track_menu_item("track-download-media", "Download Media", () => !is_empty(track.media_uri) || !is_saved ? ['hidden'] : undefined, 'arrow.down.circle'),    
             track_menu_item("track-download-lyrics", "Download Lyrics", () => !is_empty(track.lyrics_uri) || !is_saved ? ['hidden'] : undefined, 'arrow.down.circle.dotted'),    
             track_menu_item("track-remove-artwork", "Remove Artwork", () => is_empty(track.thumbnail_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
-            track_menu_item("track-delete-media", "Delete Media", () => is_empty(track.media_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
+            track_menu_item("track-delete-media", "Delete Media", () => is_empty(track.media_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),
             track_menu_item("track-delete-lyrics", "Delete Lyrics", () => is_empty(track.lyrics_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
             track_menu_item("track-delete", "Delete", () => !is_saved ? ['hidden'] : ['destructive'], 'trash'),
-            track_menu_item("track-delete-playlist", "Delete From Playlist", () => !is_playlist_saved ? ['hidden'] : ['destructive'], 'trash'),
+            track_menu_item("track-delete-playlist", "Delete From Playlist", () => is_empty(write_playlist_uuid) || write_playlist_uuid === Constants.library_write_playlist || !is_playlist_saved ? ['hidden'] : ['destructive'], 'trash'),
             track_menu_item("track-share-illusi", "Illusi Link", () => undefined, 'link'),    
             track_menu_item("track-share-original", "Source Link", () => undefined, 'link'),    
             track_menu_item("track-share-downloaded", "Downloaded File", () => is_empty(track.media_uri) ? ['hidden'] : undefined, 'folder.circle'),    
@@ -111,13 +111,16 @@ export namespace TrackContextMenu {
     export const track_share_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Share", track_extracted_share(track, write_playlist_uuid), 'square.and.arrow.up');
 
     export const track_extracted_destructive = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
-        "track-share-illusi",
-        "track-share-original",
-        "track-share-downloaded",
+        "track-delete",
+        "track-delete-playlist",
     ]);
     export const track_destructive_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Destructive", track_extracted_destructive(track, write_playlist_uuid), 'trash', ['destructive']);
 
     export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => [
+        ...extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
+            "track-view-artist",
+            "track-view-album",
+        ]),
         track_attributes_folder(track, write_playlist_uuid),
         track_offline_folder(track, write_playlist_uuid),
         track_share_folder(track, write_playlist_uuid),

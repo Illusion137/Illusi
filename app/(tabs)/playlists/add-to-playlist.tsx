@@ -1,20 +1,18 @@
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { CompactPlaylistData } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { Button, StyleSheet, Text, View } from "react-native";
 import { useEffect, useState } from "react";
 import { default_compact_playlists } from "@illusive/default_playlists";
-import { Route } from "@illusive/types";
 import BigList from "react-native-big-list";
 import CompactWriterPlaylistComponent from "@components/CompactWriterPlaylistComponent";
 import { sort_compact_playlists_data } from "@illusive/illusi/src/playlist";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import usePTheme from '@hooks/usePTheme';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
-export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
-    const ts_route = params.route as Route<{write_playlist_uuid: string}>;
+export default function AddToPlaylistBase(){
+    const { write_playlist_uuid } = useLocalSearchParams<{write_playlist_uuid: string}>();
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
@@ -26,11 +24,11 @@ export default function AddToPlaylistBase(params: {route:  Route<unknown>}){
             await SQLTracks.fetch_track_data();
             set_illusi_playlists(await default_compact_playlists());
             set_playlists(await SQLPlaylists.compact_playlists());
-        })()
+        })();
     }, []);
 
     const compact_playlist_component = (item: {item: CompactPlaylistData}) => (
-        <CompactWriterPlaylistComponent playlist_data={item.item} write_playlist_uuid={ts_route.params.write_playlist_uuid}/>
+        <CompactWriterPlaylistComponent playlist_data={item.item} write_playlist_uuid={write_playlist_uuid}/>
     );
 
     return (

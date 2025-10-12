@@ -81,7 +81,8 @@ export namespace ContextResolver{
                 else if (!is_empty(track.soundcloud_permalink))
                     await share_item({link: track.soundcloud_permalink!});
                 break;
-            case "track-share-downloaded": 
+            case "track-share-downloaded":
+                if(is_empty(track.media_uri)) break;
                 await share_item({uri: SQLfs.media_directory(track.media_uri!)});
                 break;
             case "track-share-illusi":
@@ -96,9 +97,9 @@ export namespace ContextResolver{
                 // set_is_downloaded(false);
                 break;
             case "track-download-lyrics": 
-                const lyrics_result = await SQLTracks.try_download_track_lyrics(track);
+                const lyrics_result = await GLOBALS.global_var.download_track_lyrics(track);
                 // set_is_lyrics_downloaded(lyrics_result === "ok");
-                GLOBALS.global_var.bottom_alert?.(lyrics_result === "ok" ? "Downloaded Track Lyrics" : "Failed to Download Track Lyrics",lyrics_result === "ok" ? "GOOD" : "WARN");
+                GLOBALS.global_var.bottom_alert?.(typeof lyrics_result === "string" && lyrics_result !== "EXISTS" ? "Downloaded Track Lyrics" : "Failed to Download Track Lyrics",lyrics_result === "ok" ? "GOOD" : "WARN");
                 break;
             case "track-delete-lyrics": 
                 await SQLTracks.undownload_track_lyrics(track);
@@ -117,7 +118,7 @@ export namespace ContextResolver{
                 GLOBALS.global_var.bottom_alert?.("Downloaded Track Artwork", "INFO");
                 break;
             case "track-upload-artwork": 
-                await upload_track_thumbnail(track, async(updated_track) => {
+                await upload_track_thumbnail(track, async() => {
                     // set_artwork(Illusive.get_track_artwork(SQLfs.document_directory(""), updated_track));
                     // set_is_thumbnail_downloaded(true);
                     GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");

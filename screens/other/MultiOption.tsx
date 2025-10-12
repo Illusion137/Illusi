@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SetState } from "@illusive/types";
 import { useState } from "react";
 import usePTheme from "@hooks/usePTheme";
+import { single_case } from "@common/utils/util";
 
 function OptionItem(props: {
     title: string,
@@ -13,6 +14,8 @@ function OptionItem(props: {
 }){
     const { colors } = usePTheme();
     const styles = theme_styles(colors);
+
+    const display_title = props.title.split('_').map(single_case).join(' ');
 
     return (
     <>
@@ -24,9 +27,9 @@ function OptionItem(props: {
                 props.set_selected_option(props.title);
             }}>
             <View style={styles.importfrom}>
-                <Text style={styles.importfromtext}>{props.title}</Text>
+                <Text style={styles.importfromtext}>{display_title}</Text>
                 <View style={{flex:1, alignItems: 'flex-end'}}>
-                    {props.title === props.selected_option && <Ionicons name={'checkmark-sharp'} size={25} color={colors.green} style={{right: 10}}/>}
+                    {props.title === props.selected_option && <Ionicons name={'checkmark-sharp'} size={25} color={colors.green} style={{right: 25}}/>}
                 </View>
             </View>
         </TouchableHighlight>
@@ -62,7 +65,8 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     },
     importfromtext:{
         color: '#FFFFFF',
-        fontSize: 16
+        fontSize: 16,
+        left: 10
     },
     line:{
         width: '100%',

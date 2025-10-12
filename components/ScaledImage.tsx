@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react"
 import { ActivityIndicator, ImageStyle, StyleProp } from "react-native"
 import { Artwork } from "@illusive/types";
-import IImage from "./IImage";
+import IImage, { type IImageProps } from "./IImage";
 
 // https://stackoverflow.com/questions/42170127/auto-scale-image-height-with-react-native
 export default function ScaledImage(props: {
     artwork: Artwork, 
     width?: number, 
     height?: number, 
-    style: StyleProp<ImageStyle>, 
+    style: StyleProp<ImageStyle>,
+    tint?: IImageProps['tint'];
     set_size?: (val: {width: number, height: number}) => any}) {
     const [width, set_width] = useState<number>();
     const [height, set_height] = useState<number>();
@@ -49,7 +50,8 @@ export default function ScaledImage(props: {
 
     return (
         height ?
-            <IImage 
+            <IImage
+                tint={props.tint} 
                 source={props.artwork}
                 style={{ ...props.style as object, height: height, width: width }}
             />

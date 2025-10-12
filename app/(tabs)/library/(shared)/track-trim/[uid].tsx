@@ -1,7 +1,7 @@
 import { GLOBALS } from "@illusive/globals";
 import { router, useLocalSearchParams } from "expo-router";
 import React,  { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import Trimmer from 'react-native-trimmer';
 import {
     PlayerState,
@@ -14,6 +14,7 @@ import usePTheme from '@hooks/usePTheme';
 import { SQLfs } from '@illusive/sql/sql_fs';
 import { round_decimal_place } from '@common/utils/util';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
+import ModalHeader from "@components/ModalHeader";
 
 export default function EditTrackModal(){
     const { uid } = useLocalSearchParams<{uid: string}>();
@@ -57,10 +58,7 @@ export default function EditTrackModal(){
 
     return(
         <View style={{flex: 1, backgroundColor: colors.background}}>
-            <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Button color={colors.primary} title={'Cancel'} onPress={close}/>
-                <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 18, right: '40%'}}>Trim Track</Text>
-            </View>
+            <ModalHeader title={"Trim Track"}/>
             <Text numberOfLines={1} style={{marginHorizontal: 20, top: 8, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{track_ref.current?.title || ""}</Text>
             <Text style={{marginHorizontal: 20, top: 6, color: colors.text, fontSize: 14}}>{artist_string(track_ref.current!)}</Text>
             <View style={{height: 10}}/>

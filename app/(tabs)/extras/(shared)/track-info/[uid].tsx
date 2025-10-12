@@ -1,12 +1,13 @@
 import { is_empty, milliseconds_of } from "@common/utils/util";
+import ModalHeader from "@components/ModalHeader";
 import ScaledImage from "@components/ScaledImage";
 import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Prefs } from "@illusive/prefs";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { Button, Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function EditTrackModal(){
     const { uid } = useLocalSearchParams<{uid: string}>();
@@ -38,17 +39,9 @@ export default function EditTrackModal(){
         ["Plays", String(track_ref.current?.meta?.plays)],
     ]
 
-    function close(){
-        if(!router.canDismiss()) return;
-        router.dismiss();
-    }
-
     return(
         <View style={{flex: 1, backgroundColor: colors.background}}>
-            <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Button color={colors.primary} title={'Close'} onPress={close}/>
-                <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 18, right: '40%'}}>Track Info</Text>
-            </View>
+            <ModalHeader title={"Track Info"}/>
             <ScrollView>
                 <View style={{width: '100%', alignItems: 'center', maxHeight: 450, minHeight: 350, overflow: 'hidden'}}>
                     <View style={{flexGrow: 1, height: 50}}/>

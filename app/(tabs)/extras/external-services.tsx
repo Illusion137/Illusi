@@ -1,6 +1,6 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'react-native';
-import CookieManager, { Cookies } from '@react-native-community/cookies';
+import CookieManager from '@react-native-community/cookies';
 import WebView, { WebViewNavigation } from 'react-native-webview';
 import { Prefs } from '@illusive/prefs';
 import { Ionicons } from '@expo/vector-icons';
@@ -76,20 +76,24 @@ export default function ExtraExternalServicesScreen() {
     })
 
 	const [url, set_url] = useState(null as string|null);
-	function web_view_navigation_change(event: WebViewNavigation) {
-        if(current_service === null) return;
-        const illusive_service = Illusive.music_service.get(current_service!)!;
-        CookieManager.get(event.url).then(
-            async(res: Cookies) => {
-                if(is_empty(res)) return;
-                (Prefs.get_pref(illusive_service.pref_cookie_jar!) as CookieJar).merge(CookieJar.fromCookies(res as any));
-                await Prefs.save_pref(illusive_service.pref_cookie_jar!, Prefs.get_pref(illusive_service.pref_cookie_jar!)); 
-                const updated_cookies_enabled = {...external_services_cookies_enabled};
-                if(illusive_service.has_credentials())
-                    updated_cookies_enabled[current_service!] = true;
-                set_external_services_cookies_enabled( updated_cookies_enabled );
-            }
-        );
+
+	async function web_view_navigation_change(event: WebViewNavigation) {
+        if(is_empty(current_service)) return;
+        const illusive_service = Illusive.music_service.get(current_service!);
+        if(illusive_service === undefined){
+            return;
+        }
+        const result = await CookieManager.get(event.url);
+        if(is_empty(result)) return;
+        
+        const cookie_jar = Prefs.get_pref(illusive_service.pref_cookie_jar!) as CookieJar;
+        
+        cookie_jar.merge(CookieJar.fromCookies(result));
+        await Prefs.save_pref(illusive_service.pref_cookie_jar!, cookie_jar); 
+        const updated_cookies_enabled = {...external_services_cookies_enabled};
+        if(illusive_service.has_credentials())
+            updated_cookies_enabled[current_service!] = true;
+        set_external_services_cookies_enabled( updated_cookies_enabled );
 	};
 
     // REFERENCE: https://stackoverflow.com/questions/68067668/react-native-webview-rendering-blank-page

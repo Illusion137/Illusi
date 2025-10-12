@@ -1,10 +1,9 @@
-import { router } from "expo-router";
+import ModalHeader from "@components/ModalHeader";
 
 export default function AudioPlayerVisualizer(){
-    function close(){
-        if(!router.canDismiss()) return;
-        router.dismiss();
-    }
-
-    return (<></>);
+    return (
+        <>
+            <ModalHeader title={"Visualizer"}/>
+        </>
+    );
 }

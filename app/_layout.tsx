@@ -1,4 +1,4 @@
-import '@utils/ytdl_polyfill';
+import '@expo/metro-runtime';
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
@@ -21,7 +21,6 @@ import * as Sentry from "@sentry/react-native";
 import IImage from "@components/IImage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SharedRouter } from "@utils/shared_routes";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -39,9 +38,9 @@ Sentry.init({
 	enabled: true,
   
 	// Configure Session Replay
-	replaysSessionSampleRate: 0.1,
-	replaysOnErrorSampleRate: 1,
-	integrations: [Sentry.mobileReplayIntegration()],
+	// replaysSessionSampleRate: 0.1,
+	// replaysOnErrorSampleRate: 1,
+	// integrations: [Sentry.mobileReplayIntegration()],
   
 	// uncomment the line below to enable Spotlight (https://spotlightjs.com)
 	// spotlight: __DEV__,
@@ -61,12 +60,22 @@ Sentry.wrap(
 		type: "GOOD" as BottomAlertType
 	});
 
+	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
+		tracks = await filter_play_tracks(start_track, tracks, title);
+		if (tracks.length === 0) return;
+		set_playing_tracks(tracks);
+		set_playing_from(title);
+		set_is_playing("LOADING");
+	}
+
 	useEffect(() => {
-		const shortcut_subscription = get_shortcut_subscription(play_tracks);
+		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
 		on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
 		// migrate(0 as never, {});
-		return () => shortcut_subscription.remove();
+		return () => {
+			subscription.remove();
+		}
 	}, []);
 	useEffect(() => {
 		if (is_playing !== "LOADING") return;
@@ -80,13 +89,6 @@ Sentry.wrap(
 		SharedRouter.set_current_route_path(path);
 	}, [path]);
 
-	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
-		tracks = await filter_play_tracks(start_track, tracks, title);
-		if (tracks.length === 0) return;
-		set_playing_tracks(tracks);
-		set_playing_from(title);
-		set_is_playing("LOADING");
-	}
 	function update_bottom_alert(text: string, type: BottomAlertType) {
 		set_bottom_alert({
 			uuid: gen_uuid(),
@@ -102,18 +104,16 @@ Sentry.wrap(
 			heavy: {fontFamily: "", fontWeight: 'bold'},
 			bold: {fontFamily: "", fontWeight: 'bold'}}
 		}}>
-			<GestureHandlerRootView>
-				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
-				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
-				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} />
-				{!is_loading ? (
-					<SafeAreaProvider>
-						<Stack>
-							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-						</Stack>
-					</SafeAreaProvider>
-				) : null}
-			</GestureHandlerRootView>
+			{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
+			{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+			<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} />
+			{!is_loading ? (
+				<SafeAreaProvider>
+					<Stack>
+						<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+					</Stack>
+				</SafeAreaProvider>
+			) : null}
 		</ThemeProvider>
 	);
 });

@@ -1,7 +1,6 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, Text, SectionList } from 'react-native';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { Prefs } from '@illusive/prefs';
 import SettingsMultiButton from '@components/SettingsMultiButton';
 import ExtrasSectionButton from '@components/ExtrasSectionButton'
@@ -17,8 +16,6 @@ import { share_item } from '@illusive/illusi/src/illusi_utils';
 import { router } from 'expo-router';
 
 export default function ExtraSettingsScreen() {
-	const navigation: NavigationProp<any, any> = useNavigation();
-
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 	

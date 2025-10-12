@@ -1,12 +1,13 @@
+import ModalHeader from "@components/ModalHeader";
 import TrackComponentBase from "@components/TrackComponentBase";
 import { Ionicons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";
+import { delete_track_from_player_queue } from "@illusive/track_player_service";
 import type { Track } from "@illusive/types";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Button, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { SwipeListView } from "react-native-swipe-list-view";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 
@@ -21,11 +22,6 @@ export default function AudioPlayerQueue(){
         on_long_press={() => {}} 
         disabled={true} />;    
 
-    function close(){
-        if(!router.canDismiss()) return;
-        router.dismiss();
-    }
-    
     async function updated_queue_items() {
         const current_track_index = await TrackPlayer.getActiveTrackIndex();
         if(current_track_index === undefined) return;
@@ -34,16 +30,9 @@ export default function AudioPlayerQueue(){
     }
 
     async function remove_track_from_queue(item: Track){
-        const current_track_index = await TrackPlayer.getActiveTrackIndex();
-        if(current_track_index === undefined) return;
-        const global_index = GLOBALS.global_var.playing_tracks.slice(current_track_index).findIndex(track => track.uid === item.uid);
-        if(global_index !== -1){
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
-            GLOBALS.global_var.playing_tracks.splice(current_track_index + global_index, 1);
-            const tp_queue = await TrackPlayer.getQueue();
-            const tp_index = tp_queue.findIndex((track, i) => track.title === item.title && i >= current_track_index);
-            if(tp_index !== -1) await TrackPlayer.remove([tp_index]);
-        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        await delete_track_from_player_queue(item);
+        updated_queue_items();
     }
 
     useEffect(() => {
@@ -59,15 +48,10 @@ export default function AudioPlayerQueue(){
 
     return (
         <>
-            <View style={{ width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row" }} >
-                <View style={{ marginLeft: 10 }}>
-                    <Button color={colors.primary} title='close' onPress={close} />
-                </View>
-                <Text style={{ left: 85, color: colors.text, fontWeight: "bold", fontSize: 17 }}>Up Next</Text>
-            </View>
+            <ModalHeader title={queue_data .length > 50 ? "Up Next (Truncated)" : "Up Next"}/>
             <View style={{ flex: 1, backgroundColor: colors.background }}>
                 <SwipeListView
-                    data={queue_data.slice(1)}
+                    data={queue_data.slice(1, 50)}
                     renderItem={render_now_playing_item}
                     ListHeaderComponent={() =>
                         <View style={{ flex: 1, width: '100%', height: 140 }}>

@@ -17,15 +17,25 @@ export interface IImageProps {
 export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps ){
     const [source, set_source] = useState<Artwork|undefined|null>(props.source);
     useEffect(() => {
-        if(typeof source !== "string") return;
-        if(source.includes("https:") || source.includes("http:")) return;
-        (async() => {
-            const source_file_info = await fs().get_info(source);
-            if(!source_file_info.exists || source_file_info.is_directory){
-                set_source(undefined);
-            }
-        })();
-    }, [props.source]);
+        if(typeof props.source === "number" || props.source === undefined || props.source === null) {
+            set_source(props.source);
+        }
+        else if(typeof props.source === "string" && (props.source.includes("https:") || props.source.includes("http:"))) {
+            set_source(props.source);
+        }
+        else if(typeof props.source === "string"){
+            (async() => {
+                if(typeof props.source !== "string") return;
+                const source_file_info = await fs().get_info(props.source);
+                if(!source_file_info.exists || source_file_info.is_directory){
+                    set_source(undefined);
+                }
+                else {
+                    set_source(props.source);
+                }
+            })();
+        }
+    }, [props.source, props]);
 
     return (!props.tint ? <Image {...props} source={resolved_artwork(source)}/> 
         :

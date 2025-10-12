@@ -13,7 +13,6 @@ import { is_empty } from "@common/utils/util";
 import { extract_query_flags, TRACK_QUERY_FLAGS } from "@illusive/query_flags";
 import { SQLGlobal } from "@illusive/sql/sql_global";
 import { GLOBALS } from "@illusive/globals";
-import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 
@@ -84,7 +83,7 @@ function LibraryTrackList(
 
 	const render_track = (item: { item: Track }) => (
 		<TrackComponent
-			track_data={props.write_playlist_uuid ? SQLPlaylists.add_saved_data_to_write_playlist_track_sync(props.write_playlist_uuid, item.item) : item.item}
+			track_data={item.item}
 			track_callback={() => [...GLOBALS.global_var.sql_tracks]}
 			from={"My Library"}
 			edit_mode={props.edit_mode}

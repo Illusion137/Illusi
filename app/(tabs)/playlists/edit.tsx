@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet, Text, NativeSyntheticEvent, TextInput, ScrollView, TouchableOpacity } from "react-native";
-import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode, Route, SortType } from "@illusive/types";
+import { View, StyleSheet, Text, TextInput, ScrollView, TouchableOpacity } from "react-native";
+import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode } from "@illusive/types";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { Prefs } from "@illusive/prefs";
-import SegmentedControl, { NativeSegmentedControlIOSChangeEvent } from "@react-native-segmented-control/segmented-control";
+import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { SelectList } from "react-native-dropdown-select-list";
@@ -174,7 +174,7 @@ export default function EditPlaylist(){
                 </View>
                 {
                     (playlist_data?.inherited_playlists ?? [])?.map((item, i) => {
-                        const title = SQLPlaylists.playlist_name_sync(item.uuid);
+                        const title = SQLPlaylists.get_playlist_name_sync(item.uuid);
                         return (
                             <View key={i}>
                                 <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 40}}>

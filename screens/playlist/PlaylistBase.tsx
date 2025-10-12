@@ -28,7 +28,7 @@ import { ContextMenuButton, MenuConfig } from 'react-native-ios-context-menu';
 import LibraryTrackList from '@components/LibraryTrackList';
 import SearchBarV1 from '@components/SearchBarV1';
 import { TRACK_QUERY_FLAGS } from '@illusive/query_flags';
-import { download_track_list } from '@illusive/downloader';
+import { batch_download_track_lyrics, download_track_list } from '@illusive/downloader';
 import { debounce } from 'lodash';
 import usePTheme from '@hooks/usePTheme';
 import { router } from 'expo-router';
@@ -460,7 +460,7 @@ export default function PlaylistBase(props: PlaylistProps){
                             <MaterialCommunityIconsTouchableOpacity on_press={() => {
                                 router.push({pathname: '/playlists/edit', params: {uuid: props.uuid}})
                             }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={() => share_item({link: `https://illusi.dev/playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={() => share_item({link: `${Constants.illusi_url_base}playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                         </>
                     : null}
                 </View>
@@ -504,7 +504,7 @@ export default function PlaylistBase(props: PlaylistProps){
                                         GLOBALS.global_var.bottom_alert("Downloaded all available thumbnails", "INFO");
                                         break;
                                     case "playlist-actions-batch-download-lyrics":
-                                        await SQLTracks.batch_download_track_lyrics(filtered_tracks);
+                                        await batch_download_track_lyrics(filtered_tracks);
                                         GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
                                         break;
                                     case "playlist-actions-shortcut":
@@ -569,7 +569,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     playlist_list_header:{
         top: 0,
         alignItems: 'center',
-        zIndex: 2
+        zIndex: -1,
     },
     info_text:{
         color: colors.text,

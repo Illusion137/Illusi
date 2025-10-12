@@ -51,8 +51,8 @@ export namespace SharedRouter {
         if(opts.serialized_playlist_data){
             GLOBALS.global_var.serialized_playlist_cache.update(uri, opts.serialized_playlist_data);
         }
-        if(type === "WRITE_PLAYLIST" && opts.compact_playlist === undefined){
-            console.error("NO COMPACT_PLAYLIST FOR WRITE_PLAYLIST");
+        if(type === "WRITE_PLAYLIST" && opts.serialized_playlist_data === undefined){
+            console.error("NO SERIALIZED_PLAYLIST_DATA FOR WRITE_PLAYLIST");
             return;
         }
         router.push({

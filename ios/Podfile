@@ -15,6 +15,7 @@ prepare_react_native_project!
 target 'Illusi' do
   pod 'shaquillehinds-ffmpeg-kit-ios', :podspec => 'https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec'
   pod 'ffmpeg-kit-react-native', :path => '../node_modules/ffmpeg-kit-react-native'
+  # pod 'react-native-siri-shortcut', :path => '../node_modules/react-native-siri-shortcut'
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'

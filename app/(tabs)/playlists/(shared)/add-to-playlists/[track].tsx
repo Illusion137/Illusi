@@ -1,6 +1,6 @@
 
 import React,  { useState, useEffect } from 'react';
-import { View, Text, Button, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { GLOBALS } from '@illusive/globals';
@@ -12,6 +12,7 @@ import IImage from '@components/IImage';
 import usePTheme from '@hooks/usePTheme';
 import { router } from 'expo-router';
 import useParsedLocalSearchParams from '@hooks/useParsedLocalSearchParams';
+import ModalHeader from '@components/ModalHeader';
 
 export interface AddToPlaylistsModalParams {
     _track: Track;
@@ -54,10 +55,7 @@ export default function AddToPlaylistsModal() {
 
     return(
         <View style={{flex: 1, backgroundColor: colors.background}}>
-            <View style={{height: 50, backgroundColor: colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Button color={colors.primary} title={'Cancel'} onPress={close}/>
-                <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 18, right: '30%'}}>Add To Playlist</Text>
-            </View>
+            <ModalHeader title={"Add To Playlists"}/>
             <IImage source={_track?.playback?.artwork} resizeMode="cover" style={{
                 width: '100%',
                 height: '21%',

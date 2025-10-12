@@ -9,6 +9,7 @@ import ExtrasSectionButton from '@components/ExtrasSectionButton'
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import usePTheme from '@hooks/usePTheme';
 import { SQLUtils } from '@illusive/sql/sql_utils';
+import { SQLRecentlyPlayed } from '@illusive/sql/sql_recently_played';
 
 export default function ExtraDangerScreen() {
 	const { colors } = usePTheme();
@@ -18,6 +19,7 @@ export default function ExtraDangerScreen() {
 		<ScrollView style={{backgroundColor: colors.background, width: '100%', flex: 1,}}>
             <View style={styles.line_long}/>
             <View style={{height: 30}}/>
+            <ExtrasSectionButton show_arrow={false} text='Clear Recently Played Data' icon='trash-outline' onPress={async() => if_confirm("Clear recently played tracks?", "Are You Sure?", SQLRecentlyPlayed.clear_recently_played_tracks)}/>
             <ExtrasSectionButton show_arrow={false} text='Clear New Releases Cache' icon='trash-outline' onPress={async() => if_confirm("Clear new releases cache?", "Are You Sure?", SQLNewReleases.delete_all_from_new_releases)}/>
             <ExtrasSectionButton show_arrow={false} text='Clear Thumbnail Cache' icon='trash-outline' onPress={async() => if_confirm("Clear thumbnail cache?", "Are You Sure?", SQLTracks.clean_thumbnail_cache)}/>
             <ExtrasSectionButton show_arrow={false} text='Reset Settings' icon='sync' onPress={async() => if_confirm("Reset all settings to defaults?", "Are You Sure?", async () => {await Prefs.reset_prefs(); Prefs.pref_set_theme(GLOBALS.global_var.set_theme);})}/>

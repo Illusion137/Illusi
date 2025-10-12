@@ -1,15 +1,19 @@
+import { reinterpret_cast } from "@common/cast";
 import Equalizer from "@components/Equalizer";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
+import ModalHeader from "@components/ModalHeader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
-import type { Prefs } from "@illusive/prefs";
+import { Prefs } from "@illusive/prefs";
 import { Slider } from "@miblanchard/react-native-slider";
 import { SharedRouter } from "@utils/shared_routes";
-import { router } from "expo-router";
-import { useState } from "react";
-import { Button, StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import TrackPlayer from "react-native-track-player";
+import { useIsFocused } from '@react-navigation/native';
 
+const min_crossfade = 0;
+const max_crossfade = 10;
 const min_rate = 0.01;
 const max_rate = 2.0;
 const rate_presets: Record<string, number> = {
@@ -27,23 +31,24 @@ export default function AudioPlayerSettings(){
     const { colors } = usePTheme();
     const styles = theme_styles(colors);
 
-    const [rate, set_rate] = useState<number>(1.0);
-    const [crossfade_seconds, set_crossfade_seconds] = useState<number>(0.0);
-    //equalizer_presets[Prefs.get_pref('equalizer_preset')]
-    const [equalizer_bands, set_equalizer_bands] = useState<number[]>([8, 8, 1, 2, 5, 6, 7, 8, 7]);
+    const is_focused = useIsFocused();
 
-    function close(){
-        if(!router.canDismiss()) return;
-        router.dismiss();
-    }
+    const [rate, set_rate] = useState<number>(1.0);
+    const [crossfade_seconds, set_crossfade_seconds] = useState<number>(Prefs.get_pref('crossfade'));
+    const [equalizer_preset, set_equalizer_preset] = useState<Prefs.EqualizerPreset>(Prefs.get_pref('equalizer_preset'));
+
+    useEffect(() => {
+        set_equalizer_preset(Prefs.get_pref('equalizer_preset'));
+    }, [is_focused]);
 
     async function update_rate(new_rate: number){
         await TrackPlayer.setRate(new_rate);
         set_rate(new_rate);
     }
     async function update_crossfade_seconds(new_crossfade_seconds: number){
-        await TrackPlayer.setCrossfade(new_crossfade_seconds);
+        // await TrackPlayer.(new_crossfade_seconds);
         set_crossfade_seconds(new_crossfade_seconds);
+        Prefs.save_pref('crossfade', new_crossfade_seconds);
     }
 
     const RateChipRenderer = (props: {entry: [keyof typeof rate_presets, typeof rate_presets[keyof typeof rate_presets]]}) => 
@@ -51,12 +56,7 @@ export default function AudioPlayerSettings(){
 
     return (
         <>
-            <View style={{ width: "100%", height: 55, backgroundColor: colors.shelf, justifyContent: 'flex-start', alignItems: 'center', borderTopLeftRadius: 10, borderTopRightRadius: 10, flexDirection: "row" }} >
-                <View style={{ marginLeft: 10 }}>
-                    <Button color={colors.primary} title='close' onPress={close} />
-                </View>
-                <Text style={{ left: 85, color: "white", fontWeight: "bold", fontSize: 17 }}>Settings</Text>
-            </View>
+            <ModalHeader title={"Settings"}/>
             <View style={{ flex: 1, backgroundColor: colors.background }}>
                 <Text style={{ left: 17, top: 18, color: "white", fontWeight: "300", fontSize: 15 }}>Playback Speed:</Text>
                 <Text style={{ left: "34%", bottom: 0, color: "white", fontWeight: "bold", fontSize: 17 }}>{String(rate).slice(0, 4)}x</Text>
@@ -81,28 +81,32 @@ export default function AudioPlayerSettings(){
                         { Object.entries(rate_presets).map(preset_entry => (<RateChipRenderer key={preset_entry[0]} entry={preset_entry}/>)) }
                     </ScrollView>
                 </View>
+                <View style={{flexDirection: 'row', height: 35, alignItems: 'center'}}>
+                    <Text style={{ left: 17, color: "white", fontWeight: "300", fontSize: 15 }}>Crossfade (seconds):</Text>
+                    <Text style={{ left: 28, color: "white", fontWeight: "bold", fontSize: 17 }}>{String(crossfade_seconds).slice(0, 4)}s</Text>
+                </View>
                 <View style={{width: '100%', flexDirection: 'row'}}>
                     <View style={styles.slider_small}>
                         <Slider
-                            value={rate}
-                            onValueChange={(value) => update_rate(value[0])}
+                            value={crossfade_seconds}
+                            onValueChange={(value) => update_crossfade_seconds(value[0])}
                             thumbTintColor={colors.primary}
                             thumbStyle={{ width: 15, height: 15 }}
                             thumbTouchSize={{ width: 1, height: 1 }}
                             minimumTrackTintColor={colors.primary}
                             maximumTrackTintColor='#DADADA40'
-                            step={0.05}
+                            step={0.1}
                             debugTouchArea={false}
-                            minimumValue={min_rate}
-                            maximumValue={max_rate}
+                            minimumValue={min_crossfade}
+                            maximumValue={max_crossfade}
                         />
                     </View>
                     <TouchableOpacity style={styles.rate_chip} onPress={() => update_crossfade_seconds(0.0)}>
                         <Text style={styles.rate_chip_text}>Reset</Text>
                     </TouchableOpacity>
                 </View>
-                <Equalizer values={equalizer_bands}/>
-                <View style={{height: 20}}/>
+                <Equalizer values={reinterpret_cast<number[]>(Prefs.equalizer_presets[equalizer_preset] ?? Prefs.equalizer_presets["Default"])}/>
+                <View style={{height: 10}}/>
                 <ExtrasSectionButton text="Equalizer Presets" icon="ear-outline" show_arrow onPress={() => SharedRouter.goto_shared_player_equalizer_selector()}/>
             </View>
         </>
@@ -120,13 +124,15 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         marginRight: 20,
     },
     rate_chip: {
-        borderRadius: 20,
+        borderRadius: 16,
         height: 40,
         padding: 10,
         marginHorizontal: 5,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.secondary
+        backgroundColor: colors.card,
+        borderColor: colors.line,
+        borderWidth: 1
     },
     rate_chip_text: {
         color: colors.text
