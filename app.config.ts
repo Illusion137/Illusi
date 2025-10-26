@@ -44,18 +44,18 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     "web": {
         "favicon": "./assets/favicon.png"
     },
-    // "plugins": [
-    //     "expo-font",
-    //     "expo-router",
-    //     [
-    //         "@sentry/react-native/expo",
-    //         {
-    //             "url": "https://sentry.io/",
-    //             "project": "react-native",
-    //             "organization": "illusion-ke"
-    //         }
-    //     ]
-    // ],
+    "plugins": [
+        // "expo-font",
+        // "expo-router",
+        [
+            "@sentry/react-native/expo",
+            {
+                "url": "https://sentry.io/",
+                "project": "react-native",
+                "organization": "illusion-ke"
+            }
+        ]
+    ],
     "experiments": {
         "reactCompiler": true,
         "typedRoutes": true

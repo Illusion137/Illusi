@@ -14,3 +14,7 @@ SUMBIT TO APP STORE: eas submit -p ios
 npm run ts:check
 
 CHECK INFO.PLIST PLEASE
+
+FOR SENTRY
+export SENTRY_PROPERTIES=ios/sentry.properties
+check with npx sentry-cli info
