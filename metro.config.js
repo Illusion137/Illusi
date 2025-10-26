@@ -16,7 +16,7 @@ config.transformer = {
 };
 
 config.watchFolders = [
-	path.resolve(__dirname, "lib-origin"), // ensure HMR watches this
+	// path.resolve(__dirname, "lib-origin"), // ensure HMR watches this
 	path.resolve(__dirname, "utils"), // ensure HMR watches this
 ];
 

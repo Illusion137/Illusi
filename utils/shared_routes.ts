@@ -2,7 +2,7 @@ import { reinterpret_cast } from "@common/cast";
 import { encodeLocalSearchParams } from "@hooks/useParsedLocalSearchParams";
 import { GLOBALS } from "@illusive/globals";
 import type { CompactPlaylist, SerializedCompactPlaylistData, Track } from "@illusive/types";
-import type { PlaylistType } from "@screens/playlist/PlaylistBase";
+import type { PlaylistType } from "@screens/PlaylistBase";
 import { router } from "expo-router";
 
 export namespace SharedRouter {

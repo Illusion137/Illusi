@@ -23,6 +23,7 @@ import { TrackContextMenu } from '@utils/context_menu';
 import { ContextResolver } from '@utils/context_resolver';
 import { reinterpret_cast } from '@common/cast';
 import SlidingUpPanel from 'rn-sliding-up-panel';
+import useGlobalTracksRefresh from '@hooks/useGlobalTracksRefresh';
 
 type LyricsLoadingState = "NONE"|"LOADING"|"FAILED"|"DOWNLOADED";
 const top_padding = Dimensions.get('screen').height * 0.08;
@@ -60,7 +61,6 @@ export default function AudioPlayer(props: {
     const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>("NONE");
     // const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
 
-    // const panel_animated = useSharedValue(0);
     const [panel_state_visible, set_panel_state_visible] = useState(true);
 
     panel_animated.addListener(({ value }) => {
@@ -70,26 +70,6 @@ export default function AudioPlayer(props: {
         else if(value <= panel_transition_value && panel_state_visible)
             set_panel_state_visible(false);
     });
-
-    // const animated_style_opacity = useAnimatedStyle(() => {
-    //     return {
-    //         opacity: interpolate(panel_animated.value, [panel_min_height, panel_bottom_height], [1, 0], "clamp"),
-    //         // transform: `${interpolate(panel_animated.value, [panel_min_height, panel_max_height], [180, 0], "clamp")}deg`
-    //     };
-    // })
-    // const animated_style_transform = useAnimatedStyle(() => {
-    //     return {
-    //         transform: `${interpolate(panel_animated.value, [panel_min_height, panel_bottom_height], [180, 0], "clamp")}deg`
-    //     };
-    // })
-
-    // useAnimatedReaction(
-    //     () => panel_animated.value < panel_bottom_height - 10,
-    //     (current_value) => {
-    //       // This runs on the UI thread, so we must use runOnJS to update state
-    //       scheduleOnRN(set_panel_state_visible, current_value);
-    //     }
-    // );
 
     function hide_sheet(){
         // bottom_sheet_ref.current?.snapToIndex(0);
@@ -151,6 +131,12 @@ export default function AudioPlayer(props: {
         setup();
     }, []);
 
+    async function refresh_data(){
+        // TODO implement this
+    }
+
+    useGlobalTracksRefresh(refresh_data);
+
     const toggle_playing = useCallback(async () => {
         const tp_state = await TrackPlayer.getPlaybackState();
         set_player_state_type(player_state_type === State.Playing ? State.Paused : State.Playing);
@@ -180,6 +166,18 @@ export default function AudioPlayer(props: {
                 volume: await TrackPlayer.getVolume(),
                 loop_track: await TrackPlayer.getRepeatMode() === RepeatMode.Track,
             });
+            if(is_empty(player_state_metadata.duration)){
+                GLOBALS.global_var.playing_tracks[event.track].duration = event.duration ?? 0;
+                set_player_state_metadata({
+                    title: GLOBALS.global_var.playing_tracks[event.track]?.title,
+                    artist: artist_string(GLOBALS.global_var.playing_tracks[event.track]),
+                    duration: event.duration ?? 0,
+                    artwork: GLOBALS.global_var.playing_tracks[event.track]?.playback!.artwork,
+                    album: GLOBALS.global_var.playing_tracks[event.track]?.album,
+                });
+                set_playing_track(GLOBALS.global_var.playing_tracks[event.track]);
+
+            }
         }
         else if(event.type === Event.PlaybackActiveTrackChanged){
             if(event.index === undefined) return;
@@ -193,7 +191,6 @@ export default function AudioPlayer(props: {
                 duration: event.track?.duration ?? 0,
                 artwork: GLOBALS.global_var.playing_tracks[event.index]?.playback!.artwork,
                 album: GLOBALS.global_var.playing_tracks[event.index]?.album,
-
             });
             //     if(event.track?.artwork !== undefined){
             //         const colors = await getColors(event.track.artwork);
@@ -205,6 +202,31 @@ export default function AudioPlayer(props: {
             set_player_state_type(event.state);
         }
     });
+
+    async function open_lyrics(){
+        set_lyrics_loading_state("LOADING");
+        const current_track_index = await TrackPlayer.getActiveTrackIndex();
+        if(current_track_index === undefined) return;
+        const track = GLOBALS.global_var.playing_tracks[current_track_index];
+        if(track.lyrics_uri)
+        if(!is_empty(track.lyrics_uri)) {
+            set_lyrics_loading_state("DOWNLOADED");
+            SharedRouter.goto_shared_player_lyrics(track.lyrics_uri!);
+            return;
+        }
+        const lyrics = await Illusive.get_track_lryics(track);
+        if(typeof lyrics === "object"){
+            set_lyrics_loading_state("FAILED");
+            if(!lyrics.error.message.includes('YouTube')) {
+                alert_error(lyrics);
+                return;
+            }
+            return;
+        }
+        const lyrics_uri = await SQLTracks.save_track_lyrics(track, lyrics);
+        set_lyrics_loading_state("DOWNLOADED");
+        SharedRouter.goto_shared_player_lyrics(lyrics_uri);
+    }
 
     const tint = GLOBALS.global_var.tint_table.get(playing_track.uid);
     const begdur = playing_track.meta?.begdur ?? 0, enddur = playing_track.meta?.enddur ?? playing_track.duration;
@@ -285,7 +307,7 @@ export default function AudioPlayer(props: {
                             thumbStyle={{ width: 8, height: 8 }}
                             thumbTouchSize={{ width: 40, height: 40 }}
                             minimumValue={0}
-                            maximumValue={player_state_metadata.duration}
+                            maximumValue={isNaN(player_state_metadata.duration) ? 1 : player_state_metadata.duration}
                         />
                         <View style={{height: 10, width: 1, left: `${get_restart_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
                         <View style={{height: 10, width: 1, left: `${get_metadata_update_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: 'absolute'}}/>
@@ -337,30 +359,7 @@ export default function AudioPlayer(props: {
                                 <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
                             </TouchableOpacity>
                             { lyrics_loading_state === "LOADING" ? <ActivityIndicator size={28}/> :
-                            <TouchableOpacity disabled={lyrics_loading_state === "FAILED"} onPress={async () => {
-                                set_lyrics_loading_state("LOADING");
-                                const current_track_index = await TrackPlayer.getActiveTrackIndex();
-                                if(current_track_index === undefined) return;
-                                const track = GLOBALS.global_var.playing_tracks[current_track_index];
-                                const lyrics_exist = await SQLTracks.lyrics_exist(track);
-                                if(lyrics_exist.exists) {
-                                    set_lyrics_loading_state("DOWNLOADED");
-                                    SharedRouter.goto_shared_player_lyrics(lyrics_exist.path);
-                                    return;
-                                }
-                                const lyrics = await Illusive.get_track_lryics(track);
-                                if(typeof lyrics === "object"){
-                                    set_lyrics_loading_state("FAILED");
-                                    if(!lyrics.error.message.includes('YouTube')) {
-                                        alert_error(lyrics);
-                                        return;
-                                    }
-                                    return;
-                                }
-                                const lyrics_uri = await SQLTracks.save_track_lyrics(track, lyrics);
-                                set_lyrics_loading_state("DOWNLOADED");
-                                SharedRouter.goto_shared_player_lyrics(lyrics_uri);
-                            }}>
+                            <TouchableOpacity disabled={lyrics_loading_state === "FAILED"} onPress={open_lyrics}>
                                 <Ionicons name="mic-outline" style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}} size={28} color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary} />
                             </TouchableOpacity>}
                             <TouchableOpacity>

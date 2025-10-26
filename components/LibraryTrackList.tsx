@@ -1,4 +1,4 @@
-import { forwardRef, MutableRefObject, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, MutableRefObject, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
 import { Prefs } from "@illusive/prefs";
@@ -11,10 +11,11 @@ import ShufflePlayButton from "./ShufflePlayButton";
 import React from "react";
 import { is_empty } from "@common/utils/util";
 import { extract_query_flags, TRACK_QUERY_FLAGS } from "@illusive/query_flags";
-import { SQLGlobal } from "@illusive/sql/sql_global";
 import { GLOBALS } from "@illusive/globals";
 import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
+import { useFocusEffect } from "expo-router";
+import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 
 let search_query = "";
 function LibraryTrackList(
@@ -46,13 +47,16 @@ function LibraryTrackList(
 	useImperativeHandle(ref, () => ({
 		refresh_data
 	}));
-	useEffect(() => {
-		SQLGlobal.set_global_sql_tracks_update_callback(refresh_data);
-		if (props.refresh_query_on_focus ?? false) {
-			search_query = "";
-		}
-		refresh_data(search_query);
-	}, [props.is_focused]);
+
+	useGlobalTracksRefresh(refresh_data);
+	useFocusEffect(
+		useCallback(() => {
+			if (props.refresh_query_on_focus ?? false) {
+				search_query = "";
+			}
+			refresh_data(search_query);
+	}, []));
+
 	useEffect(() => {
 		on_edit_mode_change(props.edit_mode);
 	}, [props.edit_mode]);

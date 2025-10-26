@@ -1,11 +1,10 @@
-import React,  { useState, useEffect, useRef } from 'react';
+import React,  { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Text, Image, Dimensions, TouchableOpacity } from "react-native";
 import TrackComponent from '@components/TrackComponent';
 import BigList from "react-native-big-list";
 import { useIsFocused } from '@react-navigation/native';
 import { Prefs } from '@illusive/prefs';
 import { GLOBALS } from '@illusive/globals';
-import { SQLGlobal } from "@illusive/sql/sql_global";
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { EditMode, NamedUUID, Track } from '@illusive/types';
@@ -31,14 +30,19 @@ import { TRACK_QUERY_FLAGS } from '@illusive/query_flags';
 import { batch_download_track_lyrics, download_track_list } from '@illusive/downloader';
 import { debounce } from 'lodash';
 import usePTheme from '@hooks/usePTheme';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { BASE_WIDTH_FN } from '@components/TrackComponentBase';
 import { PlaylistPage } from '@illusive/playlist_page';
+import useGlobalTracksRefresh from '@hooks/useGlobalTracksRefresh';
+import { LinearGradient } from 'expo-linear-gradient';
+import NavLink from '@components/NavLink';
+import IImage from '@components/IImage';
+import { SQLArtists } from '@illusive/sql/sql_artists';
 
 let search_query = "";
 let tracks_ref: Track[] = [];
 const shortcuts_app_icon = Image.resolveAssetSource(
-    require('../../assets/shortcut.png')
+    require('../assets/shortcut.png')
 );
 
 export type PlaylistType = "DEFAULT_PLAYLIST"|"URI"|"UUID"|"WRITE_PLAYLIST";
@@ -263,13 +267,12 @@ export default function PlaylistBase(props: PlaylistProps){
         initial_data();
         return () => exit_handler();
     }, []);
-    useEffect( () => {
-        if(is_focused){
+    useGlobalTracksRefresh(refresh_data);
+    useFocusEffect(
+        useCallback(() => {
             search_query = "";
-            SQLGlobal.set_global_sql_tracks_update_callback(refresh_data);
             refresh_data();
-        }
-	}, [is_focused]);
+    },[]));
 
     const on_debounce_uri_refresh = debounce(() => {
         (async() => {
@@ -434,12 +437,29 @@ export default function PlaylistBase(props: PlaylistProps){
             <FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={Dimensions.get('screen').width / 2} base_view_style={{top: -Dimensions.get('screen').height / 6}}/>
             <BlurView intensity={50} tint={dark ? 'prominent' : 'extraLight'} style={{width: Dimensions.get('screen').width, height: 800, bottom: 150 - (props.type === "WRITE_PLAYLIST" ? 80 : 0), justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
                 <FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{top: 260}}/>
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.2)', colors.background]}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        height: 100, // adjust how much of the image fades
+                        width: '100%',
+                    }}/>
             </BlurView>
             <View style={{alignItems: 'center', width: '75%', top: 60, height: 40, zIndex: 2}}>
                 <View style={{right: 10, zIndex: 3}}>
                     <SearchBarV1 placeholder='Search Playlist' background_color={colors.primary_dark} query_flags={TRACK_QUERY_FLAGS} onChangeText={on_edit_text}/>
                 </View>
-                <Text style={{color: colors.subtext, fontSize: 14, marginBottom: 20, top: 5}}>{empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])}</Text>
+                <View style={{flexDirection: 'row'}}>
+                    { playlist_data?.creator?.[0]?.uri && SQLArtists.artists_artwork_memo[playlist_data?.creator?.[0]?.uri ?? ""] ? 
+                        <IImage source={SQLArtists.artists_artwork_memo[playlist_data?.creator?.[0]?.uri ?? ""]} width={25} height={25}
+                            style={{borderRadius: 100, resizeMode: 'contain', height: 25, width: 25, top: 5, right: 10}}/>
+                    : null }
+                    <NavLink text={empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])} 
+                        uri={playlist_data?.creator?.[0].uri ?? ""}
+                        type='artist'
+                        text_style={{color: colors.text, fontSize: 14, marginBottom: 20, top: 10}} />
+                </View>
             </View>
             <View style={{height: 220}}/>
             <View style={{top: 40, alignItems: 'center'}}>

@@ -1,4 +1,3 @@
-import '@expo/metro-runtime';
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
@@ -13,7 +12,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid } from "@common/utils/util";
-import AudioPlayer from "@screens/other/AudioPlayer";
+import AudioPlayer from "@screens/AudioPlayer";
 import { GLOBALS } from "@illusive/globals";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
 import { migrate } from 'drizzle-orm/op-sqlite/migrator';
@@ -35,7 +34,7 @@ Sentry.init({
   
 	// Enable Logs
 	// enableLogs: true,
-	enabled: true,
+	enabled: !__DEV__,
   
 	// Configure Session Replay
 	// replaysSessionSampleRate: 0.1,

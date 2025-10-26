@@ -3,7 +3,7 @@ import type { CompactPlaylist, ISOString, NamedUUID } from "@illusive/types";
 import { reinterpret_cast } from '../lib-origin/common/cast';
 
 export namespace ExploreLocalData {
-    const base_artist: NamedUUID[] = [{name: Constants.local_illusi_person_name, uri: null}];
+    const base_artist: NamedUUID[] = [{name: Constants.local_illusi_uri_id, uri: null}];
     const year = new Date().getFullYear();
     const valentines_day = reinterpret_cast<ISOString>(new Date(`February 14 ${year}`).toISOString());
     const halloween_day = reinterpret_cast<ISOString>(new Date(`October 31 ${year}`).toISOString());

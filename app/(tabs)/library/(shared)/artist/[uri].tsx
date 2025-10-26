@@ -1,10 +1,10 @@
 import { IllusiveURI, MusicServiceArtist, Track } from "@illusive/types";
-import { ImageBackground, ScrollView, Text, View } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import AlbumList from "@components/AlbumList";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import LatestRelease from "@components/LatestRelease";
 import { useEffect, useState } from "react";
-import { music_service_uri_to_music_service, split_uri, tracks_with_artist } from "@illusive/illusive_utils";
+import { best_thumbnail, music_service_uri_to_music_service, split_uri, tracks_with_artist } from "@illusive/illusive_utils";
 import { GLOBALS } from '@illusive/globals';
 import { Illusive } from "@illusive/illusive";
 import { is_empty, json_catch } from "@common/utils/util";
@@ -12,28 +12,31 @@ import { alert_error } from "@illusive/illusi/src/alert";
 import HeaderWith from "@components/HeaderWith";
 import HorizontalRowArtists from "@components/HorizontalRowArtists";
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { AntDesignTouchableOpacity } from "@components/TouchableIconOpacity";
+import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
 import type { ResponseError } from "@common/types";
-import { remove_topic } from "@common/utils/clean_util";
 import { router, useLocalSearchParams } from "expo-router";
+import { remove_topic } from "@common/utils/clean_util";
+import { SQLArtists } from "@illusive/sql/sql_artists";
+import { reinterpret_cast } from "@common/cast";
 
 export default function Artist(){
     const { uri } = useLocalSearchParams<{uri: IllusiveURI}>();
     const { colors } = usePTheme();
     
     const [artist_data, set_artist_data] = useState<MusicServiceArtist>({
-        name: '',
+        name: SQLArtists.artists_memo[uri]?.name ?? "",
         albums: [],
         singles_eps: [],
         playlists: [],
         similar_artists: [],
         tracks: [],
         background_artwork_url: '',
-        profile_artwork_url: '',
+        profile_artwork_url: SQLArtists.artists_memo[uri]?.artwork_url ?? "",
         latest_release: undefined
     });
+    const [watch, set_watch] = useState<boolean>(false);
 
     useEffect(() => {
         initial_data();
@@ -41,6 +44,10 @@ export default function Artist(){
 
     function close(){
         router.back();
+    }
+
+    async function load_extra_data(){
+        
     }
 
     async function initial_data(){
@@ -58,7 +65,8 @@ export default function Artist(){
         }
         const artist: MusicServiceArtist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_artist!(split[1]).catch(json_catch);
         if("error" in artist!) {
-            alert_error(artist as any);
+            alert_error(reinterpret_cast<ResponseError>(artist));
+            close();
             return;
         }
         artist.tracks = await SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);
@@ -67,33 +75,76 @@ export default function Artist(){
         GLOBALS.global_var.artist_cache.add(uri, {artist_data: artist});
     }
 
+    async function on_watch_unwatch(){
+
+    }
+
+    async function play_artist(){
+        const play_tracks = artist_data.tracks;
+        const cloned_tracks = Illusive.shuffle_tracks("SHUFFLE", [...play_tracks]);
+        GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, artist_data.name);
+    }
+
     const shared_tracks: Track[] = tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name)
         .map(track => ({
             ...track, downloading_data: {...track.downloading_data!, saved: true}  
         }));
+
+    const popular_tracks = artist_data.tracks
+        .filter(track => track.plays)
+        .sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0));
+
+    const background_image_url_possibilities = [
+        artist_data.profile_artwork_url,
+        artist_data.background_artwork_url,
+        artist_data.albums?.[0]?.artwork_url,
+        artist_data.singles_eps?.[0]?.artwork_url,
+        best_thumbnail(artist_data.albums?.[0]?.artwork_thumbnails)?.url,
+        best_thumbnail(artist_data.singles_eps?.[0]?.artwork_thumbnails)?.url,
+        artist_data.tracks?.[0]?.artwork_url
+    ];
+
+    const background_image_url = background_image_url_possibilities.find(url => !is_empty(url))
 
     return (
         <>
             <View style={{position: 'absolute', top: 60, marginHorizontal: 20, zIndex: 2, flexDirection: 'row', justifyContent: 'space-between'}} pointerEvents='box-none'>
                 <AntDesignTouchableOpacity on_press={close} style={{}} icon_name='left' icon_size={30} icon_color={colors.primary} icon_style={{}}/>
             </View>
-            <ScrollView>
-                { !is_empty(artist_data.background_artwork_url) ? 
-                <ImageBackground blurRadius={10} source={{uri: artist_data.background_artwork_url, scale: 0.3}} style={{height: 170, flexDirection: 'row', alignItems: 'flex-end'}}>
-                    {!is_empty(artist_data.profile_artwork_url) ? <IImage source={artist_data.profile_artwork_url} style={{borderRadius: 100, width: 80, height: 80, bottom: 20, left: 30}}/> : null}
-                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{remove_topic(artist_data.name)}</Text>
-                </ImageBackground> : 
-                <View style={{height: 170, top: 40, flexDirection: 'row', alignItems: 'flex-end'}}>
-                    {!is_empty(artist_data.profile_artwork_url) ? <IImage source={artist_data.profile_artwork_url} style={{borderRadius: 100, width: 80, height: 80, bottom: 20, left: 30}}/> : null}
-                    <Text style={{color: colors.text, fontSize: 40, fontWeight: '500', bottom: 30, paddingLeft: 50, textShadowColor: 'rgb(0, 0, 0)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 3}}>{remove_topic(artist_data.name)}</Text>
+            <ScrollView bounces={false}>
+                <View style={{width: '100%', height: 300}}>
+                    <IImage fade={{percent: '20%'}} source={background_image_url} height={300} style={{height: 300, resizeMode: 'cover', width: '100%'}}/>
+                    <Text style={{position: 'absolute', bottom: 0, fontSize: 40, fontWeight: 'bold', paddingLeft: 20, color: colors.text}}>{remove_topic(artist_data.name)}</Text>
+                    <Text style={{position: 'absolute', bottom: -13, fontSize: 15, fontWeight: 'light', paddingLeft: 20, color: colors.subtext}}>{artist_data.tracks.length === 100 ? "100+": artist_data.tracks.length} Tracks • {artist_data.albums.length} Albums • {artist_data.singles_eps.length} Singles/EPs</Text>
                 </View>
-                }
-                <View style={{paddingTop: 40}}/>
-                {artist_data?.latest_release ? <LatestRelease album_data={artist_data?.latest_release}/> : null }
-                <View style={{paddingVertical: 10}}/>
+                <View style={{paddingTop: split_uri(uri)[0] !== "illusi" ? 30 : 0}}/>
+                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20}}>
+                    {split_uri(uri)[0] !== "illusi" ?  <TouchableOpacity onPress={on_watch_unwatch} style={{borderRadius: 40, backgroundColor: colors.text, justifyContent: 'center', alignItems: 'center', padding: 10, paddingHorizontal: 18}}>
+                        <Text style={{color: colors.background, fontSize: 15, fontWeight: '500'}}>
+                            {watch ? "Unwatch" : "Watch"}
+                        </Text>
+                    </TouchableOpacity> : <View/>}
+                    <IoniconsTouchableOpacity icon_name="play-circle-sharp"
+                        icon_color={colors.primary}
+                        icon_size={60}
+                        on_press={play_artist}/>
+                </View>
+                {artist_data?.latest_release ? 
+                    <>
+                        <View style={{height: 15}}/>
+                        <LatestRelease album_data={artist_data?.latest_release}/>
+                        <View style={{paddingVertical: 5}}/>
+                    </>
+                : null }
                 {
-                    artist_data.tracks.length > 0 ? 
-                    <HeaderWith title={"Tracks"}>        
+                    popular_tracks.length > 0 ?
+                    <HeaderWith title={"Popular Tracks"}>        
+                        <TrackHorizontalScrolls height={4} tracks={popular_tracks} replace_album_with="plays"/>
+                    </HeaderWith> : null
+                }
+                {
+                    artist_data.tracks.length > 0 ?
+                    <HeaderWith title={"Tracks"}>      
                         <TrackHorizontalScrolls height={4} tracks={artist_data.tracks}/>
                     </HeaderWith> : null
                 }
@@ -117,9 +168,9 @@ export default function Artist(){
                 }
                 <View style={{paddingTop: 20}}/>
                 {
-                    shared_tracks.length > 0 ? 
+                    shared_tracks.length > 0 && artist_data.tracks.length > 0 ? 
                         <HeaderWith title={"From Your Library"}>
-                            <TrackHorizontalScrolls height={4} tracks={shared_tracks}/>
+                            <TrackHorizontalScrolls height={5} tracks={shared_tracks}/>
                         </HeaderWith>
                     : null
                 }
@@ -131,7 +182,7 @@ export default function Artist(){
                     </HeaderWith>
                     : null
                 }
-                <View style={{paddingVertical: 100}}/>
+                <View style={{paddingVertical: 30}}/>
             </ScrollView>
         </>
     )

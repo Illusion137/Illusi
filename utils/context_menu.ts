@@ -78,8 +78,8 @@ export namespace TrackContextMenu {
             track_menu_item("track-delete-lyrics", "Delete Lyrics", () => is_empty(track.lyrics_uri) || !is_saved ? ['hidden'] : ['destructive'], 'trash'),    
             track_menu_item("track-delete", "Delete", () => !is_saved ? ['hidden'] : ['destructive'], 'trash'),
             track_menu_item("track-delete-playlist", "Delete From Playlist", () => is_empty(write_playlist_uuid) || write_playlist_uuid === Constants.library_write_playlist || !is_playlist_saved ? ['hidden'] : ['destructive'], 'trash'),
-            track_menu_item("track-share-illusi", "Illusi Link", () => undefined, 'link'),    
-            track_menu_item("track-share-original", "Source Link", () => undefined, 'link'),    
+            track_menu_item("track-share-illusi", "Illusi Link", () => !is_empty(track.imported_id) ? ['hidden'] : undefined, 'link'),    
+            track_menu_item("track-share-original", "Source Link", () => !is_empty(track.imported_id) ? ['hidden'] : undefined, 'link'),    
             track_menu_item("track-share-downloaded", "Downloaded File", () => is_empty(track.media_uri) ? ['hidden'] : undefined, 'folder.circle'),    
             track_menu_item("track-enqueue", "Enqueue Track", () => !GLOBALS.global_var.is_playing ? ['hidden'] : undefined, 'text.append'),   
             track_menu_item("track-play-next", "Play Next", () => !GLOBALS.global_var.is_playing ? ['hidden'] : undefined, 'text.insert') 

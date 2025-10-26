@@ -5,7 +5,7 @@ import IImage, { type IImageProps } from "./IImage";
 
 // https://stackoverflow.com/questions/42170127/auto-scale-image-height-with-react-native
 export default function ScaledImage(props: {
-    artwork: Artwork, 
+    artwork: Artwork|undefined, 
     width?: number, 
     height?: number, 
     style: StyleProp<ImageStyle>,

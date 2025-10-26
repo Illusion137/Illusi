@@ -1,14 +1,20 @@
-import { FlatList } from "react-native"
+import { FlashList } from "@shopify/flash-list";
+import { View } from "react-native"
 import { CompactArtist } from "@illusive/types"
 import RowArtist from "./RowArtist"
 
 export default function HorizontalRowArtists(props: {
-    artists: CompactArtist[]
+    artists: CompactArtist[];
+    size?: number;
 }){
-
-    const render_item = (item: {item: CompactArtist}) => (<RowArtist artist_data={item.item}/>)
+    const render_item = (item: {item: CompactArtist}) => (<RowArtist size={props.size} artist_data={item.item}/>)
 
     return (
-        <FlatList data={props.artists} renderItem={render_item} horizontal={true} initialNumToRender={6} maxToRenderPerBatch={6} windowSize={12} contentContainerStyle={{flexDirection: 'row'}}/>
+        <View style={{paddingHorizontal: 10}}>
+            <FlashList data={props.artists}
+                renderItem={render_item}
+                horizontal={true}
+                contentContainerStyle={{flexDirection: 'row'}}/>
+        </View>
     )
 }

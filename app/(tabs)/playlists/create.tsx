@@ -7,6 +7,7 @@ import ImportServiceComponent from '@components/ImportServiceComponent';
 import { Illusive } from '@illusive/illusive';
 import usePTheme from '@hooks/usePTheme';
 import { router } from 'expo-router';
+import { is_empty } from '@common/utils/util';
 
 const max_input_length = 30;
 export default function CreatePlaylist() {
@@ -16,7 +17,7 @@ export default function CreatePlaylist() {
 	const input_ref = useRef<TextInput>(null);
 
 	const playlist_name = useRef("");
-	const [can_create_playlist, set_can_create_playlist] = useState(true);
+	const [can_create_playlist, set_can_create_playlist] = useState(false);
 
 	useEffect(() => {
 		input_ref.current?.focus();
@@ -28,7 +29,6 @@ export default function CreatePlaylist() {
 		router.dismiss();
 	}
 	async function on_create_playlist(){
-		set_can_create_playlist(true);
 		await SQLPlaylists.create_playlist(playlist_name.current);
 		input_ref.current?.clear();
 		input_ref.current?.blur();
@@ -36,6 +36,7 @@ export default function CreatePlaylist() {
 	}
 	async function update_playlist_name(name: string){
 		playlist_name.current = name;
+		set_can_create_playlist(!is_empty(name));
 	}
 
 	return(
@@ -44,8 +45,8 @@ export default function CreatePlaylist() {
 				<View style={{marginLeft:-50}}></View>
 				<Button title='Cancel' color={colors.primary} onPress={on_cancel}></Button>
 				<Text style={{color: colors.text, fontWeight:'500', fontSize: 18}}>New Playlist</Text>
-				{can_create_playlist && <Button title='Create' color={colors.searchPlaceholder} ></Button>}
-				{!can_create_playlist && <Button title='Create' color={colors.primary} onPress={on_create_playlist}></Button>}
+				{!can_create_playlist && <Button title='Create' color={colors.searchPlaceholder} ></Button>}
+				{can_create_playlist && <Button title='Create' color={colors.primary} onPress={on_create_playlist}></Button>}
 				<View style={{marginRight:-50}}></View>
 			</View>
             <View style={{height: 0.6, backgroundColor: colors.line}}/>

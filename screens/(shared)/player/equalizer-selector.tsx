@@ -2,7 +2,7 @@ import { reinterpret_cast } from "@common/cast";
 import Equalizer from "@components/Equalizer";
 import ModalHeader from "@components/ModalHeader";
 import { Prefs } from "@illusive/prefs";
-import MultiOption from "@screens/other/MultiOption";
+import MultiOption from "@screens/MultiOption";
 import { useState } from "react";
 import { View } from "react-native";
 

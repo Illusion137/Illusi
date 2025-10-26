@@ -1,4 +1,4 @@
-import { Dimensions, FlatList, Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import { CompactPlaylist } from "@illusive/types";
 import Album, { SecondLineType } from "./Album";
 import { Prefs } from "@illusive/prefs";
@@ -9,6 +9,7 @@ import { alert_error } from "@illusive/illusi/src/alert";
 import { GLOBALS } from '@illusive/globals'
 import AlbumPlaceholder from "./AlbumPlaceholder";
 import usePTheme from "@hooks/usePTheme";
+import { FlashList } from "@shopify/flash-list";
 
 export default function AlbumList(props: {
     title: string;
@@ -64,10 +65,10 @@ export default function AlbumList(props: {
                     </>
                  : null}
             </View>
-            <View style={{height: Dimensions.get('screen').width * .40 + 50, justifyContent: 'center'}}>
+            <View style={{paddingHorizontal: 10, height: Dimensions.get('screen').width * .40 + 50, justifyContent: 'center'}}>
                 {is_loading ? 
-                    <FlatList data={new Array(3)} renderItem={render_album_placeholder} horizontal={true} initialNumToRender={3} maxToRenderPerBatch={3} windowSize={6}/> : 
-                    <FlatList data={albums.map(item => ({...item, album_type: item.album_type ?? props.else_type}))} renderItem={render_album} horizontal={true} initialNumToRender={3} maxToRenderPerBatch={3} windowSize={6}/> }
+                    <FlashList data={new Array(3)} renderItem={render_album_placeholder} horizontal={true}/> : 
+                    <FlashList data={albums.map(item => ({...item, album_type: item.album_type ?? props.else_type}))} renderItem={render_album} horizontal={true}/> }
             </View>
         </View>
     );

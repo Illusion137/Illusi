@@ -5,7 +5,7 @@ import { artist_string, duration_to_string } from '@illusive/illusive_utils';
 import { Prefs } from '@illusive/prefs';
 import { Track } from '@illusive/types';
 import { Constants } from '@illusive/constants';
-import { is_empty } from '@common/utils/util';
+import { is_empty, large_number_string } from '@common/utils/util';
 import usePTheme from '@hooks/usePTheme';
 import { GLOBALS } from '@illusive/globals';
 import { reinterpret_cast } from '../lib-origin/common/cast';
@@ -24,9 +24,17 @@ export default function TrackComponentBase(props: {
         on_long_press: () => any;
         children?: React.ReactNode;
 		width_fn?: () => DimensionValue|undefined;
+		replace_album_with?: keyof Track;
+		base_background?: boolean;
 	}) {
 	
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
+	const bottom_line = props.replace_album_with ? 
+		reinterpret_cast<string|number>(props.track_data[props.replace_album_with])
+		: (props.track_data.album?.name ?? "");
+	const bottom_line_text = typeof bottom_line === "number" && String(bottom_line).length > 3 ? 
+		large_number_string(bottom_line)
+		: bottom_line;
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -36,7 +44,7 @@ export default function TrackComponentBase(props: {
             activeOpacity={props.active_opacity}
 			disabled={props.disabled}
 			onLongPress={props.on_long_press} delayLongPress={Constants.long_press_delay}
-			style={{...reinterpret_cast<{}>(props.style), backgroundColor: colors.track}} 
+			style={{...reinterpret_cast<{}>(props.style), backgroundColor: props.base_background ? colors.background : colors.track}} 
 			onPress={props.on_press}>
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
@@ -52,7 +60,9 @@ export default function TrackComponentBase(props: {
 					<Text style={styles.title} numberOfLines={1} >{props.track_data.title}</Text>
 					<Text style={styles.artist} numberOfLines={1} >{artist_string(props.track_data)}</Text>
                     <View style={{flexDirection: 'row'}}>
-    					<Text style={styles.album} numberOfLines={1} >{props.track_data.album?.name ?? ""}</Text>
+    					<Text style={styles.album} numberOfLines={1} >
+							{bottom_line_text}
+						</Text>
                         {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}
                         {(props.track_data?.meta?.unavailable ?? false) ? <MaterialCommunityIcons name="file-hidden" size={15} color={colors.secondary} style={styles.icon_thin}/> : null}

@@ -1,6 +1,7 @@
 import { Entypo, Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import usePTheme from "@hooks/usePTheme";
+import { run_explore_tab_press_callback } from "@utils/tabpress";
 
 type ScreenColor = { color: string };
 
@@ -41,6 +42,9 @@ export default function TabLayout() {
 					title: "Explore",
 					tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="search" size={25} color={color} />,
 					freezeOnBlur: true
+				}}
+				listeners={{
+					tabPress: run_explore_tab_press_callback
 				}}
 			/>
 			<Tabs.Screen

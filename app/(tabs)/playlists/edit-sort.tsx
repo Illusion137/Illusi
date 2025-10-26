@@ -2,7 +2,7 @@ import { reinterpret_cast } from "@common/cast";
 import { playlist_sort_modes } from "@illusive/playlist_utils";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import type { SortType } from "@illusive/types";
-import MultiOption from "@screens/other/MultiOption";
+import MultiOption from "@screens/MultiOption";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 

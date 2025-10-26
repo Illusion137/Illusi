@@ -27,6 +27,8 @@ function TrackComponent(props: {
 		display_plays?: boolean;
         track_callback?: () => Track[];
 		width_fn?: () => DimensionValue|undefined;
+		replace_album_with?: keyof Track;
+		base_background?: boolean;
 	}) {
 
 	const [track_data, set_track_data] = useState(props.track_data);
@@ -71,7 +73,7 @@ function TrackComponent(props: {
 				}, 100);
 				clearInterval(outer_interval);
 			}
-		}, 2000);
+		}, 1500);
         return () => {
 			clearInterval(outer_interval);
 			clearInterval(interval);
@@ -131,6 +133,8 @@ function TrackComponent(props: {
 				disabled={disabled_from_edit_mode || (disabled_from_write_playlist && !notdisabled_from_write_playlist)}
 				style={{opacity: props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist && playlist_saved ? 0.5 : 1}} 
 				on_press={on_press} on_long_press={() => {}}
+				base_background={props.base_background}
+				replace_album_with={props.replace_album_with}
 			>
 					{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist ?
 						<IoniconsTouchableOpacity on_press={() => {

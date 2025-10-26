@@ -3,13 +3,14 @@ import { ArtistSortMode, CompactArtist, NamedUUID } from "@illusive/types";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
 import { useState } from "react";
-import { artist_query_filter, sort_compact_artists } from "@illusive/illusive_utils";
+import { artist_query_filter } from "@illusive/illusive_utils";
 import { COMPACT_ARTIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
 import { GLOBALS } from '@illusive/globals'
 import RowArtist from "@components/RowArtist";
 import usePTheme from "@hooks/usePTheme";
+import { SQLArtists } from "@illusive/sql/sql_artists";
 
 export default function ArtistGridRenderer(props: {
     artist_data: NamedUUID[];
@@ -21,7 +22,7 @@ export default function ArtistGridRenderer(props: {
     const [query, set_query] = useState<string>("");
     const [sort_mode, set_sort_mode] = useState<ArtistSortMode>("NEWEST");
 
-    const artists = artist_query_filter(sort_compact_artists(sort_mode, props.artist_data ?? [], GLOBALS.global_var.sql_tracks), query);
+    const artists = artist_query_filter(SQLArtists.sort_compact_artists(sort_mode, props.artist_data ?? [], GLOBALS.global_var.sql_tracks), query);
     const split_artists: [CompactArtist, CompactArtist, CompactArtist][] = artists.reduce((result_array: any[], item, index) => { 
         const chunk_index = Math.floor(index / columns)
       

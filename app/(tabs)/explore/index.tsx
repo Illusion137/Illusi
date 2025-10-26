@@ -1,31 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, TextInput } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
 import { Prefs } from "@illusive/prefs";
 import { LinearGradient } from "expo-linear-gradient";
 import usePTheme from "@hooks/usePTheme";
 import IllusiExplore from "@screens/search/IllusiExplore";
 import SearchScreen from "@screens/SearchScreen";
+import { useFocusEffect } from "expo-router";
+import { set_explore_tab_press_callback } from "@utils/tabpress";
 
 export default function Explore() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const is_focused = useIsFocused();
-
 	let toggle = true;
 	const [search_screen_state, set_search_screen_state] = useState(true);
 
-	useEffect(() => {
-		set_search_screen_state(true);
-	}, [is_focused]);
+	useFocusEffect(() => {
+		set_explore_tab_press_callback(() => {
+			set_search_screen_state(true);
+		});
+	});
 
 	return (
 		<>
 			{!search_screen_state ? (
 				<SearchScreen />
 			) : (
-				<LinearGradient colors={[colors.primary, colors.background]} locations={[0.05, 0.2]} end={{ x: 1.5, y: 2.3 }} style={styles.topContainer}>
+				<LinearGradient colors={[colors.primary, colors.background]} locations={[0, 0.2]} end={{ x: 1, y: 2 }} style={styles.topContainer}>
 					<View style={styles.wrapper}>
 						<TextInput
 							onPressIn={() => {
@@ -39,6 +40,22 @@ export default function Explore() {
 						/>
 					</View>
 					<IllusiExplore />
+					<LinearGradient
+						colors={[colors.background, 'rgba(0,0,0,0.8)', 'transparent']}
+						style={{
+							position: 'absolute',
+							top: 0,
+							height: "20%", // adjust how much of the image fades
+							width: '100%',
+					}}/>
+					<LinearGradient
+						colors={[colors.background, 'rgba(0,0,0,1)', 'transparent']}
+						style={{
+							position: 'absolute',
+							top: 0,
+							height: "10%", // adjust how much of the image fades
+							width: '100%',
+					}}/>
 				</LinearGradient>
 			)}
 		</>

@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { Illusive } from '@illusive/illusive';
-import { get_most_played_artists, sort_compact_artists_by_most_played, get_unique_artists, should_automatic_refresh } from '@illusive/illusive_utils';
+import { get_most_played_artists, get_unique_artists, should_automatic_refresh } from '@illusive/illusive_utils';
 import { push_abortion } from '@origin/utils/orifetch';
 import usePTheme from '@hooks/usePTheme';
 import { musi_parse_explore } from '@illusive/parsers/musi_parser';
@@ -21,6 +21,8 @@ import { SQLNewReleases } from '@illusive/sql/sql_new_releases';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { router } from 'expo-router';
 import { shared_values } from '@utils/shared_values';
+import HeaderWith from '@components/HeaderWith';
+import { SQLArtists } from '@illusive/sql/sql_artists';
 
 type MusiExplore = ReturnType<typeof musi_parse_explore>;
 let musi_explore_data: MusiExplore;
@@ -31,7 +33,6 @@ export default function IllusiExplore(){
     const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(shared_values.cached_new_releases);
     const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(shared_values.cached_new_releases.length === 0);
 
-    const unique_artists = get_unique_artists(GLOBALS.global_var.sql_tracks);
     const is_focused = useIsFocused();
 
     const [musi_explore, set_musi_explore] = useState<MusiExplore>();
@@ -106,11 +107,10 @@ export default function IllusiExplore(){
             <View style={{height: 10}}/>
             <View style={{height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center'}}/>
             <View style={{height: 10}}/>
-            <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text>
-            <HorizontalRowArtists artists={sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks)}/>
-            <TouchableOpacity style={{alignSelf: 'flex-end', height: 30}} onPress={() => router.push("/explore/artists_grid")}>
-                {unique_artists.length !== 0 ? <Text style={{color: colors.text, right: 15, fontSize: 20, fontWeight: '800'}}>View All {'->'}</Text> : null}
-            </TouchableOpacity>
+            {/* <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text> */}
+            <HeaderWith title='Your Artists' fullpage={() => router.push("/explore/artists_grid")}>
+                <HorizontalRowArtists size={80} artists={SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks)}/>
+            </HeaderWith>
             <View style={{height: 10}}/>
             <View style={{height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center'}}/>
             <View style={{height: 10}}/>

@@ -1,5 +1,5 @@
 import { GLOBALS } from "@illusive/globals";
-import PlaylistBase, { type PlaylistType } from "@screens/playlist/PlaylistBase";
+import PlaylistBase, { type PlaylistType } from "@screens/PlaylistBase";
 import { useLocalSearchParams } from "expo-router";
 
 export interface PlaylistParams extends Record<string, string> { 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import { CompactArtist, CompactPlaylist, MusicSearchResponse, MusicServiceType, SearchSuggestion, StatefullMusicSearchResponse, Track } from '@illusive/types';
@@ -16,7 +16,10 @@ import usePTheme from '@hooks/usePTheme';
 import { BASE_WIDTH_FN } from '@components/TrackComponentBase';
 import type { ResponseError } from '@common/types';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
+import useGlobalTracksRefresh from '@hooks/useGlobalTracksRefresh';
+import { useFocusEffect } from 'expo-router';
 
+// TODO improve the look of dis
 const empty_search_result = {"tracks": [] as Track[], "playlists": [] as CompactPlaylist[], "artists": [] as CompactArtist[], "albums": [] as CompactPlaylist[], "continuation": null};
 const empty_statefull_search_result: StatefullMusicSearchResponse = {state: "NONE", search_data: empty_search_result};
 function SearchScreen() {
@@ -39,11 +42,29 @@ function SearchScreen() {
 
 	const input_ref = useRef<any>(null);
 
+	async function refresh_data(){
+		if(search_result.state === "FUFILLED" && search_result.search_data.tracks.length > 0){
+			set_search_result(prev_search_result => ({
+				...prev_search_result,
+				search_data: {
+					...prev_search_result.search_data, 
+					tracks: SQLTracks.add_playback_saved_data_to_tracks(prev_search_result.search_data.tracks)
+				}
+			}));
+		}
+	}
+
 	useEffect(() => {
 		(async function() { 
 			input_ref.current?.focus();
 		})()
 	}, []);
+
+	useGlobalTracksRefresh(refresh_data);
+	useFocusEffect(
+		useCallback(() => {
+			refresh_data();
+	},[]));
 	const on_debounce_search_suggestion = debounce((search_query: string) => {
 		(async() => {
 			set_searching_data(
