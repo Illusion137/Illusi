@@ -1,4 +1,4 @@
-import { CompactPlaylist } from "@illusive/types";
+import type { CompactPlaylist } from "@illusive/types";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { empty_join_dot } from "@common/utils/util";

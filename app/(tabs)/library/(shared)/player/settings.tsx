@@ -52,7 +52,7 @@ export default function AudioPlayerSettings(){
     }
 
     const RateChipRenderer = (props: {entry: [keyof typeof rate_presets, typeof rate_presets[keyof typeof rate_presets]]}) => 
-        (<TouchableOpacity style={styles.rate_chip} onPress={() => update_rate(rate_presets[props.entry[0]])}><Text style={styles.rate_chip_text}>{props.entry[0]}</Text></TouchableOpacity>);
+        (<TouchableOpacity style={styles.rate_chip} onPress={async () => update_rate(rate_presets[props.entry[0]])}><Text style={styles.rate_chip_text}>{props.entry[0]}</Text></TouchableOpacity>);
 
     return (
         <>
@@ -64,7 +64,7 @@ export default function AudioPlayerSettings(){
                 <View style={styles.slider}>
                     <Slider
                         value={rate}
-                        onValueChange={(value) => update_rate(value[0])}
+                        onValueChange={async (value) => update_rate(value[0])}
                         thumbTintColor={colors.primary}
                         thumbStyle={{ width: 15, height: 15 }}
                         thumbTouchSize={{ width: 1, height: 1 }}
@@ -89,7 +89,7 @@ export default function AudioPlayerSettings(){
                     <View style={styles.slider_small}>
                         <Slider
                             value={crossfade_seconds}
-                            onValueChange={(value) => update_crossfade_seconds(value[0])}
+                            onValueChange={async (value) => update_crossfade_seconds(value[0])}
                             thumbTintColor={colors.primary}
                             thumbStyle={{ width: 15, height: 15 }}
                             thumbTouchSize={{ width: 1, height: 1 }}
@@ -101,11 +101,11 @@ export default function AudioPlayerSettings(){
                             maximumValue={max_crossfade}
                         />
                     </View>
-                    <TouchableOpacity style={styles.rate_chip} onPress={() => update_crossfade_seconds(0.0)}>
+                    <TouchableOpacity style={styles.rate_chip} onPress={async () => update_crossfade_seconds(0.0)}>
                         <Text style={styles.rate_chip_text}>Reset</Text>
                     </TouchableOpacity>
                 </View>
-                <Equalizer values={reinterpret_cast<number[]>(Prefs.equalizer_presets[equalizer_preset] ?? Prefs.equalizer_presets["Default"])}/>
+                <Equalizer values={reinterpret_cast<number[]>(Prefs.equalizer_presets[equalizer_preset] ?? Prefs.equalizer_presets.Default)}/>
                 <View style={{height: 10}}/>
                 <ExtrasSectionButton text="Equalizer Presets" icon="ear-outline" show_arrow onPress={() => SharedRouter.goto_shared_player_equalizer_selector()}/>
             </View>

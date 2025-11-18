@@ -28,7 +28,7 @@ function SettingsMultiButton(props: {
 
     async function boolean_on_value_change(value: boolean){
         set_boolean_settings_value(value);
-        await Prefs.set_settings_toggle(props.settings_key as Prefs.PrefOptions, value);
+        await Prefs.set_settings_toggle(props.settings_key, value);
     }
 
 	return(

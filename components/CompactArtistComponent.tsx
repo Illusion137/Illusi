@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CompactArtist } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { CompactArtist } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import { is_empty } from '@common/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
 import usePTheme from '@hooks/usePTheme';

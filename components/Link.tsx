@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Image, Text } from "react-native";
-import { LinkerLink } from "@illusive/types";
-import { Prefs } from "@illusive/prefs";
+import type { LinkerLink } from "@illusive/types";
+import type { Prefs } from "@illusive/prefs";
 import { Illusive } from "@illusive/illusive";
 import { music_service_uri_to_music_service, split_uri } from "@illusive/illusive_utils";
 import usePTheme from "@hooks/usePTheme";
@@ -31,7 +31,7 @@ export default function Link(props: {
 				flexDirection: "row",
 			}}>
 				<IImage 
-					source={from_service!.app_icon}
+					source={from_service.app_icon}
 					style={{ marginLeft: 5, width: 30, height: 30, borderRadius: 5}}
 				/>
 				<View style={{flexDirection: 'column', marginLeft: 8, width: '40%'}}>
@@ -39,7 +39,7 @@ export default function Link(props: {
 					<Text numberOfLines={1} style={{color: colors.text}}>Full Sample: {String(props.linker_link.full_sample)}</Text>
 				</View>
 				<IImage 
-					source={to_service!.app_icon}
+					source={to_service.app_icon}
 					style={{ marginLeft: 5, width: 30, height: 30, borderRadius: 5}}
 				/>
 				<View style={{flexDirection: 'column', marginLeft: 8}}>

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import { is_empty } from '@common/utils/util';
 import { Constants } from '@illusive/constants';

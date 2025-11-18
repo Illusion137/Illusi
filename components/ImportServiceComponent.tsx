@@ -1,6 +1,6 @@
 import { View, Text, TouchableHighlight, StyleSheet, Alert } from "react-native";
-import { MusicServiceType } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { MusicServiceType } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import usePTheme from '@hooks/usePTheme';
 import IImage from './IImage';
 import { Illusive } from '@illusive/illusive';

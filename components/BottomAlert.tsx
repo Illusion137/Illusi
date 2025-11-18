@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Text, TouchableOpacity } from "react-native";
 import { useEffect } from "react";
-import { BottomAlertType } from "@illusive/types";
+import type { BottomAlertType } from "@illusive/types";
 import * as Haptics from "expo-haptics";
 import usePTheme from "@hooks/usePTheme";
 import type { ResponseError } from "@common/types";

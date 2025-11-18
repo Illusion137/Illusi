@@ -4,11 +4,12 @@ import { FlatList, Image, ImageBackground, ScrollView, Text, View, TouchableOpac
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { musi_parse_explore } from "@illusive/gen/musi_parser";
 import { useEffect, useState } from "react";
-import { Prefs } from "@illusive/prefs";
-import { NavigationProp, useNavigation, useTheme } from "@react-navigation/native";
-import { Musi } from '../../../lib-origin/origin/src';
+import type { Prefs } from "@illusive/prefs";
+import type { NavigationProp} from "@react-navigation/native";
+import { useNavigation, useTheme } from "@react-navigation/native";
+import type { Musi } from '../../../lib-origin/origin/src';
 import { create_uri } from '@illusive/illusive_utils';
-import { CompactPlaylist } from '@illusive/types';
+import type { CompactPlaylist } from '@illusive/types';
 import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import { clean_youtube_title } from '@illusive/gen/youtube_parser';
 import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
@@ -45,7 +46,7 @@ export default function MusiExplore(){
                 onPress={() => {
                     if(placement.item.playlist === undefined) return;
                     const uri = placement.item.playlist.youtube_playlist_id !== undefined ? 
-                        create_uri('youtube', placement.item.playlist.youtube_playlist_id!) :
+                        create_uri('youtube', placement.item.playlist.youtube_playlist_id) :
                         create_uri('musi', placement.item.playlist.musi_playlist_id!);
                     const compact_playlist: CompactPlaylist = {
                         title: {name: placement.item.playlist.name, uri: null},

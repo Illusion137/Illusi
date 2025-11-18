@@ -1,8 +1,9 @@
-import { forwardRef, MutableRefObject, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import type { MutableRefObject} from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
-import { Prefs } from "@illusive/prefs";
-import { AlphabetScroll, EditMode, Track } from "@illusive/types";
+import type { Prefs } from "@illusive/prefs";
+import type { AlphabetScroll, EditMode, Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { play_shuffle } from "@illusive/illusi/src/play";
 import { track_query_filter, track_section_map } from "@illusive/illusive_utils";
@@ -96,7 +97,7 @@ function LibraryTrackList(
 			// refresh_data={async () => await refresh_data(search_query)}
 		/>
 	);
-	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={() => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20} />;
+	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={async () => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20} />;
 
 	const section_header = (index: number) => (
 		<View style={styles.section_header}>

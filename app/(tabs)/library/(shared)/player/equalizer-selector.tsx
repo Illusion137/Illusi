@@ -19,7 +19,7 @@ export default function EqualizerSelector() {
     return (
         <>
             <ModalHeader title={"Equalizer Presets"}/>
-            <Equalizer values={reinterpret_cast<number[]>(Prefs.equalizer_presets[current_equalizer_preset] ?? Prefs.equalizer_presets["Default"])}/>
+            <Equalizer values={reinterpret_cast<number[]>(Prefs.equalizer_presets[current_equalizer_preset] ?? Prefs.equalizer_presets.Default)}/>
             <View style={{height: 5}}/>
             <MultiOption
                 current_value={current_equalizer_preset}

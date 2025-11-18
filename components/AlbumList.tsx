@@ -1,10 +1,12 @@
 import { Dimensions, Text, View } from "react-native";
-import { CompactPlaylist, type Track } from "@illusive/types";
-import Album, { SecondLineType } from "./Album";
+import type { CompactPlaylist} from "@illusive/types";
+import type { Track } from "@illusive/types";
+import type { SecondLineType } from "./Album";
+import Album from "./Album";
 import { Prefs } from "@illusive/prefs";
 import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "./TouchableIconOpacity";
 import { useEffect, useState } from "react";
-import { ResponseError } from "@common/types";
+import type { ResponseError } from "@common/types";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { GLOBALS } from '@illusive/globals'
 import AlbumPlaceholder from "./AlbumPlaceholder";

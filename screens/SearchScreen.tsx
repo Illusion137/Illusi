@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
-import { CompactArtist, CompactPlaylist, MusicSearchResponse, MusicServiceType, SearchSuggestion, StatefullMusicSearchResponse, Track } from '@illusive/types';
+import type { CompactArtist, CompactPlaylist, MusicSearchResponse, MusicServiceType, SearchSuggestion, StatefullMusicSearchResponse, Track } from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { Illusive } from '@illusive/illusive';
 import { is_empty, json_catch } from '@common/utils/util';

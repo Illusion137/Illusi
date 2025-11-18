@@ -132,7 +132,7 @@ export namespace ContextResolver{
                 break;
             
             case "track-delete":
-                if_confirm(`Delete:\n ${track.title}?`, "This action can't be undone.", () => delete_track(track, write_playlist_uuid));
+                if_confirm(`Delete:\n ${track.title}?`, "This action can't be undone.", async () => delete_track(track, write_playlist_uuid));
                 break;
         }
     }

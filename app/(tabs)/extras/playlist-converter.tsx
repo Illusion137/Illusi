@@ -5,8 +5,8 @@ import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { GLOBALS } from '@illusive/globals';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
-import { MusicServiceMappedPlaylist, MusicServiceType } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { MusicServiceMappedPlaylist, MusicServiceType } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import { Illusive } from '@illusive/illusive';
 import { alert_error } from '@illusive/illusi/src/alert';
 import { Constants } from '@illusive/constants';
@@ -18,7 +18,7 @@ import { convert_playlist } from '@illusive/playlist_converter';
 import type { ResponseError } from '@common/types';
 import { loggedin_services } from '@illusive/sampler';
 
-type KeyValue = {key: string, value: string};
+interface KeyValue {key: string, value: string}
 function ExtraPlaylistConverter() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -53,8 +53,8 @@ function ExtraPlaylistConverter() {
 						"divide_and_conquer": false
                     }
                 );
-				if("error" in status) alert_error(status as ResponseError);
-				else if(status.ok === false) {
+				if("error" in status) alert_error(status);
+				else if(!status.ok) {
 					if_confirm("Try Divide And Conquer?", "Splits playlist into more tiny digestible pieces", async() => {
 						const status = await convert_playlist( illusi_tracks, selected_segmented_service_value, 
 							{
@@ -63,8 +63,8 @@ function ExtraPlaylistConverter() {
 								"divide_and_conquer": true
 							}
 						);
-						if("error" in status) alert_error(status as ResponseError);
-						else if(status.ok === false) GLOBALS.global_var.bottom_alert?.("Conversion Failure", "WARN");
+						if("error" in status) alert_error(status);
+						else if(!status.ok) GLOBALS.global_var.bottom_alert?.("Conversion Failure", "WARN");
 						else GLOBALS.global_var.bottom_alert?.("Conversion Success", "GOOD");
 					})
 				}

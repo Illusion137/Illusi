@@ -1,6 +1,7 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { CompactPlaylist, type Track } from "@illusive/types";
+import type { CompactPlaylist} from "@illusive/types";
+import type { Track } from "@illusive/types";
 import { best_thumbnail, track_exists } from '@illusive/illusive_utils';
 import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
 import { ContextMenuView } from "react-native-ios-context-menu";

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet, Text, TextInput, ScrollView, TouchableOpacity } from "react-native";
-import { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode } from "@illusive/types";
+import type { InheritedPlaylist, InheritedSearch, Playlist, PlaylistInheritanceMode } from "@illusive/types";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
-import { Prefs } from "@illusive/prefs";
+import type { Prefs } from "@illusive/prefs";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
@@ -18,7 +18,7 @@ import { ContextMenuButton } from "react-native-ios-context-menu";
 import usePTheme from "@hooks/usePTheme";
 import { router, useLocalSearchParams } from "expo-router";
 
-type KeyValue = {key: string, value: string};
+interface KeyValue {key: string, value: string}
 type Action = "ADD"|"REMOVE";
 export default function EditPlaylist(){
     const { uuid } = useLocalSearchParams<{uuid: string}>();
@@ -67,17 +67,17 @@ export default function EditPlaylist(){
             "uuid": inherited_playlist_selected_key
         };
         const new_iplaylists = SQLPlaylists.inherited_playlists_action(playlist_data?.inherited_playlists ?? [], inherited_playlist, type);
-        await SQLPlaylists.update_playlist_inherited_playlists(playlist_data!.uuid, new_iplaylists);
-        set_playlist_data({...playlist_data!, "inherited_playlists": new_iplaylists});
+        await SQLPlaylists.update_playlist_inherited_playlists(playlist_data.uuid, new_iplaylists);
+        set_playlist_data({...playlist_data, "inherited_playlists": new_iplaylists});
     }
     async function inherited_search_action(type: Action, item?: InheritedSearch){
         const inherited_search: InheritedSearch = item ?? {
             "mode": inherited_search_segment_mode,
             "query": inherited_search_query
         };
-        const new_isearches = SQLPlaylists.inherited_searches_action(playlist_data!.inherited_searchs!, inherited_search, type);
-        await SQLPlaylists.update_playlist_inherited_searchs(playlist_data!.uuid, new_isearches);
-        set_playlist_data({...playlist_data!, "inherited_searchs": new_isearches});
+        const new_isearches = SQLPlaylists.inherited_searches_action(playlist_data.inherited_searchs!, inherited_search, type);
+        await SQLPlaylists.update_playlist_inherited_searchs(playlist_data.uuid, new_isearches);
+        set_playlist_data({...playlist_data, "inherited_searchs": new_isearches});
     }
     async function add_inherited_playlist(){ await inherited_playlist_action("ADD"); }
     async function remove_inherited_playlist(item: InheritedPlaylist){ await inherited_playlist_action("REMOVE", item); }
@@ -179,7 +179,7 @@ export default function EditPlaylist(){
                             <View key={i}>
                                 <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 40}}>
                                     <Text style={title ? styles.inherit_text : styles.unavailable_inherit_text} numberOfLines={1}>{title ?? item.uuid} - {item.mode}</Text>
-                                    <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_playlist(item)} hitslop={10}/>
+                                    <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={async () => remove_inherited_playlist(item)} hitslop={10}/>
                                 </View>
                                 <View style={styles.line}/>
                             </View>
@@ -207,7 +207,7 @@ export default function EditPlaylist(){
                         <View key={i}>
                             <View style={{flexDirection: "row", justifyContent: 'space-between', alignItems: 'center', height: 50}}>
                                 <Text style={styles.inherit_text} numberOfLines={1}>{item.query} - {item.mode}</Text>
-                                <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={() => remove_inherited_search(item)} hitslop={10}/>
+                                <IoniconsTouchableOpacity icon_name="close" icon_color="red" icon_size={26} icon_style={{marginRight: 10}} on_press={async () => remove_inherited_search(item)} hitslop={10}/>
                             </View>
                             <View style={styles.line}/>
                         </View>

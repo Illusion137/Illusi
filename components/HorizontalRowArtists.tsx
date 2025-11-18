@@ -1,6 +1,6 @@
 import { FlashList } from "@shopify/flash-list";
 import { View } from "react-native"
-import { CompactArtist } from "@illusive/types"
+import type { CompactArtist } from "@illusive/types"
 import RowArtist from "./RowArtist"
 
 export default function HorizontalRowArtists(props: {

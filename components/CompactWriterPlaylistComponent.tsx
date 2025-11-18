@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import FourTrackArtwork from './FourTrackArtwork';
-import { CompactPlaylistData, Playlist, SerializedCompactPlaylistData } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { CompactPlaylistData, Playlist, SerializedCompactPlaylistData } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import { MaterialIcons } from '@expo/vector-icons';
 import usePTheme from '@hooks/usePTheme';
 import { track_exists } from '@illusive/illusive_utils';

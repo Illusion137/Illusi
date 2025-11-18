@@ -1,6 +1,6 @@
 import React,  { useState, useEffect } from 'react';
 import { View, FlatList, Alert } from 'react-native';
-import { Track } from '@illusive/types';
+import type { Track } from '@illusive/types';
 import { unzip_backpack } from '@illusive/backpack';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';

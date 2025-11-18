@@ -3,8 +3,8 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import FourTrackArtwork from "./FourTrackArtwork";
-import { Playlist, Track } from "@illusive/types";
-import { Prefs } from "@illusive/prefs";
+import type { Playlist, Track } from "@illusive/types";
+import type { Prefs } from "@illusive/prefs";
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import { sprinkle_into_queue } from "@illusive/illusi/src/play";
@@ -77,14 +77,14 @@ export default function PlaylistComponent(props: {
 
 	useEffect(() => {
 		async function init() {
-			if (props.select === undefined || disabled === true) return;
+			if (props.select === undefined || disabled) return;
 			set_disabled(await is_disabled());
 		}
 		init();
 	}, [props.select]);
 
 	function toggle_state() {
-		let _selected = !selected;
+		const _selected = !selected;
 		set_selected(_selected);
 		if (_selected) {
 			GLOBALS.global_var.selected_playlists_uuids.add(
@@ -125,7 +125,7 @@ export default function PlaylistComponent(props: {
 		);
 		await props.refresh_data({...props.playlist_data, archived: new_archive});
 	}
-	const confirm_delete = () =>
+	const confirm_delete = async () =>
 		if_confirm(
 			"Are you sure you want to delete this playlist?",
 			"This action can NOT be reversed",
@@ -202,7 +202,7 @@ export default function PlaylistComponent(props: {
 					},
 				],
 			}}
-			isContextMenuEnabled={select_mode === false}
+			isContextMenuEnabled={!select_mode}
 			onMenuWillShow={() => {
 				set_is_playing_music(GLOBALS.global_var.is_playing);
 			}}

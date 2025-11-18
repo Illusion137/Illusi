@@ -1,5 +1,5 @@
 import { View, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView } from "react-native";
-import { Prefs } from "@illusive/prefs";
+import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 // import * as SQLUpdate from '@illusive/illusi/src/sql/sql_update';
 // import * as SQLDatabase from '@illusive/illusi/src/sql/database';

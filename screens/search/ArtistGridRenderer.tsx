@@ -1,12 +1,13 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { ArtistSortMode, CompactArtist, NamedUUID } from "@illusive/types";
+import type { ArtistSortMode, CompactArtist, NamedUUID } from "@illusive/types";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
 import { useState } from "react";
 import { artist_query_filter } from "@illusive/illusive_utils";
 import { COMPACT_ARTIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
+import type { MenuConfig } from "react-native-ios-context-menu";
+import { ContextMenuButton } from "react-native-ios-context-menu";
 import { GLOBALS } from '@illusive/globals'
 import RowArtist from "@components/RowArtist";
 import usePTheme from "@hooks/usePTheme";

@@ -1,6 +1,6 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, Text, SectionList } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import SettingsMultiButton from '@components/SettingsMultiButton';
 import { prefs_settings_groupby_filter } from '@illusive/illusive_utils';
 import usePTheme from '@hooks/usePTheme';

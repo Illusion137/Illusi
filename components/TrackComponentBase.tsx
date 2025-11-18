@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 import { artist_string, duration_to_string } from '@illusive/illusive_utils';
-import { Prefs } from '@illusive/prefs';
-import { Track } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
+import type { Track } from '@illusive/types';
 import { Constants } from '@illusive/constants';
 import { is_empty, large_number_string } from '@common/utils/util';
 import usePTheme from '@hooks/usePTheme';

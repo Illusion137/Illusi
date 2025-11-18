@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { NativeSyntheticEvent, ScrollView, Text, TextInput, TextInputProps, TextInputSelectionChangeEventData, View } from "react-native";
+import type { NativeSyntheticEvent, TextInputProps, TextInputSelectionChangeEventData} from "react-native";
+import { ScrollView, Text, TextInput, View } from "react-native";
 import { Prefs } from "@illusive/prefs";
 import { useEffect, useRef, useState } from "react";
-import { QueryFlag } from "@illusive/types";
+import type { QueryFlag } from "@illusive/types";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
 import { ANTI_QUERY_FLAG_PREFIX } from "@illusive/query_flags";
 import { is_empty } from "@common/utils/util";

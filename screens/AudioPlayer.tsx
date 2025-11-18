@@ -6,7 +6,7 @@ import TextTicker from 'react-native-text-ticker';
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-track-player';
 import NavLink from '@components/NavLink';
 import { GLOBALS } from '@illusive/globals';
-import * as IllusiveType from '@illusive/types';
+import type * as IllusiveType from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { is_empty, shuffle_array } from '@common/utils/util';
 import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, save_past_queue, setup_track_player, track_player_next, track_player_previous } from '@illusive/track_player_service';
@@ -228,7 +228,7 @@ export default function AudioPlayer(props: {
         if(track.lyrics_uri)
         if(!is_empty(track.lyrics_uri)) {
             set_lyrics_loading_state("DOWNLOADED");
-            SharedRouter.goto_shared_player_lyrics(track.lyrics_uri!);
+            SharedRouter.goto_shared_player_lyrics(track.lyrics_uri);
             return;
         }
         const lyrics = await Illusive.get_track_lryics(track);

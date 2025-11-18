@@ -1,4 +1,4 @@
-import { IllusiveURI, MusicServiceArtist, Track } from "@illusive/types";
+import type { IllusiveURI, MusicServiceArtist, Track } from "@illusive/types";
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import AlbumList from "@components/AlbumList";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
@@ -55,7 +55,7 @@ export default function Artist(){
         const cached = GLOBALS.global_var.artist_cache.get(uri);
         const cached_hit = cached !== undefined;
         if(cached_hit){
-            set_artist_data(cached!.artist_data);
+            set_artist_data(cached.artist_data);
             return;
         }
         const split = split_uri(uri);
@@ -65,12 +65,12 @@ export default function Artist(){
             return;
         }
         const artist: MusicServiceArtist|ResponseError = await Illusive.music_service.get( music_service_uri_to_music_service(split[0]) )!.get_artist!(split[1]).catch(json_catch);
-        if("error" in artist!) {
+        if("error" in artist) {
             alert_error(reinterpret_cast<ResponseError>(artist));
             close();
             return;
         }
-        artist.tracks = await SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);
+        artist.tracks = SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);
 
         set_artist_data(artist);
         GLOBALS.global_var.artist_cache.add(uri, {artist_data: artist});

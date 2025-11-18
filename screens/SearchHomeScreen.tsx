@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, View, TextInput } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import SearchScreen from "./SearchScreen";
-import { Prefs } from "@illusive/prefs";
+import type { Prefs } from "@illusive/prefs";
 import { LinearGradient } from 'expo-linear-gradient';
 // import MusiExplore from "./search/MusiExplore";
 import IllusiExplore from "./search/IllusiExplore";

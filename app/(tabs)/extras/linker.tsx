@@ -2,7 +2,7 @@ import React,  { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationProp, useIsFocused, useNavigation } from '@react-navigation/native';
 import Link from '@components/Link';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { create_uri } from '@illusive/illusive_utils';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import usePTheme from '@hooks/usePTheme';

@@ -1,5 +1,5 @@
 import { Dimensions, Text, View } from "react-native";
-import { Track } from "@illusive/types";
+import type { Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { Constants } from "@illusive/constants";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";

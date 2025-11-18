@@ -25,7 +25,7 @@ export default function AudioPlayerQueue(){
     async function updated_queue_items() {
         const current_track_index = await TrackPlayer.getActiveTrackIndex();
         if(current_track_index === undefined) return;
-        const track_player_queue = GLOBALS.global_var.playing_tracks.slice(current_track_index!);
+        const track_player_queue = GLOBALS.global_var.playing_tracks.slice(current_track_index);
         set_queue_data(track_player_queue);
     }
 

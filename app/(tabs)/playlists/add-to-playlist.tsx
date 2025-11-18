@@ -1,6 +1,6 @@
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { CompactPlaylistData } from "@illusive/types";
-import { Prefs } from "@illusive/prefs";
+import type { CompactPlaylistData } from "@illusive/types";
+import type { Prefs } from "@illusive/prefs";
 import { Button, StyleSheet, Text, View } from "react-native";
 import { useEffect, useState } from "react";
 import { default_compact_playlists } from "@illusive/default_playlists";

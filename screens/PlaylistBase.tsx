@@ -7,8 +7,8 @@ import { Prefs } from '@illusive/prefs';
 import { GLOBALS } from '@illusive/globals';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
-import { EditMode, NamedUUID, Track } from '@illusive/types';
-import * as Types from '@illusive/types';
+import type { EditMode, NamedUUID, Track } from '@illusive/types';
+import type * as Types from '@illusive/types';
 import { BlurView } from 'expo-blur';
 import FourTrackArtwork from '@components/FourTrackArtwork';
 import ShufflePlayButton from '@components/ShufflePlayButton';
@@ -19,11 +19,13 @@ import { empty_join_dot, is_empty, json_catch } from '@common/utils/util';
 import { Constants } from '@illusive/constants';
 import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import { alert_error } from '@illusive/illusi/src/alert';
-import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
+import type { ShortcutOptions } from 'react-native-siri-shortcut';
+import { presentShortcut } from 'react-native-siri-shortcut';
 import { share_item } from '@illusive/illusi/src/illusi_utils';
-import { ResponseError } from '@common/types';
+import type { ResponseError } from '@common/types';
 import { Ionicons } from '@expo/vector-icons';
-import { ContextMenuButton, MenuConfig } from 'react-native-ios-context-menu';
+import type { MenuConfig } from 'react-native-ios-context-menu';
+import { ContextMenuButton } from 'react-native-ios-context-menu';
 import LibraryTrackList from '@components/LibraryTrackList';
 import SearchBarV1 from '@components/SearchBarV1';
 import { TRACK_QUERY_FLAGS } from '@illusive/query_flags';
@@ -495,7 +497,7 @@ export default function PlaylistBase(props: PlaylistProps){
                             <MaterialCommunityIconsTouchableOpacity on_press={() => {
                                 router.push({pathname: '/playlists/edit', params: {uuid: props.uuid}})
                             }} style={styles.playlist_button} icon_name='pencil' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
-                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={() => share_item({link: `${Constants.illusi_url_base}playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+                            <FontAwesomeTouchableOpacity disabled={!(playlist_data?.public ?? false)} on_press={async () => share_item({link: `${Constants.illusi_url_base}playlist/${playlist_data?.public_uuid}`})} style={!(playlist_data?.public ?? false) ? {...styles.playlist_button, opacity: 0.4} : styles.playlist_button} icon_name='share' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
                         </>
                     : null}
                 </View>

@@ -2,7 +2,7 @@
 import React,  { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, TextInput } from 'react-native';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import ImportServiceComponent from '@components/ImportServiceComponent';
 import { Illusive } from '@illusive/illusive';
 import usePTheme from '@hooks/usePTheme';

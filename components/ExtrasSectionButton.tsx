@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableHighlight } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import usePTheme from '@hooks/usePTheme';
 
 function ExtrasSectionButton(props: {

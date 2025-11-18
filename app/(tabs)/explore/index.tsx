@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View, TextInput } from "react-native";
-import { Prefs } from "@illusive/prefs";
+import type { Prefs } from "@illusive/prefs";
 import { LinearGradient } from "expo-linear-gradient";
 import usePTheme from "@hooks/usePTheme";
 import IllusiExplore from "@screens/search/IllusiExplore";

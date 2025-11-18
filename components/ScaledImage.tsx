@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
-import { ActivityIndicator, ImageStyle, StyleProp } from "react-native"
-import { Artwork } from "@illusive/types";
+import type { ImageStyle, StyleProp } from "react-native";
+import { ActivityIndicator } from "react-native"
+import type { Artwork } from "@illusive/types";
 import IImage, { type IImageProps } from "./IImage";
 
 // https://stackoverflow.com/questions/42170127/auto-scale-image-height-with-react-native

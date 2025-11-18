@@ -1,12 +1,13 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, Text, SectionList } from 'react-native';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import SettingsMultiButton from '@components/SettingsMultiButton';
 import ExtrasSectionButton from '@components/ExtrasSectionButton'
-import { PrefEntry } from '@illusive/types';
+import type { PrefEntry } from '@illusive/types';
 import { prefs_settings_groupby_filter } from '@illusive/illusive_utils';
-import { presentShortcut, ShortcutOptions } from 'react-native-siri-shortcut';
+import type { ShortcutOptions } from 'react-native-siri-shortcut';
+import { presentShortcut } from 'react-native-siri-shortcut';
 import { Constants } from '@illusive/constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import { GLOBALS } from '@illusive/globals';
@@ -63,7 +64,7 @@ export default function ExtraSettingsScreen() {
 					<View style={styles.line_long}/>
 					<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
 					<ExtrasSectionButton show_arrow={false} text='Shuffle Library Shortcut' icon='library-outline' onPress={() => presentShortcut(getShortcut(), (data) => data)}/>
-					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={() => SQLTracks.restore_thumbnail_cache()}/>
+					<ExtrasSectionButton show_arrow={false} text='Reinstate Thumbnail Cache' icon='download' onPress={async () => SQLTracks.restore_thumbnail_cache()}/>
 					<ExtrasSectionButton show_arrow={false} text='Speed Sample Library' icon='search-circle' onPress={async() => {
 						await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
 						GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");

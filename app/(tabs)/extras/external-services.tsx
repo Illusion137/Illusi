@@ -1,11 +1,12 @@
 import React,  { useState } from 'react';
 import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'react-native';
 import CookieManager from '@react-native-community/cookies';
-import WebView, { WebViewNavigation } from 'react-native-webview';
+import type { WebViewNavigation } from 'react-native-webview';
+import WebView from 'react-native-webview';
 import { Prefs } from '@illusive/prefs';
 import { Ionicons } from '@expo/vector-icons';
 import { Illusive } from '@illusive/illusive';
-import { MusicServiceType, SetState } from '@illusive/types';
+import type { MusicServiceType, SetState } from '@illusive/types';
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import { is_empty } from '@common/utils/util';

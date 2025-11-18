@@ -1,5 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
-import { CompactArtist } from "@illusive/types";
+import type { CompactArtist } from "@illusive/types";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 import { remove_topic } from "@common/utils/clean_util";

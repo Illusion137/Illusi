@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { Track } from '@illusive/types';
+import type { Track } from '@illusive/types';
 import { SQLBackpack } from '@illusive/sql/sql_backpack';
 import usePTheme from '@hooks/usePTheme';
 import TrackComponentBase from './TrackComponentBase';

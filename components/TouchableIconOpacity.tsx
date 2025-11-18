@@ -1,8 +1,9 @@
 import { Ionicons, MaterialCommunityIcons, FontAwesome, AntDesign, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
-import { Icon } from "@expo/vector-icons/build/createIconSet";
-import { Insets, StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native";
+import type { Icon } from "@expo/vector-icons/build/createIconSet";
+import type { Insets, StyleProp, TextStyle, ViewStyle } from "react-native";
+import { TouchableOpacity } from "react-native";
 
-type IconTouchableOpacityProps<T extends Icon<any, any>> = {
+interface IconTouchableOpacityProps<T extends Icon<any, any>> {
     style?: StyleProp<ViewStyle>;
     icon_name: keyof (T)["glyphMap"];
     icon_size: number;

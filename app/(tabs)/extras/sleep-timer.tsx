@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import usePTheme from '@hooks/usePTheme';
 // import DateTimePicker from '@react-native-community/datetimepicker'
 

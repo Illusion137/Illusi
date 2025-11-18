@@ -4,7 +4,7 @@ import { SelectList } from 'react-native-dropdown-select-list';
 import ExtrasSectionButton from '@components/ExtrasSectionButton';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { GLOBALS } from '@illusive/globals';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import { batch_download } from '@illusive/downloader';
 import { is_empty } from '@common/utils/util';

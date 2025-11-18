@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text, ScrollView } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { TRACK_QUERY_FLAGS } from '@illusive/query_flags';
 import usePTheme from '@hooks/usePTheme';
 

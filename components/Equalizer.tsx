@@ -7,13 +7,13 @@ import usePTheme from "@hooks/usePTheme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-type EqualizerCurveProps = {
+interface EqualizerCurveProps {
 	values: number[]; // e.g. [-6, -2, 0, 3, 6]
 	freqs?: string[];
 	width?: number;
 	height?: number;
 	active?: boolean;
-};
+}
 
 export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "1KHz", "2.4KHz", "15KHz"], width = 350, height = 200, active = true }: EqualizerCurveProps) {
 	const points = useMemo(() => {

@@ -1,5 +1,6 @@
-import { View, StyleProp, ViewStyle } from "react-native";
-import { Track } from '@illusive/types';
+import type { StyleProp, ViewStyle } from "react-native";
+import { View } from "react-native";
+import type { Track } from '@illusive/types';
 import { is_empty } from "@common/utils/util";
 import { SQLfs } from "@illusive/sql/sql_fs";
 import IImage from "./IImage";

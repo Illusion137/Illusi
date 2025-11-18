@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, type DimensionValue } from 'react-native';
-import { Prefs } from '@illusive/prefs';
-import { EditMode, Track } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
+import type { EditMode, Track } from '@illusive/types';
 import { play } from '@illusive/illusi/src/play';
 import { delete_track, insert_into_write_playlist, download_track } from '@illusive/illusi/src/components/track';
 import { Constants } from '@illusive/constants';
@@ -142,13 +142,13 @@ function TrackComponent(props: {
 						}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 40}}/>
 					: null}
 					{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ?
-						<IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 30}}/>
+						<IoniconsTouchableOpacity on_press={async () => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 30}}/>
 					: null}
 					{is_downloading ?
 						<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{Math.floor(downloading_progress * 100)}%</Text>
 					: null}
 					{props.edit_mode === "DELETE" && !is_downloading ?
-						<IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name='trash' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
+						<IoniconsTouchableOpacity on_press={async () => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name='trash' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
 					: null}
 					{props.edit_mode === "NONE" && (props.display_plays ?? false) ?
 						<Text style={{color: colors.text, left: 30, fontWeight: '800', fontSize: 25, alignSelf: 'center'}}>{props.track_data.meta?.plays ?? 0}</Text>

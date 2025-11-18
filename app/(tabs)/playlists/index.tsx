@@ -6,7 +6,7 @@ import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import { useIsFocused } from "@react-navigation/native";
 import DefaultPlaylistComponent from "@components/DefaultPlaylistComponent";
 import { Prefs } from "@illusive/prefs";
-import { Playlist, ResolvedDefaultPlaylist } from "@illusive/types";
+import type { Playlist, ResolvedDefaultPlaylist } from "@illusive/types";
 import { playlist_query_filter } from "@illusive/illusive_utils";
 import BigList from "react-native-big-list";
 import { sort_playlists } from "@illusive/illusi/src/playlist";

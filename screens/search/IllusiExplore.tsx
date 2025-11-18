@@ -107,11 +107,11 @@ export default function IllusiExplore(){
             const total_added = updated_new_releases_length - new_releases_length;
             const total_new = new_persistant.length - old_persistant.length;
             const hidden = total_added - total_new;
-            GLOBALS.global_var.bottom_alert(`Refreshed New Releases From YTMusic`, "INFO", `${total_new} Added${`, ${hidden} Hidden`}`);
+            GLOBALS.global_var.bottom_alert(`Refreshed New Releases From YTMusic`, "INFO", `${total_new} Added, ${hidden} Hidden`);
         }
     }
 
-    async function refresh_new_releases(): Promise<(CompactPlaylist|ResponseError)[]|ResponseError|ResponseError>{
+    async function refresh_new_releases(): Promise<(CompactPlaylist|ResponseError)[]|ResponseError>{
         const most_played_artists = get_most_played_artists(GLOBALS.global_var.sql_tracks);
         const new_releases_length = await SQLNewReleases.new_releases_count();
         const old_persistant = await get_persistant_new_releases(true);

@@ -1,7 +1,7 @@
 import { FlatList, StyleSheet, Text, TouchableHighlight, View } from "react-native";
-import { Prefs } from "@illusive/prefs";
+import type { Prefs } from "@illusive/prefs";
 import { Ionicons } from "@expo/vector-icons";
-import { SetState } from "@illusive/types";
+import type { SetState } from "@illusive/types";
 import { useState } from "react";
 import usePTheme from "@hooks/usePTheme";
 import { single_case } from "@common/utils/util";

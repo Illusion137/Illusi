@@ -1,5 +1,6 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { AlbumSortMode, CompactPlaylist, type Track } from "@illusive/types";
+import type { AlbumSortMode, CompactPlaylist} from "@illusive/types";
+import type { Track } from "@illusive/types";
 import Album from "@components/Album";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
@@ -7,7 +8,8 @@ import { useState } from "react";
 import { album_query_filter, sort_compact_playlists } from "@illusive/illusive_utils";
 import { COMPACT_PLAYLIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
+import type { MenuConfig } from "react-native-ios-context-menu";
+import { ContextMenuButton } from "react-native-ios-context-menu";
 import { GLOBALS } from '@illusive/globals'
 import usePTheme from "@hooks/usePTheme";
 import { router } from "expo-router";

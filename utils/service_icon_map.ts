@@ -1,5 +1,5 @@
 import type { MusicServiceType } from "@illusive/types";
-import { type Fontisto } from '@expo/vector-icons';
+import type { Fontisto } from '@expo/vector-icons';
 import { Prefs } from "@illusive/prefs";
 
 export const service_icon_map: Record<MusicServiceType, {color: string, name: keyof (typeof Fontisto)["glyphMap"]}> = {

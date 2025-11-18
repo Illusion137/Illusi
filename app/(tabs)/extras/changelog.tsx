@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import Markdown from 'react-native-markdown-display';
 import { CHANGELOG } from '../../../lib-origin/gen_changelog';
 import usePTheme from '@hooks/usePTheme';

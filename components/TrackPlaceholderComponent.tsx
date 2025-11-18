@@ -1,6 +1,6 @@
 import React, { createRef, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder'
 import { LinearGradient } from 'expo-linear-gradient';
 import usePTheme from '@hooks/usePTheme';

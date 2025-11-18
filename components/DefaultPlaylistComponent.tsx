@@ -1,6 +1,6 @@
 import { View, Text, TouchableHighlight, StyleSheet, Dimensions } from "react-native";
-import { Track } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { Track } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import { sprinkle_into_queue } from '@illusive/illusi/src/play';
 import { useState } from 'react';
 import FourTrackArtwork from './FourTrackArtwork';

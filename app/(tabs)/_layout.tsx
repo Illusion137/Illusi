@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import usePTheme from "@hooks/usePTheme";
 import { run_explore_tab_press_callback } from "@utils/tabpress";
 
-type ScreenColor = { color: string };
+interface ScreenColor { color: string }
 
 export default function TabLayout() {
 	const theme = usePTheme();

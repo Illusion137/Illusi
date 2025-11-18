@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleProp, TextStyle } from 'react-native';
+import type { StyleProp, TextStyle } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { is_empty } from '@common/utils/util';
 import { SharedRouter } from '@utils/shared_routes';
 

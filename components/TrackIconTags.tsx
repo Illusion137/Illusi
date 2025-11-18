@@ -23,12 +23,12 @@ export default function TrackIconTags(props: TrackIconTagsProps){
             {!is_empty(props.track_data.thumbnail_uri)  ? <Ionicons name="image" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.lyrics_uri)     ? <MaterialIcons name="closed-caption" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.imported_id)    ? <Ionicons name="cloud-upload" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
-            {!is_empty(props.track_data.youtube_id)     ? <Ionicons name="logo-youtube" size={props.size} color={service_icon_map['YouTube'].color} style={styles.icon_thin}/> : null}
-            {!is_empty(props.track_data.soundcloud_id)  ? <MaterialCommunityIcons name="soundcloud" size={props.size} color={service_icon_map['SoundCloud'].color} style={styles.icon_thin}/> : null}
-            {!is_empty(props.track_data.spotify_id)     ? <MaterialCommunityIcons name="spotify" size={props.size} color={service_icon_map['Spotify'].color} style={styles.icon_thick}/> : null}
+            {!is_empty(props.track_data.youtube_id)     ? <Ionicons name="logo-youtube" size={props.size} color={service_icon_map.YouTube.color} style={styles.icon_thin}/> : null}
+            {!is_empty(props.track_data.soundcloud_id)  ? <MaterialCommunityIcons name="soundcloud" size={props.size} color={service_icon_map.SoundCloud.color} style={styles.icon_thin}/> : null}
+            {!is_empty(props.track_data.spotify_id)     ? <MaterialCommunityIcons name="spotify" size={props.size} color={service_icon_map.Spotify.color} style={styles.icon_thick}/> : null}
             {!is_empty(props.track_data.applemusic_id)  ? <MaterialCommunityIcons name="apple" size={props.size} color={service_icon_map['Apple Music'].color} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.amazonmusic_id) ? <Ionicons name="logo-amazon" size={props.size} color={service_icon_map['Amazon Music'].color} style={styles.icon_thin}/> : null}
-            {!is_empty(props.track_data.bandlab_id) ? <Ionicons name="musical-note" size={props.size} color={service_icon_map['BandLab'].color} style={styles.icon_thin}/> : null}
+            {!is_empty(props.track_data.bandlab_id) ? <Ionicons name="musical-note" size={props.size} color={service_icon_map.BandLab.color} style={styles.icon_thin}/> : null}
             {(props.is_downloading)                     ? <MaterialIcons name="downloading" size={props.size} color={colors.secondary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.meta?.begdur) || !is_empty(props.track_data.meta?.enddur) ? <Ionicons name="cut" size={props.size} color={colors.secondary} style={styles.icon_thin}/> : null}
             {(props.track_data?.meta?.unavailable ?? false) ? <MaterialCommunityIcons name="file-hidden" size={props.size} color={colors.secondary} style={styles.icon_thin}/> : null}

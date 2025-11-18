@@ -2,9 +2,9 @@
 import React,  { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, TextInput, Dimensions } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
-import { MusicService, MusicServiceMappedPlaylist, MusicServiceType } from '@illusive/types';
+import type { MusicService, MusicServiceMappedPlaylist, MusicServiceType } from '@illusive/types';
 import { Illusive } from '@illusive/illusive';
-import { Prefs } from '@illusive/prefs';
+import type { Prefs } from '@illusive/prefs';
 import { is_empty, urlid } from '@common/utils/util';
 import { alert_error } from '@illusive/illusi/src/alert';
 import { create_uri, music_service_to_music_service_uri } from '@illusive/illusive_utils';
@@ -43,7 +43,7 @@ export default function ImportPlaylist() {
 			set_header();
 			if(music_service !== undefined){
 				if((music_service.has_credentials === undefined || music_service.has_credentials()) && music_service.get_user_playlists !== undefined){
-					const playlist_map = await music_service.user_playlists_map!();
+					const playlist_map = await music_service.user_playlists_map();
 					if("error" in playlist_map && playlist_map.error !== undefined) {
 						alert_error(playlist_map.error);
 						return;

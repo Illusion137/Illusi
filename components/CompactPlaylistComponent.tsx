@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CompactPlaylist } from '@illusive/types';
-import { Prefs } from '@illusive/prefs';
+import type { CompactPlaylist } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
 import { empty_join_dot, is_empty } from '@common/utils/util';
 import { MaterialIcons } from '@expo/vector-icons';
 import { best_thumbnail } from '@illusive/illusive_utils';
@@ -13,7 +13,7 @@ import { SharedRouter } from '@utils/shared_routes';
 export default function CompactPlaylistComponent(props: {
 	playlist_data: CompactPlaylist
 }) {
-    const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails!)?.url : props.playlist_data.artwork_url!;
+    const thumbnail_uri = props.playlist_data.artwork_thumbnails !== undefined ? best_thumbnail(props.playlist_data.artwork_thumbnails)?.url : props.playlist_data.artwork_url!;
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
