@@ -13,11 +13,12 @@ export default function TabLayout() {
 				headerShown: false,
 				tabBarStyle: {
 					height: 80,
+					backgroundColor: theme.colors.background
 				},
 				tabBarActiveTintColor: theme.colors.primary,
 				tabBarInactiveTintColor: theme.colors.tabInactive,
 				tabBarActiveBackgroundColor: theme.colors.background,
-				tabBarInactiveBackgroundColor: theme.colors.background
+				tabBarInactiveBackgroundColor: theme.colors.background,
 			}}>
 			<Tabs.Screen name="index" options={{href: null}}/>
 			<Tabs.Screen

@@ -10,7 +10,7 @@ export default function LatestRelease(props: {album_data: CompactPlaylist}){
     const { colors } = usePTheme();
 
     function on_press(){
-        SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {} );
+        SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {fs_cache_playlist_as_album: "1"});
     }
 
     return (

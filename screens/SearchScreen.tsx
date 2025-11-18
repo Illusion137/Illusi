@@ -131,14 +131,14 @@ function SearchScreen() {
 		<View>
 			<ScrollView horizontal={true} contentContainerStyle={styles.chips_container}>
 						{search_services.map((service) => (
-							<TouchableOpacity style={{...styles.chip, backgroundColor: search_service === service ? colors.primary : "#121212"}} key={service} onPress={() => on_search_service_chip_press(service)}>
+							<TouchableOpacity style={{...styles.chip, backgroundColor: search_service === service ? colors.highlightPressColor : colors.background}} key={service} onPress={() => on_search_service_chip_press(service)}>
 								<Text style={styles.chip_text}>{service}</Text>
 							</TouchableOpacity>
 						))}
 			</ScrollView>
 			{search_result.state === "FUFILLED" ? <ScrollView horizontal={true} contentContainerStyle={styles.chips_container}>
 					{search_modes.map((mode) => (
-						<TouchableOpacity style={{...styles.chip, backgroundColor: search_mode === mode ? colors.primary : "#121212"}} key={mode} onPress={() => mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode)}>
+						<TouchableOpacity style={{...styles.chip, backgroundColor: search_mode === mode ? colors.shelf : colors.background}} key={mode} onPress={() => mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode)}>
 							<Text style={styles.chip_text}>{mode}</Text>
 						</TouchableOpacity>
 					))}
@@ -241,7 +241,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	chip: {
 		borderRadius: 6, 
 		padding: 10,
-		borderColor: colors.secondary,
+		borderColor: colors.primary,
 		borderWidth: 1,
 	},
 	chip_text: { 

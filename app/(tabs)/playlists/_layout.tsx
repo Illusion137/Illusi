@@ -30,6 +30,8 @@ export default function PlaylistsLayout() {
             <Stack.Screen name="(shared)/player/queue" options={{title: "Queue", presentation: "modal", headerShown: false}}/>
             <Stack.Screen name="(shared)/player/settings" options={{title: "Settings", presentation: "modal", headerShown: false}}/>
             <Stack.Screen name="(shared)/player/visualizer" options={{title: "Visualizer", presentation: "modal", headerShown: false}}/>
+			<Stack.Screen name="(shared)/album_grid" options={{title: "Albums", headerShown: false}}/>
+            <Stack.Screen name="(shared)/artist_grid" options={{title: "Artists", headerShown: false}}/>
 		</Stack>
 	);
 }

@@ -45,7 +45,7 @@ const shortcuts_app_icon = Image.resolveAssetSource(
     require('../assets/shortcut.png')
 );
 
-export type PlaylistType = "DEFAULT_PLAYLIST"|"URI"|"UUID"|"WRITE_PLAYLIST";
+export type PlaylistType = "DEFAULT_PLAYLIST"|"URI"|"UUID"|"WRITE_PLAYLIST"|"TRACKS_LIST";
 
 export interface PlaylistDefaultPlaylistProps {
     type: "DEFAULT_PLAYLIST";
@@ -56,6 +56,7 @@ export interface PlaylistURIProps {
     type: "URI";
     uri: string;
     compact_playlist?: Types.CompactPlaylist;
+    cache_as_album: boolean;
 }
 export interface PlaylistUUIDProps {
     type: "UUID";
@@ -66,7 +67,12 @@ export interface PlaylistWritePlaylistProps {
     write_playlist_uuid: string;
     serialized_playlist_data: Types.SerializedCompactPlaylistData;
 }
-export type PlaylistProps = PlaylistDefaultPlaylistProps | PlaylistURIProps | PlaylistUUIDProps | PlaylistWritePlaylistProps;
+export interface PlaylistTracksListProps {
+    type: "TRACKS_LIST";
+    title: string;
+    tracks: Track[];
+};
+export type PlaylistProps = PlaylistDefaultPlaylistProps | PlaylistURIProps | PlaylistUUIDProps | PlaylistWritePlaylistProps | PlaylistTracksListProps;
 
 export default function PlaylistBase(props: PlaylistProps){
     const force_order = props.type === "DEFAULT_PLAYLIST" && (props.force_order ?? false);
@@ -297,11 +303,13 @@ export default function PlaylistBase(props: PlaylistProps){
                 initial = await PlaylistPage.playlist_initial_data_uuid(props.uuid) ?? initial;
                 break;
             case "URI":
-                initial = await PlaylistPage.playlist_initial_data_uri(props.uri);
+                initial = await PlaylistPage.playlist_initial_data_uri(props.uri, props.cache_as_album);
                 break;
             case "WRITE_PLAYLIST":
                 initial = await PlaylistPage.playlist_initial_data_write_playlist_uuid(props.serialized_playlist_data);
                 break;
+            case "TRACKS_LIST":
+                initial = await PlaylistPage.playlist_initial_data_tracks_list(props.title, props.tracks);
         }
         set_playlist_data(initial.playlist_data);
         initial.initial_tracks = await initial.initial_tracks;
@@ -324,6 +332,13 @@ export default function PlaylistBase(props: PlaylistProps){
 
         if(props.type === "URI") {
             on_debounce_uri_refresh();
+            return;
+        }
+        if(props.type === "TRACKS_LIST")
+        {
+            const refreshed_tracks = await SQLTracks.add_playback_saved_data_to_tracks(props.tracks);
+            tracks_ref = refreshed_tracks;
+            set_tracks(refreshed_tracks);  
             return;
         }
         if(tracks.length === 0 && props.type !== "WRITE_PLAYLIST" || props.type === "UUID"){
@@ -442,7 +457,7 @@ export default function PlaylistBase(props: PlaylistProps){
                     style={{
                         position: 'absolute',
                         bottom: 0,
-                        height: 100, // adjust how much of the image fades
+                        height: 100, 
                         width: '100%',
                     }}/>
             </BlurView>
@@ -501,7 +516,7 @@ export default function PlaylistBase(props: PlaylistProps){
                 {props.type !== "WRITE_PLAYLIST" ? 
                     <TouchableOpacity>
                         <ContextMenuButton
-                            menuConfig={props.type === "UUID" || props.type === "DEFAULT_PLAYLIST" ? 
+                            menuConfig={props.type === "UUID" || props.type === "DEFAULT_PLAYLIST" || props.type === "TRACKS_LIST" ? 
                                 menuconfig_local_playlist : props.uri ? 
                                     menuconfig_external_playlist : undefined}
                             onPressMenuItem={async({nativeEvent}) => {

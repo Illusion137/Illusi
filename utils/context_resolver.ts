@@ -1,6 +1,6 @@
 import { is_empty } from "@common/utils/util";
 import { Constants } from "@illusive/constants";
-import { play_track_discord_send } from "@illusive/discord";
+import { encode_track, play_track_discord_send } from "@illusive/discord";
 import { upload_track_thumbnail } from "@illusive/document_picker";
 import { download_track, undownload_track } from "@illusive/downloader";
 import { GLOBALS } from "@illusive/globals";
@@ -72,7 +72,7 @@ export namespace ContextResolver{
                 SharedRouter.goto_shared_artist(track.artists[0].uri ?? "");
                 break;
             case "track-view-album": 
-                SharedRouter.goto_shared_playlist(track.album?.uri ?? "", "URI", {});
+                SharedRouter.goto_shared_playlist(track.album?.uri ?? "", "URI", {fs_cache_playlist_as_album: "1"});
                 break;
 
             case "track-share-original": 
@@ -86,7 +86,7 @@ export namespace ContextResolver{
                 await share_item({uri: SQLfs.media_directory(track.media_uri!)});
                 break;
             case "track-share-illusi":
-                await share_item({link: `${Constants.illusi_url_base}/track/${track_to_illusive_uri(track)}`});
+                await share_item({link: `${Constants.illusi_url_base}/track/${encode_track(track)}`});
                 break;
 
             case "track-download-media": 
@@ -96,7 +96,7 @@ export namespace ContextResolver{
                 await undownload_track(track);
                 // set_is_downloaded(false);
                 break;
-            case "track-download-lyrics": 
+            case "track-download-lyrics":
                 const lyrics_result = await GLOBALS.global_var.download_track_lyrics(track);
                 // set_is_lyrics_downloaded(lyrics_result === "ok");
                 GLOBALS.global_var.bottom_alert?.(typeof lyrics_result === "string" && lyrics_result !== "EXISTS" ? "Downloaded Track Lyrics" : "Failed to Download Track Lyrics",lyrics_result === "ok" ? "GOOD" : "WARN");

@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react"
 import { Image, View, type DimensionValue, type ImageProps } from "react-native";
 import type { ViewProps } from "react-native-svg/lib/typescript/fabric/utils";
+import hexToRgba from 'hex-to-rgba';
 
 export interface IImageProps {
     source: Artwork|undefined|null;
@@ -18,6 +19,9 @@ export interface IImageProps {
     blur?: BlurViewProps;
     fade?: {
         percent: DimensionValue;
+        color?: string;
+        middle_opacity?: number;
+        end_opacity?: number;
     };
     useview?: boolean;
 };
@@ -30,7 +34,10 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
     const { colors } = usePTheme();
     const [source, set_source] = useState<Artwork|undefined|null>(props.source);
 
-    useEffect(() => {
+    const fade_end_color = hexToRgba(props.fade?.color ?? colors.background, props.fade?.end_opacity ?? 1);
+    const fade_middle_color = hexToRgba(props.fade?.color ?? colors.background, props.fade?.middle_opacity ?? 0.2);
+
+    function update_source(){
         if(typeof props.source === "number" || props.source === undefined || props.source === null) {
             set_source(props.source);
         }
@@ -49,7 +56,11 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                 }
             })();
         }
-    }, [props.source, props]);
+    }
+
+    useEffect(() => {
+        update_source();
+    }, [JSON.stringify(props.source)]);
 
     return (
         <>
@@ -77,11 +88,11 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                     {
                         props.fade ? 
                         <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.2)', colors.background]}
+                            colors={['transparent', fade_middle_color, fade_end_color]}
                             style={{
                                 position: 'absolute',
                                 bottom: 0,
-                                height: props.fade.percent, // adjust how much of the image fades
+                                height: props.fade.percent, 
                                 width: '100%',
                             }}/>
                         : null
@@ -109,11 +120,11 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                     {
                         props.fade ? 
                         <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.2)', colors.background]}
+                            colors={['transparent', fade_middle_color, fade_end_color]}
                             style={{
                                 position: 'absolute',
                                 bottom: 0,
-                                height: props.fade.percent, // adjust how much of the image fades
+                                height: props.fade.percent, 
                                 width: '100%',
                             }}/>
                         : null
@@ -140,7 +151,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
     //                             style={{
     //                                 position: 'absolute',
     //                                 bottom: 0,
-    //                                 height: props.fade.percent, // adjust how much of the image fades
+    //                                 height: props.fade.percent, 
     //                                 width: '100%',
     //                             }}/>
     //                 </View>

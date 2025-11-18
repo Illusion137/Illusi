@@ -24,6 +24,7 @@ import { ContextResolver } from '@utils/context_resolver';
 import { reinterpret_cast } from '@common/cast';
 import SlidingUpPanel from 'rn-sliding-up-panel';
 import useGlobalTracksRefresh from '@hooks/useGlobalTracksRefresh';
+import TrackIconTags from '@components/TrackIconTags';
 
 type LyricsLoadingState = "NONE"|"LOADING"|"FAILED"|"DOWNLOADED";
 const top_padding = Dimensions.get('screen').height * 0.08;
@@ -132,7 +133,23 @@ export default function AudioPlayer(props: {
     }, []);
 
     async function refresh_data(){
-        // TODO implement this
+        const refresh_map = new Map<string, IllusiveType.Track>(GLOBALS.global_var.sql_tracks.map(track => [track.uid, track]));
+        for(let i = 0; i < GLOBALS.global_var.playing_tracks.length; i++){
+            const refreshed_track = refresh_map.get(GLOBALS.global_var.playing_tracks[i].uid);
+            if(refreshed_track){
+                GLOBALS.global_var.playing_tracks[i] = refreshed_track;
+            }
+        }
+        const index = await TrackPlayer.getActiveTrackIndex();
+        if(index === undefined) return;
+        set_playing_track(GLOBALS.global_var.playing_tracks[index]);
+        set_player_state_metadata(metadata => ({
+            title: GLOBALS.global_var.playing_tracks[index]?.title,
+            artist: artist_string(GLOBALS.global_var.playing_tracks[index]),
+            duration: metadata.duration ?? 0,
+            artwork: GLOBALS.global_var.playing_tracks[index]?.playback!.artwork,
+            album: GLOBALS.global_var.playing_tracks[index]?.album,
+        }));
     }
 
     useGlobalTracksRefresh(refresh_data);
@@ -274,9 +291,9 @@ export default function AudioPlayer(props: {
                     }
                 </View>
                 <Animated.View pointerEvents={panel_state_visible ? 'auto' : 'none'} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
-                    <View style={{width: '100%', alignItems: 'center', maxHeight: 450, minHeight: 350, overflow: 'hidden'}}>
+                    <View style={{width: '100%', alignItems: 'center', maxHeight: 500, minHeight: 400, overflow: 'hidden'}}>
                         <View style={{flexGrow: 1, height: 50}}/>
-                        <ContextMenuView 
+                        <ContextMenuView
                             menuConfig={{menuTitle: "", menuItems: TrackContextMenu.track_component_inner_context_menu(playing_track, "") }} 
                             onPressMenuItem={async({nativeEvent}) => {
                                 ContextResolver.resolve_track_context(
@@ -285,7 +302,13 @@ export default function AudioPlayer(props: {
                                     reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey)
                                 );
                             }}>
-                            <ScaledImage tint={tint ? {color: tint, opacity: 0.15} : undefined} artwork={player_state_metadata.artwork} width={Dimensions.get('screen').width * .8} style={{ opacity: player_state_type === State.Buffering ? 0.7 : 0.9, maxHeight: Dimensions.get('screen').height / 2, maxWidth: Dimensions.get('screen').width - 20, height: undefined, width: Dimensions.get('screen').width - 20, borderRadius: 10}}/>
+                            <ScaledImage tint={tint ? {color: tint, opacity: 0.15} : undefined} 
+                                artwork={player_state_metadata.artwork}
+                                width={Dimensions.get('screen').width - 70}
+                                style={{
+                                    opacity: player_state_type === State.Buffering ? 0.7 : 0.9, 
+                                    borderRadius: 10
+                                }}/>
                         </ContextMenuView>
                     </View>
                     <View style={{height: 10}}/>
@@ -293,7 +316,25 @@ export default function AudioPlayer(props: {
                     <View style={styles.textcontainer}>
                         <TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>{player_state_metadata.title}</TextTicker>
                         <NavLink type='artist' text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={hide_sheet}/>
-                        <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet}/> 
+                        {
+                            !is_empty(player_state_metadata.album?.name ?? "") ? 
+                            (
+                                <>
+                                    <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet}/> 
+                                    <View style={{flexDirection: 'row', marginTop: 3}}>
+                                        <TrackIconTags track_data={playing_track} is_downloading={false} size={20}/>
+                                    </View>
+                                </>
+                            )
+                            : (
+                                <>
+                                    <View style={{flexDirection: 'row', marginTop: 3}}>
+                                        <TrackIconTags track_data={playing_track} is_downloading={false} size={20}/>
+                                    </View>
+                                    <NavLink type='album' text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet}/> 
+                                </>
+                            )
+                        }
                     </View>
                     <View style={{height: 45}}/>
                     {/* TIMESTAMPS & TIME----------------------------------------------------*/}
@@ -314,7 +355,7 @@ export default function AudioPlayer(props: {
                         {playing_track.meta?.begdur && begdur !== 0 ? <View style={{height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: 'absolute'}}/> : null}
                         {playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: 'absolute'}}/> : null}
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 40, bottom: 40 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 35, bottom: 40 }}>
                         <Text style={{ color: '#808080', fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
                         <Text style={{ color: '#808080', fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
                     </View>
@@ -322,24 +363,24 @@ export default function AudioPlayer(props: {
                     <View style={{ bottom: 35 }}>
                         <View style={styles.playbackcontainer}>
                             <TouchableOpacity onPress={reshuffle}>
-                                <Ionicons name="shuffle-sharp" size={35} color={colors.primary} />
+                                <Ionicons name="shuffle" size={40} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={track_player_previous}>
-                                <Ionicons name="play-back-sharp" size={35} color={colors.primary} />
+                                <Ionicons name="play-back" size={40} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={toggle_playing}>
                                 <Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={track_player_next}>
-                                <Ionicons name="play-forward-sharp" size={35} color={colors.primary} />
+                                <Ionicons name="play-forward" size={40} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={async() => await TrackPlayer.setRepeatMode(player_state_trackplayer.loop_track ? RepeatMode.Off : RepeatMode.Track)}>
-                                <Ionicons name="repeat-sharp" size={35} color={player_state_trackplayer.loop_track ? colors.primary : colors.inactive} />
+                                <Ionicons name="repeat-sharp" size={40} color={player_state_trackplayer.loop_track ? colors.primary : colors.inactive} />
                             </TouchableOpacity>
                         </View>
                         <View style={{height: 30}}/>
                         {/* EXTRA CONTROLS ----------------------------------------------------*/}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 35, top: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 32, top: 10 }}>
                             <TouchableOpacity onPress={async() => {
                                 if(playing_track === undefined) return;
                                 else if(!does_track_exist) {
@@ -356,11 +397,11 @@ export default function AudioPlayer(props: {
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => SharedRouter.goto_shared_player_settings()}>
-                                <SimpleLineIcons name="equalizer" size={28} color={colors.primary} />
+                                <SimpleLineIcons name="equalizer" size={29} color={colors.primary} />
                             </TouchableOpacity>
-                            { lyrics_loading_state === "LOADING" ? <ActivityIndicator size={28}/> :
+                            { lyrics_loading_state === "LOADING" ? <ActivityIndicator size={29}/> :
                             <TouchableOpacity disabled={lyrics_loading_state === "FAILED"} onPress={open_lyrics}>
-                                <Ionicons name="mic-outline" style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}} size={28} color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary} />
+                                <Ionicons name="mic-outline" style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}} size={29} color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary} />
                             </TouchableOpacity>}
                             <TouchableOpacity>
                                 <ContextMenuButton menuConfig={{menuTitle: "", menuItems: TrackContextMenu.track_share_folder(playing_track, "").menuItems }} 
@@ -371,7 +412,7 @@ export default function AudioPlayer(props: {
                                         reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey)
                                     );
                                 }}>
-                                    <Ionicons name="share-outline" size={28} color={colors.primary} />
+                                    <Ionicons name="share-outline" size={29} color={colors.primary} />
                                 </ContextMenuButton>
                             </TouchableOpacity>
                         </View>
@@ -407,14 +448,14 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         alignItems: 'stretch',
         justifyContent: 'center',
         bottom: 30,
-        marginHorizontal: 40
+        marginHorizontal: 35
     },
     textcontainer: {
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
         top: 10,
-        marginLeft: 40,
-        marginRight: 40,
+        marginLeft: 35,
+        marginRight: 35,
         zIndex: 10,
     },
     tsstyle: {
@@ -422,7 +463,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     },
     title: {
         color: colors.text,
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
     },
     artist: {
@@ -431,7 +472,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
     playbackcontainer: {
         justifyContent: 'space-evenly',
         alignItems: 'center',
-        flexDirection: 'row'
+        flexDirection: 'row',
     },
     volumeslidercontainer: {
         marginLeft: 40,
@@ -446,8 +487,8 @@ const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
         marginVertical: 10
     },
     icon_glow: {
-        textShadowColor: colors.secondary, 
+        textShadowColor: colors.secondary,
         textShadowOffset: { width: 2, height: 2 }, 
-        textShadowRadius: 3,
+        textShadowRadius: 10,
     }
 });

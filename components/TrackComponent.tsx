@@ -139,10 +139,10 @@ function TrackComponent(props: {
 					{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist ?
 						<IoniconsTouchableOpacity on_press={() => {
 							insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved);
-						}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 15}}/>
+						}} style={{...styles.centered, paddingRight: 30}} icon_name={!playlist_saved ? "add" : "checkmark"} icon_size={30} icon_color={colors.primary} icon_style={{left: 40}}/>
 					: null}
 					{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ?
-						<IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 10}}/>
+						<IoniconsTouchableOpacity on_press={() => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name='download' icon_size={30} icon_color={colors.primary} icon_style={{left: 30}}/>
 					: null}
 					{is_downloading ?
 						<Text style={{color: 'white', alignSelf: 'flex-end', right: 10, bottom: 10}}>{Math.floor(downloading_progress * 100)}%</Text>
@@ -151,7 +151,7 @@ function TrackComponent(props: {
 						<IoniconsTouchableOpacity on_press={() => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name='trash' icon_size={30} icon_color={colors.red} icon_style={styles.else_icon}/>
 					: null}
 					{props.edit_mode === "NONE" && (props.display_plays ?? false) ?
-						<Text style={{color: colors.text, left: 20, fontWeight: '200', fontSize: 30, alignSelf: 'center'}}>{props.track_data.meta?.plays ?? 0}</Text>
+						<Text style={{color: colors.text, left: 30, fontWeight: '800', fontSize: 25, alignSelf: 'center'}}>{props.track_data.meta?.plays ?? 0}</Text>
 					: null}
 			</TrackComponentBase>
 		</ContextMenuView>

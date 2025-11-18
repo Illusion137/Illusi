@@ -1,9 +1,9 @@
-import { Text, View } from "react-native";
+import { router } from "expo-router";
+import { useEffect } from "react";
 
 export default function NotFound() {
-	return (
-		<View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-			<Text style={{fontWeight: 'bold'}}>This page doesn't exist</Text>
-		</View>
-	);
+	useEffect(() => {
+		router.navigate('/library');
+	},[])
+	return null;
 }

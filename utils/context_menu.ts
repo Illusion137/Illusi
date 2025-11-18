@@ -66,9 +66,9 @@ export namespace TrackContextMenu {
                     track.artists.map((artist, i) => track_menu_item(`track-view-artist-${i}`, `View Artist - ${artist.name}`, () => is_empty(track.artists[i]?.uri) ? ['hidden'] : undefined, 'music.mic'))
                 ),
             track_menu_item("track-view-album", "View Album", () => is_empty(track.album?.uri) ? ['hidden'] : undefined, 'list.bullet'),    
-            track_menu_item("track-trim-media", "Trim Media", () => is_empty(track.media_uri) ? ['hidden'] : undefined, 'timeline.selection'),    
             track_menu_item("track-view-info", "View Track Info", () => !is_saved? ['hidden'] : undefined, 'scope'),    
             track_menu_item("track-edit-info", "Edit Track Info", () => !is_saved? ['hidden'] : undefined, 'scope'),    
+            track_menu_item("track-trim-media", "Trim Media", () => is_empty(track.media_uri) ? ['hidden'] : undefined, 'timeline.selection'),    
             track_menu_item("track-download-thumbnail", "Download Thumbnail", () => !is_empty(track.thumbnail_uri) || !is_saved || !is_empty(track.imported_id) ? ['hidden'] : undefined, 'arrow.down.circle'),    
             track_menu_item("track-upload-artwork", "Upload Artwork", () => !is_saved? ['hidden'] : undefined, 'photo.artframe'),    
             track_menu_item("track-download-media", "Download Media", () => !is_empty(track.media_uri) || !is_saved ? ['hidden'] : undefined, 'arrow.down.circle'),    
@@ -86,9 +86,9 @@ export namespace TrackContextMenu {
         ]
     }
     export const track_extracted_attributes = (track: Track, write_playlist_uuid: string) => extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), [
-        "track-trim-media",
         "track-view-info",
-        "track-edit-info"
+        "track-edit-info",
+        "track-trim-media",
     ]);
     export const track_attributes_folder = (track: Track, write_playlist_uuid: string) => menu_folder("Attributes", track_extracted_attributes(track, write_playlist_uuid), 'list.clipboard');
 

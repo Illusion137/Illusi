@@ -11,8 +11,11 @@ import { GLOBALS } from '@illusive/globals'
 import RowArtist from "@components/RowArtist";
 import usePTheme from "@hooks/usePTheme";
 import { SQLArtists } from "@illusive/sql/sql_artists";
+import { router } from "expo-router";
+import { AntDesignTouchableOpacity } from "@components/TouchableIconOpacity";
 
 export default function ArtistGridRenderer(props: {
+    title: string;
     artist_data: NamedUUID[];
 }){
     const { colors } = usePTheme();
@@ -81,10 +84,18 @@ export default function ArtistGridRenderer(props: {
         ]
     };
 
+    function close(){
+        if(!router.canGoBack()) return;
+        router.back();
+    }
+
     const header = () => (
         <View style={{zIndex: 10, backgroundColor: colors.shelf, width: '100%', height: '18%', top: 0, justifyContent: 'flex-end', alignItems: 'center' }}>
             <View style={{height: 90}}/>
-            <Text style={{bottom: 20, color: colors.text, fontSize: 18, fontWeight: '500'}}>Artists</Text>
+            <View style={{flexDirection: 'row', width: '100%', justifyContent: 'center'}}>
+                <Text style={{bottom: 20, color: colors.text, fontSize: 18, fontWeight: '500'}}>{props.title}</Text>
+                <AntDesignTouchableOpacity on_press={close} style={{position: 'absolute', left: 15, bottom: 15}} icon_name='left' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+            </View>
             <View style={{width: '95%', zIndex: 5, flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View style={{width: '88%'}}>
                     <SearchBarV1 onChangeText={(query) => set_query(query)} query_flags={COMPACT_ARTIST_QUERY_FLAGS} placeholder="Search Artists"/>

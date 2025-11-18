@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import * as GLOBALS from "@illusive/illusi/src/globals";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import FourTrackArtwork from "./FourTrackArtwork";
 import { Playlist, Track } from "@illusive/types";
@@ -12,6 +11,7 @@ import { sprinkle_into_queue } from "@illusive/illusi/src/play";
 import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";
+import { GLOBALS } from "@illusive/globals";
 
 export default function PlaylistComponent(props: {
 	playlist_data: Playlist;

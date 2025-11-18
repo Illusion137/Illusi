@@ -1,6 +1,6 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { CompactPlaylist } from "@illusive/types";
+import { CompactPlaylist, type Track } from "@illusive/types";
 import { best_thumbnail, track_exists } from '@illusive/illusive_utils';
 import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
 import { ContextMenuView } from "react-native-ios-context-menu";
@@ -16,9 +16,10 @@ import { SharedRouter } from "@utils/shared_routes";
 
 export type SecondLineType = "YEAR"|"ARTIST";
 export default function Album(props: {
-    album_data: CompactPlaylist
-    second_line_type?: SecondLineType
-    size?: number
+    album_data: CompactPlaylist;
+    second_line_type?: SecondLineType;
+    size?: number;
+    other_tracks?: Track[];
 }){
     const size = props.size ?? Dimensions.get('screen').width * .40;
     const { colors } = usePTheme();
@@ -37,10 +38,16 @@ export default function Album(props: {
 
     function on_press(){
         if(props.album_data.album_type !== "SONG"){
-            SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {compact_playlist: props.album_data} );
+            SharedRouter.goto_shared_playlist( props.album_data.title.uri ?? "", "URI", {
+                compact_playlist: props.album_data, 
+                fs_cache_playlist_as_album: props.album_data.type === "ALBUM" ? "1" : "0"
+            } );
         }
         else if(props.album_data.song_track) {
-            play(props.album_data.song_track, "Artist Watch", () => [props.album_data.song_track!]);
+            play(props.album_data.song_track, "Artist Watch", () => [
+                props.album_data.song_track!, 
+                ...(props.other_tracks?.filter(track => track.uid !== props.album_data.song_track?.uid) ?? [])
+            ]);
         }
     }
     
@@ -166,7 +173,7 @@ export default function Album(props: {
                     <Text style={{color: colors.text, fontWeight: 'bold', fontSize: 16, paddingTop: 5, width: size}} numberOfLines={1}>{props.album_data.title.name}</Text>
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
                         {props.album_data.explicit === "EXPLICIT" ? <MaterialIcons name="explicit" size={20} color={colors.secondary} style={{}}/> : null}
-                        <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 15, top: 0, width: size}}>{empty_join_dot([single_case(props.album_data.album_type ?? "..."), second_line])}</Text>
+                        <Text numberOfLines={1} style={{color: colors.subtext, fontSize: 15, top: 0, width: size}}>{empty_join_dot([single_case(props.album_data.album_type ?? (props.second_line_type === "ARTIST" ? String(year) : String(artist_name)) ?? "..."), second_line])}</Text>
                     </View>
                 </View>
             </TouchableOpacity>

@@ -1,8 +1,8 @@
 import { Dimensions, Text, View } from "react-native";
-import { CompactPlaylist } from "@illusive/types";
+import { CompactPlaylist, type Track } from "@illusive/types";
 import Album, { SecondLineType } from "./Album";
 import { Prefs } from "@illusive/prefs";
-import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
+import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "./TouchableIconOpacity";
 import { useEffect, useState } from "react";
 import { ResponseError } from "@common/types";
 import { alert_error } from "@illusive/illusi/src/alert";
@@ -10,6 +10,7 @@ import { GLOBALS } from '@illusive/globals'
 import AlbumPlaceholder from "./AlbumPlaceholder";
 import usePTheme from "@hooks/usePTheme";
 import { FlashList } from "@shopify/flash-list";
+import { SharedRouter } from "@utils/shared_routes";
 
 export default function AlbumList(props: {
     title: string;
@@ -25,7 +26,8 @@ export default function AlbumList(props: {
     const { colors } = usePTheme();
 
     const render_album_placeholder = () => (<AlbumPlaceholder/>);
-    const render_album = (item: {item: CompactPlaylist}) => (<Album album_data={item.item} second_line_type={props.second_line_type}/>);
+    const other_tracks = props.albums.filter(album => album.song_track).map(album => album.song_track) as Track[];
+    const render_album = (item: {item: CompactPlaylist}) => (<Album album_data={item.item} second_line_type={props.second_line_type} other_tracks={other_tracks}/>);
 
     const is_loading = props.is_loading ?? false;
     const [albums, set_albums] = useState<CompactPlaylist[]>(props.albums);
@@ -54,16 +56,22 @@ export default function AlbumList(props: {
         set_albums(props.albums)
     }, [props.albums]);
 
+    function full_screen(){
+        SharedRouter.goto_shared_album_grid(props.title, props.albums);
+    }
+
     return (
         <View style={{paddingVertical: 10}}>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
                 <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{props.title}</Text>
                 {props.refresh ? 
                     <>
-                        <Text style={{color: colors.subtext, fontSize: 10, top: 5}}>Last Refreshed: {(last_refresh ?? new Date(0)).toLocaleString()}</Text>
-                        <IoniconsTouchableOpacity icon_name="refresh" icon_color={colors.secondary} on_press={refresh_data} icon_size={25} icon_style={{right: 20}} hitslop={12}/>
+                        <Text style={{color: colors.subtext, fontSize: 9, top: 5}}>Last Refreshed: {(last_refresh ?? new Date(0)).toLocaleString()}</Text>
+                        <IoniconsTouchableOpacity icon_name="refresh" icon_color={colors.secondary} on_press={refresh_data} icon_size={25} icon_style={{right: 15}} hitslop={12}/>
                     </>
-                 : null}
+                : null
+                }
+                <AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{right: 20}} hitslop={12}/>
             </View>
             <View style={{paddingHorizontal: 10, height: Dimensions.get('screen').width * .40 + 50, justifyContent: 'center'}}>
                 {is_loading ? 

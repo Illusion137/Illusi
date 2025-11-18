@@ -1,16 +1,23 @@
-import { Dimensions, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import { Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { Constants } from "@illusive/constants";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { chunkify, gen_uuid } from "@common/utils/util";
 import { FlashList } from "@shopify/flash-list";
+import { get_common_styles } from "@utils/common_styles";
+import usePTheme from "@hooks/usePTheme";
+import { AntDesignTouchableOpacity } from "./TouchableIconOpacity";
+import { SharedRouter } from "@utils/shared_routes";
 
 export default function TrackHorizontalScrolls(props: {
+    title: string;
     height: number;
     tracks: Track[];
     replace_album_with?: keyof Track;
 }){
+    const { colors } = usePTheme();
+    const common_styles = get_common_styles(colors);
     const screen_width = Dimensions.get('screen').width;
     const track_width = screen_width * .95;
     const split_tracks: Track[][] = chunkify(props.tracks, props.height);
@@ -40,23 +47,29 @@ export default function TrackHorizontalScrolls(props: {
         </View>
     );
 
-    return (
-        <FlashList data={split_tracks}
-            renderItem={RenderTrackColumnComponent}
-            horizontal={true}
-            decelerationRate={0}
-            snapToInterval={track_width}
-            snapToAlignment={"center"}
-            />
-    );
+    function full_screen(){
+        SharedRouter.goto_shared_track_list(props.title, props.tracks);
+    }
 
-    // return (<ScrollView 
-    //         horizontal={true} 
-    //         decelerationRate={0}
-    //         snapToInterval={track_width} //your element width
-    //         snapToAlignment={"center"}>
-    //     {split_tracks.map((tracks_chunk, i) => (
-    //         <FlashList key={i} scrollEnabled={false} data={tracks_chunk} renderItem={render_track_component}/>
-    //     ))}
-    // </ScrollView>)
+    return (
+    <>
+    {props.tracks.length > 0 ?
+        <>
+            <View style={{flexDirection: 'row', alignContent: 'center', width: '100%', justifyContent: 'space-between', marginBottom: 10, marginTop: 10}}>
+                <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 20}}>{props.title}</Text>
+                <AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{right: 20, top: 5}} hitslop={12}/>
+            </View>
+            <View style={common_styles.line_long}/>
+            <FlashList data={split_tracks}
+                renderItem={RenderTrackColumnComponent}
+                horizontal={true}
+                decelerationRate={0}
+                snapToInterval={track_width}
+                snapToAlignment={"center"}
+                />
+        </>
+        : null
+    }
+    </>
+    );
 }

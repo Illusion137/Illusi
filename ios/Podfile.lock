@@ -2394,6 +2394,28 @@ PODS:
     - ReactNativeDependencies
     - TOCropViewController (~> 2.7.4)
     - Yoga
+  - RNPermissions (5.4.4):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNReanimated (4.1.1):
     - hermes-engine
     - RCTRequired
@@ -2820,6 +2842,7 @@ DEPENDENCIES:
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNImageCropPicker (from `../node_modules/react-native-image-crop-picker`)
+  - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - "RNSentry (from `../node_modules/@sentry/react-native`)"
@@ -3091,6 +3114,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNImageCropPicker:
     :path: "../node_modules/react-native-image-crop-picker"
+  RNPermissions:
+    :path: "../node_modules/react-native-permissions"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -3240,6 +3265,7 @@ SPEC CHECKSUMS:
   RNCPicker: a7170edbcbf8288de8edb2502e08e7fc757fa755
   RNGestureHandler: 2914750df066d89bf9d8f48a10ad5f0051108ac3
   RNImageCropPicker: 2866b8f9ed0be4521236504898dd601dfd623209
+  RNPermissions: 55b3d0508513352f26e3a9abefcb5bbfbae66ac3
   RNReanimated: 6e0147e13f8906f63703143f40237f84347e6ca1
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
   RNSentry: 7726bf35e00ab799f50c4618df6f5417553678a0

@@ -6,7 +6,7 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     ...config,
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "17.2.0",
+    "version": "17.3.0",
     // "orientation": "portrait",
     // "icon": "./assets/icon.png",
     // "userInterfaceStyle": "dark",
@@ -20,6 +20,12 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     "extra": {
         "eas": {
             "projectId": "e19a915b-3ff0-4591-80a6-6872abb71919"
+        },
+        "expoRouter": {
+            "unstable_settings": {
+                // "initialRouteName": "index",
+                "skipRoutes": ["track"],
+            }
         }
     },
     "updates": {

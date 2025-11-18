@@ -62,7 +62,8 @@ export default function ExtraExternalServicesScreen() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-    const illusive_external_service: MusicServiceType[] = ["YouTube", "YouTube Music", "Spotify", "Amazon Music", "Apple Music", "SoundCloud"] as const;
+    const illusive_external_service: MusicServiceType[] = [...Illusive.music_service.keys()].filter(key => Illusive.music_service.get(key)!.required_cookie_credentials.length > 0);
+    // TODO generate this
     const [external_services_cookies_enabled, set_external_services_cookies_enabled] = useState<Record<MusicServiceType, boolean>>({
         "YouTube": Illusive.music_service.get("YouTube")?.has_credentials() ?? false,
         "YouTube Music": Illusive.music_service.get("YouTube Music")?.has_credentials() ?? false,
@@ -70,10 +71,11 @@ export default function ExtraExternalServicesScreen() {
         "Amazon Music": Illusive.music_service.get("Amazon Music")?.has_credentials() ?? false,
         "Apple Music": Illusive.music_service.get("Apple Music")?.has_credentials() ?? false,
         "SoundCloud": Illusive.music_service.get("SoundCloud")?.has_credentials() ?? false,
+        "BandLab": Illusive.music_service.get("BandLab")?.has_credentials() ?? false,
         "Illusi": false,
         "Musi": false,
         "API": false
-    })
+    });
 
 	const [url, set_url] = useState(null as string|null);
 

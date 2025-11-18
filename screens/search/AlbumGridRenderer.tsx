@@ -1,5 +1,5 @@
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { AlbumSortMode, CompactPlaylist } from "@illusive/types";
+import { AlbumSortMode, CompactPlaylist, type Track } from "@illusive/types";
 import Album from "@components/Album";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
@@ -10,9 +10,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ContextMenuButton, MenuConfig } from "react-native-ios-context-menu";
 import { GLOBALS } from '@illusive/globals'
 import usePTheme from "@hooks/usePTheme";
+import { router } from "expo-router";
+import { AntDesignTouchableOpacity } from "@components/TouchableIconOpacity";
 
 export default function AlbumGridRenderer(props: {
-    album_data: CompactPlaylist[]
+    title: string;
+    album_data: CompactPlaylist[];
 }){
     const { colors } = usePTheme();
     
@@ -20,6 +23,8 @@ export default function AlbumGridRenderer(props: {
     const columns = 3;
     const [query, set_query] = useState<string>("");
     const [sort_mode, set_sort_mode] = useState<AlbumSortMode>("NEWEST");
+
+    const other_tracks = props.album_data.filter(album => album.song_track).map(album => album.song_track) as Track[];
 
     const albums = sort_compact_playlists(sort_mode, album_query_filter(props.album_data ?? [], query), GLOBALS.global_var.sql_tracks);
     const split_albums: [CompactPlaylist, CompactPlaylist, CompactPlaylist][] = albums.reduce((result_array: any[], item, index) => { 
@@ -33,6 +38,11 @@ export default function AlbumGridRenderer(props: {
       
         return result_array;
     }, []);
+
+    function close(){
+        if(!router.canGoBack()) return;
+        router.back();
+    }
 
     const menuconfig_sort: MenuConfig = {
         menuTitle: "",
@@ -83,10 +93,13 @@ export default function AlbumGridRenderer(props: {
     const header = () => (
         <View style={{zIndex: 10, backgroundColor: colors.shelf, width: '100%', height: '18%', top: 0, justifyContent: 'flex-end', alignItems: 'center' }}>
             <View style={{height: 90}}/>
-            <Text style={{bottom: 20, color: colors.text, fontSize: 18, fontWeight: '500'}}>New Releases</Text>
+            <View style={{flexDirection: 'row', width: '100%', justifyContent: 'center'}}>
+                <Text style={{bottom: 20, color: colors.text, fontSize: 18, fontWeight: '500'}}>{props.title}</Text>
+                <AntDesignTouchableOpacity on_press={close} style={{position: 'absolute', left: 15, bottom: 15}} icon_name='left' icon_size={25} icon_color={colors.primary} icon_style={{}}/>
+            </View>
             <View style={{width: '95%', zIndex: 5, flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View style={{width: '88%'}}>
-                    <SearchBarV1 onChangeText={(query) => set_query(query)} query_flags={COMPACT_PLAYLIST_QUERY_FLAGS} placeholder="Search New Releases"/>
+                    <SearchBarV1 onChangeText={(query) => set_query(query)} query_flags={COMPACT_PLAYLIST_QUERY_FLAGS} placeholder={`Search ${props.title}`}/>
                 </View>
                 <TouchableOpacity style={{right: '7%', justifyContent: 'center', alignItems: 'center', borderRadius: 10, width: 60, marginHorizontal: 30}}>
                 <ContextMenuButton menuConfig={menuconfig_sort}
@@ -103,9 +116,9 @@ export default function AlbumGridRenderer(props: {
 
     const render_item = (item: {item: [CompactPlaylist, CompactPlaylist, CompactPlaylist]}) => (
         <View style={{flexDirection: 'row' }}>
-            {item.item[0] ? <Album size={album_size} album_data={item.item[0]} second_line_type={"ARTIST"}/> : null}
-            {item.item[1] ? <Album size={album_size} album_data={item.item[1]} second_line_type={"ARTIST"}/> : null}
-            {item.item[2] ? <Album size={album_size} album_data={item.item[2]} second_line_type={"ARTIST"}/> : null}
+            {item.item[0] ? <Album size={album_size} album_data={item.item[0]} second_line_type={"ARTIST"} other_tracks={other_tracks}/> : null}
+            {item.item[1] ? <Album size={album_size} album_data={item.item[1]} second_line_type={"ARTIST"} other_tracks={other_tracks}/> : null}
+            {item.item[2] ? <Album size={album_size} album_data={item.item[2]} second_line_type={"ARTIST"} other_tracks={other_tracks}/> : null}
         </View>
     );
 

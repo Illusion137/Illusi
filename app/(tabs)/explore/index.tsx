@@ -7,6 +7,7 @@ import IllusiExplore from "@screens/search/IllusiExplore";
 import SearchScreen from "@screens/SearchScreen";
 import { useFocusEffect } from "expo-router";
 import { set_explore_tab_press_callback } from "@utils/tabpress";
+import hexToRgba from "hex-to-rgba";
 
 export default function Explore() {
 	const { colors } = usePTheme();
@@ -20,6 +21,9 @@ export default function Explore() {
 			set_search_screen_state(true);
 		});
 	});
+
+	const fade_top_top = hexToRgba(colors.background, 0.9);
+	const fade_top_bottom = hexToRgba(colors.background, 0.1);
 
 	return (
 		<>
@@ -41,20 +45,22 @@ export default function Explore() {
 					</View>
 					<IllusiExplore />
 					<LinearGradient
-						colors={[colors.background, 'rgba(0,0,0,0.8)', 'transparent']}
+						colors={[colors.background, fade_top_top, 'transparent']}
 						style={{
 							position: 'absolute',
 							top: 0,
-							height: "20%", // adjust how much of the image fades
+							height: "20%", 
 							width: '100%',
+							pointerEvents: 'none',
 					}}/>
 					<LinearGradient
-						colors={[colors.background, 'rgba(0,0,0,1)', 'transparent']}
+						colors={[colors.background, fade_top_bottom, 'transparent']}
 						style={{
 							position: 'absolute',
 							top: 0,
-							height: "10%", // adjust how much of the image fades
+							height: "10%", 
 							width: '100%',
+							pointerEvents: 'none',
 					}}/>
 				</LinearGradient>
 			)}
@@ -65,7 +71,8 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
 		topContainer: {
 			flex: 1,
-			backgroundColor: colors.background
+			backgroundColor: colors.background,
+			pointerEvents: 'box-none'
 		},
 		line_long: {
 			width: "100%",

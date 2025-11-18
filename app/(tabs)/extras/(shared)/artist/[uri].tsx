@@ -20,6 +20,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { remove_topic } from "@common/utils/clean_util";
 import { SQLArtists } from "@illusive/sql/sql_artists";
 import { reinterpret_cast } from "@common/cast";
+import { Constants } from "@illusive/constants";
 
 export default function Artist(){
     const { uri } = useLocalSearchParams<{uri: IllusiveURI}>();
@@ -90,7 +91,11 @@ export default function Artist(){
             ...track, downloading_data: {...track.downloading_data!, saved: true}  
         }));
 
-    const popular_tracks = artist_data.tracks
+    const popular_tracks = uri.includes(Constants.import_uri_id) ? 
+        artist_data.tracks
+            .filter(track => track.meta?.plays)
+            .sort((a, b) => (b.meta?.plays ?? 0) - (a.meta?.plays ?? 0))
+    : artist_data.tracks
         .filter(track => track.plays)
         .sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0));
 
@@ -136,18 +141,8 @@ export default function Artist(){
                         <View style={{paddingVertical: 5}}/>
                     </>
                 : null }
-                {
-                    popular_tracks.length > 0 ?
-                    <HeaderWith title={"Popular Tracks"}>        
-                        <TrackHorizontalScrolls height={4} tracks={popular_tracks} replace_album_with="plays"/>
-                    </HeaderWith> : null
-                }
-                {
-                    artist_data.tracks.length > 0 ?
-                    <HeaderWith title={"Tracks"}>      
-                        <TrackHorizontalScrolls height={4} tracks={artist_data.tracks}/>
-                    </HeaderWith> : null
-                }
+                <TrackHorizontalScrolls title="Popular Tracks" height={4} tracks={popular_tracks} replace_album_with="plays"/>
+                <TrackHorizontalScrolls title="Tracks" height={4} tracks={artist_data.tracks}/>
                 <View style={{paddingTop: 5}}/>
                 { 
                     artist_data.albums.length > 0 ? 
@@ -167,13 +162,7 @@ export default function Artist(){
                     <AlbumList title="Playlists" else_type={"SINGLE"} albums={artist_data.playlists}/> : null
                 }
                 <View style={{paddingTop: 20}}/>
-                {
-                    shared_tracks.length > 0 && artist_data.tracks.length > 0 ? 
-                        <HeaderWith title={"From Your Library"}>
-                            <TrackHorizontalScrolls height={5} tracks={shared_tracks}/>
-                        </HeaderWith>
-                    : null
-                }
+                <TrackHorizontalScrolls title="From Your Library" height={5} tracks={shared_tracks}/>
                 <View style={{paddingVertical: 10}}/>
                 {
                     artist_data.similar_artists.length > 0 ? 

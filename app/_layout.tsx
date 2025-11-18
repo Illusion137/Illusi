@@ -1,4 +1,4 @@
-import { Stack, usePathname } from "expo-router";
+import { router, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
@@ -9,17 +9,24 @@ import appConfig from "app.config";
 import TrackPlayer from "react-native-track-player";
 import type { ConfigContext } from "expo/config";
 import { ThemeProvider } from "@react-navigation/native";
-import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
+import { get_shortcut_subscription, load_sqlite_database, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid } from "@common/utils/util";
 import AudioPlayer from "@screens/AudioPlayer";
 import { GLOBALS } from "@illusive/globals";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
-import { migrate } from 'drizzle-orm/op-sqlite/migrator';
 import * as Sentry from "@sentry/react-native";
 import IImage from "@components/IImage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SharedRouter } from "@utils/shared_routes";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import type { ResponseError } from "@common/types";
+import { migrate } from 'drizzle-orm/op-sqlite/migrator';
+import migrations from '@illusive/drizzle-mobile/migrations';
+import { load_native_sqlite, sqlite } from "@native/sqlite/sqlite";
+import { db_exec, get_database_handle } from "@illusive/db/database";
+import type { OPSQLiteDatabase } from "drizzle-orm/op-sqlite";
+import { get_linking_handler } from "@utils/linking";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -56,7 +63,8 @@ Sentry.wrap(
 	const [bottom_alert, set_bottom_alert] = useState({
 		uuid: "",
 		text: "",
-		type: "GOOD" as BottomAlertType
+		type: "GOOD" as BottomAlertType,
+		more_info: "" as string|ResponseError
 	});
 
 	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
@@ -68,12 +76,44 @@ Sentry.wrap(
 	}
 
 	useEffect(() => {
+		const linking_handler = get_linking_handler();
+
+		const bar: number[] = [];
+	  
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
-		on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
-		// migrate(0 as never, {});
+		(async() => {
+			// await load_native_sqlite();
+			// await load_sqlite_database();
+			// // const db = sqlite().get_db(get_database_handle());
+			// let migrate_success = true;
+			// try {
+			// 	// await migrate(db as OPSQLiteDatabase, migrations);
+			// }
+			// catch(error) {
+			// 	// console.error(error);
+			// 	migrate_success = false;
+			// 	update_bottom_alert("Failed migrations", "ERROR", {error: error as Error});
+			// }
+			// if(migrate_success) {
+			// 	update_bottom_alert("Successful migrations", "GOOD", `Version ${appConfig({}).version}`);
+			// }
+			await on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
+			GLOBALS.global_var.kill_audioplayer = () => {
+				if(!GLOBALS.global_var.is_playing) return;
+				try {
+					GLOBALS.global_var.is_playing = false;
+					set_is_playing("OFF");
+					TrackPlayer.reset().catch(e => e);
+				}
+				catch(e){}
+			};
+			// const tables = await db_exec(async(db) => db.all("SELECT * FROM sqlite_master WHERE type='table';"));
+			// console.log(tables);
+		})().catch(e => e);
 		return () => {
 			subscription.remove();
+			linking_handler.remove();
 		}
 	}, []);
 	useEffect(() => {
@@ -88,15 +128,17 @@ Sentry.wrap(
 		SharedRouter.set_current_route_path(path);
 	}, [path]);
 
-	function update_bottom_alert(text: string, type: BottomAlertType) {
+	function update_bottom_alert(text: string, type: BottomAlertType, more_info?: string|ResponseError) {
 		set_bottom_alert({
 			uuid: gen_uuid(),
 			text,
-			type
+			type,
+			more_info: more_info ?? ""
 		});
 	}
 
 	return (
+		<GestureHandlerRootView>
 		<ThemeProvider value={{...theme, fonts: {
 			regular: {fontFamily: "", fontWeight: '400'},
 			medium: {fontFamily: "", fontWeight: '600'},
@@ -105,7 +147,7 @@ Sentry.wrap(
 		}}>
 			{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 			{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
-			<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} />
+			<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info}/>
 			{!is_loading ? (
 				<SafeAreaProvider>
 					<Stack>
@@ -114,5 +156,6 @@ Sentry.wrap(
 				</SafeAreaProvider>
 			) : null}
 		</ThemeProvider>
+		</GestureHandlerRootView>
 	);
 });

@@ -106,6 +106,7 @@ export default function ExtraThemesScreen(){
                     </View>)
                 )
             }
+            <View style={{height: 100}}/>
         </ScrollView>
     );
 }

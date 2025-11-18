@@ -31,6 +31,6 @@ config.watchFolders = [
 // 	},
 // };
 
-// config.resolver.sourceExts.push('sql');
+config.resolver.sourceExts.push('sql');
 
 module.exports = config;

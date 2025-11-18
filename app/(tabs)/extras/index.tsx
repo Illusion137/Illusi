@@ -35,6 +35,7 @@ export default function Extras() {
 				<Text style={common_styles.description_txt}>Illusi Version: {appConfig({}).version}</Text>
 				<Text style={common_styles.description_txt}>Last Synced: {Prefs.get_pref("last_synced").toLocaleString()}</Text>
 				<Text style={common_styles.description_txt}>Battery Level: {battery}</Text>
+				<View style={{height: 100}}/>
 			</ScrollView>
 		</View>
 	);

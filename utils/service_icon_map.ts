@@ -31,6 +31,10 @@ export const service_icon_map: Record<MusicServiceType, {color: string, name: ke
         color: "#f94c57",
         name: "applemusic"
     },
+    BandLab: {
+        color: "#f12d19",
+        name: "music-note"
+    },
     SoundCloud: {
         color: "#ff5500",
         name: "soundcloud"

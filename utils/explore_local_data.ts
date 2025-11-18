@@ -1,9 +1,10 @@
 import { Constants } from "@illusive/constants";
 import type { CompactPlaylist, ISOString, NamedUUID } from "@illusive/types";
 import { reinterpret_cast } from '../lib-origin/common/cast';
+import { create_uri } from "@illusive/illusive_utils";
 
 export namespace ExploreLocalData {
-    const base_artist: NamedUUID[] = [{name: Constants.local_illusi_uri_id, uri: null}];
+    const base_artist: NamedUUID[] = [{name: Constants.local_illusi_uri_id, uri: create_uri('illusi', Constants.local_illusi_uri_id,)}];
     const year = new Date().getFullYear();
     const valentines_day = reinterpret_cast<ISOString>(new Date(`February 14 ${year}`).toISOString());
     const halloween_day = reinterpret_cast<ISOString>(new Date(`October 31 ${year}`).toISOString());
@@ -26,27 +27,18 @@ export namespace ExploreLocalData {
         type: "ALBUM",
     };
     export const christmas_playlist: CompactPlaylist = {
-        title: {name: "Santa Time", uri: null},
+        title: {name: "Santa Time", uri: create_uri("illusi", "christmas_tracks_v1730.json")},
         artist: base_artist,
         date: christmas_day,
         explicit: "NONE",
         album_type: "ALBUM",
         type: "ALBUM",
     };
-    export const christmas_extended_playlist: CompactPlaylist = {
-        title: {name: "Santa Time (Extended)", uri: null},
-        artist: base_artist,
-        date: christmas_day,
-        explicit: "NONE",
-        album_type: "ALBUM",
-        type: "PLAYLIST",
-    };
 
     export const seasonal_illusi_playlists: CompactPlaylist[] = [
         valentines_playlist,
         halloween_playlist,
         christmas_playlist,
-        christmas_extended_playlist
     ];
 
     export const new_detroit_playlist: CompactPlaylist = {
