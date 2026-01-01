@@ -3,6 +3,9 @@ import { StyleSheet } from "react-native";
 
 export const get_common_styles = (colors: Prefs.Theme["colors"]) =>
     StyleSheet.create({
+        text: {
+            color: colors.text
+        },
         description_txt: {
             color: colors.subtext,
             marginTop: 10,

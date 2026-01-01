@@ -20,13 +20,12 @@ export default function PlaylistComponent(props: {
 		track: Track;
 	};
 	compact?: boolean;
-	refresh_data: (update_with?: Playlist) => void;
 }) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
-
+	
 	const [pinned, set_pinned] = useState(props.playlist_data.pinned);
-	const [is_public, set_is_public] = useState(props.playlist_data.pinned);
+	const [is_public, set_is_public] = useState(props.playlist_data.public);
 	const [disabled, set_disabled] = useState(false);
 	const [visual_data, set_visual_data] = useState<Playlist["visual_data"]>();
 
@@ -48,10 +47,10 @@ export default function PlaylistComponent(props: {
 	}, []);
   
 	useEffect(() => {
-		set_pinned(props.playlist_data.pinned);
+		set_pinned(Boolean(props.playlist_data.pinned));
 	}, [props.playlist_data.pinned]);
 	useEffect(() => {
-		set_is_public(props.playlist_data.public);
+		set_is_public(Boolean(props.playlist_data.public));
 	}, [props.playlist_data.public]);
 	useEffect(() => {
 		(async () => {
@@ -107,7 +106,6 @@ export default function PlaylistComponent(props: {
 			props.playlist_data.uuid,
 			new_pin
 		);
-		await props.refresh_data({...props.playlist_data, pinned: new_pin});
 	}
 	async function toggle_public() {
 		const new_public = !(props.playlist_data.public ?? false);
@@ -115,7 +113,6 @@ export default function PlaylistComponent(props: {
 			props.playlist_data.uuid,
 			new_public
 		);
-		await props.refresh_data({...props.playlist_data, public: new_public});
 	}
 	async function toggle_archive() {
 		const new_archive = !(props.playlist_data.archived ?? false);
@@ -123,7 +120,6 @@ export default function PlaylistComponent(props: {
 			props.playlist_data.uuid,
 			new_archive
 		);
-		await props.refresh_data({...props.playlist_data, archived: new_archive});
 	}
 	const confirm_delete = async () =>
 		if_confirm(
@@ -131,7 +127,6 @@ export default function PlaylistComponent(props: {
 			"This action can NOT be reversed",
 			async () => {
 				await SQLPlaylists.delete_playlist(props.playlist_data.uuid);
-				await props.refresh_data({...props.playlist_data});
 			}
 		);
 
@@ -224,7 +219,7 @@ export default function PlaylistComponent(props: {
 					opacity: disabled ? 0.5 : 1.0,
 					height: compact ? 55 : 80,
 				}}
-				onLongPress={() => {}} delayLongPress={Constants.long_press_delay}
+				onLongPress={() => {return}} delayLongPress={Constants.long_press_delay}
 				onPress={select_mode ? toggle_state : on_press}
 				onLayout={!target_view_node && (({nativeEvent}: any) => {
 					set_target_view_node(nativeEvent.target)

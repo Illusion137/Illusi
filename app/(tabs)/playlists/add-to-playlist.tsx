@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { default_compact_playlists } from "@illusive/default_playlists";
 import BigList from "react-native-big-list";
 import CompactWriterPlaylistComponent from "@components/CompactWriterPlaylistComponent";
-import { sort_compact_playlists_data } from "@illusive/illusi/src/playlist";
+import { sort_compact_playlists_data } from "@illusive/playlist_utils";
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import usePTheme from '@hooks/usePTheme';
 import { router, useLocalSearchParams } from 'expo-router';

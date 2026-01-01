@@ -7,7 +7,8 @@ config = {
 	...config,
 	resolver: {
 		...config.resolver,
-		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/]
+		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/],
+		sourceExts: [...config.resolver.sourceExts, "sql"]
 	}
 };
 config.transformer = {

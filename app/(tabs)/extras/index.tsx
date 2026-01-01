@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import * as Battery from "expo-battery";
 import { Prefs } from "@illusive/prefs";
 import usePTheme from "@hooks/usePTheme";
-import appConfig from "app.config";
 import ExtrasRenderer from "@components/ExtrasRenderer";
 import { get_common_styles } from "@utils/common_styles";
+import appConfig from 'app.config';
 
 export default function Extras() {
 	const { colors } = usePTheme();

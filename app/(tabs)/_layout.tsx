@@ -20,13 +20,12 @@ export default function TabLayout() {
 				tabBarActiveBackgroundColor: theme.colors.background,
 				tabBarInactiveBackgroundColor: theme.colors.background,
 			}}>
-			<Tabs.Screen name="index" options={{href: null}}/>
 			<Tabs.Screen
-				name="library"
+				name="(library)"
 				options={{
 					title: "My Library",
 					tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="library-sharp" size={30} color={color} />,
-					freezeOnBlur: true
+					freezeOnBlur: true,
 				}}
 			/>
 			<Tabs.Screen
@@ -34,7 +33,7 @@ export default function TabLayout() {
 				options={{
 					title: "Playlists",
 					tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="musical-notes" size={25} color={color} />,
-					freezeOnBlur: true
+					freezeOnBlur: true,
 				}}
 			/>
 			<Tabs.Screen

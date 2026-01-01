@@ -1,21 +1,30 @@
 import { GLOBALS } from "@illusive/globals";
 import { router, useLocalSearchParams } from "expo-router";
 import React,  { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import Trimmer from 'react-native-trimmer';
+import { View, Text, TouchableOpacity, type DimensionValue, Dimensions } from 'react-native';
 import {
     PlayerState,
     Waveform,
     type IWaveformRef,
 } from '@simform_solutions/react-native-audio-waveform';
 import { artist_string } from '@illusive/illusive_utils';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome6, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import usePTheme from '@hooks/usePTheme';
 import { SQLfs } from '@illusive/sql/sql_fs';
 import { round_decimal_place } from '@common/utils/util';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import ModalHeader from "@components/ModalHeader";
+import IImage from "@components/IImage";
+import TrackPlayer from "react-native-track-player";
+import { trackplayer_has_been_setup } from "@illusive/track_player_service";
+import { LinearGradient } from "expo-linear-gradient";
+import useTrackColors from "@hooks/useTrackColors";
 
+export const unstable_settings = {
+    presentation: "modal",
+    sheetAllowedDetents: [0.5],
+    sheetGrabberVisible: true,
+};
 export default function EditTrackModal(){
     const { uid } = useLocalSearchParams<{uid: string}>();
     const track_ref = useRef(GLOBALS.global_var.sql_tracks.find(track => track.uid === uid));
@@ -29,10 +38,18 @@ export default function EditTrackModal(){
     const [playerstate, set_playerstate] = useState<PlayerState>(PlayerState.stopped);
 
     const waveform_ref = useRef<IWaveformRef>(null);
+    const { track_colors } = useTrackColors(track_ref.current);
+
+    useEffect(() => {
+        try {
+            if(trackplayer_has_been_setup) TrackPlayer.pause();
+        } catch(e) {}
+    }, []);
+
     useEffect(() => {
         set_left_trim(track_ref.current?.meta?.begdur ?? 0);
         set_right_trim(track_ref.current?.meta?.enddur ?? track_ref.current?.duration ?? 1);
-    }, [track_ref.current])
+    }, [track_ref.current]);
 
     function close(){
         if(!router.canDismiss()) return;
@@ -56,70 +73,70 @@ export default function EditTrackModal(){
         close();
     }
 
-    return(
+    const selected_left_percent: DimensionValue = `${track_ref.current?.duration ? (left_trim * 100) / track_ref.current?.duration : 0}%`;
+    const selected_right_percent: DimensionValue = `${track_ref.current?.duration ? (right_trim * 100) / track_ref.current?.duration : 0}%`;
+
+    return (
         <View style={{flex: 1, backgroundColor: colors.background}}>
             <ModalHeader title={"Trim Track"}/>
-            <Text numberOfLines={1} style={{marginHorizontal: 20, top: 8, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{track_ref.current?.title || ""}</Text>
-            <Text style={{marginHorizontal: 20, top: 6, color: colors.text, fontSize: 14}}>{artist_string(track_ref.current!)}</Text>
+            <View style={{flexDirection: 'row', marginHorizontal: 10, marginTop: 10}}>
+                <IImage source={track_ref.current?.playback?.artwork} width={70} height={70}/>
+                <View style={{marginHorizontal: 10}}>
+                    <Text numberOfLines={1} style={{top: 8, color: colors.text, fontWeight: 'bold', fontSize: 24}}>{track_ref.current?.title || ""}</Text>
+                    <Text style={{top: 6, color: colors.text, fontSize: 14}}>{artist_string(track_ref.current!)}</Text>
+                    <Text style={{top: 6, color: colors.text, fontSize: 14}}>{track_ref.current?.album?.name ?? ""}</Text>
+                </View>
+            </View>
             <View style={{height: 10}}/>
-            <Trimmer
-                onHandleChange={({leftPosition, rightPosition}) => {
-                    set_left_trim(leftPosition / 1000);
-                    set_right_trim(rightPosition / 1000);
-                }}
-                totalDuration={(track_ref.current?.duration ?? 10) * 1000}
-                trimmerLeftHandlePosition={left_trim * 1000}
-                trimmerRightHandlePosition={right_trim * 1000}
-                maximumZoomLevel={1}
-                initialZoomValue={1}
-                scaleInOnInit={true}
-                maxTrimDuration={(track_ref.current?.duration ?? 10) * 1000}
-                tintColor={colors.secondary}
-                markerColor={colors.secondary}
-                trackBackgroundColor={colors.primary}
-                trackBorderColor={colors.secondary}
-                scrubberColor={colors.text}
-                scaleInOnInitType={"max-duration"}
-                scrubberPosition={scrubber}
-            />
-            {track_ref.current?.media_uri !== undefined ?             
-                <Waveform
-                    mode="static"
-                    ref={waveform_ref}
-                    path={SQLfs.media_directory(track_ref.current?.media_uri)}
-                    candleSpace={1}
-                    candleWidth={1}
-                    candleHeightScale={10}
-                    scrubColor={colors.secondary}
-                    waveColor={colors.text}
-                    containerStyle={{height: 100}}
-                    onPlayerStateChange={player_state => set_playerstate(player_state)}
-                    onCurrentProgressChange={scrubber_position => set_scrubber(round_decimal_place(scrubber_position, 2))}
-                /> : null
+            {track_ref.current?.media_uri !== undefined ?
+                <View>
+                    <Waveform
+                        mode="static"
+                        ref={waveform_ref}
+                        path={SQLfs.media_directory(track_ref.current?.media_uri)}
+                        candleSpace={0.1}
+                        candleWidth={0.5}
+                        candleHeightScale={10}
+                        scrubColor={colors.secondary}
+                        waveColor={colors.text}
+                        containerStyle={{height: 100}}
+                        onPlayerStateChange={player_state => set_playerstate(player_state)}
+                        onCurrentProgressChange={scrubber_position => set_scrubber(round_decimal_place(scrubber_position, 2))}
+                    />
+                    <View style={{position: 'absolute', width: selected_left_percent, height: 90, backgroundColor: colors.red, zIndex: 10, top: 5, left: 0, opacity: .4, pointerEvents: 'box-none'}}></View>
+                    <View style={{position: 'absolute', width: selected_right_percent, height: 90, backgroundColor: colors.red, zIndex: 10, top: 5, left: selected_right_percent, opacity: .4, pointerEvents: 'box-none'}}></View>
+                </View>
+                : null
             }
             <View style={{height: 70}}/>
-            <TouchableOpacity onPress={() => {playerstate === PlayerState.playing ? waveform_ref.current?.pausePlayer() : waveform_ref.current?.startPlayer();}} style={{alignSelf: 'center', bottom: 50}}>
-                <Ionicons name={playerstate === PlayerState.playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
-            </TouchableOpacity>
-            <View style={{flexDirection: 'row'}}>
-                <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(round_decimal_place(scrubber / 1000, 2))}>
-                    <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Left</Text> 
+            <View style={{flexDirection: 'row', justifyContent: 'space-evenly', zIndex: 10}}>
+                <TouchableOpacity style={{alignSelf: 'center', borderRadius: 5, bottom: 50, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(0)}>
+                    <MaterialIcons size={40} name="restart-alt" color={colors.text}/> 
                 </TouchableOpacity>
-                <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 60, backgroundColor: colors.primary, borderRadius: 10, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(round_decimal_place(scrubber / 1000, 2))}>
-                    <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Set Position Right</Text> 
+                <TouchableOpacity style={{alignSelf: 'center', borderRadius: 10, bottom: 50, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(round_decimal_place(scrubber / 1000, 2))}>
+                    <FontAwesome6 size={35} name="arrow-right-from-bracket" color={colors.text}/> 
                 </TouchableOpacity>
-            </View>
-            <View style={{flexDirection: 'row'}}>
-                <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 40, backgroundColor: colors.primary, borderRadius: 5, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_left_trim(0)}>
-                    <Text style={{color: colors.text, fontSize: 20, fontWeight: '600'}}>Reset Position Left</Text> 
+                <TouchableOpacity onPress={() => {playerstate === PlayerState.playing ? waveform_ref.current?.pausePlayer() : waveform_ref.current?.startPlayer();}} style={{alignSelf: 'center', bottom: 50}}>
+                    <Ionicons name={playerstate === PlayerState.playing ? "pause-circle-sharp" : "play-circle-sharp"} size={90} color={colors.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity style={{width: '48%', alignSelf: 'center', height: 40, backgroundColor: colors.primary, borderRadius: 5, bottom: 30, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(track_ref.current?.duration ?? 1)}>
-                    <Text style={{color: colors.text, fontSize: 20, fontWeight: '600'}}>Reset Position Right</Text> 
+                <TouchableOpacity style={{alignSelf: 'center', borderRadius: 10, bottom: 50, alignItems: 'center', justifyContent: 'center', margin: "1%", transform: [{rotate: '180deg'}]}} onPress={() => set_right_trim(round_decimal_place(scrubber / 1000, 2))}>
+                    <FontAwesome6 size={35} name="arrow-right-from-bracket" color={colors.text}/> 
+                </TouchableOpacity>
+                <TouchableOpacity style={{alignSelf: 'center', borderRadius: 5, bottom: 50, alignItems: 'center', justifyContent: 'center', margin: "1%"}} onPress={() => set_right_trim(track_ref.current?.duration ?? 1)}>
+                    <MaterialIcons size={40} name="restart-alt" color={colors.text}/> 
                 </TouchableOpacity>
             </View>
-            <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, top: "10%", backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center'}} onPress={async() => save_selection()}>
+            <TouchableOpacity style={{width: '90%', alignSelf: 'center', height: 60, top: "5%", backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: 'center', justifyContent: 'center', zIndex: 10}} onPress={async() => save_selection()}>
                 <Text style={{color: colors.text, fontSize: 24, fontWeight: '600'}}>Save Trimming</Text>
             </TouchableOpacity>
+            {track_colors ? <LinearGradient
+                    colors={['transparent', 'transparent', track_colors.primary, track_colors.background]}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        height: Dimensions.get('screen').height * .5,
+                        width: '100%',
+                    }}/> : null}
         </View>
     );
 }

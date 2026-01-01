@@ -14,7 +14,7 @@ export default function PlaylistsLayout() {
 				headerShown: true,
 				headerBackTitle: "Back",
 				headerStyle: { backgroundColor: Prefs.dark_theme.colors.background, }, headerTitleStyle: { fontWeight: '500', color: '#FFFFFF' }, headerTintColor: Prefs.dark_theme.colors.primary,
-				headerRight: () => (<Button color='#808080' onPress={() => { }} title="Next" />),
+				headerRight: () => (<Button color='#808080' onPress={() => {return}} title="Next" />),
 			})} />
 			<Stack.Screen name="create" options={{ title: "Create Playlist", headerShown: false, presentation: "modal" }} />
 			<Stack.Screen name="archived" options={{ title: "Archived Playlists", headerShown: false, presentation: "modal" }} />

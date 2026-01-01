@@ -141,7 +141,6 @@ export namespace SharedRouter {
         });
     }
 
-    // TODO fix this lol
     export function goto_shared_track_list(title: string, tracks: Track[]){
         const initial_route = get_initial_route();
         if(!initial_route) return;

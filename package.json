@@ -1,6 +1,6 @@
 {
   "name": "illusi",
-  "version": "17.3.0",
+  "version": "18.0.0",
   "main": "index",
   "expo": {
     "doctor": {
@@ -72,7 +72,7 @@
     "expo-dev-client": "~6.0.16",
     "expo-document-picker": "~14.0.7",
     "expo-file-system": "~19.0.17",
-    "expo-font": "~14.0.8",
+    "expo-font": "~14.0.9",
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.10",
     "expo-image-manipulator": "^14.0.7",
@@ -134,7 +134,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-shimmer-placeholder": "^2.0.9",
     "react-native-siri-shortcut": "^3.2.4",
-    "react-native-svg": "15.12.1",
+    "react-native-svg": "^15.12.1",
     "react-native-swipe-list-view": "^3.2.9",
     "react-native-swipeable-row": "^0.8.1",
     "react-native-swiper": "^1.6.0-rc.3",
@@ -185,18 +185,8 @@
   },
   "private": true,
   "op-sqlite": {
-    "sqlcipher": false,
-    "crsqlite": false,
-    "performanceMode": true,
-    "iosSqlite": false,
-    "sqliteFlags": "-DSQLITE_DQS=0",
-    "fts5": true,
-    "rtree": true,
-    "libsql": true,
-    "sqliteVec": true,
-    "tokenizers": [
-      "simple_tokenizer"
-    ]
+    "performanceMode": false,
+    "sqliteFlags": "-DSQLITE_DQS=0"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

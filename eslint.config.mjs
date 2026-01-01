@@ -111,6 +111,7 @@ export default [
             "@typescript-eslint/require-array-sort-compare": "off",
             "@typescript-eslint/class-methods-use-this": "off",
             "@typescript-eslint/no-misused-promises": "off",
+            "@typescript-eslint/ban-types": "off"
         }
     }
 ];

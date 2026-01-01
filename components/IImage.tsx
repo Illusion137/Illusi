@@ -78,6 +78,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                     {
                         props.blur ? 
                             <BlurView {...props.blur} style={{
+                                pointerEvents: 'box-none',
                                 position: 'absolute',
                                 bottom: 0,
                                 height: image_height,
@@ -90,6 +91,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                         <LinearGradient
                             colors={['transparent', fade_middle_color, fade_end_color]}
                             style={{
+                                pointerEvents: 'box-none',
                                 position: 'absolute',
                                 bottom: 0,
                                 height: props.fade.percent, 
@@ -110,6 +112,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                     {
                         props.blur ? 
                             <BlurView {...props.blur} style={{
+                                pointerEvents: 'box-none',
                                 position: 'absolute',
                                 bottom: 0,
                                 height: image_height,
@@ -122,6 +125,7 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps )
                         <LinearGradient
                             colors={['transparent', fade_middle_color, fade_end_color]}
                             style={{
+                                pointerEvents: 'box-none',
                                 position: 'absolute',
                                 bottom: 0,
                                 height: props.fade.percent, 

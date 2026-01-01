@@ -284,7 +284,7 @@ export default function PlaylistBase(props: PlaylistProps){
 
     const on_debounce_uri_refresh = debounce(() => {
         (async() => {
-            set_tracks((tracks) => SQLTracks.add_playback_saved_data_to_tracks(tracks))
+            set_tracks((tracks_state) => SQLTracks.add_playback_saved_data_to_tracks(tracks_state))
         })()
     }, 1000);
 
@@ -338,7 +338,7 @@ export default function PlaylistBase(props: PlaylistProps){
         }
         if(props.type === "TRACKS_LIST")
         {
-            const refreshed_tracks = await SQLTracks.add_playback_saved_data_to_tracks(props.tracks);
+            const refreshed_tracks = SQLTracks.add_playback_saved_data_to_tracks(props.tracks);
             tracks_ref = refreshed_tracks;
             set_tracks(refreshed_tracks);  
             return;
@@ -375,7 +375,7 @@ export default function PlaylistBase(props: PlaylistProps){
                 return false;
             }
             const o_playlist_data = playlist_data!;
-            const n_tracks = initial_tracks.concat( await SQLTracks.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
+            const n_tracks = initial_tracks.concat( SQLTracks.add_playback_saved_data_to_tracks(playlist_continuation.tracks) );
             const n_continuation = playlist_continuation.continuation;
             tracks_ref = n_tracks;
             set_initial_tracks(n_tracks);
@@ -390,7 +390,7 @@ export default function PlaylistBase(props: PlaylistProps){
         if(!is_empty(continuation) && props.type === "URI"){
             const split = split_uri(props.uri);
             const data = await Illusive.music_service.get(music_service_uri_to_music_service(split[0]))!.get_rest_of_playlist(continuation);
-            tracks_ref = tracks_ref.concat(await SQLTracks.add_playback_saved_data_to_tracks(data));
+            tracks_ref = tracks_ref.concat(SQLTracks.add_playback_saved_data_to_tracks(data));
             set_initial_tracks(tracks_ref);
             set_tracks(tracks_ref);
             set_continuation(null);
@@ -421,7 +421,7 @@ export default function PlaylistBase(props: PlaylistProps){
         const prev_always_shuffle = Prefs.prefs.always_shuffle.current_value;
         Prefs.prefs.always_shuffle.current_value = false;
         const cloned_tracks = [...play_tracks].slice(GLOBALS.global_var.past_track_index);
-        await GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+        GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
         Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
     }
     function play_shuffle(play_tracks: Track[]){
@@ -472,7 +472,7 @@ export default function PlaylistBase(props: PlaylistProps){
                         <IImage source={SQLArtists.artists_artwork_memo[playlist_data?.creator?.[0]?.uri ?? ""]} width={25} height={25}
                             style={{borderRadius: 100, resizeMode: 'contain', height: 25, width: 25, top: 5, right: 10}}/>
                     : null }
-                    <NavLink text={empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date!)?.getFullYear()])} 
+                    <NavLink text={empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? "Sudo", new Date(playlist_data?.date ?? 0)?.getFullYear()])} 
                         uri={playlist_data?.creator?.[0].uri ?? ""}
                         type='artist'
                         text_style={{color: colors.text, fontSize: 14, marginBottom: 20, top: 10}} />
@@ -548,7 +548,7 @@ export default function PlaylistBase(props: PlaylistProps){
                                         presentShortcut(getShortcut(), (data) => data);
                                         break;
                                     case "playlist-actions-save-to-playlist":
-                                        await save_to_playlist(playlist_data?.title!);
+                                        await save_to_playlist(playlist_data?.title ?? "New Playlist");
                                         break;
                                     case "playlist-actions-add-tracks-to-library":
                                         await add_tracks_to_library();

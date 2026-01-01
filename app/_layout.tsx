@@ -1,4 +1,4 @@
-import { router, Stack, usePathname } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
@@ -9,7 +9,7 @@ import appConfig from "app.config";
 import TrackPlayer from "react-native-track-player";
 import type { ConfigContext } from "expo/config";
 import { ThemeProvider } from "@react-navigation/native";
-import { get_shortcut_subscription, load_sqlite_database, on_app_load } from "@illusive/startup";
+import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid } from "@common/utils/util";
 import AudioPlayer from "@screens/AudioPlayer";
@@ -21,11 +21,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
-import { migrate } from 'drizzle-orm/op-sqlite/migrator';
-import migrations from '@illusive/drizzle-mobile/migrations';
-import { load_native_sqlite, sqlite } from "@native/sqlite/sqlite";
-import { db_exec, get_database_handle } from "@illusive/db/database";
-import type { OPSQLiteDatabase } from "drizzle-orm/op-sqlite";
 import { get_linking_handler } from "@utils/linking";
 
 const splash_screen_image = require("../assets/splash.png");
@@ -78,26 +73,9 @@ Sentry.wrap(
 	useEffect(() => {
 		const linking_handler = get_linking_handler();
 
-		const bar: number[] = [];
-	  
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
 		(async() => {
-			// await load_native_sqlite();
-			// await load_sqlite_database();
-			// // const db = sqlite().get_db(get_database_handle());
-			// let migrate_success = true;
-			// try {
-			// 	// await migrate(db as OPSQLiteDatabase, migrations);
-			// }
-			// catch(error) {
-			// 	// console.error(error);
-			// 	migrate_success = false;
-			// 	update_bottom_alert("Failed migrations", "ERROR", {error: error as Error});
-			// }
-			// if(migrate_success) {
-			// 	update_bottom_alert("Successful migrations", "GOOD", `Version ${appConfig({}).version}`);
-			// }
 			await on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if(!GLOBALS.global_var.is_playing) return;

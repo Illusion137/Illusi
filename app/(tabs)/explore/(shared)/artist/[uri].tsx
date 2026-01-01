@@ -70,7 +70,7 @@ export default function Artist(){
             close();
             return;
         }
-        artist.tracks = await SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);
+        artist.tracks = SQLTracks.add_playback_saved_data_to_tracks(artist.tracks);
 
         set_artist_data(artist);
         GLOBALS.global_var.artist_cache.add(uri, {artist_data: artist});

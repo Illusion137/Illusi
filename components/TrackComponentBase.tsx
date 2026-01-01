@@ -44,12 +44,11 @@ export default function TrackComponentBase(props: {
             activeOpacity={props.active_opacity}
 			disabled={props.disabled}
 			onLongPress={props.on_long_press} delayLongPress={Constants.long_press_delay}
-			style={{...reinterpret_cast<{}>(props.style), backgroundColor: props.base_background ? colors.background : colors.track}} 
+			style={{...reinterpret_cast<any>(props.style), backgroundColor: props.base_background ? colors.background : colors.track}} 
 			onPress={props.on_press}>
 			<View style={styles.track_box}>
 				<View style={styles.centered}>
 					<IImage source={props.track_data.playback?.artwork} style={styles.image} tint={is_empty(tint) ? undefined : {color: tint!, opacity: Constants.tint_opacity}}/>
-					{is_empty(tint) ? null : <View style={{...styles.image, opacity: 0.15, position: 'absolute', backgroundColor: tint}}/>}
 					{!isNaN(props.track_data.duration) && !is_empty(props.track_data.duration) ? 
 						<View style={{position: 'absolute', right: duration_to_string(props.track_data.duration).length * -1.5, bottom: 8, borderRadius: 4, backgroundColor: '#000000a0', padding:1}}>
 							<Text style={{color:'white', fontSize:10}}>{duration_to_string(props.track_data.duration)}</Text>

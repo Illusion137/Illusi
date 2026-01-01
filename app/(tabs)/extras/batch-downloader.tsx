@@ -10,7 +10,7 @@ import { batch_download } from '@illusive/downloader';
 import { is_empty } from '@common/utils/util';
 import { Constants } from '@illusive/constants';
 import { Illusive } from '@illusive/illusive';
-import { ExampleObj } from '@illusive/illusi/src/example_objs';
+import { ExampleObj } from '@illusive/example_objs';
 import usePTheme from '@hooks/usePTheme';
 
 export default function ExtraBatchDownloaderScreen() {

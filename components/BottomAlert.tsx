@@ -82,7 +82,7 @@ export default function BottomAlert(props: { type: BottomAlertType; text: string
 		})
 		.onEnd((event) => {
 			if (event.translationY > 50 || event.velocityY > 800) {
-				position_animated.value = withTiming(alert_hide_height, {}, () => {});
+				position_animated.value = withTiming(alert_hide_height, {}, () => {return;});
 			} else {
 				position_animated.value = withSpring(alert_show_height);
 			}

@@ -209,11 +209,6 @@ export default function AudioPlayer(props: {
                 artwork: GLOBALS.global_var.playing_tracks[event.index]?.playback!.artwork,
                 album: GLOBALS.global_var.playing_tracks[event.index]?.album,
             });
-            //     if(event.track?.artwork !== undefined){
-            //         const colors = await getColors(event.track.artwork);
-            //         if(colors.platform === "ios")
-            //             set_sample_artwork_color(colors.primary);
-            //     }
         }
         else if(event.type === Event.PlaybackState){
             set_player_state_type(event.state);

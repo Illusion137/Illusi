@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PlaylistComponent from "@components/PlaylistComponent";
@@ -9,14 +9,14 @@ import { Prefs } from "@illusive/prefs";
 import type { Playlist, ResolvedDefaultPlaylist } from "@illusive/types";
 import { playlist_query_filter } from "@illusive/illusive_utils";
 import BigList from "react-native-big-list";
-import { sort_playlists } from "@illusive/illusi/src/playlist";
+import { sort_playlists } from "@illusive/playlist_utils";
 import { empty_resolved_default_playlists, resolved_default_playlists } from "@illusive/default_playlists";
 import SearchBarV1 from "@components/SearchBarV1";
 import { PLAYLIST_QUERY_FLAGS } from "@illusive/query_flags";
 import usePTheme from "@hooks/usePTheme";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { db } from "@illusive/db/database";
 
-let last_playlists_count = 0;
 export default function Playlists() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -35,27 +35,58 @@ export default function Playlists() {
 	);
 
 	useEffect(() => {
-		refresh_data(undefined, is_focused);
-	}, [is_focused]);
+		refresh_playlists();
+		refresh_default_playlists();
+	}, []);
 
-	async function refresh_data(update_with?: Playlist, force_update?: boolean) {
-		try {
-			resolved_default_playlists().then((rdefault_playlists) => set_default_playlists(rdefault_playlists));
-			if (update_with) {
-				const new_playlist_state = [...playlists_state];
-				const update_index = playlists_state.findIndex((playlist) => update_with.uuid === playlist.uuid);
-				new_playlist_state[update_index] = update_with;
-				set_playlists(new_playlist_state);
-			}
-			const new_last_playlists_count = await SQLPlaylists.playlists_count();
-			if (last_playlists_count !== new_last_playlists_count || force_update) {
-				last_playlists_count = new_last_playlists_count;
-				SQLPlaylists.all_playlists_data().then((playlists) => set_playlists(playlists));
-			}
-		} catch (error) {}
+	async function refresh_playlists() {
+		resolved_default_playlists().then((rdefault_playlists) => set_default_playlists(rdefault_playlists));
+		SQLPlaylists.all_playlists_data().then((playlists) => set_playlists(playlists));
+	}
+	async function refresh_default_playlists() {
+		resolved_default_playlists().then((rdefault_playlists) => set_default_playlists(rdefault_playlists));
 	}
 
-	const render_item = (item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} refresh_data={refresh_data} compact={Prefs.get_pref("compact_playlists")} />;
+	const unsubscribe_playlists = db.$client.reactiveExecute({
+		query: "SELECT * from playlists",
+		arguments: [],
+		fireOn: [
+			{
+				table: 'playlists'
+			},
+			{
+				table: 'playlists_tracks'
+			}
+		],
+		callback: (row) => {
+			console.log(row);
+			refresh_playlists();
+		},
+	});
+	const unsubscribe_default_playlists = db.$client.reactiveExecute({
+		query: "SELECT * from tracks LIMIT 1",
+		arguments: [],
+		fireOn: [
+			{
+				table: 'tracks'
+			},
+			{
+				table: 'recently_played_tracks'
+			}
+		],
+		callback: () => {
+			refresh_default_playlists();
+		},
+	});
+
+	useEffect(() => {
+		return () => {
+			// unsubscribe_playlists();
+			// unsubscribe_default_playlists();
+		}
+	}, []);
+
+	const render_item = (item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} compact={Prefs.get_pref("compact_playlists")} />;
 
 	function show_archived(){
 		router.push({

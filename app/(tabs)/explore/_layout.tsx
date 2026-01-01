@@ -4,6 +4,7 @@ export default function ExploreLayout() {
 	return (
 		<Stack screenOptions={{ headerShown: false }}>
 			<Stack.Screen name="index" options={{ title: "Explore", headerShown: false }} />
+			<Stack.Screen name="rewind" options={{ title: "Rewind", headerShown: false, presentation: 'fullScreenModal' }} />
 			<Stack.Screen name="(shared)/add-to-playlists/[track]" options={{title: "Add To Playlist", presentation: "modal", headerShown: false}}/>
             <Stack.Screen name="(shared)/artist/[uri]" options={{title: "Artist", headerShown: false}}/>
             <Stack.Screen name="(shared)/playlist/[uri]" options={{title: "Playlist", headerShown: false}}/>

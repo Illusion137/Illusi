@@ -4,7 +4,6 @@ import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { GLOBALS } from '@illusive/globals';
-import { sort_playlists } from '@illusive/illusi/src/playlist';
 import type { Playlist} from '@illusive/types';
 import type { Track } from '@illusive/types';
 import { artist_string, track_exists } from '@illusive/illusive_utils';
@@ -14,6 +13,7 @@ import usePTheme from '@hooks/usePTheme';
 import { router } from 'expo-router';
 import useParsedLocalSearchParams from '@hooks/useParsedLocalSearchParams';
 import ModalHeader from '@components/ModalHeader';
+import { sort_playlists } from '@illusive/playlist_utils';
 
 export interface AddToPlaylistsModalParams {
     _track: Track;
@@ -35,7 +35,7 @@ export default function AddToPlaylistsModal() {
     }, []);
 
     const render_playlist_item = (item: {item: Playlist}) => (
-        <PlaylistComponent playlist_data={item.item} select={{mode: true, track: _track!}} refresh_data={() => {}}/>
+        <PlaylistComponent playlist_data={item.item} select={{mode: true, track: _track!}} refresh_data={() => {return}}/>
     );
 
     function close(){

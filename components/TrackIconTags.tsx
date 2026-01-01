@@ -17,8 +17,8 @@ export default function TrackIconTags(props: TrackIconTagsProps){
     
     return (
         <>
-            {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={props.size} color={colors.secondary} style={styles.icon_thin}/> : null}
-            {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={props.size} color={colors.secondary} style={styles.icon_thin}/> : null}
+            {((props.track_data.explicit ?? "NONE") === "EXPLICIT") ? <MaterialIcons name="explicit" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
+            {((props.track_data.explicit ?? "NONE") === "CLEAN") ? <MaterialIcons name="clean-hands" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.media_uri)      ? <FontAwesome5 name="file-audio" solid size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.thumbnail_uri)  ? <Ionicons name="image" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}
             {!is_empty(props.track_data.lyrics_uri)     ? <MaterialIcons name="closed-caption" size={props.size} color={colors.primary} style={styles.icon_thin}/> : null}

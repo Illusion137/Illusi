@@ -2,7 +2,7 @@ import { is_empty } from "@common/utils/util";
 import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";
-import { ExampleObj } from "@illusive/illusi/src/example_objs";
+import { ExampleObj } from "@illusive/example_objs";
 import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { router, useLocalSearchParams } from "expo-router";

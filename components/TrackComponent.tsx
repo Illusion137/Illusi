@@ -20,7 +20,7 @@ import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 // TODO crown top tracks
 function TrackComponent(props: {
 		track_data: Track;
-		write_playlist_uuid?: typeof Constants.library_write_playlist | string;
+		write_playlist_uuid?: typeof Constants.library_write_playlist | (string & {});
 		from?: string;
         playlist_uuid?: string;
 		edit_mode?: EditMode;

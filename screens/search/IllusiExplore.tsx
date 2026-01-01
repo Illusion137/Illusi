@@ -9,7 +9,6 @@ import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { Illusive } from '@illusive/illusive';
 import { get_most_played_artists, get_unique_artists, should_automatic_refresh } from '@illusive/illusive_utils';
-import { push_abortion } from '@origin/utils/orifetch';
 import usePTheme from '@hooks/usePTheme';
 import type { ResponseError } from '@common/types';
 import { artist_watch } from '@illusive/artist_watch';
@@ -25,6 +24,7 @@ import { FutsalShuffle } from '@illusive/futsal_shuffle';
 import { SQLfs } from '@illusive/sql/sql_fs';
 import { reinterpret_cast } from '@common/cast';
 import { SharedRouter } from '@utils/shared_routes';
+import { ExploreLocalData } from '@illusive/explore_local_data';
 
 const youtube_music_top_tracks_playlist_url = "PL4fGSI1pDJn6O1LS0XSdF3RyO0Rq_LDeI";
 const top_tracks_slice = 50;
@@ -94,7 +94,7 @@ export default function IllusiExplore(){
                     }
                 });
                 if("error" in playlist) return;
-                playlist.tracks = await SQLTracks.add_playback_saved_data_to_tracks(playlist.tracks);
+                playlist.tracks = SQLTracks.add_playback_saved_data_to_tracks(playlist.tracks);
                 set_top_tracks(playlist.tracks);
             } catch (error) {
                 console.warn(error);
@@ -115,9 +115,9 @@ export default function IllusiExplore(){
         const most_played_artists = get_most_played_artists(GLOBALS.global_var.sql_tracks);
         const new_releases_length = await SQLNewReleases.new_releases_count();
         const old_persistant = await get_persistant_new_releases(true);
-        const new_releases: (CompactPlaylist[]|ResponseError)[]|ResponseError = await artist_watch(most_played_artists).catch(json_catch);
-        if("error" in new_releases) return new_releases;
-        const filtered_new_releases = (new_releases.filter(r => !("error" in r)) as CompactPlaylist[][]).flat();
+        const artist_watch_new_releases: (CompactPlaylist[]|ResponseError)[]|ResponseError = await artist_watch(most_played_artists).catch(json_catch);
+        if("error" in artist_watch_new_releases) return artist_watch_new_releases;
+        const filtered_new_releases = (artist_watch_new_releases.filter(r => !("error" in r)) as CompactPlaylist[][]).flat();
         await SQLNewReleases.refresh_new_releases(filtered_new_releases);
         const updated_new_releases_length = await SQLNewReleases.new_releases_count();
         const persistant = await get_persistant_new_releases(true);
@@ -152,7 +152,8 @@ export default function IllusiExplore(){
             if(shared_values.cached_new_releases.length !== 0) return;
             const should_refresh_ytmusic_new_releases = yt_music.has_credentials() && should_automatic_refresh(Prefs.get_pref('automatic_new_releases_last_refreshed')) ;
             if(should_refresh_ytmusic_new_releases){
-                push_abortion(milliseconds_of({seconds: 10}), 1);
+                // TODO < fix this abortion with rozfetch > ??
+                // push_abortion(milliseconds_of({seconds: 10}), 1);
                 call_wtimeout(refresh_ytmusic_new_releases, milliseconds_of({seconds: 8}));
             }
             await get_persistant_new_releases();
@@ -181,6 +182,7 @@ export default function IllusiExplore(){
                 </>
                 : null
             }
+            <AlbumList title='Illusi Playlists' second_line_type='ARTIST' else_type='ALBUM' albums={[ExploreLocalData.christmas_playlist]}/>
             {
                 forgotten_favorites.length > 0 ?
                 <>

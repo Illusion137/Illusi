@@ -7,7 +7,7 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { SelectList } from "react-native-dropdown-select-list";
-import { ExampleObj } from "@illusive/illusi/src/example_objs";
+import { ExampleObj } from "@illusive/example_objs";
 import FourTrackArtwork from "@components/FourTrackArtwork";
 import { Ionicons } from "@expo/vector-icons";
 import { is_empty } from '@common/utils/util';

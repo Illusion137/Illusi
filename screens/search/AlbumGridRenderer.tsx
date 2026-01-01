@@ -101,7 +101,7 @@ export default function AlbumGridRenderer(props: {
             </View>
             <View style={{width: '95%', zIndex: 5, flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View style={{width: '88%'}}>
-                    <SearchBarV1 onChangeText={(query) => set_query(query)} query_flags={COMPACT_PLAYLIST_QUERY_FLAGS} placeholder={`Search ${props.title}`}/>
+                    <SearchBarV1 onChangeText={(change_query) => set_query(change_query)} query_flags={COMPACT_PLAYLIST_QUERY_FLAGS} placeholder={`Search ${props.title}`}/>
                 </View>
                 <TouchableOpacity style={{right: '7%', justifyContent: 'center', alignItems: 'center', borderRadius: 10, width: 60, marginHorizontal: 30}}>
                 <ContextMenuButton menuConfig={menuconfig_sort}

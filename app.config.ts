@@ -6,7 +6,7 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     ...config,
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "17.3.0",
+    "version": "18.0.0",
     // "orientation": "portrait",
     // "icon": "./assets/icon.png",
     // "userInterfaceStyle": "dark",
@@ -51,8 +51,16 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
         "favicon": "./assets/favicon.png"
     },
     "plugins": [
-        // "expo-font",
-        // "expo-router",
+        [
+            "expo-font",
+            {
+                "fonts": [
+                    "./assets/fonts/LEMON.otf",
+                    "./assets/fonts/StarsBorneoDEMO.tff"
+                ],
+            },
+        ],
+        "expo-router",
         [
             "@sentry/react-native/expo",
             {
