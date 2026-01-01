@@ -21,7 +21,7 @@ export default function TabLayout() {
 				tabBarInactiveBackgroundColor: theme.colors.background,
 			}}>
 			<Tabs.Screen
-				name="(library)"
+				name="library"
 				options={{
 					title: "My Library",
 					tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="library-sharp" size={30} color={color} />,

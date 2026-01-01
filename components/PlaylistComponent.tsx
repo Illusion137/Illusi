@@ -201,7 +201,7 @@ export default function PlaylistComponent(props: {
 			onMenuWillShow={() => {
 				set_is_playing_music(GLOBALS.global_var.is_playing);
 			}}
-			onPressMenuItem={async({nativeEvent}) => {
+			onPressMenuItem={async({nativeEvent}: {nativeEvent: {actionKey: string}}) => {
 				switch(nativeEvent.actionKey){
 					case "playlist-sprinkle-in-queue": sprinkle_into_queue(await SQLPlaylists.playlist_tracks(props.playlist_data.uuid));  break;
 					case "playlist-pin": toggle_pin(); break;

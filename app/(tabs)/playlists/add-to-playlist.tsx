@@ -47,7 +47,7 @@ export default function AddToPlaylistBase(){
                     renderItem={compact_playlist_component}
                     renderFooter={null}
                     renderHeader={null}
-                    keyExtractor={(_, i) => String(i)}
+                    keyExtractor={(v) => String(v.title)}
                     itemHeight={61}
                 />
             </View>
@@ -61,7 +61,7 @@ export default function AddToPlaylistBase(){
                 renderFooter={() => (<View style={{height: 100}}/>)}
                 footerHeight={100}
                 renderHeader={null}
-                keyExtractor={(_, i) => String(i)}
+                keyExtractor={(v, _) => String(v.title)}
                 itemHeight={61}
             />
         </View>

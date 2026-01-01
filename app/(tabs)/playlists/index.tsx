@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import PlaylistComponent from "@components/PlaylistComponent";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import { useIsFocused } from "@react-navigation/native";
 import DefaultPlaylistComponent from "@components/DefaultPlaylistComponent";
 import { Prefs } from "@illusive/prefs";
 import type { Playlist, ResolvedDefaultPlaylist } from "@illusive/types";
@@ -14,14 +13,12 @@ import { empty_resolved_default_playlists, resolved_default_playlists } from "@i
 import SearchBarV1 from "@components/SearchBarV1";
 import { PLAYLIST_QUERY_FLAGS } from "@illusive/query_flags";
 import usePTheme from "@hooks/usePTheme";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { db } from "@illusive/db/database";
 
 export default function Playlists() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
-
-	const is_focused = useIsFocused();
 
 	const [query, set_query] = useState<string>("");
 	const [playlists_state, set_playlists] = useState<Playlist[]>([]);
@@ -35,56 +32,50 @@ export default function Playlists() {
 	);
 
 	useEffect(() => {
+		const unsubscribe_playlists = db.$client.reactiveExecute({
+			query: "SELECT id from playlists LIMIT 1",
+			arguments: [],
+			fireOn: [
+				{
+					table: 'playlists',
+				},
+				{
+					table: 'playlists_tracks'
+				}
+			],
+			callback: () => {
+				refresh_playlists();
+			},
+		});
+		const unsubscribe_default_playlists = db.$client.reactiveExecute({
+			query: "SELECT id from tracks LIMIT 1",
+			arguments: [],
+			fireOn: [
+				{
+					table: 'tracks'
+				},
+				{
+					table: 'recently_played_tracks'
+				}
+			],
+			callback: () => {
+				refresh_default_playlists();
+			},
+		});
 		refresh_playlists();
 		refresh_default_playlists();
+		return () => {
+			unsubscribe_playlists();
+			unsubscribe_default_playlists();
+		}
 	}, []);
 
 	async function refresh_playlists() {
-		resolved_default_playlists().then((rdefault_playlists) => set_default_playlists(rdefault_playlists));
 		SQLPlaylists.all_playlists_data().then((playlists) => set_playlists(playlists));
 	}
 	async function refresh_default_playlists() {
 		resolved_default_playlists().then((rdefault_playlists) => set_default_playlists(rdefault_playlists));
 	}
-
-	const unsubscribe_playlists = db.$client.reactiveExecute({
-		query: "SELECT * from playlists",
-		arguments: [],
-		fireOn: [
-			{
-				table: 'playlists'
-			},
-			{
-				table: 'playlists_tracks'
-			}
-		],
-		callback: (row) => {
-			console.log(row);
-			refresh_playlists();
-		},
-	});
-	const unsubscribe_default_playlists = db.$client.reactiveExecute({
-		query: "SELECT * from tracks LIMIT 1",
-		arguments: [],
-		fireOn: [
-			{
-				table: 'tracks'
-			},
-			{
-				table: 'recently_played_tracks'
-			}
-		],
-		callback: () => {
-			refresh_default_playlists();
-		},
-	});
-
-	useEffect(() => {
-		return () => {
-			// unsubscribe_playlists();
-			// unsubscribe_default_playlists();
-		}
-	}, []);
 
 	const render_item = (item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} compact={Prefs.get_pref("compact_playlists")} />;
 

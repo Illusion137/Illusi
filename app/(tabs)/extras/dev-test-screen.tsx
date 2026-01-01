@@ -1,9 +1,10 @@
+import { wait } from '@common/utils/timed_util';
+import IImage from '@components/IImage';
 import { GLOBALS } from '@illusive/globals';
 import React, { useEffect, useRef } from 'react';
-import { Dimensions, Image, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import Animated, {
     useSharedValue,
-    withRepeat,
     withTiming,
     useAnimatedStyle,
     Easing,
@@ -23,87 +24,74 @@ interface Falling_item {
 
 
 export default function ExtraDevTestScreen(){
-    const images = useRef(GLOBALS.global_var.sql_tracks.slice(0, 5).map(t => t.playback?.artwork ?? 0));
+    const title = "Janurary";
+    const images = useRef(GLOBALS.global_var.sql_tracks.slice(0, 50).map(t => t.playback?.artwork ?? 0));
+    
+    const title_position = useSharedValue(0);
     const falling_items: Falling_item[] = images.current.map((source, i) => {
         return {
             id: i,
-            x: 0.5 * SCREEN_WIDTH,
-            // x: Math.random() * SCREEN_WIDTH,
-            y: useSharedValue(Math.random() * SCREEN_HEIGHT),
+            x: Math.random() * SCREEN_WIDTH,
+            y: useSharedValue(-200),
             rotation: (Math.random() - 0.5) * 30,
-            speed: 10000 + Math.random() * 2000,
+            speed: 8000 + Math.random() * 3000,
             source,
         };
     });
 
-    // useEffect(() => {
-    //     falling_items.forEach((item) => {
-    //         item.y.value = withTiming(
-    //             withTiming(SCREEN_HEIGHT, {
-    //                 duration: item.speed,
-    //                 easing: Easing.linear,
-    //             }),
-    //         );
-    //     });
-    // }, []);
+    useEffect(() => {
+        (async() => {
+            title_position.value = withTiming(SCREEN_HEIGHT, {
+                duration: 7000,
+                easing: Easing.quad,
+            });
+            falling_items.forEach((item) => {
+                item.y.value = withTiming(SCREEN_HEIGHT, {
+                    duration: item.speed,
+                    easing: Easing.quad,
+                });
+            });
+            await wait(11000);
+            falling_items.forEach((item) => {
+                item.y.value = -200;
+            });
+            falling_items.forEach((item) => {
+                item.y.value = withTiming(SCREEN_HEIGHT, {
+                    duration: item.speed,
+                    easing: Easing.quad,
+                });
+            });
+        })();
+    }, []);
 
-    // console.log(falling_items.map(f => f.y.get()));
+    const title_animated_style = useAnimatedStyle(() => ({
+        position: 'absolute',
+        transform: [{translateY: title_position.value}],
+    }));
 
     return (
         <View style={{flex: 1}}>
+            <Animated.Text style={[title_animated_style, {left: "40%", color: "white", fontSize: 30, fontWeight: 'bold'}]}>{title}</Animated.Text>
             {falling_items.map((item) => {
-                return (
-                    <Image
-                        key={item.id}
-                        source={0}
-                        width={50}
-                        height={50}
-                        style={[{ width: 50, height: 50, position: 'absolute', top: "50%", left: "50%" }]}
-                        resizeMode="cover"
-                    />
-                );
-            })}
-            {/* {falling_items.map((item) => {
                 const animated_style = useAnimatedStyle(() => ({
                     position: 'absolute',
-                    top: "50%",
-                    left: "50%",
-                    transform: [{ rotate: `${item.rotation}deg` }],
+                    left: item.x,
+                    transform: [{ rotate: `${item.rotation}deg` }, {translateY: item.y.value}],
                 }));
-                console.log(item)
                 return (
-                    // <Animated.Image
-                    //     key={item.id}
-                    //     source={item.source}
-                    //     style={[animated_style, styles.album_image]}
-                    //     resizeMode="cover"
-                    // />
-                    <Image
-                        key={item.id}
-                        source={0}
-                        style={[{ width: 50, height: 50, position: 'absolute', top: "50%", left: item.x }]}
-                        resizeMode="cover"
-                    />
+                    <Animated.View key={item.id} style={[animated_style]}>
+                        <IImage
+                            key={item.id}
+                            source={item.source}
+                            style={[{ width: 100, height: 100 }]}
+                            resizeMode="cover"
+                        />
+                    </Animated.View>
                 );
-            })} */}
+            })}
         </View>
     );
 }
-
-// const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000030',
-    },
-    album_image: {
-        width: 100,
-        height: 100,
-        borderRadius: 4,
-        zIndex: 10
-    },
-});
 
 // import { useEffect } from "react";
 // import { Dimensions, StyleSheet, View } from "react-native";

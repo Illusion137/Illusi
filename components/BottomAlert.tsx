@@ -114,7 +114,7 @@ export default function BottomAlert(props: { type: BottomAlertType; text: string
 			<Ionicons name={type_map[props.type].icon as any} size={30} color={type_map[props.type].color} style={{ paddingLeft: 10 }} />
 			<IoniconsTouchableOpacity on_press={hide} icon_name="close-sharp" icon_size={20} icon_color={colors.text} hitslop={5} style={{ position: 'absolute', zIndex: 10, top: 10, right: 10 }} />
 			<TouchableOpacity onPress={show_more_info} style={{paddingLeft: 10}}>
-				<Text style={{ color: colors.text, fontSize: 13, fontWeight: "bold" }}>{props.text}</Text>
+				<Text style={{ color: colors.text, fontSize: props.more_info ? 13 : 15, fontWeight: "bold", top: props.more_info ? 0 : 5 }}>{props.text}</Text>
 				<Text numberOfLines={2} style={{ color: colors.subtext, fontSize: 10, width: '70%' }}>{props.more_info ? typeof props.more_info === "string" ? props.more_info : `[ERROR] ${props.more_info.error.message}` : ""}</Text>
 			</TouchableOpacity>
 		</Animated.View>
