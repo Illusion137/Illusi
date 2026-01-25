@@ -37,37 +37,37 @@ export default function Playlists() {
 			arguments: [],
 			fireOn: [
 				{
-					table: 'playlists',
+					table: "playlists"
 				},
 				{
-					table: 'playlists_tracks'
+					table: "playlists_tracks"
 				}
 			],
 			callback: () => {
 				refresh_playlists();
-			},
+			}
 		});
 		const unsubscribe_default_playlists = db.$client.reactiveExecute({
 			query: "SELECT id from tracks LIMIT 1",
 			arguments: [],
 			fireOn: [
 				{
-					table: 'tracks'
+					table: "tracks"
 				},
 				{
-					table: 'recently_played_tracks'
+					table: "recently_played_tracks"
 				}
 			],
 			callback: () => {
 				refresh_default_playlists();
-			},
+			}
 		});
 		refresh_playlists();
 		refresh_default_playlists();
 		return () => {
 			unsubscribe_playlists();
 			unsubscribe_default_playlists();
-		}
+		};
 	}, []);
 
 	async function refresh_playlists() {
@@ -79,15 +79,15 @@ export default function Playlists() {
 
 	const render_item = (item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} compact={Prefs.get_pref("compact_playlists")} />;
 
-	function show_archived(){
+	function show_archived() {
 		router.push({
-			pathname: '/playlists/archived', 
-			params: {"query": query}
+			pathname: "/playlists/archived",
+			params: { query: query }
 		});
 	}
-	function show_create(){
+	function show_create() {
 		router.push({
-			pathname: '/playlists/create'
+			pathname: "/playlists/create"
 		});
 	}
 
@@ -95,9 +95,8 @@ export default function Playlists() {
 		<View style={styles.top_container}>
 			<View style={styles.header}>
 				<View style={{ flexDirection: "row", bottom: 20, alignItems: "center" }}>
-					<TouchableOpacity
-						onPress={show_archived}>
-							<Ionicons name="archive" size={25} color={colors.primary} style={{ right: 110 }} />
+					<TouchableOpacity onPress={show_archived}>
+						<Ionicons name="archive" size={25} color={colors.primary} style={{ right: 110 }} />
 					</TouchableOpacity>
 					<Text style={styles.top_text}>Playlists</Text>
 					<TouchableOpacity onPress={show_create}>
@@ -118,17 +117,7 @@ export default function Playlists() {
 				</ScrollView>
 			</View>
 			<View style={{ width: "100%", height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30 }} />
-			<BigList
-				style={{ height: "71%" }}
-				data={sorted_queried_playlists}
-				keyExtractor={(item, _) => String(item.uuid)}
-				itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81}
-				headerHeight={0}
-				footerHeight={100}
-				renderItem={render_item}
-				renderHeader={() => <></>}
-				renderFooter={() => <View style={{ height: 100 }}></View>}
-			/>
+			<BigList style={{ height: "71%" }} data={sorted_queried_playlists} keyExtractor={(item, _) => item.uuid} itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => <></>} renderFooter={() => <View style={{ height: 100 }}></View>} />
 		</View>
 	);
 }

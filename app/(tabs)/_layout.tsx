@@ -20,6 +20,7 @@ export default function TabLayout() {
 				tabBarActiveBackgroundColor: theme.colors.background,
 				tabBarInactiveBackgroundColor: theme.colors.background,
 			}}>
+			<Tabs.Screen name="index" options={{href: null}}/>
 			<Tabs.Screen
 				name="library"
 				options={{

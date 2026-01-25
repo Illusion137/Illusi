@@ -3,7 +3,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { Prefs } from '@illusive/prefs';
 import usePTheme from '@hooks/usePTheme';
 
-export default function ExtraRecoveryScreen() {
+export default function ExtraSyncScreen() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
     

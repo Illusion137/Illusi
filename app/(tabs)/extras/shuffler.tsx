@@ -1,0 +1,55 @@
+import Equalizer from "@components/Equalizer";
+import ExtrasSectionButton from "@components/ExtrasSectionButton";
+import { Ionicons } from "@expo/vector-icons";
+import usePTheme from "@hooks/usePTheme";
+import { Prefs } from "@illusive/prefs";
+import { router } from "expo-router";
+import { useState } from "react";
+import { ScrollView, Text, TextInput, View } from "react-native";
+
+const shuffler_min = -64;
+const shuffler_max = 64;
+function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_update: () => any }) {
+	const { colors } = usePTheme();
+
+	function on_change_text(text: string) {
+		let value = parseFloat(text);
+		if (isNaN(value)) return;
+		value = Math.max(Math.min(value, shuffler_max), shuffler_min);
+		Prefs.prefs.track_shuffle_bias.current_value[props.shuffler_key as keyof typeof Prefs.prefs.track_shuffle_bias.current_value] = value;
+		Prefs.save_pref("track_shuffle_bias", Prefs.prefs.track_shuffle_bias.current_value);
+		props.on_update();
+	}
+
+	return (
+		<>
+			<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", height: 40, backgroundColor: colors.track, paddingHorizontal: 15 }}>
+				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
+					<Ionicons name="shuffle-outline" color={colors.primary} size={25} style={{ marginRight: 15 }} />
+					<Text style={{ color: colors.text, fontSize: 16 }}>{Prefs.snake_case_to_plain_text(props.shuffler_key)}</Text>
+				</View>
+				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.card, width: "40%", height: "70%", padding: 5, color: colors.text }} onChangeText={on_change_text} />
+			</View>
+			<View style={{ height: 1, backgroundColor: colors.line, width: "90%" }} />
+		</>
+	);
+}
+
+export default function Shuffler() {
+	const shuffler_inputs = Object.entries(Prefs.get_pref("track_shuffle_bias"));
+	const [visualizer_state, set_visualizer_state] = useState(Object.values(Prefs.get_pref("track_shuffle_bias")));
+
+	return (
+		<View>
+			<Equalizer min={shuffler_min} max={shuffler_max} values={visualizer_state} freqs={[]} height={200} />
+			<ExtrasSectionButton icon="ticket-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push("/extras/shuffler-test")} />
+			<View style={{ height: 10 }} />
+			<ScrollView>
+				{shuffler_inputs.map((input) => (
+					<ShufflerInput key={input[0]} shuffler_key={input[0]} initial_value={input[1]} on_update={() => set_visualizer_state(Object.values(Prefs.get_pref("track_shuffle_bias")))} />
+				))}
+				<View style={{ height: 300 }} />
+			</ScrollView>
+		</View>
+	);
+}

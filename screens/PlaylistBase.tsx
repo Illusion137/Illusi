@@ -521,7 +521,7 @@ export default function PlaylistBase(props: PlaylistProps){
                             menuConfig={props.type === "UUID" || props.type === "DEFAULT_PLAYLIST" || props.type === "TRACKS_LIST" ? 
                                 menuconfig_local_playlist : props.uri ? 
                                     menuconfig_external_playlist : undefined}
-                            onPressMenuItem={async({nativeEvent}) => {
+                            onPressMenuItem={async({nativeEvent}: any) => {
                                 switch(nativeEvent.actionKey){
                                     case "playlist-actions-default-mode":
                                         set_edit_mode_state("NONE");
@@ -578,8 +578,9 @@ export default function PlaylistBase(props: PlaylistProps){
                         itemHeight={61} 
                         footerHeight={50}
                         renderHeader={header_component} 
-                        renderItem={render_track}
                         renderFooter={footer_component}
+                        keyExtractor={(track) => track.uid}
+                        renderItem={render_track}
                         data={filtered_tracks}
                         onEndReached={try_continuation}
                         onEndReachedThreshold={0.3}

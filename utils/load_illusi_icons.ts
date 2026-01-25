@@ -7,7 +7,9 @@ const sudo_profile_picture = require("../assets/sudo.jpg");
 const sumi_profile_picture = require("../assets/sumi.jpg");
 const illusi_icon_transparent = require("../assets/icon_transparent.png");
 
-export async function load_illusi_icons(){
+const santa_time_icon = require("../assets/santa.jpg");
+
+export async function load_illusi_icons() {
     illusi_icons_icon_map.length = 0;
     illusi_icons_icon_map.push(
         ...[
@@ -16,7 +18,12 @@ export async function load_illusi_icons(){
             imported_thumbnail,
             sudo_profile_picture,
             sumi_profile_picture,
-            illusi_icon_transparent
+            illusi_icon_transparent,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            santa_time_icon,
         ]
     );
 }

@@ -1,4 +1,4 @@
-import type { MutableRefObject} from "react";
+import type { RefObject } from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Animated, StyleSheet, View, Text } from "react-native";
 import BigList from "react-native-big-list";
@@ -56,13 +56,14 @@ function LibraryTrackList(
 				search_query = "";
 			}
 			refresh_data(search_query);
-	}, []));
+		}, [])
+	);
 
 	useEffect(() => {
 		on_edit_mode_change(props.edit_mode);
 	}, [props.edit_mode]);
 
-	async function refresh_data(query: string | undefined = undefined) {
+	async function refresh_data(query?: string) {
 		search_query = query ?? search_query ?? "";
 
 		const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
@@ -112,7 +113,7 @@ function LibraryTrackList(
 
 	return (
 		<>
-			<BigList style={{ height: "71%" }} sections={all_data.track_mask} renderItem={render_track} keyExtractor={(item, _) => item.uid} renderHeader={props.header_item ?? header_component} renderSectionHeader={section_header} renderFooter={section_footer} sectionHeaderHeight={30} headerHeight={props.header_height ?? 90} footerHeight={100} ref={biglist_ref as MutableRefObject<BigList>} itemHeight={61} stickySectionHeadersEnabled={false} />
+			<BigList style={{ height: "71%" }} sections={all_data.track_mask} renderItem={render_track} keyExtractor={(item, _) => item.uid} renderHeader={props.header_item ?? header_component} renderSectionHeader={section_header} renderFooter={section_footer} sectionHeaderHeight={30} headerHeight={props.header_height ?? 90} footerHeight={100} ref={biglist_ref as RefObject<BigList>} itemHeight={61} stickySectionHeadersEnabled={false} />
 			<Animated.View
 				style={{
 					backgroundColor: colors.background,

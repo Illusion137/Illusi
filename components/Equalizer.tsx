@@ -13,15 +13,18 @@ interface EqualizerCurveProps {
 	width?: number;
 	height?: number;
 	active?: boolean;
+	min?: number;
+	max?: number;
 }
 
-export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "1KHz", "2.4KHz", "15KHz"], width = 350, height = 200, active = true }: EqualizerCurveProps) {
+export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "1KHz", "2.4KHz", "15KHz"], width = 350, height = 200, active = true, min = -12, max = 12 }: EqualizerCurveProps) {
 	const points = useMemo(() => {
 		const count = values.length;
 		const stepX = width / (count - 1);
 		return values.map((v, i) => {
-			const clamped = Math.max(-12, Math.min(12, v));
-			const y = height - ((clamped + 12) / 24) * height;
+			const dist = Math.abs(max) + Math.abs(min);
+			const clamped = Math.max(min, Math.min(max, v));
+			const y = height - ((clamped + max) / dist) * height;
 			return { x: i * stepX, y };
 		});
 	}, [values, width, height]);
@@ -68,7 +71,7 @@ export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "
 					</View>
 				))}
 			</View>
-			<View style={{height: 10}}/>
+			<View style={{ height: 10 }} />
 		</View>
 	);
 }

@@ -9,7 +9,7 @@ interface ExtraNavigationBtnBase {
     icon: keyof (typeof Ionicons)["glyphMap"] | 'NONE';
     indev?: boolean;
 }
-type ExtraNavigationBtn = (ExtraNavigationBtnBase & {href: Href}) | (ExtraNavigationBtnBase & {on_press: () => any});
+type ExtraNavigationBtn = (ExtraNavigationBtnBase & { href: Href }) | (ExtraNavigationBtnBase & { on_press: () => any });
 interface ExtraLayout {
     buttons: ExtraNavigationBtn[];
     custom_components?: CustomComponents[];
@@ -21,9 +21,10 @@ export const extras_layout: () => ExtraLayout[] = () => [
     {
         buttons: [
             {
-                title: "Backup, Recover, & Transfer",
-                href: "/extras/recovery",
-                icon: "sync-circle-outline"
+                title: "Sync",
+                href: "/extras/sync",
+                icon: "sync-circle-outline",
+                indev: true
             }
         ],
         description: "Backup your music, transfer your playlists to other devices, recover deleted music and more"
@@ -34,6 +35,7 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Keep Delete",
                 href: "/extras/keep-delete",
                 icon: "heart-outline",
+                indev: true
             }
         ],
         description: "The Tinder of your Music; Swipe left to delete tracks or swipe right to keep"
@@ -46,10 +48,9 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 icon: "settings-outline"
             },
             {
-                title: "Sleep Timer",
-                href: "/extras/sleep-timer",
-                icon: "timer-outline",
-                indev: true
+                title: "Shuffler",
+                href: "/extras/shuffler",
+                icon: "shuffle-sharp"
             },
             {
                 title: "Discord Integration",
@@ -70,12 +71,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Batch Downloader",
                 href: "/extras/batch-downloader",
                 icon: "file-tray-stacked-outline"
-            },
-            {
-                title: "Playlist Converter",
-                href: "/extras/playlist-converter",
-                icon: "list-circle-outline",
-                indev: true
             },
             {
                 title: "Linker",

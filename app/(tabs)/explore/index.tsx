@@ -30,7 +30,7 @@ export default function Explore() {
 			{!search_screen_state ? (
 				<SearchScreen />
 			) : (
-				<LinearGradient colors={[colors.primary, colors.background]} locations={[0, 0.2]} end={{ x: 1, y: 2 }} style={styles.topContainer}>
+				<>
 					<View style={styles.wrapper}>
 						<TextInput
 							onPressIn={() => {
@@ -45,24 +45,26 @@ export default function Explore() {
 					</View>
 					<IllusiExplore />
 					<LinearGradient
-						colors={[colors.background, fade_top_top, 'transparent']}
+						colors={[colors.background, fade_top_top, "transparent"]}
 						style={{
-							position: 'absolute',
+							position: "absolute",
 							top: 0,
-							height: "20%", 
-							width: '100%',
-							pointerEvents: 'none',
-					}}/>
+							height: "20%",
+							width: "100%",
+							pointerEvents: "none"
+						}}
+					/>
 					<LinearGradient
-						colors={[colors.background, fade_top_bottom, 'transparent']}
+						colors={[colors.background, fade_top_bottom, "transparent"]}
 						style={{
-							position: 'absolute',
+							position: "absolute",
 							top: 0,
-							height: "10%", 
-							width: '100%',
-							pointerEvents: 'none',
-					}}/>
-				</LinearGradient>
+							height: "10%",
+							width: "100%",
+							pointerEvents: "none"
+						}}
+					/>
+				</>
 			)}
 		</>
 	);
@@ -72,7 +74,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		topContainer: {
 			flex: 1,
 			backgroundColor: colors.background,
-			pointerEvents: 'box-none'
+			pointerEvents: "box-none"
 		},
 		line_long: {
 			width: "100%",
