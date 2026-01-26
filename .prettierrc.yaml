@@ -1,0 +1,10 @@
+singleQuote: false
+semi: true
+printWidth: 500
+trailingComma: none
+useTabs: true
+tabWidth: 4
+bracketSameLine: true
+bracketSpacing: true
+objectWrap: collapse
+proseWrap: never
