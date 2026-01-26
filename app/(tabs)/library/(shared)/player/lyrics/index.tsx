@@ -7,9 +7,9 @@ import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from "react-native";
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
-import { UITextView } from "@jeongshin/react-native-uitextview";
+import { UITextView } from "react-native-uitextview";
 
 // TODO add little top progress bar to show how far in the lyrcics you are and stuff :3
 // TODO make the little blurred background effect
@@ -84,7 +84,7 @@ export default function AudioPlayerLyrics() {
 					<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={styles.lyrics_text}>
 						{lyrics
 							.split("\n")
-							.map((line) => (/\[.+?\]/.test(line) ? "" : line))
+							.map((line) => (/^\[.+?\]$/.test(line) ? "" : line))
 							.map((line, i) => (
 								<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={line + i} style={styles.lyrics_text}>
 									{line + "\n"}

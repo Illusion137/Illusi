@@ -1844,7 +1844,7 @@ PODS:
     - ReactNativeDependencies
     - SwiftAudioEx
     - Yoga
-  - react-native-uitextview (1.4.1):
+  - react-native-uitextview (2.1.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2773,7 +2773,7 @@ DEPENDENCIES:
   - "react-native-segmented-control (from `../node_modules/@react-native-segmented-control/segmented-control`)"
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
   - react-native-track-player (from `../node_modules/react-native-track-player`)
-  - "react-native-uitextview (from `../node_modules/@jeongshin/react-native-uitextview`)"
+  - react-native-uitextview (from `../node_modules/react-native-uitextview`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -2995,7 +2995,7 @@ EXTERNAL SOURCES:
   react-native-track-player:
     :path: "../node_modules/react-native-track-player"
   react-native-uitextview:
-    :path: "../node_modules/@jeongshin/react-native-uitextview"
+    :path: "../node_modules/react-native-uitextview"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
   React-NativeModulesApple:
@@ -3177,7 +3177,7 @@ SPEC CHECKSUMS:
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-slider: f954578344106f0a732a4358ce3a3e11015eb6e1
   react-native-track-player: 61dee63910554d02b86bc5898c04db6c096b7d81
-  react-native-uitextview: ae05ecfaf27481f26e76ced63a2b1e8579f1a3fd
+  react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
   react-native-webview: 3e303e80cadb5f17118c8c1502aa398e9287e415
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
   React-oscompat: ce47230ed20185e91de62d8c6d139ae61763d09c
