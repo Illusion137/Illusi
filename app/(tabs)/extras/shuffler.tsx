@@ -1,6 +1,6 @@
 import Equalizer from "@components/Equalizer";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import { Entypo, Ionicons } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
 import { Prefs } from "@illusive/prefs";
 import { router } from "expo-router";
