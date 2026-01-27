@@ -28,7 +28,7 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 					<Entypo name="shuffle" color={colors.primary} size={25} style={{ marginRight: 12 }} />
 					<Text style={{ color: colors.text, fontSize: 18 }}>{Prefs.snake_case_to_plain_text(props.shuffler_key)}</Text>
 				</View>
-				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.track, width: "40%", height: "70%", padding: 5, color: colors.text, fontSize: 18, fontFamily: "Helvetica Ne" }} onChangeText={on_change_text} />
+				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.track, width: "40%", height: "70%", padding: 5, color: colors.text, fontSize: 18, fontStyle: "italic", fontWeight: "500" }} onChangeText={on_change_text} />
 			</View>
 			<View style={{ height: 1, backgroundColor: colors.line, width: "90%", left: "10%" }} />
 			<View style={{ height: 1, backgroundColor: colors.line, width: "30%", left: "70%" }} />
