@@ -48,7 +48,7 @@ export default function TrackComponentBase(props: { track_data: Track; is_downlo
 					</View>
 				</View>
 				{props.children}
-				{props.score ? <Text style={{ position: "absolute", color: colors.text, alignSelf: "center", left: "80%" }}>{round_decimal_place(props.score, 2)}</Text> : null}
+				{props.score !== undefined ? <Text style={{ position: "absolute", color: colors.text, alignSelf: "center", left: "80%" }}>{round_decimal_place(props.score, 2)}</Text> : null}
 			</View>
 			<View style={styles.line} />
 		</TouchableOpacity>

@@ -9,7 +9,7 @@ import BigList from "react-native-big-list";
 
 export default function ShufflerTest() {
 	const shuffled_tracks = useMemo(() => FutsalShuffle.futsal_shuffle(GLOBALS.global_var.sql_tracks), []);
-	const render_track = (item: { item: Track }) => <TrackComponentBase score={FutsalShuffle.icache.track_uid_to_weight.get(item.item.uid) ?? 0} track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} on_press={() => {}} on_long_press={() => {}} />;
+	const render_track = (item: { item: Track }) => <TrackComponentBase score={Math.log(Math.max(FutsalShuffle.icache.track_uid_to_weight.get(item.item.uid) ?? 1, 1))} track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} on_press={() => {}} on_long_press={() => {}} />;
 
 	return (
 		<View style={{ flex: 1, height: "100%" }}>
