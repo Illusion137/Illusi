@@ -28,28 +28,26 @@ const splash_screen_image = require("../assets/splash.png");
 TrackPlayer.registerPlaybackService(() => playback_service);
 
 Sentry.init({
-	dsn: 'https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616',
-  
+	dsn: "https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616",
+
 	// Adds more context data to events (IP address, cookies, user, etc.)
 	// For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
 	sendDefaultPii: true,
-  
+
 	// Enable Logs
 	// enableLogs: true,
-	enabled: !__DEV__,
-  
+	enabled: !__DEV__
+
 	// Configure Session Replay
 	// replaysSessionSampleRate: 0.1,
 	// replaysOnErrorSampleRate: 1,
 	// integrations: [Sentry.mobileReplayIntegration()],
-  
+
 	// uncomment the line below to enable Spotlight (https://spotlightjs.com)
 	// spotlight: __DEV__,
 });
 
-export default 
-Sentry.wrap(
-	function App() {
+export default Sentry.wrap(function App() {
 	const [theme, set_theme] = useState<Prefs.Theme>(Prefs.get_theme(Prefs.get_pref("theme")));
 	const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
 	const [playing_from, set_playing_from] = useState("");
@@ -59,7 +57,7 @@ Sentry.wrap(
 		uuid: "",
 		text: "",
 		type: "GOOD" as BottomAlertType,
-		more_info: "" as string|ResponseError
+		more_info: "" as string | ResponseError
 	});
 
 	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
@@ -75,24 +73,23 @@ Sentry.wrap(
 
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
-		(async() => {
-			await on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
+		(async () => {
+			await on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
 			GLOBALS.global_var.kill_audioplayer = () => {
-				if(!GLOBALS.global_var.is_playing) return;
+				if (!GLOBALS.global_var.is_playing) return;
 				try {
 					GLOBALS.global_var.is_playing = false;
 					set_is_playing("OFF");
-					TrackPlayer.reset().catch(e => e);
-				}
-				catch(e){}
+					TrackPlayer.reset().catch((e) => e);
+				} catch (e) {}
 			};
 			// const tables = await db_exec(async(db) => db.all("SELECT * FROM sqlite_master WHERE type='table';"));
 			// console.log(tables);
-		})().catch(e => e);
+		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
-		}
+		};
 	}, []);
 	useEffect(() => {
 		if (is_playing !== "LOADING") return;
@@ -106,7 +103,7 @@ Sentry.wrap(
 		SharedRouter.set_current_route_path(path);
 	}, [path]);
 
-	function update_bottom_alert(text: string, type: BottomAlertType, more_info?: string|ResponseError) {
+	function update_bottom_alert(text: string, type: BottomAlertType, more_info?: string | ResponseError) {
 		set_bottom_alert({
 			uuid: gen_uuid(),
 			text,
@@ -117,23 +114,27 @@ Sentry.wrap(
 
 	return (
 		<GestureHandlerRootView>
-		<ThemeProvider value={{...theme, fonts: {
-			regular: {fontFamily: "", fontWeight: '400'},
-			medium: {fontFamily: "", fontWeight: '600'},
-			heavy: {fontFamily: "", fontWeight: 'bold'},
-			bold: {fontFamily: "", fontWeight: 'bold'}}
-		}}>
-			{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
-			{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
-			<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info}/>
-			{!is_loading ? (
-				<SafeAreaProvider>
-					<Stack>
-						<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-					</Stack>
-				</SafeAreaProvider>
-			) : null}
-		</ThemeProvider>
+			<ThemeProvider
+				value={{
+					...theme,
+					fonts: {
+						regular: { fontFamily: "", fontWeight: "400" },
+						medium: { fontFamily: "", fontWeight: "600" },
+						heavy: { fontFamily: "", fontWeight: "bold" },
+						bold: { fontFamily: "", fontWeight: "bold" }
+					}
+				}}>
+				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
+				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
+				{!is_loading ? (
+					<SafeAreaProvider>
+						<Stack>
+							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+						</Stack>
+					</SafeAreaProvider>
+				) : null}
+			</ThemeProvider>
 		</GestureHandlerRootView>
 	);
 });

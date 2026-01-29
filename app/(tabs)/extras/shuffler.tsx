@@ -1,11 +1,11 @@
 import Equalizer from "@components/Equalizer";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import { Ionicons } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
 import { Prefs } from "@illusive/prefs";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { Dimensions, ScrollView, Text, TextInput, View } from "react-native";
 
 const shuffler_min = -64;
 const shuffler_max = 64;
@@ -23,14 +23,15 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 
 	return (
 		<>
-			<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", height: 40, backgroundColor: colors.track, paddingHorizontal: 15 }}>
+			<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", height: 45, backgroundColor: colors.track, paddingHorizontal: 15 }}>
 				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
-					<Ionicons name="shuffle-outline" color={colors.primary} size={25} style={{ marginRight: 15 }} />
-					<Text style={{ color: colors.text, fontSize: 16 }}>{Prefs.snake_case_to_plain_text(props.shuffler_key)}</Text>
+					<Entypo name="shuffle" color={colors.primary} size={25} style={{ marginRight: 12 }} />
+					<Text style={{ color: colors.text, fontSize: 18 }}>{Prefs.snake_case_to_plain_text(props.shuffler_key)}</Text>
 				</View>
-				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.card, width: "40%", height: "70%", padding: 5, color: colors.text }} onChangeText={on_change_text} />
+				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.track, width: "40%", height: "70%", padding: 5, color: colors.text, fontSize: 18, fontStyle: "italic", fontWeight: "500" }} onChangeText={on_change_text} />
 			</View>
-			<View style={{ height: 1, backgroundColor: colors.line, width: "90%" }} />
+			<View style={{ height: 1, backgroundColor: colors.line, width: "90%", left: "10%" }} />
+			<View style={{ height: 1, backgroundColor: colors.line, width: "30%", left: "70%" }} />
 		</>
 	);
 }
@@ -41,14 +42,14 @@ export default function Shuffler() {
 
 	return (
 		<View>
-			<Equalizer min={shuffler_min} max={shuffler_max} values={visualizer_state} freqs={[]} height={200} />
+			<Equalizer min={shuffler_min} max={shuffler_max} values={visualizer_state} freqs={[]} height={180} />
 			<ExtrasSectionButton icon="ticket-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push("/extras/shuffler-test")} />
 			<View style={{ height: 10 }} />
 			<ScrollView>
 				{shuffler_inputs.map((input) => (
 					<ShufflerInput key={input[0]} shuffler_key={input[0]} initial_value={input[1]} on_update={() => set_visualizer_state(Object.values(Prefs.get_pref("track_shuffle_bias")))} />
 				))}
-				<View style={{ height: 300 }} />
+				<View style={{ height: Dimensions.get("screen").height * 0.7 }} />
 			</ScrollView>
 		</View>
 	);

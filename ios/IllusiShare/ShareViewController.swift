@@ -29,7 +29,7 @@ class ShareViewController: UIViewController {
                     let encodedURL =
                         shareURL.absoluteString
                         .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                    let schemeStr = "inkdrop://actions/save-link?url=\(encodedURL)"
+                    let schemeStr = "illusi://actions/view?url=\(encodedURL)"
 
                     if let schemeURL = URL(string: schemeStr) {
                         self.openURL(schemeURL)

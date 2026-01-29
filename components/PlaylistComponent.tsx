@@ -108,6 +108,9 @@ export default function PlaylistComponent(props: {
 
 	return (
 		<ContextMenuView
+			shouldEnableAggressiveCleanup
+			shouldCleanupOnComponentWillUnmountForMenuPreview
+			shouldCleanupOnComponentWillUnmountForAuxPreview
 			previewConfig={{
 				targetViewNode: target_view_node
 			}}
