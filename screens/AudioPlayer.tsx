@@ -131,7 +131,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		for (let i = 0; i < GLOBALS.global_var.playing_tracks.length; i++) {
 			const refreshed_track = refresh_map.get(GLOBALS.global_var.playing_tracks[i].uid);
 			if (refreshed_track) {
-				GLOBALS.global_var.playing_tracks[i] = refreshed_track;
+				GLOBALS.global_var.playing_tracks[i] = { ...refreshed_track, playback: GLOBALS.global_var.playing_tracks[i].playback ?? refreshed_track.playback };
 			}
 		}
 		const index = await TrackPlayer.getActiveTrackIndex();

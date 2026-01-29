@@ -17,8 +17,7 @@ async function link_incoming_playlist(playlist_uri: string) {
     });
 }
 
-function handle_illusi_url(url: string) {
-    const parsed = Linking.parse(url);
+function handle_illusi_url(parsed: Linking.ParsedURL) {
     if (parsed.path?.startsWith("track")) {
         const etrack = parsed.path.split("/")[1];
         link_incoming_track(etrack);
@@ -55,20 +54,18 @@ const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => 
 };
 
 function handle_link(url: string) {
-    if (url.startsWith("illusi:///")) {
-        handle_illusi_url(url);
-        return;
-    }
     const parsed = Linking.parse(url);
+    if (parsed.scheme === "illusi") return handle_illusi_url(parsed);
     if (parsed.hostname === "actions") {
         if (!parsed.queryParams) return;
         if (!("url" in parsed.queryParams)) return;
         const parsed_query = Linking.parse(parsed.queryParams.url as string);
-        if (parsed_query.scheme === "illusi") handle_illusi_url(parsed.queryParams.url as string);
+        if (parsed_query.scheme === "illusi") return handle_illusi_url(parsed_query);
         else {
             for (const key of Object.keys(service_hostname_map) as MusicServiceType[]) {
                 if (parsed_query.hostname?.includes(service_hostname_map[key])) {
                     service_linking_map[key](parsed_query);
+                    return;
                 }
             }
         }
