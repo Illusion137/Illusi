@@ -85,6 +85,9 @@ function EditArtist(props: { track: Track; artist: NamedUUID; index: number; set
 	const { colors } = usePTheme();
 	return (
 		<ContextMenuView
+			shouldEnableAggressiveCleanup
+			shouldCleanupOnComponentWillUnmountForMenuPreview
+			shouldCleanupOnComponentWillUnmountForAuxPreview
 			previewConfig={{
 				previewType: "CUSTOM",
 				previewSize: "INHERIT",

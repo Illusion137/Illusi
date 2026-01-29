@@ -99,6 +99,9 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 
 	return (
 		<ContextMenuView
+			shouldEnableAggressiveCleanup
+			shouldCleanupOnComponentWillUnmountForMenuPreview
+			shouldCleanupOnComponentWillUnmountForAuxPreview
 			previewConfig={{ targetViewNode: target_view_node }}
 			menuConfig={context_menu}
 			onMenuWillShow={() => {

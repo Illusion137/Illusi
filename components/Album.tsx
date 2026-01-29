@@ -49,6 +49,9 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 
 	return (
 		<ContextMenuView
+			shouldEnableAggressiveCleanup
+			shouldCleanupOnComponentWillUnmountForMenuPreview
+			shouldCleanupOnComponentWillUnmountForAuxPreview
 			previewConfig={{
 				targetViewNode: target_view_node
 			}}

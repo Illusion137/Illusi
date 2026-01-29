@@ -279,6 +279,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 					<View style={{ width: "100%", alignItems: "center", maxHeight: 500, minHeight: 400, overflow: "hidden" }}>
 						<View style={{ flexGrow: 1, height: 50 }} />
 						<ContextMenuView
+							shouldEnableAggressiveCleanup
+							shouldCleanupOnComponentWillUnmountForMenuPreview
+							shouldCleanupOnComponentWillUnmountForAuxPreview
 							menuConfig={{ menuTitle: "", menuItems: TrackContextMenu.track_component_inner_context_menu(playing_track, "") }}
 							onPressMenuItem={async ({ nativeEvent }) => {
 								ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));

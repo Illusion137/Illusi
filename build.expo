@@ -18,3 +18,5 @@ CHECK INFO.PLIST PLEASE
 FOR SENTRY
 export SENTRY_PROPERTIES=ios/sentry.properties
 check with npx sentry-cli info
+
+npx sentry-cli debug-files upload /Users/illusion/Library/Developer/Xcode/Archives/2026-01-27/Illusi\ 1-27-26,\ 9.12 AM.xcarchive
