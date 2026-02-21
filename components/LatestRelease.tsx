@@ -5,13 +5,14 @@ import { empty_join_dot } from "@common/utils/util";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 import { SharedRouter } from "../utils/shared_routes";
+import { GLOBALS } from "@illusive/globals";
 
 export default function LatestRelease(props: { album_data: CompactPlaylist }) {
 	const { colors } = usePTheme();
 
 	function on_press() {
 		if (props.album_data.song_track) {
-			// TODO implement this
+			GLOBALS.global_var.play_tracks(props.album_data.song_track, [props.album_data.song_track], "Latest Release");
 		} else {
 			SharedRouter.goto_shared_playlist(props.album_data.title.uri ?? "", "URI", { fs_cache_playlist_as_album: "1" });
 		}

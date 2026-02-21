@@ -2,7 +2,7 @@ import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { CompactPlaylist } from "@illusive/types";
 import type { Track } from "@illusive/types";
-import { best_thumbnail, get_album_artwork, track_exists } from "@illusive/illusive_utils";
+import { get_album_artwork, track_exists } from "@illusive/illusive_utils";
 import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
 import { ContextMenuView } from "react-native-ios-context-menu";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { GLOBALS } from "@illusive/globals";
 import { insert_into_write_playlist } from "@illusive/illusi/src/components/track";
 import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
-import { empty_join_dot, is_empty, single_case } from "@common/utils/util";
+import { empty_join_dot, single_case } from "@common/utils/util";
 import IImage from "./IImage";
 import { remove_topic } from "@common/utils/clean_util";
 import { SharedRouter } from "@utils/shared_routes";
@@ -39,7 +39,7 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 				fs_cache_playlist_as_album: props.album_data.type === "ALBUM" ? "1" : "0"
 			});
 		} else if (props.album_data.song_track) {
-			play(props.album_data.song_track, "Artist Watch", () => [props.album_data.song_track!, ...(props.other_tracks?.filter((track) => track.uid !== props.album_data.song_track?.uid) ?? [])]);
+			play(props.album_data.song_track, "Explore", () => [props.album_data.song_track!, ...(props.other_tracks?.filter((track) => track.uid !== props.album_data.song_track?.uid) ?? [])]);
 		}
 	}
 
@@ -138,7 +138,7 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 					<View style={{ flexDirection: "row", alignItems: "center" }}>
 						{props.album_data.explicit === "EXPLICIT" ? <MaterialIcons name="explicit" size={20} color={colors.secondary} style={{}} /> : null}
 						<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 15, top: 0, width: size }}>
-							{empty_join_dot([single_case(props.album_data.album_type ?? (props.second_line_type === "ARTIST" ? String(year) : String(artist_name)) ?? "..."), second_line])}
+							{empty_join_dot([single_case(props.album_data.album_type ?? (props.second_line_type === "ARTIST" ? String(year) : artist_name) ?? "..."), second_line])}
 						</Text>
 					</View>
 				</View>
