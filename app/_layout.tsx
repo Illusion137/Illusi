@@ -22,6 +22,7 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
+import { PoTokenWebView } from "@native/potoken/potoken.mobile";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -124,6 +125,7 @@ export default Sentry.wrap(function App() {
 						bold: { fontFamily: "", fontWeight: "bold" }
 					}
 				}}>
+				<PoTokenWebView />
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />

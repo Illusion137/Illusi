@@ -1843,6 +1843,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - SwiftAudioEx
+    - SwiftProtobuf (~> 1.27)
     - Yoga
   - react-native-uitextview (2.1.1):
     - hermes-engine
@@ -2688,7 +2689,9 @@ PODS:
     - SDWebImage/Core (~> 5.17)
   - Sentry/HybridSDK (8.58.0)
   - shaquillehinds-ffmpeg-kit-ios (6.0.2)
-  - SwiftAudioEx (1.1.0)
+  - SwiftAudioEx (1.1.0):
+    - SwiftProtobuf (~> 1.27)
+  - SwiftProtobuf (1.35.1)
   - TOCropViewController (2.8.0)
   - Yoga (0.0.0)
 
@@ -2832,6 +2835,7 @@ SPEC REPOS:
     - SDWebImage
     - SDWebImageWebPCoder
     - Sentry
+    - SwiftProtobuf
     - TOCropViewController
 
 EXTERNAL SOURCES:
@@ -3176,7 +3180,7 @@ SPEC CHECKSUMS:
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-slider: f954578344106f0a732a4358ce3a3e11015eb6e1
-  react-native-track-player: 61dee63910554d02b86bc5898c04db6c096b7d81
+  react-native-track-player: a3baa89065c522e634de433cffc429801d5ac4cb
   react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
   react-native-webview: 3e303e80cadb5f17118c8c1502aa398e9287e415
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
@@ -3227,7 +3231,8 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
   Sentry: d587a8fe91ca13503ecd69a1905f3e8a0fcf61be
   shaquillehinds-ffmpeg-kit-ios: ccc776103cae371e03b8eb62ecbab16bf18cec75
-  SwiftAudioEx: f6aa653770f3a0d3851edaf8d834a30aee4a7646
+  SwiftAudioEx: 2d5b6d6afa7a148d1dcde7bfc074158cbd772b3b
+  SwiftProtobuf: c268fcf9642d613eb6639fed15842ae25d4b975a
   TOCropViewController: 797deaf39c90e6e9ddd848d88817f6b9a8a09888
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
