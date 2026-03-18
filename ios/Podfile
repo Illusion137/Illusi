@@ -13,6 +13,7 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 prepare_react_native_project!
 
 target 'Illusi' do
+  pod 'ZipArchive', :modular_headers => true
   pod 'shaquillehinds-ffmpeg-kit-ios', :podspec => 'https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec'
   pod 'ffmpeg-kit-react-native', :path => '../node_modules/ffmpeg-kit-react-native'
   pod 'SwiftAudioEx', :path => '../../../RNTPvE/SwiftAudioEx/'
