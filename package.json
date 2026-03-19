@@ -21,7 +21,9 @@
         ]
       },
       "ios": {
-        "exclude": []
+        "exclude": [
+          "nodejs-mobile-react-native"
+        ]
       }
     }
   },

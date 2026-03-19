@@ -38,6 +38,7 @@ Sentry.init({
 
 	// Enable Logs
 	// enableLogs: true,
+	// enabled: true
 	enabled: !__DEV__
 
 	// Configure Session Replay
