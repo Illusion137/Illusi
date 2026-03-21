@@ -24,6 +24,7 @@ import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
 import nodejs from "nodejs-mobile-react-native";
+import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -74,8 +75,9 @@ export default Sentry.wrap(function App() {
 	useEffect(() => {
 		nodejs.start("main.js");
 		nodejs.channel.addListener("message", (msg) => {
-			console.log("From node: " + msg);
+			Sentry.addBreadcrumb({ message: "From node: " + msg });
 		});
+		initialize_sentry_severity_handler();
 
 		const linking_handler = get_linking_handler();
 

@@ -1,6 +1,6 @@
 {
   "name": "illusi",
-  "version": "18.2.4",
+  "version": "19.0.0",
   "main": "index",
   "expo": {
     "doctor": {
@@ -67,7 +67,7 @@
     "babel-plugin-react-compiler": "^19.0.0-beta-af1b7da-20250417",
     "babel-preset-expo": "~54.0.9",
     "base-64": "^1.0.0",
-    "bgutils-js": "^3.1.0",
+    "bgutils-js": "^3.2.0",
     "canvas": "^3.0.0",
     "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.45.1",

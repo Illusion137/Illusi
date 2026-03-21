@@ -77,34 +77,40 @@ async function setupGlobals() {
 	}
 }
 
+let attestation_challenge_cache;
+
 export async function generateContentBoundPoToken(content_binding, context) {
 	await setupGlobals();
 
-	const challengeResponse = await nodeFetch("https://www.youtube.com/youtubei/v1/att/get?prettyPrint=false&alt=json", {
-		method: "POST",
-		headers: {
-			Accept: "*/*",
-			"Content-Type": "application/json",
-			"X-Goog-Visitor-Id": context.client.visitorData ?? "",
-			"X-Youtube-Client-Version": context.client.clientVersion,
-			"X-Youtube-Client-Name": "1",
-			"User-Agent": USER_AGENT
-		},
-		body: JSON.stringify({
-			engagementType: "ENGAGEMENT_TYPE_UNBOUND",
-			context
-		})
-	});
+	let challengeData;
+	if (attestation_challenge_cache === undefined) {
+		const challengeResponse = await nodeFetch("https://www.youtube.com/youtubei/v1/att/get?prettyPrint=false&alt=json", {
+			method: "POST",
+			headers: {
+				Accept: "*/*",
+				"Content-Type": "application/json",
+				"X-Goog-Visitor-Id": context.client.visitorData ?? "",
+				"X-Youtube-Client-Version": context.client.clientVersion,
+				"X-Youtube-Client-Name": "1",
+				"User-Agent": USER_AGENT
+			},
+			body: JSON.stringify({
+				engagementType: "ENGAGEMENT_TYPE_UNBOUND",
+				context
+			})
+		});
 
-	if (!challengeResponse.ok) {
-		throw new Error(`BotGuard challenge request failed: ${challengeResponse.status}`);
-	}
+		if (!challengeResponse.ok) {
+			throw new Error(`BotGuard challenge request failed: ${challengeResponse.status}`);
+		}
 
-	const challengeData = await challengeResponse.json();
+		challengeData = await challengeResponse.json();
 
-	if (!challengeData.bgChallenge) {
-		throw new Error("Failed to get BotGuard challenge");
-	}
+		if (!challengeData.bgChallenge) {
+			throw new Error("Failed to get BotGuard challenge");
+		}
+		attestation_challenge_cache = challengeData;
+	} else challengeData = attestation_challenge_cache;
 
 	let interpreterUrl = challengeData.bgChallenge.interpreterUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue;
 
