@@ -2716,7 +2716,7 @@ PODS:
   - shaquillehinds-ffmpeg-kit-ios (6.0.2)
   - SwiftAudioEx (1.1.0):
     - SwiftProtobuf (~> 1.27)
-  - SwiftProtobuf (1.36.0)
+  - SwiftProtobuf (1.36.1)
   - TOCropViewController (2.8.0)
   - Yoga (0.0.0)
   - ZipArchive (1.4.0)
@@ -3267,8 +3267,8 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
   Sentry: d587a8fe91ca13503ecd69a1905f3e8a0fcf61be
   shaquillehinds-ffmpeg-kit-ios: ccc776103cae371e03b8eb62ecbab16bf18cec75
-  SwiftAudioEx: 2d5b6d6afa7a148d1dcde7bfc074158cbd772b3b
-  SwiftProtobuf: 4a92c845d4f5ee640b00f962df11222b625095ed
+  SwiftAudioEx: 838afc83d33482a8a0539b9dce098176f6d643a8
+  SwiftProtobuf: 9e106a71456f4d3f6a3b0c8fd87ef0be085efc38
   TOCropViewController: 797deaf39c90e6e9ddd848d88817f6b9a8a09888
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
   ZipArchive: e25a4373192673e3229ac8d6e9f64a3e5713c966
