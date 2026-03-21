@@ -1,5 +1,5 @@
 import { Stack, usePathname } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { filter_play_tracks } from "@illusive/illusi/src/play";
@@ -22,6 +22,9 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
+import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
+import nodejs from "nodejs-mobile-react-native";
+import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -36,6 +39,7 @@ Sentry.init({
 
 	// Enable Logs
 	// enableLogs: true,
+	// enabled: true
 	enabled: !__DEV__
 
 	// Configure Session Replay
@@ -69,6 +73,12 @@ export default Sentry.wrap(function App() {
 	}
 
 	useEffect(() => {
+		nodejs.start("main.js");
+		nodejs.channel.addListener("message", (msg) => {
+			Sentry.addBreadcrumb({ message: "From node: " + msg });
+		});
+		initialize_sentry_severity_handler();
+
 		const linking_handler = get_linking_handler();
 
 		const subscription = get_shortcut_subscription(play_tracks);
@@ -112,18 +122,23 @@ export default Sentry.wrap(function App() {
 		});
 	}
 
+	const theme_value = useMemo(
+		() => ({
+			...theme,
+			fonts: {
+				regular: { fontFamily: "", fontWeight: "400" as const },
+				medium: { fontFamily: "", fontWeight: "600" as const },
+				heavy: { fontFamily: "", fontWeight: "bold" as const },
+				bold: { fontFamily: "", fontWeight: "bold" as const }
+			}
+		}),
+		[theme]
+	);
+
 	return (
 		<GestureHandlerRootView>
-			<ThemeProvider
-				value={{
-					...theme,
-					fonts: {
-						regular: { fontFamily: "", fontWeight: "400" },
-						medium: { fontFamily: "", fontWeight: "600" },
-						heavy: { fontFamily: "", fontWeight: "bold" },
-						bold: { fontFamily: "", fontWeight: "bold" }
-					}
-				}}>
+			<ThemeProvider value={theme_value}>
+				<JSEvaluatorWebView />
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />

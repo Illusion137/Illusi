@@ -1,0 +1,34 @@
+diff --git a/node_modules/nodejs-mobile-react-native/scripts/ios-build-native-modules.sh b/node_modules/nodejs-mobile-react-native/scripts/ios-build-native-modules.sh
+index e743704..65bc345 100644
+--- a/node_modules/nodejs-mobile-react-native/scripts/ios-build-native-modules.sh
++++ b/node_modules/nodejs-mobile-react-native/scripts/ios-build-native-modules.sh
+@@ -9,13 +9,6 @@ if [ -f ./.xcode.env.local ]; then
+ fi
+ 
+ DESIRED_NODE_VERSION="18"
+-CURRENT_NODE_VERSION="$(node -p "process.versions.node.split('.')[0]")"
+-if [ "$CURRENT_NODE_VERSION" -ne "$DESIRED_NODE_VERSION" ]; then
+-  echo "nodejs-mobile-react-native requires Node.js version \
+-$DESIRED_NODE_VERSION accessible from Xcode, but found \
+-$(node -p 'process.versions.node')"
+-  exit 1
+-fi
+ 
+ # This is our nodejs-project folder that was copied to the Xcode build folder
+ NODEPROJ="$CODESIGNING_FOLDER_PATH/nodejs-project"
+@@ -43,6 +36,15 @@ fi
+ 
+ if [ "1" != "$NODEJS_MOBILE_BUILD_NATIVE_MODULES" ]; then exit 0; fi
+ 
++# Only enforce Node version when actually building native modules
++CURRENT_NODE_VERSION="$(node -p "process.versions.node.split('.')[0]")"
++if [ "$CURRENT_NODE_VERSION" -ne "$DESIRED_NODE_VERSION" ]; then
++  echo "nodejs-mobile-react-native requires Node.js version \
++$DESIRED_NODE_VERSION accessible from Xcode, but found \
++$(node -p 'process.versions.node')"
++  exit 1
++fi
++
+ # Delete object files that may already come from within the npm package.
+ find "$NODEPROJ" -name "*.o" -type f -delete
+ find "$NODEPROJ" -name "*.a" -type f -delete

@@ -1,5 +1,6 @@
 # Illusi
 lib-origin/
+lib-origin-old/
 .history/
 TestApp.tsx
 tsconfig.json
@@ -7,6 +8,7 @@ tsconfig.json
 .expo
 builds/
 sentry.properties
+.env
 
 # Expo
 .expo
@@ -237,3 +239,4 @@ expo-env.d.ts
 .env.local
 
 .env.local
+.claude

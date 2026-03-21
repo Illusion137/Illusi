@@ -7,18 +7,18 @@ config = {
 	...config,
 	resolver: {
 		...config.resolver,
-		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/],
+		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/, /\/nodejs-assets\/.*/],
 		sourceExts: [...config.resolver.sourceExts, "sql"]
 	}
 };
 config.transformer = {
 	...config.transformer,
-	unstable_allowRequireContext: true, // important for expo-router
+	unstable_allowRequireContext: true // important for expo-router
 };
 
 config.watchFolders = [
 	// path.resolve(__dirname, "lib-origin"), // ensure HMR watches this
-	path.resolve(__dirname, "utils"), // ensure HMR watches this
+	path.resolve(__dirname, "utils") // ensure HMR watches this
 ];
 
 // config.server = {
@@ -32,6 +32,6 @@ config.watchFolders = [
 // 	},
 // };
 
-config.resolver.sourceExts.push('sql');
+config.resolver.sourceExts.push("sql");
 
 module.exports = config;

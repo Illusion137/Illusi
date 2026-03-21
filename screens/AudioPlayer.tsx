@@ -61,11 +61,15 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const [panel_state_visible, set_panel_state_visible] = useState(true);
 
-	panel_animated.addListener(({ value }) => {
+	// Register the panel visibility listener once (in an effect) with cleanup,
+	// instead of on every render which accumulates duplicate listeners.
+	useEffect(() => {
 		const panel_transition_value = panel_min_height + 1;
-		if (value > panel_transition_value && !panel_state_visible) set_panel_state_visible(true);
-		else if (value <= panel_transition_value && panel_state_visible) set_panel_state_visible(false);
-	});
+		const id = panel_animated.addListener(({ value }) => {
+			set_panel_state_visible(value > panel_transition_value);
+		});
+		return () => panel_animated.removeListener(id);
+	}, []);
 
 	function hide_sheet() {
 		// bottom_sheet_ref.current?.snapToIndex(0);
