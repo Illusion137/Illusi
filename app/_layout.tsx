@@ -11,7 +11,7 @@ import type { ConfigContext } from "expo/config";
 import { ThemeProvider } from "@react-navigation/native";
 import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
-import { gen_uuid } from "@common/utils/util";
+import { gen_uuid, milliseconds_of } from "@common/utils/util";
 import AudioPlayer from "@screens/AudioPlayer";
 import { GLOBALS } from "@illusive/globals";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
@@ -51,6 +51,7 @@ Sentry.init({
 	// spotlight: __DEV__,
 });
 
+let ignore_fat_fingers = false;
 export default Sentry.wrap(function App() {
 	const [theme, set_theme] = useState<Prefs.Theme>(Prefs.get_theme(Prefs.get_pref("theme")));
 	const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
@@ -65,6 +66,13 @@ export default Sentry.wrap(function App() {
 	});
 
 	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
+		if (Prefs.get_pref("ignore_fat_finger_for_seconds") > 0) {
+			if (ignore_fat_fingers) return;
+			ignore_fat_fingers = true;
+			setTimeout(() => {
+				ignore_fat_fingers = false;
+			}, milliseconds_of({ seconds: Prefs.get_pref("ignore_fat_finger_for_seconds") }));
+		}
 		tracks = await filter_play_tracks(start_track, tracks, title);
 		if (tracks.length === 0) return;
 		set_playing_tracks(tracks);
