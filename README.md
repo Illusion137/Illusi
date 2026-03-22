@@ -117,7 +117,7 @@ Requires a development build installed on the device.
 npm run run:dev
 ```
 
-### Run on Simulator)
+### Run on Simulator
 
 ```bash
 npm run ios
