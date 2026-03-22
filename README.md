@@ -68,6 +68,7 @@ Although Illusi is optimized for iOS, it should still work if built for Android.
 
 -   **Node.js 25+** — although [nvm](https://github.com/nvm-sh/nvm) is required for nodejs-mobile-react-native (v18.20.4)
 -   **Xcode** for building iOS
+-   **[lib-origin](https://github.com/Illusion137/lib-origin)** placed in the root directory
 
 ## Setup
 
