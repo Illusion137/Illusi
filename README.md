@@ -108,7 +108,7 @@ SENTRY_AUTH_TOKEN=<your-sentry-auth-token>
 
 ## Development
 
-### Run on Device (Dev Client)
+### Run on Device
 
 Requires a development build installed on the device.
 
@@ -116,13 +116,13 @@ Requires a development build installed on the device.
 npm run run:dev
 ```
 
-### Run on Simulator (Quick Start)
+### Run on Simulator)
 
 ```bash
 npm run ios
 ```
 
-### Run on Simulator (Installed Build)
+### Run on Simulator
 
 Installs and launches a pre-built simulator build, then starts the dev server.
 
@@ -140,7 +140,7 @@ In Illusi/mobile
 xed ios
 ```
 
-Then in Xcode: **Product → Archive**, wait for the archive to complete, then click **Distribute App** in the Organizer window.
+Then in Xcode: **Product -> Archive**, wait for the archive to complete, then click **Distribute App** in the Organizer window.
 
 Or in the command line:
 
@@ -159,4 +159,4 @@ xcodebuild -exportArchive \
 
 ## Terms of Use
 
-All network requests to other music services are done locally, and as such you are aware that using this app likely violates the **Terms of Service** of some music services.
+All network requests to other music services are done locally, and as such, you are aware that using this app likely violates the **Terms of Service** of some music services.
