@@ -123,14 +123,6 @@ npm run run:dev
 npm run ios
 ```
 
-### Run on Simulator
-
-Installs and launches a pre-built simulator build, then starts the dev server.
-
-```bash
-npm run run:sim
-```
-
 ## Building
 
 ### Prod (Xcode)
