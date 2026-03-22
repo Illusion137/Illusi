@@ -1,9 +1,19 @@
-import { router } from "expo-router";
 import { useEffect } from "react";
+import { useNavigation } from "expo-router";
+import { CommonActions } from "@react-navigation/native";
+import { View } from "react-native";
 
 export default function NotFound() {
+	const navigation = useNavigation();
+
 	useEffect(() => {
-		router.navigate('/library');
-	},[])
-	return null;
+		navigation.dispatch(
+			CommonActions.reset({
+				index: 0,
+				routes: [{ name: "(tabs)" }]
+			})
+		);
+	}, []);
+
+	return <View />;
 }
