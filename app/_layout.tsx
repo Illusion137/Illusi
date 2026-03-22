@@ -154,6 +154,7 @@ export default Sentry.wrap(function App() {
 					<SafeAreaProvider>
 						<Stack>
 							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+							<Stack.Screen name="+not-found" options={{ headerShown: false }} />
 						</Stack>
 					</SafeAreaProvider>
 				) : null}

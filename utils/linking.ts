@@ -6,7 +6,6 @@ import { SharedRouter } from "./shared_routes";
 import type { MusicServiceType } from "@illusive/types";
 
 async function link_incoming_track(etrack: string) {
-    console.log(etrack);
     const track = SQLTracks.add_playback_saved_data_to_track(decode_track(etrack));
     GLOBALS.global_var.play_tracks(track, [track], "Shared Track");
 }
