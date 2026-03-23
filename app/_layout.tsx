@@ -30,8 +30,12 @@ const splash_screen_image = require("../assets/splash.png");
 
 TrackPlayer.registerPlaybackService(() => playback_service);
 
+if (!__DEV__ && !process.env.EXPO_PUBLIC_SENTRY_DSN) {
+	console.warn("EXPO_PUBLIC_SENTRY_DSN is not set. Sentry will not be initialized.");
+}
+
 Sentry.init({
-	dsn: "https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616",
+	dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
 
 	// Adds more context data to events (IP address, cookies, user, etc.)
 	// For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
@@ -40,7 +44,7 @@ Sentry.init({
 	// Enable Logs
 	// enableLogs: true,
 	// enabled: true
-	enabled: !__DEV__
+	enabled: !__DEV__ && !!process.env.EXPO_PUBLIC_SENTRY_DSN
 
 	// Configure Session Replay
 	// replaysSessionSampleRate: 0.1,
