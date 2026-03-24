@@ -7,6 +7,24 @@
 Illusi is a superset of [Musi](https://www.feelthemusi.com), from an iOS music app with only YouTube playback to now as an Universal Music App that supports YouTube, YouTube Music, Spotify, SoundCloud, Apple Music, Amazon Music, Musi, and BandLab. Every service supports at least importing playlists, however many services offer way more functionality.\
 The app was originally designed as an proof of concept for features for Musi and as an archiving service since previously I experience many songs being lost to circumstance.
 
+## Gallery
+
+<details>
+<summary>Show Gallery</summary>
+
+<br>
+
+|                                                                                                   |                                                          |                                                          |
+| :-----------------------------------------------------------------------------------------------: | :------------------------------------------------------: | :------------------------------------------------------: |
+|                        <img src="assets/media/gallery_01.gif" width="270">                        |   <img src="assets/media/gallery_02.gif" width="270">    |   <img src="assets/media/gallery_03.gif" width="270">    |
+|                                 <sub>Library + AudioPlayer</sub>                                  | <sub>AudioPlayer Add + Settings(Equalizer) + Share</sub> | <sub>Archived Playlists + Past Queue + Most Played</sub> |
+|                       <img src="assets/media/gallery_04a.gif" width="270">                        |   <img src="assets/media/gallery_04b.gif" width="270">   |   <img src="assets/media/gallery_06a.gif" width="270">   |
+| <sub>Playlist Inheritance include, exclude, mask, or intersect other playlists and searches</sub> |       <sub>Adding to playlists + Sudo Artist</sub>       |          <sub>New Releases + Your Artists</sub>          |
+|                       <img src="assets/media/gallery_06b.gif" width="270">                        |   <img src="assets/media/gallery_08a.gif" width="270">   |   <img src="assets/media/gallery_08b.gif" width="270">   |
+|                                  <sub>Forgotten Favorites</sub>                                   |                    <sub>Extras</sub>                     |                <sub>Various Extras</sub>                 |
+
+</details>
+
 ### Note
 
 Although Illusi is optimized for iOS, it should still work if built for Android.
