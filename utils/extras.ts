@@ -24,7 +24,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Sync",
                 href: "/extras/sync",
                 icon: "sync-circle-outline",
-                indev: true
             }
         ],
         description: "Backup your music, transfer your playlists to other devices, recover deleted music and more"
