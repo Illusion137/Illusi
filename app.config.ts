@@ -68,11 +68,21 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
                 "project": "react-native",
                 "organization": "illusion-ke"
             }
+        ],
+        "expo-audio",
+        "expo-sharing",
+        "expo-asset",
+        [
+            "expo-build-properties",
+            {
+                "buildReactNativeFromSource": true,
+                "useHermesV1": true
+            }
         ]
+
     ],
     "experiments": {
         "reactCompiler": true,
         "typedRoutes": true
     },
-    "newArchEnabled": true
 });

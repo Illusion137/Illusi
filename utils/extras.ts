@@ -34,7 +34,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Keep Delete",
                 href: "/extras/keep-delete",
                 icon: "heart-outline",
-                indev: true
             }
         ],
         description: "The Tinder of your Music; Swipe left to delete tracks or swipe right to keep"
@@ -75,7 +74,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Linker",
                 href: "/extras/linker",
                 icon: "link-outline",
-                indev: true
             }
         ],
         description: "Hard Link playlist and other data from other Music Services. Automatically fetched on app startup."

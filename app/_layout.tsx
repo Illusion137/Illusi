@@ -22,7 +22,6 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
-import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
 
@@ -146,7 +145,6 @@ export default Sentry.wrap(function App() {
 	return (
 		<GestureHandlerRootView>
 			<ThemeProvider value={theme_value}>
-				<JSEvaluatorWebView />
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />

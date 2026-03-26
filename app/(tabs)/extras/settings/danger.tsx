@@ -9,6 +9,7 @@ import ExtrasSectionButton from '@components/ExtrasSectionButton'
 import { if_confirm } from '@illusive/illusi/src/illusi_utils';
 import usePTheme from '@hooks/usePTheme';
 import { SQLUtils } from '@illusive/sql/sql_utils';
+import { SQLArtists } from '@illusive/sql/sql_artists';
 import { SQLRecentlyPlayed } from '@illusive/sql/sql_recently_played';
 
 export default function ExtraDangerScreen() {
@@ -28,7 +29,13 @@ export default function ExtraDangerScreen() {
             <ExtrasSectionButton show_arrow={false} text='Clean Directories' icon='trash-outline' onPress={async() => if_confirm("Clean Directories", "Are You Sure?", SQLUtils.clean_directories)}/>
             <View style={{height: 20}}/>
 			<ExtrasSectionButton show_arrow={false} text='Clear Playlist Data' icon='trash-outline' onPress={async() => if_confirm("Delete Playlist Data", "Are You Sure?", SQLPlaylists.delete_all_playlists)}/>
-            <ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", SQLUtils.delete_all_data)}/>
+            <ExtrasSectionButton show_arrow={false} text='Clear All Data' icon='trash-outline' onPress={async() => if_confirm("Clear All Data", "Are You Sure?", async () => {
+                await SQLTracks.clear_tracks();
+                await SQLPlaylists.delete_all_playlists();
+                await SQLRecentlyPlayed.clear_recently_played_tracks();
+                await SQLNewReleases.delete_all_from_new_releases();
+                await SQLArtists.clear_all_sql_artists();
+            })}/>
             <View style={{height: 200}}/>
 		</ScrollView>
 	);

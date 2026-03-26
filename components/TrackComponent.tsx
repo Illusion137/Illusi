@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, type DimensionValue } from "react-native";
 import type { Prefs } from "@illusive/prefs";
 import type { EditMode, Track } from "@illusive/types";
@@ -36,31 +36,37 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	let outer_interval: any;
-	let interval: any;
+	const outer_interval = useRef<ReturnType<typeof setInterval> | null>(null);
+	const inner_interval = useRef<ReturnType<typeof setInterval> | null>(null);
 	useEffect(() => {
-		outer_interval = setInterval(() => {
+		outer_interval.current = setInterval(() => {
 			const is_currently_downloading_track = track_downloader?.get(props.track_data.uid);
 			if (is_currently_downloading_track !== undefined) {
 				set_is_downloading(true);
-				set_downloading_progress(is_currently_downloading_track?.progress);
-				interval = setInterval(() => {
+				set_downloading_progress(is_currently_downloading_track.progress ?? 0);
+				inner_interval.current = setInterval(() => {
 					const is_currently_downloading_track_inner = track_downloader?.get(props.track_data.uid);
 					if (!is_currently_downloading_track_inner || !track_downloader.in_pop_range(props.track_data.uid)) {
 						set_is_downloading(false);
-						clearInterval(interval);
+						if (inner_interval.current !== null) {
+							clearInterval(inner_interval.current);
+							inner_interval.current = null;
+						}
 						const idx = GLOBALS.global_var.sql_tracks.findIndex((item) => item.uid === props.track_data.uid);
 						if (idx !== -1 && !is_empty(GLOBALS.global_var.sql_tracks[idx].media_uri)) set_is_downloaded(true);
 						return;
 					}
-					set_downloading_progress(is_currently_downloading_track_inner?.progress);
+					set_downloading_progress(is_currently_downloading_track_inner.progress ?? 0);
 				}, 100);
-				clearInterval(outer_interval);
+				if (outer_interval.current !== null) {
+					clearInterval(outer_interval.current);
+					outer_interval.current = null;
+				}
 			}
 		}, 1500);
 		return () => {
-			clearInterval(outer_interval);
-			clearInterval(interval);
+			if (outer_interval.current !== null) clearInterval(outer_interval.current);
+			if (inner_interval.current !== null) clearInterval(inner_interval.current);
 		};
 	}, []);
 
