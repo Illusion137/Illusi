@@ -105,12 +105,12 @@ export namespace SharedRouter {
         });
     }
 
-    export function goto_shared_player_lyrics_edit() {
+    export function goto_shared_player_lyrics_edit(lyrics_uri: string) {
         const initial_route = get_initial_route();
         if (!initial_route) return;
         router.push({
             pathname: reinterpret_cast<GoodRoute>(`/(tabs)/${initial_route}/(shared)/player/lyrics/edit`),
-            params: undefined
+            params: { lyrics_uri }
         });
     }
 

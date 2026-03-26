@@ -74,7 +74,7 @@ export default function AudioPlayerLyrics() {
 
 	return (
 		<>
-			<ModalHeader title={"Lyrics"} right_icon={{ icon_name: "pencil-outline", icon_color: colors.primary, icon_size: 20, on_press: () => {} }} />
+			<ModalHeader title={"Lyrics"} right_icon={{ icon_name: "pencil-outline", icon_color: colors.primary, icon_size: 20, on_press: () => router.push({ pathname: "./edit", params: { lyrics_uri } }) }} />
 			<ScrollView ref={scrollview_ref} onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => set_content_height(h)} style={{ flex: 1, backgroundColor: colors.background }}>
 				{is_empty(lyrics) ? (
 					<UITextView uiTextView={true} style={styles.lyrics_text}>

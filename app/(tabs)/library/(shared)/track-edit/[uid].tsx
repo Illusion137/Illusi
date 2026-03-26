@@ -14,38 +14,22 @@ import type { Prefs } from "@illusive/prefs";
 import { SQLArtists } from "@illusive/sql/sql_artists";
 import { SQLfs } from "@illusive/sql/sql_fs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
-import type { IllusiveURI, LoadingState, NamedUUID, Track } from "@illusive/types";
+import type { IllusiveURI, LoadingState, NamedUUID } from "@illusive/types";
 import { TrackContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
+import { SharedRouter } from "@utils/shared_routes";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import * as ffmpeg_kit from "ffmpeg-kit-react-native";
 import { ffmpeg } from "@native/ffmpeg/ffmpeg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { ContextMenuButton, ContextMenuView } from "react-native-ios-context-menu";
-
-interface TrackEditables {
-	track: Track;
-	title: string;
-	album: NamedUUID;
-	artists: NamedUUID[];
-}
-
-async function save_track(editables: TrackEditables) {
-	await SQLTracks.update_track(editables.track.uid, {
-		...editables.track,
-		title: editables.title,
-		album: editables.album,
-		artists: editables.artists
-	});
-}
+import { ContextMenuButton } from "react-native-ios-context-menu";
 
 type SetArtistsState = (args: (prev: NamedUUID[]) => NamedUUID[]) => any;
 
-function EditArtistPreview(props: { track: Track; artist: NamedUUID; index: number; total_artists: number; set_artists_state: SetArtistsState }) {
+function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: number; set_artists_state: SetArtistsState }) {
 	const { colors } = usePTheme();
-	const styles = theme_styles(colors);
 
 	const all_artists_ref = useRef(get_unique_artists(GLOBALS.global_var.sql_tracks));
 	const artist_name_ref = useRef(props.artist.name);
@@ -76,16 +60,16 @@ function EditArtistPreview(props: { track: Track; artist: NamedUUID; index: numb
 	}
 
 	return (
-		<View style={{ margin: 20, width: 260 }}>
-			<View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-				<IImage style={{ width: 56, height: 56, borderRadius: 28 }} source={SQLArtists.artists_artwork_memo[props.artist.uri ?? ""] ?? SQLArtists.default_profile_picture_url} />
-				<View style={{ marginLeft: 12, flex: 1 }}>
+		<View>
+			<View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}>
+				<IImage style={{ width: 52, height: 52, borderRadius: 26 }} source={SQLArtists.artists_artwork_memo[props.artist.uri ?? ""] ?? SQLArtists.default_profile_picture_url} />
+				<View style={{ marginLeft: 14, flex: 1 }}>
 					<TextInput
 						defaultValue={props.artist.name}
 						autoCorrect={false}
 						placeholder="Artist name"
 						placeholderTextColor={colors.searchPlaceholder}
-						style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}
+						style={{ color: colors.text, fontSize: 17, fontWeight: "600" }}
 						onFocus={() => set_input_focused(true)}
 						onBlur={() => {
 							set_input_focused(false);
@@ -94,19 +78,19 @@ function EditArtistPreview(props: { track: Track; artist: NamedUUID; index: numb
 						onChangeText={on_name_change}
 						onSubmitEditing={on_name_submit}
 					/>
-					<View style={{ height: 0.5, backgroundColor: colors.text, marginTop: 4 }} />
+					<View style={{ height: 0.5, backgroundColor: colors.text + "40", marginTop: 5 }} />
 				</View>
-				<TouchableOpacity onPress={delete_artist} style={{ marginLeft: 12, padding: 6 }} disabled={is_only}>
-					<Ionicons name="trash-outline" size={22} color={is_only ? colors.searchPlaceholder : "#e05555"} />
+				<TouchableOpacity onPress={delete_artist} style={{ marginLeft: 10, padding: 8 }} disabled={is_only}>
+					<Ionicons name="trash-outline" size={20} color={is_only ? colors.searchPlaceholder : "#e05555"} />
 				</TouchableOpacity>
 			</View>
 			{input_focused && close_artists.length > 0 ? (
-				<View style={{ backgroundColor: "#1a1a1aee", borderRadius: 12, overflow: "hidden", borderWidth: 0.5, borderColor: "#ffffff18", marginTop: 4 }}>
-					<ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+				<View style={{ backgroundColor: "#1a1a1aee", borderRadius: 12, overflow: "hidden", borderWidth: 0.5, borderColor: "#ffffff18", marginBottom: 4 }}>
+					<ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 						{close_artists.map((artist, i) => (
 							<TouchableOpacity
 								key={artist.name + String(i)}
-								style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: i < close_artists.length - 1 ? 0.5 : 0, borderBottomColor: "#ffffff12" }}
+								style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: i < close_artists.length - 1 ? 0.5 : 0, borderBottomColor: "#ffffff12" }}
 								onPress={() => {
 									props.set_artists_state((prev) => {
 										const updated = [...prev];
@@ -117,9 +101,9 @@ function EditArtistPreview(props: { track: Track; artist: NamedUUID; index: numb
 									set_input_focused(false);
 									Keyboard.dismiss();
 								}}>
-								<IImage style={{ width: 38, height: 38, borderRadius: 19, marginRight: 12 }} source={SQLArtists.artists_artwork_memo[(artist as any).uri ?? ""] ?? SQLArtists.default_profile_picture_url} />
-								<Text style={{ color: colors.text, flex: 1, fontSize: 15, fontWeight: "500" }}>{artist.name}</Text>
-								<Ionicons name="chevron-forward" size={14} color={colors.searchPlaceholder} />
+								<IImage style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} source={SQLArtists.artists_artwork_memo[(artist as any).uri ?? ""] ?? SQLArtists.default_profile_picture_url} />
+								<Text style={{ color: colors.text, flex: 1, fontSize: 14, fontWeight: "500" }}>{artist.name}</Text>
+								<Ionicons name="chevron-forward" size={13} color={colors.searchPlaceholder} />
 							</TouchableOpacity>
 						))}
 					</ScrollView>
@@ -129,27 +113,15 @@ function EditArtistPreview(props: { track: Track; artist: NamedUUID; index: numb
 	);
 }
 
-function EditArtist(props: { track: Track; artist: NamedUUID; index: number; total_artists: number; set_artists_state: SetArtistsState }) {
+function QuickDownloadButton(props: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; state: LoadingState; onPress: () => void }) {
 	const { colors } = usePTheme();
+	const is_complete = props.state === "COMPLETE";
+	const is_loading = props.state === "LOADING";
 	return (
-		<ContextMenuView
-			shouldEnableAggressiveCleanup
-			shouldCleanupOnComponentWillUnmountForMenuPreview
-			shouldCleanupOnComponentWillUnmountForAuxPreview
-			previewConfig={{
-				previewType: "CUSTOM",
-				previewSize: "INHERIT",
-				backgroundColor: colors.background,
-				preferredCommitStyle: "pop"
-			}}
-			renderPreview={() => <EditArtistPreview artist={props.artist} index={props.index} total_artists={props.total_artists} track={props.track} set_artists_state={props.set_artists_state} />}>
-			<View style={{ justifyContent: "center", alignItems: "center", width: 65, marginRight: 10, marginTop: 10 }}>
-				<IImage style={{ width: 55, height: 55, borderRadius: 50 }} source={SQLArtists.artists_artwork_memo[props.artist.uri ?? ""] ?? SQLArtists.default_profile_picture_url} />
-				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 11, marginTop: 4 }}>
-					{props.artist.name || "—"}
-				</Text>
-			</View>
-		</ContextMenuView>
+		<TouchableOpacity onPress={props.onPress} disabled={is_loading} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 50, backgroundColor: is_complete ? colors.green + "25" : "#ffffff0e", borderWidth: 0.5, borderColor: is_complete ? colors.green + "50" : "#ffffff18" }}>
+			{is_loading ? <ActivityIndicator size={14} color={colors.searchPlaceholder} style={{ marginRight: 6 }} /> : <Ionicons name={is_complete ? "checkmark" : props.icon} size={14} color={is_complete ? colors.green : colors.searchPlaceholder} style={{ marginRight: 6 }} />}
+			<Text style={{ color: is_complete ? colors.green : colors.text, fontSize: 13, fontWeight: "600" }}>{props.label}</Text>
+		</TouchableOpacity>
 	);
 }
 
@@ -176,12 +148,25 @@ export default function EditTrackModal() {
 
 	const [saving_state, set_saving_state] = useState<LoadingState>("NONE");
 
+	const [download_media_state, set_download_media_state] = useState<LoadingState>(track_ref.current?.media_uri ? "COMPLETE" : "NONE");
+	const [download_thumbnail_state, set_download_thumbnail_state] = useState<LoadingState>(track_ref.current?.thumbnail_uri ? "COMPLETE" : "NONE");
+	const [download_lyrics_state, set_download_lyrics_state] = useState<LoadingState>(track_ref.current?.lyrics_uri ? "COMPLETE" : "NONE");
+	const [lyrics_content, set_lyrics_content] = useState<string | null>(null);
+
 	// FFmpeg state
 	const ffmpeg_args_ref = useRef("");
 	const [ffmpeg_running, set_ffmpeg_running] = useState(false);
 	const [ffmpeg_progress, set_ffmpeg_progress] = useState(0);
 	const [ffmpeg_log, set_ffmpeg_log] = useState<string[]>([]);
 	const ffmpeg_session_id_ref = useRef<number | null>(null);
+
+	useEffect(() => {
+		if (track_ref.current?.lyrics_uri) {
+			SQLTracks.read_track_lyrics(track_ref.current).then((content) => {
+				if (typeof content === "string") set_lyrics_content(content);
+			});
+		}
+	}, []);
 
 	function on_title_change(new_title: string) {
 		title_ref.current = new_title;
@@ -232,8 +217,44 @@ export default function EditTrackModal() {
 			track_ref.current.artists = artists_state;
 			if (album_ref.current) track_ref.current.album = album_ref.current;
 			set_saving_state("COMPLETE");
+			setTimeout(() => set_saving_state("NONE"), 2000);
 		} catch (_) {
 			set_saving_state("NONE");
+		}
+	}
+
+	async function handle_download_media() {
+		if (!track_ref.current) return;
+		set_download_media_state("LOADING");
+		const result = await GLOBALS.global_var.download_track(track_ref.current);
+		const success = result === "GOOD" || result === "EXISTS";
+		set_download_media_state(success ? "COMPLETE" : "NONE");
+		GLOBALS.global_var.bottom_alert?.(success ? "Downloading media" : "Failed to download media", success ? "GOOD" : "WARN");
+	}
+
+	async function handle_download_thumbnail() {
+		if (!track_ref.current) return;
+		set_download_thumbnail_state("LOADING");
+		try {
+			await SQLTracks.download_thumbnail(track_ref.current);
+			set_download_thumbnail_state("COMPLETE");
+			GLOBALS.global_var.bottom_alert?.("Downloaded thumbnail", "GOOD");
+		} catch {
+			set_download_thumbnail_state("NONE");
+			GLOBALS.global_var.bottom_alert?.("Failed to download thumbnail", "WARN");
+		}
+	}
+
+	async function handle_download_lyrics() {
+		if (!track_ref.current) return;
+		set_download_lyrics_state("LOADING");
+		const result = await GLOBALS.global_var.download_track_lyrics(track_ref.current);
+		const success = typeof result === "string";
+		set_download_lyrics_state(success ? "COMPLETE" : "NONE");
+		GLOBALS.global_var.bottom_alert?.(success ? "Downloaded lyrics" : "Failed to download lyrics", success ? "GOOD" : "WARN");
+		if (success && track_ref.current?.lyrics_uri) {
+			const content = await SQLTracks.read_track_lyrics(track_ref.current);
+			if (typeof content === "string") set_lyrics_content(content);
 		}
 	}
 
@@ -268,21 +289,17 @@ export default function EditTrackModal() {
 		}
 	}
 
+	const lyrics_preview_lines =
+		lyrics_content
+			?.split("\n")
+			.filter((l) => l.trim())
+			.slice(0, 6) ?? [];
+
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<ModalHeader title={"Edit Track"} background_color={track_colors?.secondary} text_color={track_colors?.background} close_color={track_colors?.background} />
 			<ScrollView scrollToOverflowEnabled={false} keyboardShouldPersistTaps="handled">
-				{track_colors ? (
-					<LinearGradient
-						colors={[track_colors.primary, track_colors.background, "transparent"]}
-						style={{
-							position: "absolute",
-							top: 0,
-							height: Dimensions.get("screen").height * 0.8,
-							width: "100%"
-						}}
-					/>
-				) : null}
+				{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.8, width: "100%" }} /> : null}
 
 				{/* Artwork */}
 				<ContextMenuButton
@@ -312,39 +329,52 @@ export default function EditTrackModal() {
 					</View>
 				</View>
 
-				{/* Title */}
-				<Text style={styles.section_label}>Title</Text>
-				<View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-					<TextInput defaultValue={track_ref.current?.title} autoCorrect={false} placeholder="Enter Title" placeholderTextColor={colors.searchPlaceholder} style={styles.field_input} onChangeText={on_title_change} onEndEditing={on_title_submit} onSubmitEditing={on_title_submit} />
-					{editing_title_state === "LOADING" ? <ActivityIndicator size={24} style={{ marginBottom: 6 }} /> : editing_title_state === "COMPLETE" ? <Ionicons name="checkmark" size={24} color={colors.green} style={{ marginBottom: 6 }} /> : null}
-				</View>
-				<View style={styles.divider} />
-
-				{/* Artists */}
-				<View style={{ flexDirection: "row", alignItems: "center", marginTop: 22, marginHorizontal: 25 }}>
-					<Text style={styles.section_label_inline}>Artists</Text>
-					<IoniconsTouchableOpacity icon_name="add-circle-sharp" icon_color={colors.primary} icon_size={26} on_press={append_empty_artist} style={{ marginLeft: 8 }} />
-				</View>
-				<ScrollView horizontal contentContainerStyle={{ alignItems: "center", minHeight: 90, paddingLeft: 25, paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
-					{artists_state.map((artist, i) => (
-						<EditArtist key={i + artist.name} artist={artist} index={i} total_artists={artists_state.length} track={track_ref.current!} set_artists_state={set_artists_state} />
-					))}
+				{/* Quick Downloads */}
+				<ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, flexDirection: "row" }}>
+					<QuickDownloadButton icon="cloud-download-outline" label="Media" state={download_media_state} onPress={handle_download_media} />
+					<QuickDownloadButton icon="image-outline" label="Thumbnail" state={download_thumbnail_state} onPress={handle_download_thumbnail} />
+					<QuickDownloadButton icon="document-text-outline" label="Lyrics" state={download_lyrics_state} onPress={handle_download_lyrics} />
 				</ScrollView>
 
+				{/* Title */}
+				<View style={styles.section_card}>
+					<Text style={styles.section_label}>Title</Text>
+					<View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+						<TextInput defaultValue={track_ref.current?.title} autoCorrect={false} placeholder="Enter title" placeholderTextColor={colors.searchPlaceholder} style={styles.field_input} onChangeText={on_title_change} onEndEditing={on_title_submit} onSubmitEditing={on_title_submit} />
+						<View style={{ width: 24, marginLeft: 8 }}>{editing_title_state === "LOADING" ? <ActivityIndicator size={18} /> : editing_title_state === "COMPLETE" ? <Ionicons name="checkmark" size={20} color={colors.green} /> : null}</View>
+					</View>
+					<View style={styles.field_divider} />
+				</View>
+
+				{/* Artists */}
+				<View style={styles.section_card}>
+					<View style={{ flexDirection: "row", alignItems: "center" }}>
+						<Text style={styles.section_label}>Artists</Text>
+						<IoniconsTouchableOpacity icon_name="add-circle-sharp" icon_color={colors.primary} icon_size={22} on_press={append_empty_artist} style={{ marginLeft: 8 }} />
+					</View>
+					<View style={{ marginTop: 6 }}>
+						{artists_state.map((artist, i) => (
+							<ArtistRow key={i + artist.name} artist={artist} index={i} total_artists={artists_state.length} set_artists_state={set_artists_state} />
+						))}
+					</View>
+				</View>
+
 				{/* Album */}
-				<Text style={{ ...styles.section_label, marginTop: 22 }}>Album</Text>
-				<View style={{ flexDirection: "row", marginTop: 10 }}>
-					<IImage source={album_artwork} style={{ height: 65, width: 65, marginLeft: 20, borderRadius: 5 }} />
-					<View style={{ flex: 1, marginLeft: 12, marginRight: 20 }}>
-						<View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-							<TextInput defaultValue={track_ref.current?.album?.name} autoCorrect={false} placeholder="Enter Album Name" placeholderTextColor={colors.searchPlaceholder} style={[styles.field_input, { flex: 1 }]} onChangeText={on_album_name_change} onEndEditing={on_album_name_submit} onSubmitEditing={on_album_name_submit} onBlur={() => set_album_name_input_focused(false)} onFocus={() => set_album_name_input_focused(true)} />
-							{editing_album_name_state === "LOADING" ? <ActivityIndicator size={24} style={{ marginBottom: 6 }} /> : editing_album_name_state === "COMPLETE" ? <Ionicons name="checkmark" size={24} color={colors.green} style={{ marginBottom: 6 }} /> : null}
+				<View style={styles.section_card}>
+					<Text style={styles.section_label}>Album</Text>
+					<View style={{ flexDirection: "row", marginTop: 10, alignItems: "center" }}>
+						<IImage source={album_artwork} style={{ height: 60, width: 60, borderRadius: 8 }} />
+						<View style={{ flex: 1, marginLeft: 14 }}>
+							<View style={{ flexDirection: "row", alignItems: "center" }}>
+								<TextInput defaultValue={track_ref.current?.album?.name} autoCorrect={false} placeholder="Album name" placeholderTextColor={colors.searchPlaceholder} style={[styles.field_input, { marginLeft: 0, flex: 1 }]} onChangeText={on_album_name_change} onEndEditing={on_album_name_submit} onSubmitEditing={on_album_name_submit} onBlur={() => set_album_name_input_focused(false)} onFocus={() => set_album_name_input_focused(true)} />
+								<View style={{ width: 24, marginLeft: 8 }}>{editing_album_name_state === "LOADING" ? <ActivityIndicator size={18} /> : editing_album_name_state === "COMPLETE" ? <Ionicons name="checkmark" size={20} color={colors.green} /> : null}</View>
+							</View>
+							<View style={styles.field_divider} />
 						</View>
-						<View style={styles.divider} />
 					</View>
 				</View>
 				{album_name_input_focused && close_albums.length > 0 ? (
-					<View style={{ backgroundColor: "#1a1a1aee", borderRadius: 12, overflow: "hidden", borderWidth: 0.5, borderColor: "#ffffff18", marginHorizontal: 20, marginTop: 4 }}>
+					<View style={{ backgroundColor: "#1a1a1aee", borderRadius: 12, overflow: "hidden", borderWidth: 0.5, borderColor: "#ffffff18", marginHorizontal: 16, marginTop: 4 }}>
 						<ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 							{close_albums.map((album, i) => (
 								<TouchableOpacity
@@ -365,16 +395,19 @@ export default function EditTrackModal() {
 					</View>
 				) : null}
 
-				{/* Media */}
-				<Text style={{ ...styles.section_label, marginTop: 22 }}>Media</Text>
+				{/* Media — only shown when the track has media */}
 				{track_ref.current?.media_uri ? (
-					<View style={{ marginHorizontal: 20, marginTop: 8 }}>
-						<Text style={{ color: colors.searchPlaceholder, fontSize: 11, marginBottom: 8 }} numberOfLines={2} ellipsizeMode="middle">
+					<View style={styles.section_card}>
+						<Text style={styles.section_label}>Media</Text>
+						<Text style={{ color: colors.searchPlaceholder, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+							Run FFmpeg commands on the downloaded file. Use <Text style={{ fontFamily: "monospace", color: colors.text + "aa" }}>$dl</Text> to reference the media path.
+						</Text>
+						<Text style={{ color: colors.searchPlaceholder, fontSize: 11, marginTop: 8 }} numberOfLines={1} ellipsizeMode="middle">
 							{SQLfs.media_directory(track_ref.current.media_uri)}
 						</Text>
-						<View style={{ flexDirection: "row", alignItems: "center" }}>
+						<View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
 							<TextInput
-								style={[styles.field_input, { flex: 1, fontSize: 13, backgroundColor: "#00000025", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginLeft: 0 }]}
+								style={{ flex: 1, color: colors.text, fontSize: 13, backgroundColor: "#00000030", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontFamily: "monospace" }}
 								placeholder="-i $dl -c copy output.m4a"
 								placeholderTextColor={colors.searchPlaceholder}
 								autoCorrect={false}
@@ -389,7 +422,7 @@ export default function EditTrackModal() {
 							</TouchableOpacity>
 						</View>
 						{ffmpeg_running || ffmpeg_progress > 0 ? (
-							<View style={{ height: 6, backgroundColor: "#00000040", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
+							<View style={{ height: 5, backgroundColor: "#00000040", borderRadius: 3, marginTop: 10, overflow: "hidden" }}>
 								<View style={{ height: "100%", width: `${ffmpeg_progress * 100}%` as any, backgroundColor: colors.primary, borderRadius: 3 }} />
 							</View>
 						) : null}
@@ -403,42 +436,33 @@ export default function EditTrackModal() {
 							</ScrollView>
 						) : null}
 					</View>
-				) : (
-					<View style={{ marginHorizontal: 20, marginTop: 8 }}>
-						<Text style={{ color: colors.searchPlaceholder, fontSize: 14 }}>No media file downloaded.</Text>
-					</View>
-				)}
-
-				{/* Lyrics — only shown when the track has lyrics */}
-				{track_ref.current?.lyrics_uri ? (
-					<>
-						<Text style={{ ...styles.section_label, marginTop: 22 }}>Lyrics</Text>
-						<View style={{ marginHorizontal: 20, marginTop: 8 }}>
-							<Text style={{ color: colors.searchPlaceholder, fontSize: 11, marginBottom: 8 }} numberOfLines={2} ellipsizeMode="middle">
-								{SQLfs.lyrics_directory(track_ref.current.lyrics_uri)}
-							</Text>
-							<TouchableOpacity style={{ backgroundColor: colors.primary + "30", borderRadius: 10, paddingVertical: 12, alignItems: "center" }}>
-								<Text style={{ color: colors.text, fontWeight: "600", fontSize: 15 }}>View / Edit Lyrics</Text>
-							</TouchableOpacity>
-						</View>
-					</>
 				) : null}
 
+				{/* Lyrics */}
+				<View style={styles.section_card}>
+					<Text style={styles.section_label}>Lyrics</Text>
+					{lyrics_preview_lines.length > 0 ? (
+						<>
+							<View style={{ marginTop: 10, paddingHorizontal: 4 }}>
+								{lyrics_preview_lines.map((line, i) => (
+									<Text key={i} style={{ color: i === lyrics_preview_lines.length - 1 ? colors.searchPlaceholder + "88" : colors.text + "cc", fontSize: 14, lineHeight: 22, fontStyle: "italic" }}>
+										{line}
+									</Text>
+								))}
+								{(lyrics_content?.split("\n").filter((l) => l.trim()).length ?? 0) > 6 ? <Text style={{ color: colors.searchPlaceholder, fontSize: 12, marginTop: 4 }}>+{(lyrics_content?.split("\n").filter((l) => l.trim()).length ?? 0) - 6} more lines</Text> : null}
+							</View>
+							<TouchableOpacity style={[styles.action_button, { marginTop: 14 }]} onPress={() => SharedRouter.goto_shared_player_lyrics_edit(track_ref.current?.lyrics_uri ?? "")}>
+								<Ionicons name="pencil-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+								<Text style={{ color: colors.primary, fontWeight: "600", fontSize: 15 }}>Edit Lyrics</Text>
+							</TouchableOpacity>
+						</>
+					) : (
+						<Text style={{ color: colors.searchPlaceholder, fontSize: 14, marginTop: 8 }}>No lyrics downloaded. Use the Lyrics button above to fetch them.</Text>
+					)}
+				</View>
+
 				{/* Save button */}
-				<TouchableOpacity
-					style={{
-						width: "88%",
-						alignSelf: "center",
-						height: 55,
-						backgroundColor: colors.primary,
-						borderRadius: 50,
-						alignItems: "center",
-						justifyContent: "center",
-						marginTop: 36,
-						marginBottom: 20
-					}}
-					onPress={save_all}
-					disabled={saving_state === "LOADING"}>
+				<TouchableOpacity style={{ width: "88%", alignSelf: "center", height: 55, backgroundColor: colors.primary, borderRadius: 50, alignItems: "center", justifyContent: "center", marginTop: 28, marginBottom: 20 }} onPress={save_all} disabled={saving_state === "LOADING"}>
 					{saving_state === "LOADING" ? <ActivityIndicator size={28} color="#fff" /> : saving_state === "COMPLETE" ? <Ionicons name="checkmark" size={28} color="#fff" /> : <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>Save</Text>}
 				</TouchableOpacity>
 
@@ -450,31 +474,41 @@ export default function EditTrackModal() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
+		section_card: {
+			marginHorizontal: 16,
+			marginTop: 16,
+			backgroundColor: "#ffffff06",
+			borderRadius: 16,
+			borderWidth: 0.5,
+			borderColor: "#ffffff0f",
+			padding: 16
+		},
 		section_label: {
 			color: colors.text,
-			marginHorizontal: 25,
-			marginTop: 10,
-			fontWeight: "900",
-			fontSize: 18
-		},
-		section_label_inline: {
-			color: colors.text,
-			fontWeight: "900",
-			fontSize: 18
+			fontWeight: "800",
+			fontSize: 16,
+			letterSpacing: 0.2
 		},
 		field_input: {
 			color: colors.text,
-			fontSize: 22,
+			fontSize: 20,
 			fontWeight: "600",
-			marginLeft: 25,
-			marginTop: 5,
-			width: "85%"
+			marginTop: 4,
+			flex: 1
 		},
-		divider: {
-			marginLeft: 25,
+		field_divider: {
 			height: 0.5,
-			backgroundColor: colors.text,
-			width: "85%",
-			marginTop: 4
+			backgroundColor: colors.text + "30",
+			marginTop: 6
+		},
+		action_button: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.primary + "18",
+			borderRadius: 10,
+			paddingVertical: 12,
+			borderWidth: 0.5,
+			borderColor: colors.primary + "30"
 		}
 	});
