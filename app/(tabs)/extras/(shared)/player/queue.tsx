@@ -36,9 +36,9 @@ export default function AudioPlayerQueue() {
 		set_queue_data(track_player_queue);
 	}
 
-	async function remove_track_from_queue(item: Track) {
+	async function remove_track_from_queue(item: Track, index: number) {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
-		await delete_track_from_player_queue(item);
+		await delete_track_from_player_queue(item, index);
 		updated_queue_items();
 	}
 
@@ -67,8 +67,8 @@ export default function AudioPlayerQueue() {
 							<Text style={{ color: colors.text, fontSize: 16, fontWeight: "700", padding: 10 }}>Up Next</Text>
 						</View>
 					)}
-					renderHiddenItem={({ item }) => (
-						<TouchableOpacity onPress={async () => remove_track_from_queue(item)} style={{ backgroundColor: "#8B0000", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
+					renderHiddenItem={(item, i) => (
+						<TouchableOpacity onPress={async () => remove_track_from_queue(item.item, item.index)} style={{ backgroundColor: "#8B0000", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
 							<Ionicons name="trash-bin" style={{ right: 10 }} color={"white"} size={22} />
 						</TouchableOpacity>
 					)}

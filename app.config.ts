@@ -35,18 +35,18 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     "assetBundlePatterns": [
         "**/*"
     ],
-    // "ios": {
-    //     "bundleIdentifier": IS_DEV ? 'com.illusion137.Illusi.dev' : 'com.illusion137.Illusi',
-    //     "supportsTablet": false,
-    //     "usesIcloudStorage": false,
-    //     "infoPlist": {
-    //         "UIBackgroundModes": [
-    //             "audio",
-    //             "fetch"
-    //         ]
-    //     },
-    //     "associatedDomains": ["applinks:illusi.dev"]
-    // },
+    "ios": {
+        "bundleIdentifier": IS_DEV ? 'com.illusion137.Illusi.dev' : 'com.illusion137.Illusi',
+        // "supportsTablet": false,
+        // "usesIcloudStorage": false,
+        // "infoPlist": {
+        //     "UIBackgroundModes": [
+        //         "audio",
+        //         "fetch"
+        //     ]
+        // },
+        // "associatedDomains": ["applinks:illusi.dev"]
+    },
     "web": {
         "favicon": "./assets/favicon.png"
     },
@@ -56,7 +56,7 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
             {
                 "fonts": [
                     "./assets/fonts/LEMON.otf",
-                    "./assets/fonts/StarsBorneoDEMO.tff"
+                    "./assets/fonts/StarsBorneoDEMO.ttf"
                 ],
             },
         ],
