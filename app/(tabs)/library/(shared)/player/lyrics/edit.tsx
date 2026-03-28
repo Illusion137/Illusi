@@ -97,10 +97,7 @@ export default function PlayerEditLyrics() {
 				</View>
 
 				{/* Save button */}
-				<TouchableOpacity
-					style={{ width: "88%", alignSelf: "center", height: 55, backgroundColor: colors.primary, borderRadius: 50, alignItems: "center", justifyContent: "center", marginTop: 24 }}
-					onPress={handle_save}
-					disabled={save_state === "LOADING"}>
+				<TouchableOpacity style={{ width: "88%", alignSelf: "center", height: 55, backgroundColor: colors.primary, borderRadius: 50, alignItems: "center", justifyContent: "center", marginTop: 24 }} onPress={handle_save} disabled={save_state === "LOADING"}>
 					{save_state === "LOADING" ? <ActivityIndicator size={28} color="#fff" /> : save_state === "COMPLETE" ? <Ionicons name="checkmark" size={28} color="#fff" /> : <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>Save Lyrics</Text>}
 				</TouchableOpacity>
 

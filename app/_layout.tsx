@@ -24,6 +24,7 @@ import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
+import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
 
 const splash_screen_image = require("../assets/splash.png");
 
