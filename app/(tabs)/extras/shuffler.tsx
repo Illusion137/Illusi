@@ -2,13 +2,15 @@ import Equalizer from "@components/Equalizer";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { Entypo } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
+import { FutsalShuffle } from "@illusive/futsal_shuffle";
+import { GLOBALS } from "@illusive/globals";
 import { Prefs } from "@illusive/prefs";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Dimensions, ScrollView, Text, TextInput, View } from "react-native";
 
-const shuffler_min = -64;
-const shuffler_max = 64;
+const shuffler_min = -1;
+const shuffler_max = 1;
 function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_update: () => any }) {
 	const { colors } = usePTheme();
 
@@ -38,16 +40,24 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 
 export default function Shuffler() {
 	const shuffler_inputs = Object.entries(Prefs.get_pref("track_shuffle_bias"));
-	const [visualizer_state, set_visualizer_state] = useState(Object.values(Prefs.get_pref("track_shuffle_bias")));
+	const [visualizer_state, set_visualizer_state] = useState(get_visualizer_values());
+
+	function get_visualizer_values() {
+		return FutsalShuffle.get_bias_visualizer_data(GLOBALS.global_var.sql_tracks);
+	}
+
+	function update_visualizer_state() {
+		set_visualizer_state(get_visualizer_values());
+	}
 
 	return (
 		<View>
 			<Equalizer min={shuffler_min} max={shuffler_max} values={visualizer_state} freqs={[]} height={180} />
-			<ExtrasSectionButton icon="ticket-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push("/extras/shuffler-test")} />
+			<ExtrasSectionButton icon="easel-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push("/extras/shuffler-test")} />
 			<View style={{ height: 10 }} />
 			<ScrollView>
 				{shuffler_inputs.map((input) => (
-					<ShufflerInput key={input[0]} shuffler_key={input[0]} initial_value={input[1]} on_update={() => set_visualizer_state(Object.values(Prefs.get_pref("track_shuffle_bias")))} />
+					<ShufflerInput key={input[0]} shuffler_key={input[0]} initial_value={input[1]} on_update={update_visualizer_state} />
 				))}
 				<View style={{ height: Dimensions.get("screen").height * 0.7 }} />
 			</ScrollView>

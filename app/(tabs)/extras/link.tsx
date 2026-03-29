@@ -14,7 +14,7 @@ import { get_common_styles } from "@utils/common_styles";
 import { router, useLocalSearchParams } from "expo-router";
 import hexToRgba from "hex-to-rgba";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Alert, Animated, Dimensions, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Dimensions, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 
 //selected_music_serivce_type: MusicServiceType
@@ -105,7 +105,7 @@ const user_playlists_cache = new TimedCache<MusicServiceType, { key: string; val
 function PlaylistSelector(props: { type: MusicServiceType }) {
 	const { colors } = usePTheme();
 	const [playlists_group, set_playlists_group] = useState<{ key: string; value: string }[]>([]);
-	const [selected_key, set_selected_key] = useState("");
+	const [_, set_selected_key] = useState("");
 
 	useEffect(() => {
 		(async () => {
@@ -176,7 +176,6 @@ interface LinkFormData {
 	on_startup: boolean;
 }
 export default function ExtrasLinkModal() {
-	// TODO load existing link data if editing
 	const { linker_uuid } = useLocalSearchParams<{ linker_uuid?: string }>();
 	const { colors } = usePTheme();
 
@@ -218,7 +217,7 @@ export default function ExtrasLinkModal() {
 	}
 
 	function validate_form_data(): boolean {
-		return false;
+		return true;
 	}
 
 	function get_linker_link(): LinkerLink {
@@ -263,6 +262,7 @@ export default function ExtrasLinkModal() {
 			links.push(get_linker_link());
 			Prefs.save_pref("linker_links", links);
 		}
+		router.back();
 	}
 
 	useEffect(() => {
@@ -287,7 +287,7 @@ export default function ExtrasLinkModal() {
 				<LabelSwitch label="Full Playlist" description="This link (for the services that are NOT Illusi) will extract the entire playlist rather than one segment. (This could be an expensive operation)." />
 				<LabelSwitch label="On Startup" description="This link will run everytime the app starts, if pref[expensive_wifi_only] then, this will only happen if connected to WiFi." />
 				<View style={{ width: "100%", justifyContent: "center", alignItems: "center", marginTop: 40 }}>
-					<TouchableOpacity style={{ backgroundColor: hexToRgba(colors.primary, 0.8), padding: 10, paddingHorizontal: 20, borderRadius: 3 }}>
+					<TouchableOpacity onPress={save_link} style={{ backgroundColor: hexToRgba(colors.primary, 0.8), padding: 10, paddingHorizontal: 20, borderRadius: 3 }}>
 						<Text style={{ color: colors.text }}>{linker_uuid ? "Update" : "Save"} Link</Text>
 					</TouchableOpacity>
 				</View>

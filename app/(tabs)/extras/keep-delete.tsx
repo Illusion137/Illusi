@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Dimensions, Easing } from "react-native";
+import { View, Text, TouchableOpacity, Dimensions, Easing, Animated, PanResponder } from "react-native";
 import { empty_join_dot } from "@common/utils/util";
 import { Ionicons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
@@ -8,7 +8,6 @@ import usePTheme from "@hooks/usePTheme";
 import type { TrackMetaData } from "@illusive/types";
 import type { Track } from "@illusive/types";
 import { GLOBALS } from "@illusive/globals";
-import Swiper from "react-native-swiper";
 import { artist_string, sum, time_to_timestamp } from "@illusive/illusive_utils";
 import TrackIconTags from "@components/TrackIconTags";
 import { KeepDelete } from "@illusive/keep_delete";
@@ -19,7 +18,11 @@ import { router } from "expo-router";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { generror } from "@common/utils/error_util";
 import { reinterpret_cast } from "@common/cast";
-import { LinearGradient } from "expo-linear-gradient";
+import { delete_track } from "@illusive/illusi/src/components/track";
+import { SQLTracks } from "@illusive/sql/sql_tracks";
+
+const SWIPE_THRESHOLD = 100;
+const SCREEN_WIDTH = Dimensions.get("screen").width;
 
 function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: number }) {
 	const { colors } = usePTheme();
@@ -41,11 +44,11 @@ function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: num
 				}}>
 				<IImage
 					source={props.track_data.playback?.artwork}
-					width={Dimensions.get("screen").width - 70}
+					width={SCREEN_WIDTH - 70}
 					style={{
 						borderRadius: 12,
-						maxWidth: Dimensions.get("screen").width - 70,
-						height: Dimensions.get("screen").width - 70
+						maxWidth: SCREEN_WIDTH - 70,
+						height: SCREEN_WIDTH - 70
 					}}
 				/>
 			</View>
@@ -92,60 +95,163 @@ export default function ExtraKeepDeleteScreen() {
 	const seek_amount_seconds = 15;
 
 	const sum_plays = useRef(sum(GLOBALS.global_var.sql_tracks.map((track) => track.meta?.plays ?? 0)));
-	const tracks = useRef<Track[]>(KeepDelete.ordered_keep_delete_tracks(GLOBALS.global_var.sql_tracks.filter((track) => track.media_uri)).slice(0, 20));
+	const [tracks, set_tracks] = useState<Track[]>(() => KeepDelete.ordered_keep_delete_tracks(GLOBALS.global_var.sql_tracks.filter((track) => track.media_uri)).slice(0, 20));
+	const [current_index, set_current_index] = useState(0);
+	const [undo_track, set_undo_track] = useState<Track | null>(null);
+
+	// Refs to keep advance() closure fresh without re-creating PanResponder
+	const tracks_ref = useRef(tracks);
+	const current_index_ref = useRef(current_index);
+	tracks_ref.current = tracks;
+	current_index_ref.current = current_index;
+
+	const is_advancing = useRef(false);
+	const playing_track = useRef<Track>(tracks[0]);
 
 	const [player_state_trackplayer, set_player_state_trackplayer] = useState({
 		elapsed_time: 0,
-		duration_remaining: tracks.current[0]?.duration ?? 0
+		duration_remaining: tracks[0]?.duration ?? 0
 	});
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
-	const playing_track = useRef<Track>(tracks.current[0]);
+
+	// Swipe gesture animation
+	const pan = useRef(new Animated.ValueXY()).current;
+
+	const card_rotate = pan.x.interpolate({
+		inputRange: [-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2],
+		outputRange: ["-8deg", "8deg"],
+		extrapolate: "clamp"
+	});
+	const red_opacity = pan.x.interpolate({
+		inputRange: [-SWIPE_THRESHOLD, 0],
+		outputRange: [0.45, 0],
+		extrapolate: "clamp"
+	});
+	const green_opacity = pan.x.interpolate({
+		inputRange: [0, SWIPE_THRESHOLD],
+		outputRange: [0, 0.45],
+		extrapolate: "clamp"
+	});
+
+	const advance_ref = useRef<(action: "keep" | "delete") => Promise<void>>(null);
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => !is_advancing.current,
+			onMoveShouldSetPanResponder: (_, gs) => !is_advancing.current && Math.abs(gs.dx) > 8,
+			onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+			onPanResponderRelease: (_, gs) => {
+				if (gs.dx < -SWIPE_THRESHOLD) {
+					advance_ref.current?.("delete");
+				} else if (gs.dx > SWIPE_THRESHOLD) {
+					advance_ref.current?.("keep");
+				} else {
+					Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+				}
+			},
+			onPanResponderTerminate: () => {
+				Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+			}
+		})
+	).current;
 
 	useEffect(() => {
-		if (tracks.current.length === 0) return;
+		if (tracks.length === 0) return;
 		GLOBALS.global_var.kill_audioplayer();
-		on_index_changed(0);
+		load_and_play(tracks[0]);
 	}, []);
 
-	async function on_index_changed(index: number) {
+	async function load_and_play(track: Track) {
 		playing_track.current = {
-			...tracks.current[index],
-			meta: reinterpret_cast<TrackMetaData>({ ...(tracks.current[index] ?? {}) })
+			...track,
+			meta: reinterpret_cast<TrackMetaData>({ ...(track ?? {}) })
 		};
-		console.log(index);
 
 		const is_setup = await setup_track_player();
 		await TrackPlayer.reset();
-		const queue = await TrackPlayer.getQueue();
-		if (is_setup && queue.length <= 0) {
-			if (playing_track.current !== null) {
-				GLOBALS.global_var.playing_track_index = 0;
-				GLOBALS.global_var.playing_tracks = [playing_track.current];
-				if (playing_track.current.playback) {
-					playing_track.current.playback.successful = false;
-					playing_track.current.playback.added = false;
-				}
-				const trackplayer_track = await illusive_track_to_track_player_track(playing_track.current);
-				if (trackplayer_track === "skip") {
-					alert_error(generror("Couldn't play track", "INFO", { playing_track: playing_track.current }));
-					router.back();
-				} else {
-					await TrackPlayer.add(trackplayer_track);
-				}
+		if (is_setup) {
+			GLOBALS.global_var.playing_track_index = 0;
+			GLOBALS.global_var.playing_tracks = [track];
+			if (track.playback) {
+				track.playback.successful = false;
+				track.playback.added = false;
 			}
+			const trackplayer_track = await illusive_track_to_track_player_track(playing_track.current);
+			if (trackplayer_track === "skip") {
+				alert_error(generror("Couldn't play track", "INFO", { playing_track: playing_track.current }));
+				router.back();
+				return;
+			}
+			await TrackPlayer.add(trackplayer_track);
 		}
 		await TrackPlayer.play();
 	}
 
+	async function animate_off(direction: 1 | -1): Promise<void> {
+		return new Promise((resolve) => {
+			Animated.timing(pan, {
+				toValue: { x: direction * SCREEN_WIDTH * 1.5, y: 0 },
+				duration: 220,
+				useNativeDriver: false
+			}).start(() => resolve());
+		});
+	}
+
+	async function advance(action: "keep" | "delete") {
+		if (is_advancing.current) return;
+		is_advancing.current = true;
+
+		const cur_tracks = tracks_ref.current;
+		const cur_index = current_index_ref.current;
+		const track = cur_tracks[cur_index];
+
+		await animate_off(action === "delete" ? -1 : 1);
+
+		if (action === "delete") {
+			await delete_track(track, undefined);
+			set_undo_track(track);
+		} else {
+			set_undo_track(null);
+		}
+
+		pan.setValue({ x: 0, y: 0 });
+
+		const new_tracks = action === "delete" ? cur_tracks.filter((t) => t.uid !== track.uid) : cur_tracks;
+		const new_idx = action === "delete" ? cur_index : cur_index + 1;
+
+		if (new_idx >= new_tracks.length) {
+			set_tracks([]);
+		} else {
+			set_tracks(new_tracks);
+			set_current_index(new_idx);
+			await load_and_play(new_tracks[new_idx]);
+		}
+
+		is_advancing.current = false;
+	}
+
+	advance_ref.current = advance;
+
+	async function undo_delete() {
+		if (!undo_track) return;
+		await SQLTracks.insert_track(undo_track);
+		GLOBALS.global_var.sql_tracks.push(undo_track);
+
+		const cur_index = current_index_ref.current;
+		const cur_tracks = tracks_ref.current;
+		const restored_tracks = [...cur_tracks.slice(0, cur_index), undo_track, ...cur_tracks.slice(cur_index)];
+		set_tracks(restored_tracks);
+		set_undo_track(null);
+		await load_and_play(undo_track);
+	}
+
 	const toggle_playing = useCallback(async () => {
 		const tp_state = await TrackPlayer.getPlaybackState();
-		set_player_state_type(player_state_type === State.Playing ? State.Paused : State.Playing);
-
 		if (tp_state.state === State.Playing) await TrackPlayer.pause();
 		else await TrackPlayer.play();
 	}, []);
 
-	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async (event) => {
+	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackState], async (event) => {
 		if (event.type === Event.PlaybackProgressUpdated) {
 			set_player_state_trackplayer({
 				elapsed_time: event.position,
@@ -156,9 +262,6 @@ export default function ExtraKeepDeleteScreen() {
 		}
 	});
 
-	async function on_swipe_left_delete() {}
-	async function delete_undo() {}
-	async function on_swipe_right_keep() {}
 	async function skip_forward() {
 		await TrackPlayer.seekBy(seek_amount_seconds);
 	}
@@ -166,7 +269,7 @@ export default function ExtraKeepDeleteScreen() {
 		await TrackPlayer.seekBy(-seek_amount_seconds);
 	}
 
-	if (tracks.current.length === 0) {
+	if (tracks.length === 0) {
 		return (
 			<View style={{ backgroundColor: colors.background, flex: 1 }}>
 				<EmptyState />
@@ -174,18 +277,42 @@ export default function ExtraKeepDeleteScreen() {
 		);
 	}
 
+	const current_track = tracks[current_index];
+	const next_track = tracks[current_index + 1];
+
 	return (
 		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
-			<LinearGradient colors={["red", colors.background]} locations={[0.0, 0.5]} start={{ x: 0, y: 0.5 }} end={{ x: 0.5, y: 0.5 }} style={{ width: 100, height: "100%", position: "absolute", top: 0, left: 0 }} />
-			<LinearGradient colors={["green", colors.background]} locations={[0.0, 0.5]} start={{ x: 0.5, y: 0.5 }} end={{ x: 0, y: 0.5 }} style={{ width: 100, height: "100%", position: "absolute", top: 0, right: -45 }} />
+			{/* Full-screen tint overlays driven by swipe gesture */}
+			<Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#cc2222", opacity: red_opacity }} />
+			<Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#22aa44", opacity: green_opacity }} />
 
-			{/* Track swiper */}
+			{/* Card area */}
 			<View style={{ flex: 1, paddingTop: 60 }}>
-				<Swiper showsButtons={false} showsPagination={false} onIndexChanged={on_index_changed}>
-					{tracks.current.map((track) => (
-						<RenderKeepDeletePlayingTrack key={track.uid} track_data={track} sum_plays={sum_plays.current} />
-					))}
-				</Swiper>
+				{/* Next card shown behind current one */}
+				{next_track && (
+					<View
+						style={{
+							position: "absolute",
+							top: 60,
+							left: 0,
+							right: 0,
+							alignItems: "center",
+							transform: [{ scale: 0.94 }],
+							opacity: 0.55
+						}}
+						pointerEvents="none">
+						<RenderKeepDeletePlayingTrack track_data={next_track} sum_plays={sum_plays.current} />
+					</View>
+				)}
+
+				{/* Current card with gesture handler */}
+				<Animated.View
+					style={{
+						transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate: card_rotate }]
+					}}
+					{...panResponder.panHandlers}>
+					<RenderKeepDeletePlayingTrack track_data={current_track} sum_plays={sum_plays.current} />
+				</Animated.View>
 			</View>
 
 			{/* Playback footer */}
@@ -198,39 +325,39 @@ export default function ExtraKeepDeleteScreen() {
 					</View>
 				</View>
 
-				{/* Controls row */}
-				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 16, gap: 8 }}>
-					{/* Delete */}
-					<TouchableOpacity onPress={on_swipe_left_delete} style={{ alignItems: "center" }}>
-						<Ionicons name="close-circle" size={50} color={colors.red} />
+				{/* Undo delete — only visible after a deletion */}
+				{undo_track ? (
+					<TouchableOpacity onPress={undo_delete} style={{ alignSelf: "center", marginTop: 10, paddingHorizontal: 16, paddingVertical: 5 }}>
+						<Text style={{ color: colors.subtext, fontSize: 13 }} numberOfLines={1}>
+							↩ Undo delete "{undo_track.title}"
+						</Text>
+					</TouchableOpacity>
+				) : (
+					<View style={{ height: 28 }} />
+				)}
+
+				{/* Controls: Delete | Skip- | Play/Pause | Skip+ | Keep */}
+				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 8, gap: 10 }}>
+					<TouchableOpacity onPress={async () => advance("delete")} style={{ alignItems: "center" }}>
+						<Ionicons name="close-circle" size={52} color={colors.red} />
 					</TouchableOpacity>
 
-					{/* Undo */}
-					<TouchableOpacity onPress={delete_undo} style={{ alignItems: "center", width: 50 }}>
-						<Ionicons name="arrow-undo-circle" size={40} color={colors.secondary} />
-						<Text style={{ color: colors.secondary, fontSize: 11, marginTop: 2 }}>10s</Text>
-					</TouchableOpacity>
-
-					{/* Skip back */}
 					<TouchableOpacity onPress={skip_backward} style={{ alignItems: "center", width: 44 }}>
-						<Ionicons name="play-skip-back" size={32} color={colors.primary} />
+						<Ionicons name="play-skip-back" size={30} color={colors.primary} />
 						<Text style={{ color: colors.primary, fontSize: 11, marginTop: 2 }}>{seek_amount_seconds}s</Text>
 					</TouchableOpacity>
 
-					{/* Play / Pause */}
 					<TouchableOpacity onPress={toggle_playing} style={{ alignItems: "center" }}>
-						<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={80} color={colors.primary} />
+						<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={72} color={colors.primary} />
 					</TouchableOpacity>
 
-					{/* Skip forward */}
 					<TouchableOpacity onPress={skip_forward} style={{ alignItems: "center", width: 44 }}>
-						<Ionicons name="play-skip-forward" size={32} color={colors.primary} />
+						<Ionicons name="play-skip-forward" size={30} color={colors.primary} />
 						<Text style={{ color: colors.primary, fontSize: 11, marginTop: 2 }}>{seek_amount_seconds}s</Text>
 					</TouchableOpacity>
 
-					{/* Keep */}
-					<TouchableOpacity onPress={on_swipe_right_keep} style={{ alignItems: "center", width: 50 }}>
-						<Ionicons name="checkmark-circle" size={50} color={colors.green} />
+					<TouchableOpacity onPress={async () => advance("keep")} style={{ alignItems: "center" }}>
+						<Ionicons name="checkmark-circle" size={52} color={colors.green} />
 					</TouchableOpacity>
 				</View>
 			</View>

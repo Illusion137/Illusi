@@ -24,7 +24,9 @@ import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
-import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
+const { CarPlayService } = require("@illusive/carplay/carplay_service") as typeof import("../lib-origin/Illusive/src/carplay/carplay_service");
+// TODO: expose carplay_play_mode and the two-section layout toggle
+//       (left = player/lyrics bar, right = playlist grid) in Illusi Settings.
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -101,12 +103,14 @@ export default Sentry.wrap(function App() {
 					TrackPlayer.reset().catch((e) => e);
 				} catch (e) {}
 			};
+			CarPlayService.init();
 			// const tables = await db_exec(async(db) => db.all("SELECT * FROM sqlite_master WHERE type='table';"));
 			// console.log(tables);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
+			CarPlayService.destroy();
 		};
 	}, []);
 	useEffect(() => {

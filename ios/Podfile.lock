@@ -1737,6 +1737,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-carplay (2.4.1-beta.0):
+    - React
   - react-native-cookies (5.0.1):
     - React-Core
   - react-native-document-picker (8.2.2):
@@ -2977,6 +2979,7 @@ DEPENDENCIES:
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-airplay-button (from `../node_modules/react-native-airplay-button`)
   - "react-native-audio-waveform (from `../node_modules/@simform_solutions/react-native-audio-waveform`)"
+  - react-native-carplay (from `../node_modules/react-native-carplay`)
   - "react-native-cookies (from `../node_modules/@react-native-community/cookies`)"
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
   - react-native-ios-context-menu (from `../node_modules/react-native-ios-context-menu`)
@@ -3214,6 +3217,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-airplay-button"
   react-native-audio-waveform:
     :path: "../node_modules/@simform_solutions/react-native-audio-waveform"
+  react-native-carplay:
+    :path: "../node_modules/react-native-carplay"
   react-native-cookies:
     :path: "../node_modules/@react-native-community/cookies"
   react-native-document-picker:
@@ -3426,6 +3431,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: d1956f0eec54c619b63a379520fb4c618a55ccb9
   react-native-airplay-button: 67346bac38f575ce06978b5746052b0aa2741439
   react-native-audio-waveform: ad578cb968b31b043b93b5e824aa37b6a1a08691
+  react-native-carplay: 8f388f6f73e5e0f73ed154ad8794371343ee20c0
   react-native-cookies: 66880334b9dd8b6d3e54871c5d724f65efca8cf6
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
   react-native-ios-context-menu: 819a2427bbec9b85092745687d84a422361cd921

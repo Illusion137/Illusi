@@ -8850,6 +8850,11 @@ react-native-big-list@1.6.4:
   dependencies:
     prop-types "^15.8.1"
 
+react-native-carplay@^2.4.1-beta.0:
+  version "2.4.1-beta.0"
+  resolved "https://registry.yarnpkg.com/react-native-carplay/-/react-native-carplay-2.4.1-beta.0.tgz#985c44e4eae622e7d2cf17c5b996a0182dbf5a52"
+  integrity sha512-tYJymLgJi+0516niv4ApGVC+VgENX/uCYqCX81tewSILWnS6KR7M0A9+bHyNk8xoheFyYGruX7onYxU2U8ykPA==
+
 react-native-chart-kit@^6.12.0:
   version "6.12.0"
   resolved "https://registry.yarnpkg.com/react-native-chart-kit/-/react-native-chart-kit-6.12.0.tgz#187a4987a668a85b7e93588c248ed2c33b3a06f6"
@@ -9081,7 +9086,7 @@ react-native-timer@^1.3.6:
 
 "react-native-track-player@github:Illusion137/RNTPvE":
   version "5.0.0-alpha0"
-  resolved "https://codeload.github.com/Illusion137/RNTPvE/tar.gz/0f3b6cfb2df9170d47bed95e311e9ab7df07c1e7"
+  resolved "https://codeload.github.com/Illusion137/RNTPvE/tar.gz/96577a2066364053a3988c43450ad8dd48e2025b"
 
 react-native-trimmer@^1.1.1:
   version "1.1.1"
