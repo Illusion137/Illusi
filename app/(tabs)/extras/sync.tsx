@@ -35,10 +35,10 @@ export default function ExtraSyncScreen() {
 		set_loading(true);
 		try {
 			if (is_signup) {
-				const { error } = await supabase.auth.signUp({ email, password: passkey });
+				const { error } = await supabase().auth.signUp({ email, password: passkey });
 				if (error) set_error(error.message);
 			} else {
-				const { error } = await supabase.auth.signInWithPassword({ email, password: passkey });
+				const { error } = await supabase().auth.signInWithPassword({ email, password: passkey });
 				if (error) set_error(error.message);
 			}
 		} finally {
