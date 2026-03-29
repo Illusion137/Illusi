@@ -74,19 +74,34 @@
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
+		<key>CPSupportsDashboardNavigationScene</key>
+		<true/>
+		<key>CPSupportsInstrumentClusterNavigationScene</key>
+		<true/>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<true/>
 		<key>UISceneConfigurations</key>
 		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
+			<key>CPTemplateApplicationDashboardSceneSessionRoleApplication</key>
 			<array>
 				<dict>
 					<key>UISceneClassName</key>
-					<string>UIWindowScene</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
+					<string>CPTemplateApplicationDashboardScene</string>
 					<key>UISceneConfigurationName</key>
-					<string>Phone</string>
+					<string>CarPlayDashboard</string>
+					<key>UISceneDelegateClassName</key>
+					<string>DashboardSceneDelegate</string>
+				</dict>
+			</array>
+			<key>CPTemplateApplicationInstrumentClusterSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>CPTemplateApplicationInstrumentClusterScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>CarPlayCluster</string>
+					<key>UISceneDelegateClassName</key>
+					<string>ClusterSceneDelegate</string>
 				</dict>
 			</array>
 			<key>CPTemplateApplicationSceneSessionRoleApplication</key>
@@ -94,10 +109,21 @@
 				<dict>
 					<key>UISceneClassName</key>
 					<string>CPTemplateApplicationScene</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).CarSceneDelegate</string>
 					<key>UISceneConfigurationName</key>
-					<string>CarPlay</string>
+					<string>CarPlayHeadUnit</string>
+					<key>UISceneDelegateClassName</key>
+					<string>HeadUnitSceneDelegate</string>
+				</dict>
+			</array>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>Phone</string>
+					<key>UISceneDelegateClassName</key>
+					<string>Illusi.PhoneSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

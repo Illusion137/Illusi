@@ -34,14 +34,6 @@ export default function PlaylistComponent(props: {
 	const [selected, set_selected] = useState(GLOBALS.global_var.selected_playlists_uuids.has(props.playlist_data.uuid));
 	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
 
-	const [target_view_node, set_target_view_node] = useState();
-
-	useEffect(() => {
-		return () => {
-			set_target_view_node(undefined);
-		};
-	}, []);
-
 	useEffect(() => {
 		set_pinned(Boolean(props.playlist_data.pinned));
 	}, [props.playlist_data.pinned]);
@@ -108,12 +100,6 @@ export default function PlaylistComponent(props: {
 
 	return (
 		<ContextMenuView
-			shouldEnableAggressiveCleanup
-			shouldCleanupOnComponentWillUnmountForMenuPreview
-			shouldCleanupOnComponentWillUnmountForAuxPreview
-			previewConfig={{
-				targetViewNode: target_view_node
-			}}
 			menuConfig={{
 				menuTitle: `Playlist - ${props.playlist_data.title}`,
 				menuItems: [
@@ -212,15 +198,7 @@ export default function PlaylistComponent(props: {
 					return;
 				}}
 				delayLongPress={Constants.long_press_delay}
-				onPress={select_mode ? toggle_state : on_press}
-				onLayout={
-					!target_view_node &&
-					(({ nativeEvent }: any) => {
-						set_target_view_node(nativeEvent.target);
-					})
-				}
-				// onLongPress={select_mode ? () => {} : on_hold}
-			>
+				onPress={select_mode ? toggle_state : on_press}>
 				<>
 					<View style={{ width: 15 }} />
 					<FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={visual_data?.four_track ?? []} size={compact ? 22 : 35} />

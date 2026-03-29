@@ -1739,6 +1739,13 @@
   resolved "https://registry.yarnpkg.com/@istanbuljs/schema/-/schema-0.1.3.tgz#e45e384e4b8ec16bce2fd903af78450f6bf7ec98"
   integrity sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==
 
+"@iternio/react-native-auto-play@^0.3.5":
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/@iternio/react-native-auto-play/-/react-native-auto-play-0.3.5.tgz#1b694fff0c0971c11f19843df31060ea3abd8da3"
+  integrity sha512-Yn36OEPsESq23tUYEKRid9F1z2AV6ZrupK5GE5l5QBbEKRfkQ2ly2BGI2N9ixtz3gAPNyCu3bFSDPOl4/EgfvQ==
+  dependencies:
+    react-native-uuid "^2.0.3"
+
 "@jest/create-cache-key-function@^29.7.0":
   version "29.7.0"
   resolved "https://registry.yarnpkg.com/@jest/create-cache-key-function/-/create-cache-key-function-29.7.0.tgz#793be38148fab78e65f40ae30c36785f4ad859f0"
@@ -8989,6 +8996,11 @@ react-native-multi-slider@^0.3.6:
   resolved "https://registry.yarnpkg.com/react-native-multi-slider/-/react-native-multi-slider-0.3.6.tgz#3fa9d98bb92c8c27e05e3b43849f0a99ee9a42cc"
   integrity sha512-EoTMv2hKjBfJWMRZYp4A0LXg9pBPaMk+rgTXsvBjvI0owFqq8rIrnijO453oLqfbrXD72mBIHLRww0TUMZufdg==
 
+react-native-nitro-modules@^0.35.2:
+  version "0.35.2"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.2.tgz#75fbcd42a73d93540c0069d42098d9dc6c12ea7e"
+  integrity sha512-97cZcCh3ZAuWAfutel2Q3qLfc45XXh7F9Ei5tEjahP0kV3q8hQelwLIulKXmjN+f0JI5Zf/wCsfwwdVWYU2tKA==
+
 react-native-path@^0.0.5:
   version "0.0.5"
   resolved "https://registry.yarnpkg.com/react-native-path/-/react-native-path-0.0.5.tgz#a04e4b73a535a8a7cf15c6e760e27db7789afb13"
@@ -9105,7 +9117,7 @@ react-native-url-polyfill@^2.0.0:
   dependencies:
     whatwg-url-without-unicode "8.0.0-3"
 
-react-native-uuid@^2.0.2:
+react-native-uuid@^2.0.2, react-native-uuid@^2.0.3:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/react-native-uuid/-/react-native-uuid-2.0.4.tgz#0c4f345523c5feac0282d3a51fe19887727df988"
   integrity sha512-LSJNeh559qC17fgVPBsWuTSW/OygFp2dwTcf94IQBLYft5FzIQS9pCsuT36OPvyvDOMb6yiGr6TafaJDnz9PPQ==

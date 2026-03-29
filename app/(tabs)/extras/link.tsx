@@ -17,7 +17,6 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { Alert, Animated, Dimensions, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 
-//selected_music_serivce_type: MusicServiceType
 function sorted_music_service_entries(type: MusicServiceType) {
 	const entries = Array.from(Illusive.music_service.entries())
 		.filter((e) => e[0] !== "API" && e[0] !== "BandLab")
@@ -102,10 +101,9 @@ const ServiceSelector = forwardRef<ServiceSelectorHandle, ServiceSelectorProps>(
 });
 
 const user_playlists_cache = new TimedCache<MusicServiceType, { key: string; value: string }[]>(milliseconds_of({ hours: 1 }));
-function PlaylistSelector(props: { type: MusicServiceType }) {
+function PlaylistSelector(props: { type: MusicServiceType; on_select: (key: string) => void; default_key?: string }) {
 	const { colors } = usePTheme();
 	const [playlists_group, set_playlists_group] = useState<{ key: string; value: string }[]>([]);
-	const [_, set_selected_key] = useState("");
 
 	useEffect(() => {
 		(async () => {
@@ -114,7 +112,10 @@ function PlaylistSelector(props: { type: MusicServiceType }) {
 				set_playlists_group(playlists.map((p) => ({ key: p.uuid, value: p.title })));
 			} else {
 				const cache_response = user_playlists_cache.get(props.type);
-				if (cache_response) return cache_response;
+				if (cache_response) {
+					set_playlists_group(cache_response);
+					return;
+				}
 				const playlists = (await Illusive.music_service.get(props.type)?.get_user_playlists?.()) ?? { playlists: [] };
 				if ("error" in playlists) {
 					alert_error(playlists);
@@ -128,10 +129,15 @@ function PlaylistSelector(props: { type: MusicServiceType }) {
 		})();
 	}, [props.type]);
 
+	const default_option = useMemo(() => {
+		if (props.default_key) return playlists_group.find((p) => p.key === props.default_key) ?? playlists_group[0];
+		return playlists_group[0];
+	}, [playlists_group, props.default_key]);
+
 	return (
 		<View style={{ width: "100%", height: 80, justifyContent: "center", zIndex: 100 }}>
 			<SelectList
-				setSelected={(key: string) => set_selected_key(key)}
+				setSelected={(key: string) => props.on_select(key)}
 				data={playlists_group}
 				save="key"
 				arrowicon={<></>}
@@ -139,7 +145,7 @@ function PlaylistSelector(props: { type: MusicServiceType }) {
 				searchicon={<></>}
 				searchPlaceholder={"Select Playlist"}
 				placeholder="Select Playlist"
-				defaultOption={playlists_group?.[0]}
+				defaultOption={default_option}
 				inputStyles={{ backgroundColor: colors.track, color: "white" }}
 				boxStyles={{ backgroundColor: colors.background, borderColor: colors.primary, borderRadius: 5 }}
 				dropdownStyles={{ backgroundColor: colors.background }}
@@ -149,12 +155,16 @@ function PlaylistSelector(props: { type: MusicServiceType }) {
 	);
 }
 
-function LabelSwitch(props: { label: string; description?: string }) {
+function LabelSwitch(props: { label: string; description?: string; default_value?: boolean; on_change: (value: boolean) => void }) {
 	const { colors } = usePTheme();
 	const common_styles = get_common_styles(colors);
 
-	const [is_enabled, set_is_enabled] = useState(false);
-	const toggle_switch = () => set_is_enabled((previousState) => !previousState);
+	const [is_enabled, set_is_enabled] = useState(props.default_value ?? false);
+	const toggle_switch = () => {
+		const next = !is_enabled;
+		set_is_enabled(next);
+		props.on_change(next);
+	};
 
 	return (
 		<>
@@ -175,54 +185,90 @@ interface LinkFormData {
 	full_playlist: boolean;
 	on_startup: boolean;
 }
+
 export default function ExtrasLinkModal() {
 	const { linker_uuid } = useLocalSearchParams<{ linker_uuid?: string }>();
 	const { colors } = usePTheme();
 
 	const base_music_service_entries = useRef(sorted_music_service_entries("Illusi"));
-	const base_music_service_other = useRef(base_music_service_entries.current.filter((e) => e[0] !== "Illusi")?.[0]?.[0] ?? "YouTube");
+	const base_music_service_other = useRef<MusicServiceType>(base_music_service_entries.current.filter((e) => e[0] !== "Illusi")?.[0]?.[0] ?? "YouTube");
 	const from_ref = useRef<ServiceSelectorHandle>(null);
 	const to_ref = useRef<ServiceSelectorHandle>(null);
-	const [from_state, set_from_state] = useState<MusicServiceType>("Illusi");
-	const [to_state, set_to_state] = useState<MusicServiceType>(base_music_service_other.current);
+
+	const existing_link = useRef<LinkerLink | null>(linker_uuid ? Prefs.get_pref("linker_links").find((l) => l.link_uuid === linker_uuid) ?? null : null);
+
+	const initial_from = useRef<MusicServiceType>(existing_link.current?.type === "INCOMING" ? base_music_service_other.current : "Illusi");
+	const initial_to = useRef<MusicServiceType>(existing_link.current?.type === "OUTGOING" ? base_music_service_other.current : "Illusi");
+
+	const [from_state, set_from_state] = useState<MusicServiceType>(initial_from.current);
+	const [to_state, set_to_state] = useState<MusicServiceType>(initial_to.current);
 
 	const form_data = useRef<LinkFormData>({
-		service1_from: "Illusi",
-		service1_from_url: "",
-		service2_to: "YouTube",
-		service2_to_url: "",
-		full_playlist: false,
-		on_startup: false
+		service1_from: initial_from.current,
+		service1_from_url: existing_link.current?.type === "OUTGOING" ? existing_link.current.illusi_uuid : "",
+		service2_to: initial_to.current,
+		service2_to_url: existing_link.current?.type === "INCOMING" ? existing_link.current.illusi_uuid : "",
+		full_playlist: existing_link.current?.full_service_playlist ?? false,
+		on_startup: existing_link.current?.on_startup ?? false
 	});
 
 	function update_from(type: MusicServiceType) {
+		form_data.current.service1_from = type;
+		form_data.current.service1_from_url = "";
 		set_from_state(type);
 		if (type === "Illusi" && to_state === "Illusi") {
+			form_data.current.service2_to = base_music_service_other.current;
+			form_data.current.service2_to_url = "";
 			set_to_state(base_music_service_other.current);
 			to_ref.current?.force_set_selected(base_music_service_other.current);
 		} else if (type !== "Illusi") {
+			form_data.current.service2_to = "Illusi";
+			form_data.current.service2_to_url = "";
 			set_to_state("Illusi");
 			to_ref.current?.force_set_selected("Illusi");
 		}
 	}
+
 	function update_to(type: MusicServiceType) {
+		form_data.current.service2_to = type;
+		form_data.current.service2_to_url = "";
 		set_to_state(type);
 		if (type === "Illusi" && from_state === "Illusi") {
+			form_data.current.service1_from = base_music_service_other.current;
+			form_data.current.service1_from_url = "";
 			set_from_state(base_music_service_other.current);
 			from_ref.current?.force_set_selected(base_music_service_other.current);
 		} else if (type !== "Illusi") {
+			form_data.current.service1_from = "Illusi";
+			form_data.current.service1_from_url = "";
 			set_from_state("Illusi");
 			from_ref.current?.force_set_selected("Illusi");
 		}
 	}
 
 	function validate_form_data(): boolean {
+		if (form_data.current.service1_from !== "Illusi" && form_data.current.service2_to !== "Illusi") {
+			Alert.alert("One selected service must be Illusi", "Please select one service as Illusi");
+			return false;
+		}
+		if (form_data.current.service1_from === "Illusi" && form_data.current.service2_to === "Illusi") {
+			Alert.alert("Both selected service can NOT be Illusi", "Please select a different service besides just Illusi");
+			return false;
+		}
+		if (!form_data.current.service1_from_url) {
+			Alert.alert("Missing selection", "Please select a source playlist.");
+			return false;
+		}
+		if (!form_data.current.service2_to_url) {
+			Alert.alert("Missing selection", "Please select a destination playlist.");
+			return false;
+		}
 		return true;
 	}
 
 	function get_linker_link(): LinkerLink {
 		const link_base = {
-			link_uuid: gen_uuid(),
+			link_uuid: linker_uuid ?? gen_uuid(),
 			on_startup: form_data.current.on_startup,
 			full_service_playlist: form_data.current.full_playlist
 		};
@@ -244,24 +290,20 @@ export default function ExtrasLinkModal() {
 	}
 
 	function save_link() {
-		if (!validate_form_data()) {
-			Alert.alert("Error: Bad input", "Missing or invalid link options.");
-			return;
-		}
+		if (!validate_form_data()) return;
 		const links = Prefs.get_pref("linker_links");
 		if (linker_uuid) {
 			const linker_index = links.findIndex((link) => link.link_uuid === linker_uuid);
 			if (linker_index === -1) {
-				Alert.alert("Not enough external-services to create a link.", "Add external-services in the extras/external-services tab.");
+				Alert.alert("Link not found", "This link no longer exists.");
 				router.dismissTo("/extras/linker");
 				return;
 			}
 			links[linker_index] = get_linker_link();
-			Prefs.save_pref("linker_links", links);
 		} else {
 			links.push(get_linker_link());
-			Prefs.save_pref("linker_links", links);
 		}
+		Prefs.save_pref("linker_links", links);
 		router.back();
 	}
 
@@ -281,11 +323,37 @@ export default function ExtrasLinkModal() {
 			<View style={{ marginHorizontal: 20 }}>
 				<View style={{ height: 25 }} />
 				<ServiceSelector ref={from_ref} prefix="From: " on_select={update_from} />
-				<PlaylistSelector type={from_state} />
+				<PlaylistSelector
+					type={from_state}
+					on_select={(key) => {
+						form_data.current.service1_from_url = key;
+					}}
+					default_key={form_data.current.service1_from_url || undefined}
+				/>
 				<ServiceSelector ref={to_ref} prefix="To: " on_select={update_to} />
-				<PlaylistSelector type={to_state} />
-				<LabelSwitch label="Full Playlist" description="This link (for the services that are NOT Illusi) will extract the entire playlist rather than one segment. (This could be an expensive operation)." />
-				<LabelSwitch label="On Startup" description="This link will run everytime the app starts, if pref[expensive_wifi_only] then, this will only happen if connected to WiFi." />
+				<PlaylistSelector
+					type={to_state}
+					on_select={(key) => {
+						form_data.current.service2_to_url = key;
+					}}
+					default_key={form_data.current.service2_to_url || undefined}
+				/>
+				<LabelSwitch
+					label="Full Playlist"
+					description="This link (for the services that are NOT Illusi) will extract the entire playlist rather than one segment. (This could be an expensive operation)."
+					default_value={form_data.current.full_playlist}
+					on_change={(v) => {
+						form_data.current.full_playlist = v;
+					}}
+				/>
+				<LabelSwitch
+					label="On Startup"
+					description="This link will run everytime the app starts, if pref[expensive_wifi_only] then, this will only happen if connected to WiFi."
+					default_value={form_data.current.on_startup}
+					on_change={(v) => {
+						form_data.current.on_startup = v;
+					}}
+				/>
 				<View style={{ width: "100%", justifyContent: "center", alignItems: "center", marginTop: 40 }}>
 					<TouchableOpacity onPress={save_link} style={{ backgroundColor: hexToRgba(colors.primary, 0.8), padding: 10, paddingHorizontal: 20, borderRadius: 3 }}>
 						<Text style={{ color: colors.text }}>{linker_uuid ? "Update" : "Save"} Link</Text>

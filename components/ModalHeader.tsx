@@ -1,7 +1,8 @@
 import usePTheme from "@hooks/usePTheme";
 import { router } from "expo-router";
 import { Button, Text, View, type ColorValue } from "react-native";
-import { IconTouchableOpacityProps, IoniconsTouchableOpacity } from "./TouchableIconOpacity";
+import type { IconTouchableOpacityProps } from "./TouchableIconOpacity";
+import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
 import type { Ionicons } from "@expo/vector-icons";
 
 export default function ModalHeader(props: { title: string; background_color?: ColorValue; text_color?: ColorValue; close_color?: ColorValue; right_icon?: IconTouchableOpacityProps<typeof Ionicons> }) {

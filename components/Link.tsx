@@ -9,7 +9,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { ContextMenuView, type MenuConfig, type OnPressMenuItemEvent } from "react-native-ios-context-menu";
 import { resolve_icon } from "@utils/context_menu";
 import { Prefs } from "@illusive/prefs";
+import { run_link } from "@illusive/linker";
 import { router } from "expo-router";
+import { GLOBALS } from "@illusive/globals";
 
 const menu_config: MenuConfig = {
 	menuTitle: "",
@@ -58,6 +60,12 @@ export default function Link(props: { linker_link: LinkerLink; on_delete?: () =>
 		}
 	};
 
+	async function run() {
+		const result = await run_link(props.linker_link);
+		if ("error" in result) GLOBALS.global_var.bottom_alert("Failed to run link", "WARN", result);
+		GLOBALS.global_var.bottom_alert("Ran link successfully", "GOOD");
+	}
+
 	return (
 		<>
 			<ContextMenuView menuConfig={menu_config} onPressMenuItem={on_press_menu_item}>
@@ -79,7 +87,7 @@ export default function Link(props: { linker_link: LinkerLink; on_delete?: () =>
 						<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 13, flex: 1, marginRight: 12 }}>
 							{playlist_id}
 						</Text>
-						<TouchableOpacity style={{ backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 6 }}>
+						<TouchableOpacity onPress={run} style={{ backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 6 }}>
 							<Text style={{ color: colors.background, fontSize: 13, fontWeight: "600" }}>Run</Text>
 						</TouchableOpacity>
 					</View>

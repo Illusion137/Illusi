@@ -23,10 +23,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
-import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
-const { CarPlayService } = require("@illusive/carplay/carplay_service") as typeof import("../lib-origin/Illusive/src/carplay/carplay_service");
-// TODO: expose carplay_play_mode and the two-section layout toggle
-//       (left = player/lyrics bar, right = playlist grid) in Illusi Settings.
+import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
+import { CarPlayService } from "@illusive/carplay/carplay_service";
 
 const splash_screen_image = require("../assets/splash.png");
 

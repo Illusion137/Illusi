@@ -292,6 +292,29 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - NitroModules (0.35.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - nodejs-mobile-react-native (18.20.4):
     - React-Core
   - op-sqlite (15.2.7):
@@ -1983,7 +2006,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - SwiftAudioEx
-    - SwiftProtobuf (~> 1.27)
     - Yoga
   - react-native-uitextview (2.1.1):
     - hermes-engine
@@ -2436,6 +2458,30 @@ PODS:
     - React-perflogger (= 0.84.1)
     - React-utils (= 0.84.1)
     - ReactNativeDependencies
+  - ReactNativeAutoPlay (0.3.5):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - ReactNativeDependencies (0.84.1)
   - RNCAsyncStorage (2.2.0):
     - hermes-engine
@@ -2938,6 +2984,7 @@ DEPENDENCIES:
   - ffmpeg-kit-react-native (from `../node_modules/ffmpeg-kit-react-native`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - ImageColors (from `../node_modules/react-native-image-colors/ios`)
+  - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - nodejs-mobile-react-native (from `../node_modules/nodejs-mobile-react-native`)
   - "op-sqlite (from `../node_modules/@op-engineering/op-sqlite`)"
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -3027,6 +3074,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios/ReactAppDependencyProvider`)
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - "ReactNativeAutoPlay (from `../node_modules/@iternio/react-native-auto-play`)"
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
@@ -3137,6 +3185,8 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.9
   ImageColors:
     :path: "../node_modules/react-native-image-colors/ios"
+  NitroModules:
+    :path: "../node_modules/react-native-nitro-modules"
   nodejs-mobile-react-native:
     :path: "../node_modules/nodejs-mobile-react-native"
   op-sqlite:
@@ -3313,6 +3363,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios/ReactCodegen
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  ReactNativeAutoPlay:
+    :path: "../node_modules/@iternio/react-native-auto-play"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
   RNCAsyncStorage:
@@ -3391,6 +3443,7 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  NitroModules: 76063cb7bc1a21cf46d11b25abfcf1759bf0be47
   nodejs-mobile-react-native: 9efed1aafb3f02ec02240d539e24ec72fde97c21
   op-sqlite: 9ad0095f12c88397bccd86e912a018049eb1caf5
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
@@ -3442,7 +3495,7 @@ SPEC CHECKSUMS:
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-slider: 8b9a218d1a3e526146a170cb6133be9cda23e70e
-  react-native-track-player: a3baa89065c522e634de433cffc429801d5ac4cb
+  react-native-track-player: 61dee63910554d02b86bc5898c04db6c096b7d81
   react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
   react-native-webview: 3e303e80cadb5f17118c8c1502aa398e9287e415
   react-native-zip-stream: a678a95785809e80ca9275030f0419cbbe5e99d7
@@ -3479,6 +3532,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: e96e93b493d8d86eeaee3e590ba0be53f6abe46f
   ReactCodegen: 797de5178718324c6eba3327b07f9a423fbd5787
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
+  ReactNativeAutoPlay: 5621604a82514bbc242f3e87291db230ff315ecb
   ReactNativeDependencies: 37432bff08e1c9ed3c485152e2f2ed2cef67cd33
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCClipboard: 88d7eeb555d1183915f0885bdbc5c97eb6f7f3ba
