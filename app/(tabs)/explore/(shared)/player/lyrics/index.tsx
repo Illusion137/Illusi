@@ -147,8 +147,9 @@ export default function AudioPlayerLyrics() {
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<ModalHeader title="Lyrics" background_color={track_colors?.secondary} text_color={track_colors?.background} close_color={track_colors?.background} right_icon={{ icon_name: "pencil-outline", icon_color: track_colors?.background ?? colors.primary, icon_size: 20, on_press: () => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri) }} />
 			<View style={{ height: 3, backgroundColor: colors.shelf }}>
-				<View style={{ height: 3, width: `${progress_ratio * 100}%`, backgroundColor: track_colors?.primary ?? colors.primary }} />
+				<View style={{ height: 3, width: `${progress_ratio * 100}%`, backgroundColor: track_colors?.detail ?? colors.primary }} />
 			</View>
+			<View style={{ height: 30 }} />
 			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.4, width: "100%", zIndex: -1 }} /> : null}
 			<ScrollView ref={scrollview_ref} onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => set_content_height(h)} style={{ flex: 1 }}>
 				{sections.length === 0 ? (
@@ -169,7 +170,8 @@ export default function AudioPlayerLyrics() {
 								<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ opacity, marginHorizontal: 20 }}>
 									{section.lines.map((line, j) => (
 										<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={styles.lyrics_text}>
-											{line + "\n\n"}
+											{line + "\n"}
+											<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
 										</UITextView>
 									))}
 								</UITextView>
@@ -198,7 +200,6 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			fontSize: 11,
 			letterSpacing: 1.2,
 			textTransform: "uppercase",
-			marginTop: 16,
 			marginBottom: 2,
 			marginHorizontal: 15
 		}

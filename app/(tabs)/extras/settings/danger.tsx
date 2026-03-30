@@ -10,6 +10,9 @@ import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import usePTheme from "@hooks/usePTheme";
 import { SQLArtists } from "@illusive/sql/sql_artists";
 import { SQLRecentlyPlayed } from "@illusive/sql/sql_recently_played";
+import { db } from "@illusive/db/database";
+import { change_log_table } from "@illusive/db/schema";
+import { alert_info } from "@illusive/illusi/src/alert";
 
 // TODO add clean directories
 export default function ExtraDangerScreen() {
@@ -20,6 +23,17 @@ export default function ExtraDangerScreen() {
 		<ScrollView style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
 			<View style={styles.line_long} />
 			<View style={{ height: 30 }} />
+			<ExtrasSectionButton
+				show_arrow={false}
+				text="Clear Changelog"
+				icon="trash-outline"
+				onPress={async () =>
+					if_confirm("Clear changelog?", "Are You Sure?", async () => {
+						const result = await db.delete(change_log_table);
+						alert_info(String(result.rowsAffected));
+					})
+				}
+			/>
 			<ExtrasSectionButton show_arrow={false} text="Clear Recently Played Data" icon="trash-outline" onPress={async () => if_confirm("Clear recently played tracks?", "Are You Sure?", SQLRecentlyPlayed.clear_recently_played_tracks)} />
 			<ExtrasSectionButton show_arrow={false} text="Clear New Releases Cache" icon="trash-outline" onPress={async () => if_confirm("Clear new releases cache?", "Are You Sure?", SQLNewReleases.delete_all_from_new_releases)} />
 			<ExtrasSectionButton show_arrow={false} text="Clear Thumbnail Cache" icon="trash-outline" onPress={async () => if_confirm("Clear thumbnail cache?", "Are You Sure?", SQLTracks.clean_thumbnail_cache)} />

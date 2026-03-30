@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Text, TextInput, TouchableHighlight, ScrollView, ActivityIndicator } from "react-native";
 import { Prefs } from "@illusive/prefs";

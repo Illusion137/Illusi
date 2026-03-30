@@ -6,10 +6,9 @@ import { Ionicons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { Illusive } from "@illusive/illusive";
-import { create_uri, music_service_to_music_service_uri } from "@illusive/illusive_utils";
 import { Prefs } from "@illusive/prefs";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import type { LinkerLink, MusicServiceType } from "@illusive/types";
+import type { IllusiveURI, LinkerLink, MusicServiceType } from "@illusive/types";
 import { get_common_styles } from "@utils/common_styles";
 import { router, useLocalSearchParams } from "expo-router";
 import hexToRgba from "hex-to-rgba";
@@ -277,14 +276,14 @@ export default function ExtrasLinkModal() {
 				...link_base,
 				type: "OUTGOING",
 				illusi_uuid: form_data.current.service1_from_url,
-				service_uri: create_uri(music_service_to_music_service_uri(form_data.current.service2_to), form_data.current.service2_to_url)
+				service_uri: form_data.current.service2_to_url as IllusiveURI
 			};
 		} else {
 			return {
 				...link_base,
 				type: "INCOMING",
 				illusi_uuid: form_data.current.service2_to_url,
-				service_uri: create_uri(music_service_to_music_service_uri(form_data.current.service1_from), form_data.current.service1_from_url)
+				service_uri: form_data.current.service1_from_url as IllusiveURI
 			};
 		}
 	}

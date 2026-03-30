@@ -34,6 +34,7 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Keep Delete",
                 href: "/extras/keep-delete",
                 icon: "heart-outline",
+                indev: true
             }
         ],
         description: "The Tinder of your Music; Swipe left to delete tracks or swipe right to keep"
