@@ -24,7 +24,7 @@ export default function Library() {
 		EDIT: colors.orange as HexColor
 	};
 
-	const library_ref = useRef<{refresh_data: (query?: string) => Promise<void>}>(null);
+	const library_ref = useRef<{ refresh_data: (query?: string) => Promise<void> }>(null);
 
 	function cycle_edit_mode() {
 		const current_edit_mode = edit_mode;
@@ -38,19 +38,11 @@ export default function Library() {
 			<View style={styles.header}>
 				<Text style={styles.top_text}>My Library</Text>
 				<View style={styles.search_container}>
-					<MaterialCommunityIconsTouchableOpacity 
-						icon_name="pencil" icon_size={25} icon_color={edit_mode_colors[edit_mode]} 
-						style={{ bottom: 6, left: 3 }} 
-						on_press={cycle_edit_mode} 
-						on_long_press={() => set_edit_mode("NONE")}/>
+					<MaterialCommunityIconsTouchableOpacity icon_name="pencil" icon_size={25} icon_color={edit_mode_colors[edit_mode]} style={{ bottom: 6, left: 3 }} on_press={cycle_edit_mode} on_long_press={() => set_edit_mode("NONE")} />
 					<View style={{ width: "75%", bottom: 5, right: 10 }}>
-						<SearchBarV1 placeholder="Search My Library" 
-							query_flags={TRACK_QUERY_FLAGS} 
-							onChangeText={async (query) => library_ref.current?.refresh_data(query)} />
+						<SearchBarV1 placeholder="Search My Library" query_flags={TRACK_QUERY_FLAGS} onChangeText={async (query) => library_ref.current?.refresh_data(query)} />
 					</View>
-					<IoniconsTouchableOpacity icon_name="cloud-upload" icon_size={25} icon_color={colors.inactive} 
-						style={{ bottom: 4 }} 
-						on_press={upload_music_files}/>
+					<IoniconsTouchableOpacity icon_name="cloud-upload" icon_size={25} icon_color={colors.inactive} style={{ bottom: 4 }} on_press={upload_music_files} />
 				</View>
 			</View>
 			<LibraryTrackList edit_mode={edit_mode} ref={library_ref} is_focused={is_focused} />

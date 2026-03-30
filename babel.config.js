@@ -1,15 +1,15 @@
-	module.exports = function(api) {
+module.exports = function (api) {
 	api.cache(true);
 	return {
-		presets: ['babel-preset-expo'],
+		presets: ["babel-preset-expo"],
 		plugins: [
-			['@babel/plugin-syntax-import-attributes', {deprecatedAssertSyntax: true}],
-			["inline-import", { "extensions": [".sql"] }],
-			'@babel/plugin-transform-export-namespace-from',
+			["@babel/plugin-syntax-import-attributes", { deprecatedAssertSyntax: true }],
+			["inline-import", { extensions: [".sql"] }],
+			"@babel/plugin-transform-export-namespace-from",
 			[
-				'module-resolver',
+				"module-resolver",
 				{
-					root: ['./'],
+					root: ["./"],
 					alias: {
 						"@hooks/*": "hooks/*",
 						"@utils/*": "utils/*",
@@ -22,9 +22,9 @@
 						"@common/*": "lib-origin/common/*",
 						"@sample/*": "lib-origin/sample/*"
 					}
-				},
+				}
 			],
 			"react-native-reanimated/plugin"
 		]
 	};
-	};
+};

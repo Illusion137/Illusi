@@ -22,9 +22,9 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
-import { JSEvaluatorWebView } from "@native/jseval/jseval.mobile";
 import nodejs from "nodejs-mobile-react-native";
-import { initialize_sentry_severity_handler } from "../lib-origin/common/sentry_error_handler";
+import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
+import { CarPlayService } from "@illusive/carplay/carplay_service";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -101,12 +101,14 @@ export default Sentry.wrap(function App() {
 					TrackPlayer.reset().catch((e) => e);
 				} catch (e) {}
 			};
+			CarPlayService.init();
 			// const tables = await db_exec(async(db) => db.all("SELECT * FROM sqlite_master WHERE type='table';"));
 			// console.log(tables);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
+			CarPlayService.destroy();
 		};
 	}, []);
 	useEffect(() => {
@@ -146,7 +148,6 @@ export default Sentry.wrap(function App() {
 	return (
 		<GestureHandlerRootView>
 			<ThemeProvider value={theme_value}>
-				<JSEvaluatorWebView />
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />

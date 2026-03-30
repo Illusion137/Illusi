@@ -19,6 +19,7 @@ export default [
 	},
 	{
 		rules: {
+			"@typescript-eslint/no-unnecessary-type-arguments": "off",
 			"@typescript-eslint/no-redundant-type-constituents": "off",
 			"@typescript-eslint/no-empty-function": "off",
 			"@typescript-eslint/strict-void-return": "off",

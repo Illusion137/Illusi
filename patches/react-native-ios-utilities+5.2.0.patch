@@ -1,0 +1,31 @@
+diff --git a/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift b/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
+index 09be306..50ba108 100644
+--- a/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
++++ b/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
+@@ -25,15 +25,9 @@ public extension RCTView {
+     return rootView.recursivelyFindSubview(whereType: targetType);
+   };
+   
+-  var closestParentReactContentView: RCTRootContentView? {
+-    let targetType = RCTRootContentView.self;
+-  
+-    if let match = self.recursivelyFindParentView(whereType: targetType) {
+-      return match;
+-    };
+-    
+-    guard let rootView = self.rootViewForCurrentWindow else { return nil };
+-    return rootView.recursivelyFindSubview(whereType: targetType);
++  // RCTRootContentView is not exported from the React-Core prebuilt xcframework in RN 0.84+
++  var closestParentReactContentView: UIView? {
++    return nil;
+   };
+ 
+   var reactTouchHandlers: [RCTTouchHandler]? {
+@@ -58,6 +52,6 @@ public extension RCTView {
+       currentView = superview;
+     };
+     
+-    return closestParentReactContentView?.reactTouchHandlers?.first;
++    return nil;
+   };
+ };

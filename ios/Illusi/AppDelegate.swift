@@ -1,13 +1,16 @@
-import Expo
+public import Expo
 import React
 import ReactAppDependencyProvider
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
+  // NOTE: window is now owned by PhoneSceneDelegate to support the scene-based
+  // lifecycle required by CarPlay. AppDelegate exposes the factory so that
+  // PhoneSceneDelegate can call startReactNative from the scene connection callback.
   var window: UIWindow?
 
-  var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
-  var reactNativeFactory: RCTReactNativeFactory?
+  public var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
+  public var reactNativeFactory: RCTReactNativeFactory?
 
   public override func application(
     _ application: UIApplication,
@@ -19,15 +22,19 @@ public class AppDelegate: ExpoAppDelegate {
 
     reactNativeDelegate = delegate
     reactNativeFactory = factory
-    bindReactNativeFactory(factory)
 
-#if os(iOS) || os(tvOS)
-    window = UIWindow(frame: UIScreen.main.bounds)
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions)
-#endif
+    // Window creation has moved to PhoneSceneDelegate to support the
+    // UIApplicationSceneManifest required for CarPlay scenes.
+    // On iOS 12 and below (no scene support) fall back to the original behaviour.
+    if #unavailable(iOS 13) {
+      #if os(iOS) || os(tvOS)
+        window = UIWindow(frame: UIScreen.main.bounds)
+        factory.startReactNative(
+          withModuleName: "main",
+          in: window,
+          launchOptions: launchOptions)
+      #endif
+    }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -38,7 +45,8 @@ public class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
+    return super.application(app, open: url, options: options)
+      || RCTLinkingManager.application(app, open: url, options: options)
   }
 
   // Universal Links
@@ -48,13 +56,16 @@ public class AppDelegate: ExpoAppDelegate {
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
     if RNSSSiriShortcuts.application(
-        application,
-        continue: userActivity,
-        restorationHandler: restorationHandler) {
+      application,
+      continue: userActivity,
+      restorationHandler: restorationHandler)
+    {
       return true
     }
-    let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
-    return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+    let result = RCTLinkingManager.application(
+      application, continue: userActivity, restorationHandler: restorationHandler)
+    return super.application(
+      application, continue: userActivity, restorationHandler: restorationHandler) || result
     // return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
 }
@@ -68,10 +79,11 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-#if DEBUG
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
-#else
-    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
-#endif
+    #if DEBUG
+      return RCTBundleURLProvider.sharedSettings().jsBundleURL(
+        forBundleRoot: ".expo/.virtual-metro-entry")
+    #else
+      return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    #endif
   }
 }

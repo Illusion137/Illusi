@@ -98,7 +98,7 @@ export default function ExtraExternalServicesScreen() {
 	return (
 		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
 			{url != null && (
-				<View style={{ height: 500 }}>
+				<View style={{ height: 700 }}>
 					<WebView
 						key={key}
 						source={{ uri: url }}

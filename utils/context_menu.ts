@@ -10,7 +10,7 @@ import { GLOBALS } from "@illusive/globals";
 import { Constants } from "@illusive/constants";
 
 type Icon = ImageResolvedAssetSource | string;
-function resolve_icon(icon?: Icon): IconConfig | ImageItemConfig | undefined {
+export function resolve_icon(icon?: Icon): IconConfig | ImageItemConfig | undefined {
     return typeof icon === "undefined" ? undefined :
         typeof icon === "object" ?
             {

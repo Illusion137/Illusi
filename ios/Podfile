@@ -40,7 +40,7 @@ target 'Illusi' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    :hermes_enabled => true,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
@@ -53,16 +53,14 @@ target 'Illusi' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
-      # --- FIX: Ensure Swift 5.10 and correct build settings for MMKV + NitroModules ---
-      # installer.pods_project.targets.each do |target|
-      #   if ['NitroModules', 'react-native-mmkv'].include?(target.name)
-      #     target.build_configurations.each do |config|
-      #       config.build_settings['SWIFT_VERSION'] = '5.10'
-      #       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-      #       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'  # or “17.0”
-      #     end
-      #   end
-      # end
 
+    # RCTDeprecation lacks :modular_headers => true in react_native_pods.rb.
+    # With DEFINES_MODULE=YES, Xcode looks for the module map at Headers/Public/RCTDeprecation/.
+    # Create it there so the module can be resolved from React-Core-prebuilt imports.
+    rct_dep_header_dir = "#{installer.config.installation_root}/Pods/Headers/Public/RCTDeprecation"
+    rct_dep_modulemap = "#{rct_dep_header_dir}/RCTDeprecation.modulemap"
+    unless File.exist?(rct_dep_modulemap)
+      File.write(rct_dep_modulemap, "module RCTDeprecation {\n  header \"RCTDeprecation.h\"\n  export *\n}\n")
+    end
   end
 end

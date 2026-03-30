@@ -6,7 +6,7 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     ...config,
     "name": IS_DEV ? 'Illusi (Dev)' : 'Illusi',
     "slug": "Illusi",
-    "version": "19.0.1",
+    "version": "20.0.1",
     // "orientation": "portrait",
     // "icon": "./assets/icon.png",
     // "userInterfaceStyle": "dark",
@@ -35,18 +35,18 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
     "assetBundlePatterns": [
         "**/*"
     ],
-    // "ios": {
-    //     "bundleIdentifier": IS_DEV ? 'com.illusion137.Illusi.dev' : 'com.illusion137.Illusi',
-    //     "supportsTablet": false,
-    //     "usesIcloudStorage": false,
-    //     "infoPlist": {
-    //         "UIBackgroundModes": [
-    //             "audio",
-    //             "fetch"
-    //         ]
-    //     },
-    //     "associatedDomains": ["applinks:illusi.dev"]
-    // },
+    "ios": {
+        "bundleIdentifier": IS_DEV ? 'com.illusion137.Illusi.dev' : 'com.illusion137.Illusi',
+        // "supportsTablet": false,
+        // "usesIcloudStorage": false,
+        // "infoPlist": {
+        //     "UIBackgroundModes": [
+        //         "audio",
+        //         "fetch"
+        //     ]
+        // },
+        // "associatedDomains": ["applinks:illusi.dev"]
+    },
     "web": {
         "favicon": "./assets/favicon.png"
     },
@@ -56,7 +56,7 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
             {
                 "fonts": [
                     "./assets/fonts/LEMON.otf",
-                    "./assets/fonts/StarsBorneoDEMO.tff"
+                    "./assets/fonts/StarsBorneoDEMO.ttf"
                 ],
             },
         ],
@@ -68,11 +68,21 @@ export default (config: ConfigContext['config']): ExpoConfig => ({
                 "project": "react-native",
                 "organization": "illusion-ke"
             }
+        ],
+        "expo-audio",
+        "expo-sharing",
+        "expo-asset",
+        [
+            "expo-build-properties",
+            {
+                "buildReactNativeFromSource": true,
+                "useHermesV1": true
+            }
         ]
+
     ],
     "experiments": {
         "reactCompiler": true,
         "typedRoutes": true
     },
-    "newArchEnabled": true
 });

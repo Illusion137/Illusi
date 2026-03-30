@@ -16,6 +16,16 @@ import usePTheme from "@hooks/usePTheme";
 import { router } from "expo-router";
 import { db } from "@illusive/db/database";
 
+function EmptyPlaylistsComponent() {
+	const { colors } = usePTheme();
+	return (
+		<View style={{ marginHorizontal: 40, marginVertical: 40 }}>
+			<Text style={{ color: colors.text, fontWeight: "bold" }}>No playlists yet...</Text>
+			<Text style={{ color: colors.subtext }}>Starting creating or importing playlists by pressing the '+' in the top right!</Text>
+		</View>
+	);
+}
+
 export default function Playlists() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -117,7 +127,7 @@ export default function Playlists() {
 				</ScrollView>
 			</View>
 			<View style={{ width: "100%", height: 1, backgroundColor: colors.searchPlaceholder, marginLeft: 30, marginRight: 30 }} />
-			<BigList style={{ height: "71%" }} data={sorted_queried_playlists} keyExtractor={(item, _) => item.uuid} itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderHeader={() => <></>} renderFooter={() => <View style={{ height: 100 }}></View>} />
+			<BigList style={{ height: "71%" }} data={sorted_queried_playlists} keyExtractor={(item, _) => item.uuid} itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81} headerHeight={0} footerHeight={100} renderItem={render_item} renderEmpty={() => <EmptyPlaylistsComponent />} renderHeader={() => <></>} renderFooter={() => <View style={{ height: 100 }}></View>} />
 		</View>
 	);
 }
