@@ -97,7 +97,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 icon: "brush-outline"
             }
         ],
-        custom_components: ["theme_selector"],
         description: "Customize the look of Illusi"
     },
     {
