@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableHighlight, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons, Octicons } from "@expo/vector-icons";
-import type { CompactArtist, CompactPlaylist, MusicSearchResponse, MusicServiceType, SearchSuggestion, StatefullMusicSearchResponse, Track } from "@illusive/types";
+import type { CompactArtist, CompactPlaylist, MusicSearchResponse, MusicServiceType, StatefullMusicSearchResponse, Track } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { Illusive } from "@illusive/illusive";
 import { is_empty, json_catch } from "@common/utils/util";
@@ -16,10 +16,19 @@ import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "@components/TrackComponentBase";
 import type { ResponseError } from "@common/types";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
+import { Suggestions } from "@illusive/suggestions";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import { useFocusEffect } from "expo-router";
 
-// TODO improve the look of dis
+function EmptyList() {
+	const { colors } = usePTheme();
+	return (
+		<View style={{ marginHorizontal: 40, marginVertical: 40 }}>
+			<Text style={{ color: colors.text, fontWeight: "bold" }}>No Results...</Text>
+		</View>
+	);
+}
+
 const empty_search_result = { tracks: [] as Track[], playlists: [] as CompactPlaylist[], artists: [] as CompactArtist[], albums: [] as CompactPlaylist[], continuation: null };
 const empty_statefull_search_result: StatefullMusicSearchResponse = { state: "NONE", search_data: empty_search_result };
 function SearchScreen() {
@@ -27,12 +36,12 @@ function SearchScreen() {
 	const search_modes: SearchMode[] = ["Tracks", "Albums", "Artists", "Playlists"];
 	const [search_mode, set_search_mode] = useState<SearchMode>("Smart");
 
-	type SearchService = "YouTube" | "SoundCloud" | "Spotify" | "YouTube Music";
-	const search_services: SearchService[] = ["YouTube Music", "YouTube", "SoundCloud", "Spotify"];
+	type SearchService = "YouTube" | "SoundCloud" | "Spotify" | "YouTube Music" | "Illusi";
+	const search_services: SearchService[] = ["YouTube Music", "YouTube", "SoundCloud", "Spotify", "Illusi"];
 	const [search_service, set_search_service] = useState<SearchService>(search_services[0]);
 
 	const [search_result, set_search_result] = useState<StatefullMusicSearchResponse>(empty_statefull_search_result);
-	const [searching_data, set_searching_data] = useState<SearchSuggestion[]>([]);
+	const [searching_data, set_searching_data] = useState<Suggestions.SuggestionItem[]>([]);
 	const [search_query_state, set_search_query_state] = useState("");
 
 	const [show_clear_button, set_show_clear_button] = useState<boolean>(false);
@@ -66,11 +75,18 @@ function SearchScreen() {
 			refresh_data();
 		}, [])
 	);
+	const debounce_ms = 250;
 	const on_debounce_search_suggestion = debounce((search_query: string) => {
 		(async () => {
-			set_searching_data(await Promise.all((await Illusive.get_suggestions(search_query)).map((suggestion) => (typeof suggestion === "string" ? suggestion : SQLTracks.add_playback_saved_data_to_track(suggestion)))));
+			const map_suggestion = (item: Suggestions.SuggestionItem) => {
+				if (typeof item === "string") return item;
+				if ("uid" in item) return SQLTracks.add_playback_saved_data_to_track(item);
+				return item;
+			};
+			const suggestions = await Suggestions.get_music_service_suggestions(search_query, search_service);
+			set_searching_data(suggestions.map(map_suggestion));
 		})();
-	}, 500);
+	}, debounce_ms);
 
 	function get_previous_searches() {
 		set_search_result(empty_statefull_search_result);
@@ -125,13 +141,16 @@ function SearchScreen() {
 		get_suggestions(search_query_state);
 	}, [search_query_state]);
 
-	const suggestion_value = (suggestion: SearchSuggestion) => (typeof suggestion === "string" ? 0 : 1);
+	const suggestion_value = (suggestion: Suggestions.SuggestionItem) => (typeof suggestion === "string" ? 0 : 1);
 
 	const render_chip_header_component = () => (
 		<View>
 			<ScrollView horizontal={true} contentContainerStyle={styles.chips_container}>
 				{search_services.map((service) => (
-					<TouchableOpacity style={{ ...styles.chip, backgroundColor: search_service === service ? colors.highlightPressColor : colors.background }} key={service} onPress={() => on_search_service_chip_press(service)}>
+					<TouchableOpacity
+						style={{ ...styles.chip, borderColor: search_service === service ? colors.secondary : colors.primary, backgroundColor: search_service === service ? colors.card : colors.background }}
+						key={service}
+						onPress={() => on_search_service_chip_press(service)}>
 						<Text style={[styles.chip_text, { color: search_service === service ? colors.text : colors.subtext }]}>{service}</Text>
 					</TouchableOpacity>
 				))}
@@ -139,7 +158,17 @@ function SearchScreen() {
 			{search_result.state === "FUFILLED" ? (
 				<ScrollView horizontal={true} contentContainerStyle={styles.chips_container}>
 					{search_modes.map((mode) => (
-						<TouchableOpacity style={{ ...styles.chip, backgroundColor: search_mode === mode ? colors.shelf : colors.background }} key={mode} onPress={() => (mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode))}>
+						<TouchableOpacity
+							style={{
+								...styles.chip,
+								flex: 1,
+								marginHorizontal: 10,
+								alignItems: "center",
+								borderColor: search_mode === mode ? colors.secondary : colors.primary,
+								backgroundColor: search_mode === mode ? colors.shelf : colors.background
+							}}
+							key={mode}
+							onPress={() => (mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode))}>
 							<Text style={[styles.chip_text, { color: search_mode === mode ? colors.text : colors.subtext }]}>{mode}</Text>
 						</TouchableOpacity>
 					))}
@@ -148,9 +177,22 @@ function SearchScreen() {
 		</View>
 	);
 	const render_misc_component = (item: { item: Track | CompactArtist | CompactPlaylist }) => {
-		return "uid" in item.item ? <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []} /> : "artist" in item.item ? <CompactPlaylistComponent playlist_data={item.item} /> : <CompactArtistComponent artist_data={item.item} />;
+		return "uid" in item.item ? (
+			<TrackComponent
+				base_background={true}
+				track_data={item.item}
+				width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)}
+				write_playlist_uuid={Constants.library_write_playlist}
+				from={Constants.illusi_mix_from}
+				track_callback={() => []}
+			/>
+		) : "artist" in item.item ? (
+			<CompactPlaylistComponent playlist_data={item.item} base_background={true} />
+		) : (
+			<CompactArtistComponent artist_data={item.item} base_background={true} />
+		);
 	};
-	const render_query_items = (item: { item: SearchSuggestion }) =>
+	const render_query_items = (item: { item: Suggestions.SuggestionItem }) =>
 		typeof item.item === "string" ? (
 			<>
 				<TouchableHighlight
@@ -180,7 +222,7 @@ function SearchScreen() {
 				<View style={{ width: "93%", height: 1, backgroundColor: colors.line, left: 10 }} />
 			</>
 		) : (
-			render_misc_component(item as { item: Track })
+			render_misc_component(item as { item: Track | CompactArtist | CompactPlaylist })
 		);
 	// <TrackComponent track_data={item.item} width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} write_playlist_uuid={Constants.library_write_playlist} from={Constants.illusi_mix_from} track_callback={() => []}/>
 
@@ -188,7 +230,18 @@ function SearchScreen() {
 		<View style={styles.topcontainer}>
 			<View style={{ height: 70 }} />
 			<View style={styles.wrapper}>
-				<TextInput value={search_query_state} ref={input_ref} autoCorrect={false} placeholder="Search" placeholderTextColor={colors.subtext} style={styles.searchinput} onFocus={get_previous_searches} onPress={get_previous_searches} onChangeText={on_text_update} onSubmitEditing={on_end_editing} />
+				<TextInput
+					value={search_query_state}
+					ref={input_ref}
+					autoCorrect={false}
+					placeholder="Search"
+					placeholderTextColor={colors.subtext}
+					style={styles.searchinput}
+					onFocus={get_previous_searches}
+					onPress={get_previous_searches}
+					onChangeText={on_text_update}
+					onSubmitEditing={on_end_editing}
+				/>
 				{show_clear_button ? (
 					<IoniconsTouchableOpacity
 						icon_name="close-circle-outline"
@@ -207,11 +260,33 @@ function SearchScreen() {
 			<View style={styles.searchview}>
 				{render_chip_header_component()}
 				{search_result.state === "NONE" ? (
-					<FlatList style={styles.searchlist} data={searching_data.sort((a, b) => suggestion_value(b) - suggestion_value(a))} renderItem={render_query_items} />
+					<FlatList
+						style={styles.search_list}
+						data={searching_data.sort((a, b) => suggestion_value(b) - suggestion_value(a))}
+						renderItem={render_query_items}
+						ListFooterComponent={() => <View style={{ height: 100 }} />}
+						ListEmptyComponent={() => <EmptyList />}
+					/>
 				) : search_result.state === "LOADING" ? (
 					<ActivityIndicator size={25} />
 				) : (
-					<FlatList style={styles.searchlist} data={search_mode === "Smart" ? Illusive.smart_search(search_query_state, search_result.search_data) : search_mode === "Tracks" ? search_result.search_data.tracks : search_mode === "Albums" ? search_result.search_data.albums : search_mode === "Artists" ? search_result.search_data.artists : search_result.search_data.playlists} renderItem={render_misc_component} />
+					<FlatList
+						style={styles.search_list}
+						data={
+							search_mode === "Smart"
+								? Illusive.smart_search(search_query_state, search_result.search_data)
+								: search_mode === "Tracks"
+								? search_result.search_data.tracks
+								: search_mode === "Albums"
+								? search_result.search_data.albums
+								: search_mode === "Artists"
+								? search_result.search_data.artists
+								: search_result.search_data.playlists
+						}
+						renderItem={render_misc_component}
+						ListFooterComponent={() => <View style={{ height: 100 }} />}
+						ListEmptyComponent={() => <EmptyList />}
+					/>
 				)}
 			</View>
 		</View>
@@ -235,11 +310,11 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			borderRadius: 30,
 			width: "90%"
 		},
-		searchlist: {},
+		search_list: {},
 		searchview: {
 			backgroundColor: colors.background,
 			top: 10,
-			height: "83%"
+			flex: 1
 		},
 		queryItemsText: {
 			color: colors.text,

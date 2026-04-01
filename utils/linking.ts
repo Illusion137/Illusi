@@ -40,16 +40,16 @@ const service_hostname_map: Record<MusicServiceType, string> = {
     API: "$$NO_USE$$"
 } as const;
 const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => Promise<void>> = {
-    Illusi: async (url) => { },
-    Musi: async (url) => { },
-    YouTube: async (url) => { },
-    "YouTube Music": async (url) => { },
-    Spotify: async (url) => { },
-    "Amazon Music": async (url) => { },
-    "Apple Music": async (url) => { },
-    SoundCloud: async (url) => { },
-    BandLab: async (url) => { },
-    API: async (url) => { }
+    Illusi: async (_) => { },
+    Musi: async (_) => { },
+    YouTube: async (_) => { },
+    "YouTube Music": async (_) => { },
+    Spotify: async (_) => { },
+    "Amazon Music": async (_) => { },
+    "Apple Music": async (_) => { },
+    SoundCloud: async (_) => { },
+    BandLab: async (_) => { },
+    API: async (_) => { }
 };
 
 function handle_link(url: string) {

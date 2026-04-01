@@ -33,7 +33,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "ts:check": "tsc",
+    "ts:check": "tsc -p tsconfig.json",
     "run:dev": "sh scripts/run_dev.sh",
     "run:sim": "sh scripts/run_sim.sh",
     "build:dev": "sh scripts/build_dev.sh",
@@ -201,6 +201,7 @@
     "performanceMode": false
   },
   "resolutions": {
-    "hermes-compiler": "250829098.0.4"
+    "hermes-compiler": "250829098.0.4",
+    "react-native-track-player": "github:Illusion137/RNTPvE"
   }
 }
