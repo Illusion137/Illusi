@@ -19,10 +19,10 @@ import { ExampleObj } from "@illusive/example_objs";
 import { SharedRouter } from "@utils/shared_routes";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { LineGraph, type GraphPoint } from "react-native-graph";
+import type { GraphPoint } from "react-native-graph";
 import { SQLTrackPlays } from "@illusive/sql/sql_track_plays";
+import { DateLineGraph } from "@components/DateLineGraph";
 
-const PLAYS_START_DATE = new Date(1769312351443 - milliseconds_of({ days: 14 }));
 export default function EditTrackModal() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -34,7 +34,6 @@ export default function EditTrackModal() {
 	const tint = GLOBALS.global_var.tint_table.get(track_ref.current?.uid ?? "");
 	const [plays_points, set_plays_points] = useState<GraphPoint[]>([]);
 	const [lyrics, set_lyrics] = useState<string | null>(null);
-	const [selected_point, set_selected_point] = useState<GraphPoint | null>(null);
 
 	useEffect(() => {
 		if (track_ref.current?.lyrics_uri) {
@@ -54,41 +53,11 @@ export default function EditTrackModal() {
 		}
 	}, []);
 	const unknown = "Unknown";
-	const graph_color = track_colors?.primary ?? colors.primary;
-	const display_point = selected_point ?? (plays_points.length > 0 ? plays_points[plays_points.length - 1] : null);
-	const max_plays = plays_points.length > 0 ? Math.max(...plays_points.map((p) => p.value)) : 0;
-	const min_plays = plays_points.length > 0 ? Math.min(...plays_points.map((p) => p.value)) : 0;
-	const graph_x_min = plays_points.length > 0 ? plays_points[0].date : PLAYS_START_DATE;
-	const graph_x_max = plays_points.length > 0 ? plays_points[plays_points.length - 1].date : new Date();
-	// Bucket plays by calendar day → flat on idle days, steep on busy days
-	const graph_points: GraphPoint[] = (() => {
-		if (plays_points.length < 2) return plays_points;
-		const by_day = new Map<string, number>();
-		plays_points.forEach((p) => {
-			const key = p.date.toDateString();
-			by_day.set(key, (by_day.get(key) ?? 0) + 1);
-		});
-		const result: GraphPoint[] = [];
-		let running = min_plays - 1;
-		const cur = new Date(plays_points[0].date);
-		cur.setHours(0, 0, 0, 0);
-		const last = plays_points[plays_points.length - 1].date;
-		while (cur <= last) {
-			running += by_day.get(cur.toDateString()) ?? 0;
-			result.push({ value: running, date: new Date(cur) });
-			cur.setDate(cur.getDate() + 1);
-		}
-		return result;
-	})();
 
 	function date_string(isostring?: string) {
 		const date = new Date(isostring ?? 0);
 		if (date.getTime() <= milliseconds_of({ years: 30 })) return unknown;
 		return date.toDateString();
-	}
-
-	function format_date_short(date: Date) {
-		return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
 	}
 
 	const is_trimmed = track_ref.current?.meta?.begdur && track_ref.current?.meta?.begdur !== 0 && track_ref.current?.meta?.enddur && track_ref.current?.meta?.enddur != (track_ref.current.duration ?? 0);
@@ -182,45 +151,7 @@ export default function EditTrackModal() {
 					</View>
 				) : null}
 
-				{plays_points.length >= 2 ? (
-					<View style={[styles.section_card, { paddingHorizontal: 0, paddingBottom: 0, overflow: "hidden" }]}>
-						<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 16, paddingBottom: 10 }}>
-							<Text style={styles.section_label}>Plays over time</Text>
-							{display_point ? (
-								<View style={{ alignItems: "flex-end" }}>
-									<Text style={{ color: graph_color, fontWeight: "800", fontSize: 22, letterSpacing: -0.5 }}>{display_point.value}</Text>
-									<Text style={{ color: colors.subtext, fontSize: 11, marginTop: 1 }}>{format_date_short(display_point.date)}</Text>
-								</View>
-							) : null}
-						</View>
-						<View style={{ height: 0.5, backgroundColor: colors.text + "30" }} />
-						<LineGraph
-							style={{ width: "100%", height: 180 }}
-							animated={true}
-							points={graph_points}
-							range={{ x: { min: graph_x_min, max: graph_x_max } }}
-							color={graph_color}
-							gradientFillColors={[graph_color + "BB", graph_color + "33", "transparent"]}
-							lineThickness={2.5}
-							enableFadeInMask={true}
-							enablePanGesture={true}
-							enableIndicator={true}
-							indicatorPulsating={true}
-							horizontalPadding={16}
-							verticalPadding={8}
-							onPointSelected={(p) => set_selected_point(p)}
-							onGestureEnd={() => set_selected_point(null)}
-							TopAxisLabel={() => <Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "600", paddingHorizontal: 16, paddingTop: 6 }}>{max_plays}</Text>}
-							BottomAxisLabel={() => <Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "600", paddingHorizontal: 16, paddingBottom: 6 }}>{min_plays}</Text>}
-						/>
-						{/* X-axis date labels */}
-						<View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 }}>
-							<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(plays_points[0].date)}</Text>
-							{plays_points.length > 2 ? <Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(plays_points[Math.floor(plays_points.length / 2)].date)}</Text> : null}
-							<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(plays_points[plays_points.length - 1].date)}</Text>
-						</View>
-					</View>
-				) : null}
+				<DateLineGraph title="Plays over time" points={plays_points} />
 
 				{/* Lyrics card */}
 				{lyrics !== null ? (
