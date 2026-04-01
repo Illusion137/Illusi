@@ -122,6 +122,7 @@ export namespace ContextResolver {
                     break;
                 }
             case "track-upload-artwork":
+                // TODO come back to this
                 await upload_track_thumbnail(track, async () => {
                     GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");
                 });

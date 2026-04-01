@@ -4,12 +4,19 @@ import { StyleSheet, Text, View } from "react-native";
 import { upload_music_files } from "@illusive/document_picker";
 import type { Prefs } from "@illusive/prefs";
 import type { EditMode, HexColor } from "@illusive/types";
-import { cycle } from "@common/utils/util";
 import { TRACK_QUERY_FLAGS } from "@illusive/query_flags";
 import SearchBarV1 from "@components/SearchBarV1";
 import usePTheme from "@hooks/usePTheme";
 import LibraryTrackList from "@components/LibraryTrackList";
-import { IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from "@components/TouchableIconOpacity";
+import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
+import { ContextMenuButton } from "react-native-ios-context-menu";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { menuconfig_local_playlist } from "@utils/context_menu";
+import { GLOBALS } from "@illusive/globals";
+import { presentShortcut, type ShortcutOptions } from "react-native-siri-shortcut";
+import { SQLTracks } from "@illusive/sql/sql_tracks";
+import { batch_download_track_lyrics, download_track_list } from "@illusive/downloader";
+import { Constants } from "@illusive/constants";
 
 export default function Library() {
 	const { colors } = usePTheme();
@@ -25,20 +32,60 @@ export default function Library() {
 	};
 
 	const library_ref = useRef<{ refresh_data: (query?: string) => Promise<void> }>(null);
-
-	function cycle_edit_mode() {
-		const current_edit_mode = edit_mode;
-		const next_edit_mode = cycle<EditMode>(current_edit_mode, ["NONE", "DOWNLOAD", "DELETE"]);
-		set_edit_mode(next_edit_mode);
-	}
 	const is_focused = useIsFocused();
+
+	function get_shortcut(): ShortcutOptions {
+		return {
+			activityType: "com.illusion137.Illusi.ShuffleMusic",
+			persistentIdentifier: "com.illusion137.Illusi.ShuffleMusic",
+			title: "Shuffle Shortcut " + "Library",
+			isEligibleForHandoff: true,
+			isEligibleForPrediction: true,
+			isEligibleForPublicIndexing: true,
+			isEligibleForSearch: true,
+			keywords: ["Shuffle", "Music", "Illusi"],
+			requiredUserInfoKeys: [Constants.library_write_playlist],
+			userInfo: { uuid: Constants.library_write_playlist },
+			description: "Shuffles Playlist"
+		};
+	}
+
+	async function run_context_menu(action_key: string) {
+		switch (action_key) {
+			case "playlist-actions-default-mode":
+				set_edit_mode("NONE");
+				break;
+			case "playlist-actions-download-mode":
+				set_edit_mode("DOWNLOAD");
+				break;
+			case "playlist-actions-delete-mode":
+				set_edit_mode("DELETE");
+				break;
+			case "playlist-actions-batch-download-media":
+				await download_track_list(GLOBALS.global_var.sql_tracks);
+				break;
+			case "playlist-actions-batch-download-thumbnails":
+				await SQLTracks.restore_thumbnail_cache(GLOBALS.global_var.sql_tracks);
+				GLOBALS.global_var.bottom_alert("Downloaded all available thumbnails", "INFO");
+				break;
+			case "playlist-actions-batch-download-lyrics":
+				await batch_download_track_lyrics(GLOBALS.global_var.sql_tracks);
+				GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
+				break;
+			case "playlist-actions-shortcut":
+				presentShortcut(get_shortcut(), (data) => data);
+				break;
+		}
+	}
 
 	return (
 		<View style={styles.top_container}>
 			<View style={styles.header}>
 				<Text style={styles.top_text}>My Library</Text>
 				<View style={styles.search_container}>
-					<MaterialCommunityIconsTouchableOpacity icon_name="pencil" icon_size={25} icon_color={edit_mode_colors[edit_mode]} style={{ bottom: 6, left: 3 }} on_press={cycle_edit_mode} on_long_press={() => set_edit_mode("NONE")} />
+					<ContextMenuButton menuConfig={menuconfig_local_playlist(edit_mode, colors, GLOBALS.global_var.sql_tracks)} onPressMenuItem={async (e) => run_context_menu(e.nativeEvent.actionKey)}>
+						<MaterialCommunityIcons name="pencil" size={25} color={edit_mode_colors[edit_mode]} style={{ bottom: 6, left: 3 }} />
+					</ContextMenuButton>
 					<View style={{ width: "75%", bottom: 5, right: 10 }}>
 						<SearchBarV1 placeholder="Search My Library" query_flags={TRACK_QUERY_FLAGS} onChangeText={async (query) => library_ref.current?.refresh_data(query)} />
 					</View>
