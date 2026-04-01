@@ -49,7 +49,7 @@ function LibraryTrackList(
 		refresh_data
 	}));
 
-	useGlobalTracksRefresh(refresh_data);
+	useGlobalTracksRefresh(async () => refresh_data(search_query));
 	useFocusEffect(
 		useCallback(() => {
 			if (props.refresh_query_on_focus ?? false) {
@@ -113,7 +113,21 @@ function LibraryTrackList(
 
 	return (
 		<>
-			<BigList style={{ height: "71%" }} sections={all_data.track_mask} renderItem={render_track} keyExtractor={(item, _) => item.uid} renderHeader={props.header_item ?? header_component} renderSectionHeader={section_header} renderFooter={section_footer} sectionHeaderHeight={30} headerHeight={props.header_height ?? 90} footerHeight={100} ref={biglist_ref as RefObject<BigList>} itemHeight={61} stickySectionHeadersEnabled={false} />
+			<BigList
+				style={{ height: "71%" }}
+				sections={all_data.track_mask}
+				renderItem={render_track}
+				keyExtractor={(item, _) => item.uid}
+				renderHeader={props.header_item ?? header_component}
+				renderSectionHeader={section_header}
+				renderFooter={section_footer}
+				sectionHeaderHeight={30}
+				headerHeight={props.header_height ?? 90}
+				footerHeight={100}
+				ref={biglist_ref as RefObject<BigList>}
+				itemHeight={61}
+				stickySectionHeadersEnabled={false}
+			/>
 			<Animated.View
 				style={{
 					backgroundColor: colors.background,

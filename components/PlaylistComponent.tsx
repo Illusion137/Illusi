@@ -54,7 +54,7 @@ export default function PlaylistComponent(props: {
 
 	async function is_disabled(): Promise<boolean> {
 		if (props.select === undefined) return false;
-		return await SQLPlaylists.deep_track_exists_in_playlist(props.playlist_data.uuid, props.select.track);
+		return await SQLPlaylists.track_exists_in_playlist({ uuid: props.playlist_data.uuid, track_uid: props.select.track.uid });
 	}
 
 	useEffect(() => {

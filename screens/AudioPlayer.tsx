@@ -10,7 +10,6 @@ import type * as IllusiveType from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { is_empty, shuffle_array } from "@common/utils/util";
 import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, save_past_queue, setup_track_player, track_player_next, track_player_previous } from "@illusive/track_player_service";
-import { Illusive } from "@illusive/illusive";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { artist_string, track_exists } from "@illusive/illusive_utils";
 import ScaledImage from "@components/ScaledImage";
@@ -25,6 +24,7 @@ import { reinterpret_cast } from "@common/cast";
 import SlidingUpPanel from "rn-sliding-up-panel";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import TrackIconTags from "@components/TrackIconTags";
+import { Lyrics } from "@illusive/lyrics";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const top_padding = Dimensions.get("screen").height * 0.08;
@@ -221,8 +221,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				SharedRouter.goto_shared_player_lyrics(track.lyrics_uri);
 				return;
 			}
-		const lyrics = await Illusive.get_track_lryics(track);
-		if (typeof lyrics === "object") {
+		const lyrics = await Lyrics.get_track_lryics(track);
+		if ("error" in lyrics) {
 			set_lyrics_loading_state("FAILED");
 			if (!lyrics.error.message.includes("YouTube")) {
 				alert_error(lyrics);
@@ -240,7 +240,16 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		enddur = playing_track.meta?.enddur ?? playing_track.duration;
 
 	return (
-		<SlidingUpPanel ref={bottom_sheet_ref} allowDragging={true} showBackdrop={true} animatedValue={panel_animated} height={panel_max_height} friction={1} draggableRange={{ bottom: panel_min_height, top: panel_max_height }} snappingPoints={[panel_min_height, panel_max_height]} containerStyle={{ left: 0, right: 0, display: "flex", zIndex: 10, top: "100%" }}>
+		<SlidingUpPanel
+			ref={bottom_sheet_ref}
+			allowDragging={true}
+			showBackdrop={true}
+			animatedValue={panel_animated}
+			height={panel_max_height}
+			friction={1}
+			draggableRange={{ bottom: panel_min_height, top: panel_max_height }}
+			snappingPoints={[panel_min_height, panel_max_height]}
+			containerStyle={{ left: 0, right: 0, display: "flex", zIndex: 10, top: "100%" }}>
 			<>
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={{ backgroundColor: colors.playScreen, height: top_padding, opacity: interpolatePanelPosition([0, 1]) }} />
 				{/* HEADER ---------------------------------------------------- */}
@@ -327,7 +336,17 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 					<View style={{ height: 45 }} />
 					{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 					<View style={styles.timestampslidercontainer}>
-						<Slider value={player_state_trackplayer.elapsed_time} onValueChange={async (val) => await TrackPlayer.seekTo(val[0])} thumbTintColor={colors.primary} minimumTrackTintColor={colors.primary} maximumTrackTintColor="#DADADAA0" thumbStyle={{ width: 8, height: 8 }} thumbTouchSize={{ width: 40, height: 40 }} minimumValue={0} maximumValue={isNaN(player_state_metadata.duration) ? 1 : player_state_metadata.duration} />
+						<Slider
+							value={player_state_trackplayer.elapsed_time}
+							onValueChange={async (val) => await TrackPlayer.seekTo(val[0])}
+							thumbTintColor={colors.primary}
+							minimumTrackTintColor={colors.primary}
+							maximumTrackTintColor="#DADADAA0"
+							thumbStyle={{ width: 8, height: 8 }}
+							thumbTouchSize={{ width: 40, height: 40 }}
+							minimumValue={0}
+							maximumValue={isNaN(player_state_metadata.duration) ? 1 : player_state_metadata.duration}
+						/>
 						<View style={{ height: 10, width: 1, left: `${get_restart_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: "absolute" }} />
 						<View style={{ height: 10, width: 1, left: `${get_metadata_update_threshold(playing_track) * 100}%`, backgroundColor: colors.orange, position: "absolute" }} />
 						{playing_track.meta?.begdur && begdur !== 0 ? <View style={{ height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: "absolute" }} /> : null}
