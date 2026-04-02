@@ -1,0 +1,23 @@
+import { Dimensions, Text, View } from "react-native";
+import type { FullPlaylist } from "@illusive/types";
+import usePTheme from "@hooks/usePTheme";
+import { FlashList } from "@shopify/flash-list";
+import FullPlaylistComponent from "./FullPlaylistComponent";
+
+export default function FullPlaylistList(props: { title: string; playlists: FullPlaylist[] }) {
+	const { colors } = usePTheme();
+
+	const render_playlist = (item: { item: FullPlaylist }) => <FullPlaylistComponent playlist_data={item.item} />;
+
+	return (
+		<View style={{ paddingVertical: 10 }}>
+			<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+				<Text style={{ color: colors.text, fontSize: 25, fontWeight: "bold", left: 15 }}>{props.title}</Text>
+				{/* <AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{ right: 20 }} hitslop={12} /> */}
+			</View>
+			<View style={{ paddingHorizontal: 10, height: Dimensions.get("screen").width * 0.4 + 50, justifyContent: "center" }}>
+				<FlashList data={props.playlists} renderItem={render_playlist} horizontal={true} />
+			</View>
+		</View>
+	);
+}

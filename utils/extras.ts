@@ -66,11 +66,11 @@ export const extras_layout: () => ExtraLayout[] = () => [
     },
     {
         buttons: [
-            {
-                title: "Batch Downloader",
-                href: "/extras/batch-downloader",
-                icon: "file-tray-stacked-outline"
-            },
+            // {
+            //     title: "Batch Downloader",
+            //     href: "/extras/batch-downloader",
+            //     icon: "file-tray-stacked-outline"
+            // },
             {
                 title: "Linker",
                 href: "/extras/linker",
