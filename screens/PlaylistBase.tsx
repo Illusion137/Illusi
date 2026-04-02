@@ -366,7 +366,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					{playlist_data?.description}
 				</Text>
 				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 12, top: -8 }}>
-					{empty_join_dot([`${tracks.length} tracks`, tracks_duration_string(tracks)])}
+					{empty_join_dot([`${tracks.length}${continuation ? "+" : ""} tracks`, tracks_duration_string(tracks)])}
 				</Text>
 			</View>
 			<View style={{ height: 5 }} />
@@ -408,7 +408,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 							/>
 							<FontAwesomeTouchableOpacity
 								disabled={!(playlist_data?.public ?? false)}
-								on_press={async () => share_item({ link: `${Constants.illusi_url_base}playlist/${playlist_data?.public_uuid}` })}
+								on_press={async () => share_item({ link: `${Constants.illusi_url_base}/playlist/${playlist_data?.uuid}` })}
 								style={!(playlist_data?.public ?? false) ? { ...styles.playlist_button, opacity: 0.4 } : styles.playlist_button}
 								icon_name="share"
 								icon_size={25}
