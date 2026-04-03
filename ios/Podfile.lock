@@ -212,7 +212,7 @@ PODS:
   - ExpoImageManipulator (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
     - SDWebImageWebPCoder
-  - ExpoImagePicker (56.0.0-canary-20260305-5163746):
+  - ExpoImagePicker (55.0.16):
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
@@ -292,7 +292,31 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - NitroModules (0.35.2):
+  - NitroCookies (1.1.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroModules (0.35.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1764,8 +1788,28 @@ PODS:
     - React
   - react-native-cookies (5.0.1):
     - React-Core
-  - react-native-document-picker (8.2.2):
+  - react-native-document-picker (12.0.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
     - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-ios-context-menu (3.2.1):
     - ContextMenuAuxiliaryPreview (~> 0.5)
     - DGSwiftUtilities
@@ -2030,7 +2074,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - SwiftAudioEx
-    - SwiftProtobuf (~> 1.27)
     - Yoga
   - react-native-uitextview (2.1.1):
     - hermes-engine
@@ -3009,6 +3052,7 @@ DEPENDENCIES:
   - ffmpeg-kit-react-native (from `../node_modules/ffmpeg-kit-react-native`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - ImageColors (from `../node_modules/react-native-image-colors/ios`)
+  - NitroCookies (from `../node_modules/react-native-nitro-cookies`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - nodejs-mobile-react-native (from `../node_modules/nodejs-mobile-react-native`)
   - "op-sqlite (from `../node_modules/@op-engineering/op-sqlite`)"
@@ -3053,7 +3097,7 @@ DEPENDENCIES:
   - "react-native-audio-waveform (from `../node_modules/@simform_solutions/react-native-audio-waveform`)"
   - react-native-carplay (from `../node_modules/react-native-carplay`)
   - "react-native-cookies (from `../node_modules/@react-native-community/cookies`)"
-  - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - react-native-ios-context-menu (from `../node_modules/react-native-ios-context-menu`)
   - react-native-ios-utilities (from `../node_modules/react-native-ios-utilities`)
   - react-native-mmkv (from `../node_modules/react-native-mmkv`)
@@ -3211,6 +3255,8 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.9
   ImageColors:
     :path: "../node_modules/react-native-image-colors/ios"
+  NitroCookies:
+    :path: "../node_modules/react-native-nitro-cookies"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
   nodejs-mobile-react-native:
@@ -3298,7 +3344,7 @@ EXTERNAL SOURCES:
   react-native-cookies:
     :path: "../node_modules/@react-native-community/cookies"
   react-native-document-picker:
-    :path: "../node_modules/react-native-document-picker"
+    :path: "../node_modules/@react-native-documents/picker"
   react-native-ios-context-menu:
     :path: "../node_modules/react-native-ios-context-menu"
   react-native-ios-utilities:
@@ -3452,7 +3498,7 @@ SPEC CHECKSUMS:
   ExpoHaptics: 3e06bfb64589ff88b551fc4c112838d35ab95fbd
   ExpoImage: 8a822d727aad72c2d9844ab1f6456019c1361010
   ExpoImageManipulator: a8c3cd03311dc669682bfe0688323fd6dd52a674
-  ExpoImagePicker: 668ee169e2c44cb0e0d4995f90a6d67880a91af5
+  ExpoImagePicker: ca47c5ac15d1ccde2fbc765485e612c2a5a385d0
   ExpoKeepAwake: 83323bf6f9a16a8c30d25fd7fdd0940e961b41d1
   ExpoLinearGradient: 6140b4eac11f481f53e9c3c9a7a2c01316f6ab26
   ExpoLinking: 89439528a29d61314f4b9f723009833d8aa2acb4
@@ -3471,7 +3517,8 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  NitroModules: 76063cb7bc1a21cf46d11b25abfcf1759bf0be47
+  NitroCookies: 2f49d1935f61cdbc7b62c8de092e1ac3e11566d1
+  NitroModules: 00c15fcce98b504f21bd5b0c99276db161efcb39
   nodejs-mobile-react-native: 9efed1aafb3f02ec02240d539e24ec72fde97c21
   op-sqlite: 9ad0095f12c88397bccd86e912a018049eb1caf5
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
@@ -3514,7 +3561,7 @@ SPEC CHECKSUMS:
   react-native-audio-waveform: ad578cb968b31b043b93b5e824aa37b6a1a08691
   react-native-carplay: 8f388f6f73e5e0f73ed154ad8794371343ee20c0
   react-native-cookies: 66880334b9dd8b6d3e54871c5d724f65efca8cf6
-  react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
+  react-native-document-picker: 29b2ee2573287f2b34c7716c98ffc3d9322fbe72
   react-native-ios-context-menu: 819a2427bbec9b85092745687d84a422361cd921
   react-native-ios-utilities: 7bb6ce48acee7d83481518ef3f0206e08a365923
   react-native-mmkv: 3d69c8bbdbceb1c0d3754863ecffa6ec24e4be12
@@ -3524,7 +3571,7 @@ SPEC CHECKSUMS:
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-skia: a53f6c24aff4d6aa0b048d821215186b84315c93
   react-native-slider: 8b9a218d1a3e526146a170cb6133be9cda23e70e
-  react-native-track-player: a3baa89065c522e634de433cffc429801d5ac4cb
+  react-native-track-player: 61dee63910554d02b86bc5898c04db6c096b7d81
   react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
   react-native-webview: 3e303e80cadb5f17118c8c1502aa398e9287e415
   react-native-zip-stream: a678a95785809e80ca9275030f0419cbbe5e99d7

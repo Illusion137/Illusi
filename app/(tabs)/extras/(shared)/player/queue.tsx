@@ -67,7 +67,7 @@ export default function AudioPlayerQueue() {
 							<Text style={{ color: colors.text, fontSize: 16, fontWeight: "700", padding: 10 }}>Up Next</Text>
 						</View>
 					)}
-					renderHiddenItem={(item, i) => (
+					renderHiddenItem={(item) => (
 						<TouchableOpacity onPress={async () => remove_track_from_queue(item.item, item.index)} style={{ backgroundColor: "#8B0000", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
 							<Ionicons name="trash-bin" style={{ right: 10 }} color={"white"} size={22} />
 						</TouchableOpacity>

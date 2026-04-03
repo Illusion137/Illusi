@@ -44,7 +44,7 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 }
 
 export default function Shuffler() {
-	const shuffler_inputs = Object.keys(Prefs.default_track_shuffle_bias).map((key) => [key, Prefs.get_pref("track_shuffle_bias")[key] ?? 0]);
+	const shuffler_inputs: [string, number][] = Object.keys(Prefs.default_track_shuffle_bias).map((key) => [key, Prefs.get_pref("track_shuffle_bias")[key as keyof typeof Prefs.default_track_shuffle_bias] ?? 0]);
 	const [visualizer_state, set_visualizer_state] = useState(get_visualizer_values());
 
 	function get_visualizer_values() {

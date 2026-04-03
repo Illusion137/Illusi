@@ -2379,6 +2379,11 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/slider/-/slider-5.1.2.tgz#b7255c27b52d74440bcf146a05dcf13c94e7d91c"
   integrity sha512-UV/MjCyCtSjS5BQDrrGIMmCXm309xEG6XbR0Dj65kzTraJSVDxSjQS2uBUXgX+5SZUOCzCxzv3OufOZBdtQY4w==
 
+"@react-native-documents/picker@^12.0.1":
+  version "12.0.1"
+  resolved "https://registry.yarnpkg.com/@react-native-documents/picker/-/picker-12.0.1.tgz#ea59796175308be9818dd9e8f14a41145c35042b"
+  integrity sha512-vpJKb4t/5bnxe9+gQl+plJfKrrIsmYwANGhNH2B9E1dS1+6FDBzg4Dwmcq4ueaGfkRKEPJ606mJttVEH1ZKZaA==
+
 "@react-native-picker/picker@2.11.4":
   version "2.11.4"
   resolved "https://registry.yarnpkg.com/@react-native-picker/picker/-/picker-2.11.4.tgz#7fb09506ee00a82989125cc03e8495204c8afc01"
@@ -5262,6 +5267,11 @@ expo-image-loader@56.0.0-canary-20260305-5163746:
   resolved "https://registry.yarnpkg.com/expo-image-loader/-/expo-image-loader-56.0.0-canary-20260305-5163746.tgz#6a5de6a57cb4220f624d9baecbac95cb34444f61"
   integrity sha512-DzrRzr74zceoOBf1gq+XinwsfSb/ngJXqimeD5WreUGeNiY5cU07udtSNB4Xf4MEbojbBMeAWjzNyI41ogzq9g==
 
+expo-image-loader@~55.0.0:
+  version "55.0.0"
+  resolved "https://registry.yarnpkg.com/expo-image-loader/-/expo-image-loader-55.0.0.tgz#56ae6631a0f43191432296a1f7f1e9737e653cfe"
+  integrity sha512-NOjp56wDrfuA5aiNAybBIjqIn1IxKeGJ8CECWZncQ/GzjZfyTYAHTCyeApYkdKkMBLHINzI4BbTGSlbCa0fXXQ==
+
 expo-image-manipulator@56.0.0-canary-20260305-5163746:
   version "56.0.0-canary-20260305-5163746"
   resolved "https://registry.yarnpkg.com/expo-image-manipulator/-/expo-image-manipulator-56.0.0-canary-20260305-5163746.tgz#19c63e954df183cb0d907c52186a70ac00a6dc11"
@@ -5269,12 +5279,12 @@ expo-image-manipulator@56.0.0-canary-20260305-5163746:
   dependencies:
     expo-image-loader "56.0.0-canary-20260305-5163746"
 
-expo-image-picker@56.0.0-canary-20260305-5163746:
-  version "56.0.0-canary-20260305-5163746"
-  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-56.0.0-canary-20260305-5163746.tgz#7eeafcbb14b4c3260c6b0ca61aeab91cd969f907"
-  integrity sha512-0nEirazZhQcpL+lA6ZRKcjaNQ0mXCUArvCV866M6VBVijIZt3iMvohkn7YsUIf3lU0HpvHoZ75Vz12OByAj1Ww==
+expo-image-picker@^55.0.16:
+  version "55.0.16"
+  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-55.0.16.tgz#7607c6bf96d0e62b373c66044dd9b9966699cfd1"
+  integrity sha512-V0SMNlEdopFlt8drPDuIDcjHab0J+VD73MsTGuz0E/9zoWR6sozZPtTycPTwLifu23zJksG7pppkqFQoID1eFA==
   dependencies:
-    expo-image-loader "56.0.0-canary-20260305-5163746"
+    expo-image-loader "~55.0.0"
 
 expo-image@56.0.0-canary-20260305-5163746:
   version "56.0.0-canary-20260305-5163746"
@@ -8974,10 +8984,15 @@ react-native-multi-slider@^0.3.6:
   resolved "https://registry.yarnpkg.com/react-native-multi-slider/-/react-native-multi-slider-0.3.6.tgz#3fa9d98bb92c8c27e05e3b43849f0a99ee9a42cc"
   integrity sha512-EoTMv2hKjBfJWMRZYp4A0LXg9pBPaMk+rgTXsvBjvI0owFqq8rIrnijO453oLqfbrXD72mBIHLRww0TUMZufdg==
 
-react-native-nitro-modules@^0.35.2:
-  version "0.35.2"
-  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.2.tgz#75fbcd42a73d93540c0069d42098d9dc6c12ea7e"
-  integrity sha512-97cZcCh3ZAuWAfutel2Q3qLfc45XXh7F9Ei5tEjahP0kV3q8hQelwLIulKXmjN+f0JI5Zf/wCsfwwdVWYU2tKA==
+react-native-nitro-cookies@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-cookies/-/react-native-nitro-cookies-1.1.0.tgz#312b7139e96dba8ed988a939cb6a28e2b6c99c4b"
+  integrity sha512-OGq86dUCe087eQLa+7ATR/EA0FItNSpDoEUH3x0eFZnr5eUJq3Hl/gKp+jPoc1HioMwr7jPZy0Q15A7PbDzb9Q==
+
+react-native-nitro-modules@^0.35.3:
+  version "0.35.3"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.3.tgz#26c3e287d3fff780f91d7d87a62e6a9b450e3c17"
+  integrity sha512-pfPfFtGeMfFpLo4HidTFs5zsAs1wRh9qaWGSiF5UeI2YQaAgRHPlson0UNxw25pTCLV9NBrKgSDaMVfPEXXbNw==
 
 react-native-path@^0.0.5:
   version "0.0.5"
@@ -9094,7 +9109,7 @@ react-native-timer@^1.3.6:
   resolved "https://registry.yarnpkg.com/react-native-timer/-/react-native-timer-1.3.6.tgz#726bae63b5cc6f51a0bd3a9227e07ef0836ff350"
   integrity sha512-/YytE7B2YrnYwqNsoQopxg3GtHwrSH/f3pP9UgpHPpJok33YkNX+sSODI6dt75/FLDKQWIYcDHLc3WkdfKKdTg==
 
-"react-native-track-player@github:Illusion137/RNTPvE":
+"react-native-track-player@github:Illusion137/RNTPvE#aa69edd00afc37b13eac83b5a7c1d24ccf5f04aa":
   version "5.0.0-alpha0"
   resolved "https://codeload.github.com/Illusion137/RNTPvE/tar.gz/aa69edd00afc37b13eac83b5a7c1d24ccf5f04aa"
 

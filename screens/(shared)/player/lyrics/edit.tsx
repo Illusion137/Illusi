@@ -9,7 +9,7 @@ import type { LoadingState } from "@illusive/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function PlayerEditLyrics() {
@@ -45,7 +45,7 @@ export default function PlayerEditLyrics() {
 		if (!track) return;
 		set_save_state("LOADING");
 		try {
-			await SQLTracks.save_track_lyrics(track, lyrics_ref.current);
+			await SQLTracks.save_track_lyrics(track, { plain: lyrics_ref.current, synced: undefined });
 			set_save_state("COMPLETE");
 			setTimeout(() => set_save_state("NONE"), 2000);
 		} catch {
@@ -97,8 +97,17 @@ export default function PlayerEditLyrics() {
 				</View>
 
 				{/* Save button */}
-				<TouchableOpacity style={{ width: "88%", alignSelf: "center", height: 55, backgroundColor: colors.primary, borderRadius: 50, alignItems: "center", justifyContent: "center", marginTop: 24 }} onPress={handle_save} disabled={save_state === "LOADING"}>
-					{save_state === "LOADING" ? <ActivityIndicator size={28} color="#fff" /> : save_state === "COMPLETE" ? <Ionicons name="checkmark" size={28} color="#fff" /> : <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>Save Lyrics</Text>}
+				<TouchableOpacity
+					style={{ width: "88%", alignSelf: "center", height: 55, backgroundColor: colors.primary, borderRadius: 50, alignItems: "center", justifyContent: "center", marginTop: 24 }}
+					onPress={handle_save}
+					disabled={save_state === "LOADING"}>
+					{save_state === "LOADING" ? (
+						<ActivityIndicator size={28} color="#fff" />
+					) : save_state === "COMPLETE" ? (
+						<Ionicons name="checkmark" size={28} color="#fff" />
+					) : (
+						<Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>Save Lyrics</Text>
+					)}
 				</TouchableOpacity>
 
 				<View style={{ height: 80 }} />
