@@ -2074,6 +2074,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - SwiftAudioEx
+    - SwiftProtobuf (~> 1.27)
     - Yoga
   - react-native-uitextview (2.1.1):
     - hermes-engine
@@ -3571,7 +3572,7 @@ SPEC CHECKSUMS:
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-skia: a53f6c24aff4d6aa0b048d821215186b84315c93
   react-native-slider: 8b9a218d1a3e526146a170cb6133be9cda23e70e
-  react-native-track-player: 61dee63910554d02b86bc5898c04db6c096b7d81
+  react-native-track-player: a3baa89065c522e634de433cffc429801d5ac4cb
   react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
   react-native-webview: 3e303e80cadb5f17118c8c1502aa398e9287e415
   react-native-zip-stream: a678a95785809e80ca9275030f0419cbbe5e99d7
