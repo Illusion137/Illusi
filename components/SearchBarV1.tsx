@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { NativeSyntheticEvent, TextInputProps, TextInputSelectionChangeEventData} from "react-native";
+import type { NativeSyntheticEvent, TextInputProps, TextInputSelectionChangeEventData } from "react-native";
 import { ScrollView, Text, TextInput, View } from "react-native";
 import { Prefs } from "@illusive/prefs";
 import { useEffect, useRef, useState } from "react";
@@ -69,7 +69,9 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 	}, [autocomplete_scrollview_ref.current]);
 
 	const maybe_query_flags = props.query_flags ?? [];
-	const filtered_query_flags = maybe_query_flags.concat(maybe_query_flags.map((query_flag) => ({ ...query_flag, flag: ANTI_QUERY_FLAG_PREFIX + query_flag.flag, description: "NOT " + query_flag.description }))).filter((flag) => flag.flag.startsWith(flag_query_section ?? "-"));
+	const filtered_query_flags = maybe_query_flags
+		.concat(maybe_query_flags.map((query_flag) => ({ ...query_flag, flag: ANTI_QUERY_FLAG_PREFIX + query_flag.flag, description: "NOT " + query_flag.description })))
+		.filter((flag) => flag.flag.startsWith(flag_query_section ?? "-"));
 
 	return (
 		<>
@@ -108,7 +110,15 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 						borderBottomRightRadius: 10 // Bottom Right Corner
 					}}
 				/>
-				<IoniconsTouchableOpacity icon_name="scan-circle-outline" icon_color={use_strict_search ? colors.primary : colors.subtext} icon_size={25} icon_style={{}} on_press={on_toggle_strict_mode} hitslop={5} style={{ position: "absolute", left: show_clear_button ? "83%" : "92%", top: "15%" }} />
+				<IoniconsTouchableOpacity
+					icon_name="scan-circle-outline"
+					icon_color={use_strict_search ? colors.primary : colors.subtext}
+					icon_size={25}
+					icon_style={{}}
+					on_press={on_toggle_strict_mode}
+					hitslop={5}
+					style={{ position: "absolute", left: show_clear_button ? "83%" : "92%", top: "15%" }}
+				/>
 				{show_clear_button ? (
 					<IoniconsTouchableOpacity
 						icon_name="close-circle-outline"
@@ -126,10 +136,10 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 				) : null}
 			</View>
 			{props.query_flags && flag_query_section && input_focused && filtered_query_flags.length !== 0 ? (
-				<ScrollView ref={autocomplete_scrollview_ref} style={{ position: "absolute", width: "103%", maxHeight: 400, backgroundColor: "#000000B0", top: 40, zIndex: 5, paddingHorizontal: 10 }}>
+				<ScrollView ref={autocomplete_scrollview_ref} style={{ position: "absolute", width: "103%", maxHeight: 400, backgroundColor: "#000000B0", top: 40, zIndex: 5, paddingHorizontal: 15, paddingVertical: 15, borderRadius: 10 }}>
 					{filtered_query_flags.map((flag, i) => (
 						<View key={flag.flag + String(i)} style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 1 }}>
-							<Text style={{ color: colors.text }}>{flag.flag}</Text>
+							<Text style={{ color: colors.text, fontWeight: "600" }}>{flag.flag}</Text>
 							<View style={{ width: 20 }} />
 							<Text style={{ color: colors.text }}>{flag.description}</Text>
 						</View>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from "react-native";
-import CookieManager from "@react-native-community/cookies";
+import CookieManager from "react-native-nitro-cookies";
 import type { WebViewNavigation } from "react-native-webview";
 import WebView from "react-native-webview";
 import { Prefs } from "@illusive/prefs";
@@ -83,7 +83,10 @@ export default function ExtraExternalServicesScreen() {
 
 		const cookie_jar = Prefs.get_pref(illusive_service.pref_cookie_jar!) as CookieJar;
 
+		console.log(CookieJar.fromCookies(result).toString());
+
 		cookie_jar.merge(CookieJar.fromCookies(result));
+		console.log(cookie_jar.toString());
 		await Prefs.save_pref(illusive_service.pref_cookie_jar!, cookie_jar);
 		const updated_cookies_enabled = { ...external_services_cookies_enabled };
 		if (illusive_service.has_credentials()) updated_cookies_enabled[current_service!] = true;
@@ -115,7 +118,11 @@ export default function ExtraExternalServicesScreen() {
 						sharedCookiesEnabled={true}
 						thirdPartyCookiesEnabled={true}
 						onNavigationStateChange={web_view_navigation_change}
-						userAgent={url.includes("soundcloud") ? "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" : "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"}
+						userAgent={
+							url.includes("soundcloud")
+								? "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+								: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+						}
 						// applicationNameForUserAgent='Illusi'
 						contentMode="mobile"
 					/>

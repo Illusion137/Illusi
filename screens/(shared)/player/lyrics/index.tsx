@@ -4,13 +4,15 @@ import usePTheme from "@hooks/usePTheme";
 import useTrackColors from "@hooks/useTrackColors";
 import { GLOBALS } from "@illusive/globals";
 import { ExampleObj } from "@illusive/example_objs";
+import { Lyrics } from "@illusive/lyrics";
 import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { Track } from "@illusive/types";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 import { UITextView } from "react-native-uitextview";
 import { SharedRouter } from "@utils/shared_routes";
@@ -35,6 +37,13 @@ function parse_sections(raw: string): LyricsSection[] {
 	return sections;
 }
 
+function find_current_line_idx(synced_lyrics: Lyrics.SyncedLyric[], position: number): number {
+	for (let i = synced_lyrics.length - 1; i >= 0; i--) {
+		if (position >= synced_lyrics[i].interval.from) return i;
+	}
+	return 0;
+}
+
 export default function AudioPlayerLyrics() {
 	const { lyrics_uri } = useLocalSearchParams<{ lyrics_uri: string }>();
 
@@ -50,6 +59,14 @@ export default function AudioPlayerLyrics() {
 	const [scrollview_height, set_scrollview_height] = useState(0);
 	const scrollview_ref = useRef<ScrollView>(null);
 	const section_y_positions = useRef<number[]>([]);
+
+	const [synced_lyrics, set_synced_lyrics] = useState<Lyrics.SyncedLyric[] | null>(null);
+	const [current_line_idx, set_current_line_idx] = useState(0);
+	const [is_following, set_is_following] = useState(true);
+	const synced_lyrics_ref = useRef<Lyrics.SyncedLyric[] | null>(null);
+	const current_line_idx_ref = useRef(0);
+	const is_following_ref = useRef(true);
+	const line_y_positions = useRef<number[]>([]);
 
 	// Refs so event handlers always see current values (avoid stale closure)
 	const track_ref = useRef<Track | null>(null);
@@ -79,6 +96,37 @@ export default function AudioPlayerLyrics() {
 		const resolved = GLOBALS.global_var.playing_tracks[index] ?? null;
 		track_ref.current = resolved;
 		set_track(resolved);
+
+		// Try synced lyrics first
+		if (resolved && !is_empty(resolved.synced_lyrics_uri)) {
+			const synced_text = await SQLTracks.read_track_synced_lyrics(resolved);
+			if (typeof synced_text === "string") {
+				const parsed = Lyrics.lrclib_synced_lyrics_to_json(synced_text);
+				if (!("error" in parsed) && parsed.lyrics.length > 0) {
+					synced_lyrics_ref.current = parsed.lyrics;
+					set_synced_lyrics(parsed.lyrics);
+					set_sections([]);
+					section_times_ref.current = [];
+					set_section_times([]);
+					line_y_positions.current = [];
+					is_following_ref.current = true;
+					set_is_following(true);
+
+					const progress = await TrackPlayer.getProgress();
+					const pos = progress.position;
+					const initial_idx = find_current_line_idx(parsed.lyrics, pos);
+					current_line_idx_ref.current = initial_idx;
+					set_current_line_idx(initial_idx);
+					set_progress_ratio(isNaN(pos / progress.duration) ? 0 : pos / progress.duration);
+					return;
+				}
+			}
+		}
+
+		// Fall back to plain lyrics
+		synced_lyrics_ref.current = null;
+		set_synced_lyrics(null);
+		line_y_positions.current = [];
 
 		const read_lyrics = await SQLTracks.read_track_lyrics({ ...ExampleObj.track_example0, lyrics_uri: track_lyrics_uri });
 		if (read_lyrics === undefined || typeof read_lyrics === "object") {
@@ -122,7 +170,20 @@ export default function AudioPlayerLyrics() {
 	});
 
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
-		if (!is_empty(track_ref.current?.media_uri) && section_times_ref.current.length > 0) {
+		const ratio = event.position / event.duration;
+		set_progress_ratio(isNaN(ratio) ? 0 : ratio);
+
+		if (synced_lyrics_ref.current !== null) {
+			const idx = find_current_line_idx(synced_lyrics_ref.current, event.position);
+			if (idx !== current_line_idx_ref.current) {
+				current_line_idx_ref.current = idx;
+				set_current_line_idx(idx);
+				if (is_following_ref.current) {
+					const y = line_y_positions.current[idx];
+					if (y !== undefined) scrollview_ref.current?.scrollTo({ y, animated: true });
+				}
+			}
+		} else if (!is_empty(track_ref.current?.media_uri) && section_times_ref.current.length > 0) {
 			const pos = event.position;
 			let idx = 0;
 			for (let i = section_times_ref.current.length - 1; i >= 0; i--) {
@@ -137,39 +198,76 @@ export default function AudioPlayerLyrics() {
 				const y = section_y_positions.current[idx];
 				if (y !== undefined) scrollview_ref.current?.scrollTo({ y, animated: true });
 			}
-		} else {
-			const ratio = event.position / event.duration;
-			set_progress_ratio(isNaN(ratio) ? 0 : ratio);
 		}
 	});
 
+	function snap_to_current() {
+		is_following_ref.current = true;
+		set_is_following(true);
+		const y = line_y_positions.current[current_line_idx_ref.current];
+		if (y !== undefined) scrollview_ref.current?.scrollTo({ y, animated: true });
+	}
+
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
-			<ModalHeader title="Lyrics" background_color={track_colors?.secondary} text_color={track_colors?.background} close_color={track_colors?.background} right_icon={{ icon_name: "pencil-outline", icon_color: track_colors?.background ?? colors.primary, icon_size: 20, on_press: () => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri) }} />
+			<ModalHeader
+				title="Lyrics"
+				background_color={track_colors?.secondary}
+				text_color={track_colors?.background}
+				close_color={track_colors?.background}
+				right_icon={{ icon_name: "pencil-outline", icon_color: track_colors?.background ?? colors.primary, icon_size: 20, on_press: () => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri) }}
+			/>
 			<View style={{ height: 3, backgroundColor: colors.shelf }}>
 				<View style={{ height: 3, width: `${progress_ratio * 100}%`, backgroundColor: track_colors?.detail ?? colors.primary }} />
 			</View>
 			<View style={{ height: 30 }} />
 			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.4, width: "100%", zIndex: -1 }} /> : null}
-			<ScrollView ref={scrollview_ref} onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => set_content_height(h)} style={{ flex: 1 }}>
-				{sections.length === 0 ? (
+			<ScrollView
+				ref={scrollview_ref}
+				onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)}
+				onContentSizeChange={(_, h) => set_content_height(h)}
+				onScrollBeginDrag={() => {
+					if (synced_lyrics_ref.current !== null) {
+						is_following_ref.current = false;
+						set_is_following(false);
+					}
+				}}
+				style={{ flex: 1 }}>
+				{synced_lyrics !== null ? (
+					synced_lyrics.map((lyric, i) => (
+						<Pressable
+							key={i}
+							onLayout={(e) => {
+								line_y_positions.current[i] = e.nativeEvent.layout.y;
+							}}
+							onPress={() => {
+								TrackPlayer.seekTo(lyric.interval.from);
+								is_following_ref.current = true;
+								set_is_following(true);
+							}}>
+							<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={[styles.lyrics_text, { color: i === current_line_idx ? colors.text : colors.subtext }]}>
+								{lyric.text + "\n"}
+								<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
+							</UITextView>
+						</Pressable>
+					))
+				) : sections.length === 0 ? (
 					<UITextView uiTextView={true} style={styles.lyrics_text}>
 						Unable to find lyrics for this song
 					</UITextView>
 				) : (
 					sections.map((section, i) => {
 						const is_active = section_times.length === 0 || i === current_section_idx;
-						const opacity = is_active ? 1 : 0.35;
 						return (
 							<View
 								key={i}
 								onLayout={(e) => {
 									section_y_positions.current[i] = e.nativeEvent.layout.y;
 								}}>
-								{section.header ? <Text style={[styles.section_header, { opacity }]}>{section.header}</Text> : null}
-								<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ opacity, marginHorizontal: 20 }}>
+								{section.header ? <Text style={[styles.section_header, { color: is_active ? colors.primary : colors.subtext }]}>{section.header}</Text> : null}
+								<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ marginHorizontal: 20 }}>
 									{section.lines.map((line, j) => (
-										<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={styles.lyrics_text}>
+										<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={[styles.lyrics_text, { color: is_active ? colors.text : colors.subtext }]}>
 											{line + "\n"}
 											<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
 										</UITextView>
@@ -180,6 +278,12 @@ export default function AudioPlayerLyrics() {
 					})
 				)}
 			</ScrollView>
+			{synced_lyrics !== null && !is_following ? (
+				<Pressable style={[styles.sync_button, { backgroundColor: track_colors?.secondary ?? colors.shelf }]} onPress={snap_to_current}>
+					<Ionicons name="sync-outline" size={14} color={track_colors?.background ?? colors.primary} />
+					<Text style={[styles.sync_button_text, { color: track_colors?.background ?? colors.primary }]}>Sync</Text>
+				</Pressable>
+			) : null}
 		</View>
 	);
 }
@@ -202,5 +306,20 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			textTransform: "uppercase",
 			marginBottom: 2,
 			marginHorizontal: 15
+		},
+		sync_button: {
+			position: "absolute",
+			bottom: 30,
+			alignSelf: "center",
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+			borderRadius: 20
+		},
+		sync_button_text: {
+			fontWeight: "700",
+			fontSize: 14
 		}
 	});

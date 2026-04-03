@@ -7,14 +7,12 @@ import { GLOBALS } from "@illusive/globals";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { if_confirm, share_item } from "@illusive/illusi/src/illusi_utils";
 import { play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
-import { track_to_illusive_uri } from "@illusive/illusive_utils";
 import { Prefs } from "@illusive/prefs";
 import { SQLfs } from "@illusive/sql/sql_fs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { Track } from "@illusive/types";
 import { SharedRouter } from './shared_routes';
 import { alert_error } from "@illusive/illusi/src/alert";
-import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 
 export namespace ContextResolver {
     export type TrackContextKeys =
@@ -99,7 +97,12 @@ export namespace ContextResolver {
             case "track-download-lyrics":
                 {
                     const lyrics_result = await GLOBALS.global_var.download_track_lyrics(track);
-                    GLOBALS.global_var.bottom_alert?.(typeof lyrics_result === "string" && lyrics_result !== "EXISTS" ? "Downloaded Track Lyrics" : "Failed to Download Track Lyrics", lyrics_result === "ok" ? "GOOD" : "WARN");
+                    if (typeof lyrics_result === "string") break;
+                    if ("error" in lyrics_result)
+                        GLOBALS.global_var.bottom_alert?.("Failed to Download Track Lyrics", "WARN");
+                    else {
+                        GLOBALS.global_var.bottom_alert?.("Downloaded Track Lyrics" + (lyrics_result.synced ? " (+Synced)" : ""), "GOOD");
+                    }
                     break;
                 }
             case "track-delete-lyrics":
@@ -119,6 +122,7 @@ export namespace ContextResolver {
                     break;
                 }
             case "track-upload-artwork":
+                // TODO come back to this
                 await upload_track_thumbnail(track, async () => {
                     GLOBALS.global_var.bottom_alert?.("Updated Track Artwork", "INFO");
                 });

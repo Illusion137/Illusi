@@ -6,9 +6,6 @@ import SettingsMultiButton from "@components/SettingsMultiButton";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import type { PrefEntry } from "@illusive/types";
 import { prefs_settings_groupby_filter } from "@illusive/illusive_utils";
-import type { ShortcutOptions } from "react-native-siri-shortcut";
-import { presentShortcut } from "react-native-siri-shortcut";
-import { Constants } from "@illusive/constants";
 import * as FileSystem from "expo-file-system/legacy";
 import { GLOBALS } from "@illusive/globals";
 import { mass_sample_youtube_to_youtube_music, speed_sample_unavailable_tracks } from "@illusive/sampler";
@@ -35,22 +32,6 @@ export default function ExtraSettingsScreen() {
 		</>
 	);
 
-	function getShortcut(): ShortcutOptions {
-		return {
-			activityType: "com.illusion137.Illusi.ShuffleMusic",
-			persistentIdentifier: "com.illusion137.Illusi.ShuffleMusic",
-			title: "Shuffle Shortcut " + "Library",
-			isEligibleForHandoff: true,
-			isEligibleForPrediction: true,
-			isEligibleForPublicIndexing: true,
-			isEligibleForSearch: true,
-			keywords: ["Shuffle", "Music", "Illusi"],
-			requiredUserInfoKeys: [Constants.library_write_playlist],
-			userInfo: { uuid: Constants.library_write_playlist },
-			description: "Shuffles Playlist"
-		};
-	}
-
 	async function zip_data() {
 		await share_item({ uri: FileSystem.documentDirectory ?? "" });
 	}
@@ -70,8 +51,6 @@ export default function ExtraSettingsScreen() {
 						<ExtrasSectionButton show_arrow={true} text="Danger Zone" icon="warning-sharp" onPress={() => router.push("/extras/settings/danger")} />
 						<View style={styles.line_long} />
 						<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
-						<ExtrasSectionButton show_arrow={false} text="Shuffle Library Shortcut" icon="library-outline" onPress={() => presentShortcut(getShortcut(), (data) => data)} />
-						<Text style={styles.description_text}>Create a Shortcut to play entire library</Text>
 						<ExtrasSectionButton show_arrow={false} text="Cache All Thumbnails" icon="download" onPress={async () => SQLTracks.restore_thumbnail_cache()} />
 						<View style={{ height: 20 }} />
 						<ExtrasSectionButton

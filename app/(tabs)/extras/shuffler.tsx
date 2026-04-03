@@ -15,9 +15,8 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 	const { colors } = usePTheme();
 
 	function on_change_text(text: string) {
-		let value = parseFloat(text);
+		const value = parseFloat(text);
 		if (isNaN(value)) return;
-		value = Math.max(Math.min(value, shuffler_max), shuffler_min);
 		Prefs.prefs.track_shuffle_bias.current_value[props.shuffler_key as keyof typeof Prefs.prefs.track_shuffle_bias.current_value] = value;
 		Prefs.save_pref("track_shuffle_bias", Prefs.prefs.track_shuffle_bias.current_value);
 		props.on_update();
@@ -30,7 +29,13 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 					<Entypo name="shuffle" color={colors.primary} size={25} style={{ marginRight: 12 }} />
 					<Text style={{ color: colors.text, fontSize: 18 }}>{Prefs.snake_case_to_plain_text(props.shuffler_key)}</Text>
 				</View>
-				<TextInput defaultValue={String(props.initial_value)} keyboardType="numbers-and-punctuation" textAlign="right" style={{ backgroundColor: colors.track, width: "40%", height: "70%", padding: 5, color: colors.text, fontSize: 18, fontStyle: "italic", fontWeight: "500" }} onChangeText={on_change_text} />
+				<TextInput
+					defaultValue={String(props.initial_value)}
+					keyboardType="numbers-and-punctuation"
+					textAlign="right"
+					style={{ backgroundColor: colors.track, width: "40%", height: "70%", padding: 5, color: colors.text, fontSize: 18, fontStyle: "italic", fontWeight: "500" }}
+					onChangeText={on_change_text}
+				/>
 			</View>
 			<View style={{ height: 1, backgroundColor: colors.line, width: "90%", left: "10%" }} />
 			<View style={{ height: 1, backgroundColor: colors.line, width: "30%", left: "70%" }} />
@@ -39,7 +44,7 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 }
 
 export default function Shuffler() {
-	const shuffler_inputs = Object.entries(Prefs.get_pref("track_shuffle_bias"));
+	const shuffler_inputs: [string, number][] = Object.keys(Prefs.default_track_shuffle_bias).map((key) => [key, Prefs.get_pref("track_shuffle_bias")[key as keyof typeof Prefs.default_track_shuffle_bias] ?? 0]);
 	const [visualizer_state, set_visualizer_state] = useState(get_visualizer_values());
 
 	function get_visualizer_values() {
@@ -53,7 +58,9 @@ export default function Shuffler() {
 	return (
 		<View>
 			<Equalizer min={shuffler_min} max={shuffler_max} values={visualizer_state} freqs={[]} height={180} />
-			<ExtrasSectionButton icon="easel-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push("/extras/shuffler-test")} />
+			<ExtrasSectionButton icon="easel-sharp" text="Show Example Shuffle" show_arrow={true} onPress={() => router.push({ pathname: "/extras/shuffler-test", params: { mode: "SHUFFLE" } })} />
+			<ExtrasSectionButton icon="easel-sharp" text="Show Weights (ASC)" show_arrow={true} onPress={() => router.push({ pathname: "/extras/shuffler-test", params: { mode: "ASC" } })} />
+			<ExtrasSectionButton icon="easel-sharp" text="Show Weights (DESC)" show_arrow={true} onPress={() => router.push({ pathname: "/extras/shuffler-test", params: { mode: "DESC" } })} />
 			<View style={{ height: 10 }} />
 			<ScrollView>
 				{shuffler_inputs.map((input) => (

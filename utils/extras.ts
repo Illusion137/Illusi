@@ -66,11 +66,11 @@ export const extras_layout: () => ExtraLayout[] = () => [
     },
     {
         buttons: [
-            {
-                title: "Batch Downloader",
-                href: "/extras/batch-downloader",
-                icon: "file-tray-stacked-outline"
-            },
+            // {
+            //     title: "Batch Downloader",
+            //     href: "/extras/batch-downloader",
+            //     icon: "file-tray-stacked-outline"
+            // },
             {
                 title: "Linker",
                 href: "/extras/linker",
@@ -97,7 +97,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 icon: "brush-outline"
             }
         ],
-        custom_components: ["theme_selector"],
         description: "Customize the look of Illusi"
     },
     {

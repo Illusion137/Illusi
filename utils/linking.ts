@@ -4,6 +4,7 @@ import { SQLTracks } from "@illusive/sql/sql_tracks";
 import * as Linking from "expo-linking";
 import { SharedRouter } from "./shared_routes";
 import type { MusicServiceType } from "@illusive/types";
+import { create_uri } from "@illusive/illusive_utils";
 
 async function link_incoming_track(etrack: string) {
     const track = SQLTracks.add_playback_saved_data_to_track(decode_track(etrack));
@@ -11,12 +12,19 @@ async function link_incoming_track(etrack: string) {
 }
 
 async function link_incoming_playlist(playlist_uri: string) {
+    const uuid_regex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+    if (uuid_regex.test(playlist_uri)) {
+        playlist_uri = create_uri("illusi", playlist_uri);
+    }
     SharedRouter.goto_shared_playlist(playlist_uri, "URI", {
         force_order: "1",
     });
 }
 
 function handle_illusi_url(parsed: Linking.ParsedURL) {
+    if (parsed.path === "view") {
+        parsed = Linking.parse((parsed.queryParams as { url: string }).url);
+    }
     if (parsed.path?.startsWith("track")) {
         const etrack = parsed.path.split("/")[1];
         link_incoming_track(etrack);
@@ -40,16 +48,16 @@ const service_hostname_map: Record<MusicServiceType, string> = {
     API: "$$NO_USE$$"
 } as const;
 const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => Promise<void>> = {
-    Illusi: async (url) => { },
-    Musi: async (url) => { },
-    YouTube: async (url) => { },
-    "YouTube Music": async (url) => { },
-    Spotify: async (url) => { },
-    "Amazon Music": async (url) => { },
-    "Apple Music": async (url) => { },
-    SoundCloud: async (url) => { },
-    BandLab: async (url) => { },
-    API: async (url) => { }
+    Illusi: async (_) => { },
+    Musi: async (_) => { },
+    YouTube: async (_) => { },
+    "YouTube Music": async (_) => { },
+    Spotify: async (_) => { },
+    "Amazon Music": async (_) => { },
+    "Apple Music": async (_) => { },
+    SoundCloud: async (_) => { },
+    BandLab: async (_) => { },
+    API: async (_) => { }
 };
 
 function handle_link(url: string) {

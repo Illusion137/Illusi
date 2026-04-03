@@ -44,7 +44,7 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 	}
 
 	const year = new Date(props.album_data.date ?? 0).getFullYear();
-	const artist_name = props.album_data.artist?.[0]?.name;
+	const artist_name = props.album_data.artist?.[0]?.name ?? props.album_data.song_track?.artists?.[0].name ?? "";
 	const second_line = (props.second_line_type ?? "YEAR") === "YEAR" ? year ?? remove_topic(artist_name) : remove_topic(artist_name) ?? year;
 
 	return (

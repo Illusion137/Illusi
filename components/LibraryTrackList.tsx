@@ -17,6 +17,8 @@ import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { useFocusEffect } from "expo-router";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
+import { db } from "@illusive/db/database";
+import { SQLTracks } from "@illusive/sql/sql_tracks";
 
 let search_query = "";
 function LibraryTrackList(
@@ -49,7 +51,7 @@ function LibraryTrackList(
 		refresh_data
 	}));
 
-	useGlobalTracksRefresh(refresh_data);
+	useGlobalTracksRefresh(async () => refresh_data(search_query));
 	useFocusEffect(
 		useCallback(() => {
 			if (props.refresh_query_on_focus ?? false) {
@@ -58,6 +60,26 @@ function LibraryTrackList(
 			refresh_data(search_query);
 		}, [])
 	);
+
+	useEffect(() => {
+		const unsubscribe_tracks = db.$client.reactiveExecute({
+			query: "SELECT uid from tracks LIMIT 1",
+			arguments: [],
+			fireOn: [
+				{
+					table: "tracks"
+				}
+			],
+			callback: () => {
+				SQLTracks.fetch_track_data().then(() => {
+					refresh_data(search_query);
+				});
+			}
+		});
+		return () => {
+			unsubscribe_tracks();
+		};
+	}, []);
 
 	useEffect(() => {
 		on_edit_mode_change(props.edit_mode);
@@ -113,7 +135,21 @@ function LibraryTrackList(
 
 	return (
 		<>
-			<BigList style={{ height: "71%" }} sections={all_data.track_mask} renderItem={render_track} keyExtractor={(item, _) => item.uid} renderHeader={props.header_item ?? header_component} renderSectionHeader={section_header} renderFooter={section_footer} sectionHeaderHeight={30} headerHeight={props.header_height ?? 90} footerHeight={100} ref={biglist_ref as RefObject<BigList>} itemHeight={61} stickySectionHeadersEnabled={false} />
+			<BigList
+				style={{ height: "71%" }}
+				sections={all_data.track_mask}
+				renderItem={render_track}
+				keyExtractor={(item, _) => item.uid}
+				renderHeader={props.header_item ?? header_component}
+				renderSectionHeader={section_header}
+				renderFooter={section_footer}
+				sectionHeaderHeight={30}
+				headerHeight={props.header_height ?? 90}
+				footerHeight={100}
+				ref={biglist_ref as RefObject<BigList>}
+				itemHeight={61}
+				stickySectionHeadersEnabled={false}
+			/>
 			<Animated.View
 				style={{
 					backgroundColor: colors.background,

@@ -4,7 +4,7 @@ import type { ImageItemConfig, ImageResolvedAssetSource } from "react-native-ios
 import { Image } from "react-native";
 import { is_empty } from "@common/utils/util";
 import { Prefs } from "@illusive/prefs";
-import type { Track } from "@illusive/types";
+import type { EditMode, Track } from "@illusive/types";
 import { reinterpret_cast } from '../lib-origin/common/cast';
 import { GLOBALS } from "@illusive/globals";
 import { Constants } from "@illusive/constants";
@@ -157,3 +157,135 @@ export namespace TrackContextMenu {
     //     }
     // };
 }
+
+const shortcuts_app_icon = Image.resolveAssetSource(
+    require('../assets/shortcut.png')
+);
+
+
+export const menuconfig_local_playlist = (edit_mode_state: EditMode, colors: Prefs.Theme['colors'], filtered_tracks: Track[]): MenuConfig => ({
+    menuTitle: '',
+    menuItems: [
+        {
+            menuTitle: "Quick Modes",
+            menuOptions: ['displayInline'],
+            menuItems: [
+                {
+                    actionKey: 'playlist-actions-default-mode',
+                    actionTitle: 'Default',
+                    menuAttributes: edit_mode_state === "NONE" ? ['disabled'] : undefined,
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageValue: {
+                            systemName: 'scribble',
+                        },
+                    },
+                },
+                {
+                    actionKey: 'playlist-actions-download-mode',
+                    actionTitle: 'Download',
+                    menuAttributes: edit_mode_state === "DOWNLOAD" ? ['disabled'] : undefined,
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageOptions: {
+                            tint: colors.primary,
+                            renderingMode: 'alwaysOriginal',
+                        },
+                        imageValue: {
+                            systemName: 'square.and.arrow.down',
+                        },
+                    },
+                },
+                {
+                    actionKey: 'playlist-actions-delete-mode',
+                    actionTitle: 'Delete',
+                    menuAttributes: edit_mode_state === "DELETE" ? ['disabled'] : ['destructive'],
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageOptions: {
+                            tint: colors.red,
+                            renderingMode: 'alwaysOriginal',
+                        },
+                        imageValue: {
+                            systemName: 'trash',
+                        },
+                    },
+                },
+            ],
+            icon: {
+                type: 'IMAGE_SYSTEM',
+                imageValue: {
+                    systemName: 'folder',
+                },
+            },
+        },
+        {
+            menuTitle: "Batch Download",
+            menuItems: [
+                {
+                    actionKey: 'playlist-actions-batch-download-media',
+                    actionTitle: 'Download Media',
+                    menuAttributes: filtered_tracks.every(track => !is_empty(track.media_uri)) ? ['disabled'] : undefined,
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageOptions: {
+                            tint: colors.secondary,
+                            renderingMode: 'alwaysOriginal',
+                        },
+                        imageValue: {
+                            systemName: 'music.note',
+                        },
+                    },
+                },
+                {
+                    actionKey: 'playlist-actions-batch-download-thumbnails',
+                    actionTitle: 'Download Thumbnails',
+                    menuAttributes: filtered_tracks.every(track => !is_empty(track.thumbnail_uri)) ? ['disabled'] : undefined,
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageOptions: {
+                            tint: colors.secondary,
+                            renderingMode: 'alwaysOriginal',
+                        },
+                        imageValue: {
+                            systemName: 'photo.artframe',
+                        },
+                    },
+                },
+                {
+                    actionKey: 'playlist-actions-batch-download-lyrics',
+                    actionTitle: 'Download Lyrics',
+                    menuAttributes: filtered_tracks.every(track => !is_empty(track.lyrics_uri)) ? ['disabled'] : undefined,
+                    icon: {
+                        type: 'IMAGE_SYSTEM',
+                        imageOptions: {
+                            tint: colors.secondary,
+                            renderingMode: 'alwaysOriginal',
+                        },
+                        imageValue: {
+                            systemName: 'mic.fill',
+                        },
+                    },
+                },
+            ],
+            icon: {
+                type: 'IMAGE_SYSTEM',
+                imageOptions: {
+                    tint: colors.secondary,
+                    renderingMode: 'alwaysOriginal',
+                },
+                imageValue: {
+                    systemName: 'square.and.arrow.down',
+                },
+            },
+        },
+        {
+            actionKey: 'playlist-actions-shortcut',
+            actionTitle: 'Make Shortcut',
+            icon: {
+                iconType: 'REQUIRE',
+                iconValue: shortcuts_app_icon,
+            }
+        }
+    ],
+});

@@ -102,8 +102,6 @@ export default Sentry.wrap(function App() {
 				} catch (e) {}
 			};
 			CarPlayService.init();
-			// const tables = await db_exec(async(db) => db.all("SELECT * FROM sqlite_master WHERE type='table';"));
-			// console.log(tables);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();

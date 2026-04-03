@@ -22,7 +22,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 	useEffect(() => {
 		const network_monitor = NetworkMonitor.get_instance();
-		const engine = new SyncEngine(supabase, network_monitor);
+		const engine = new SyncEngine(supabase(), network_monitor);
 
 		engine.initialize().then(() => {
 			setSyncEngine(engine);

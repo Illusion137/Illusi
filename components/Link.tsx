@@ -62,7 +62,10 @@ export default function Link(props: { linker_link: LinkerLink; on_delete?: () =>
 
 	async function run() {
 		const result = await run_link(props.linker_link);
-		if ("error" in result) GLOBALS.global_var.bottom_alert("Failed to run link", "WARN", result);
+		if ("error" in result) {
+			GLOBALS.global_var.bottom_alert("Failed to run link", "WARN", result);
+			return;
+		}
 		GLOBALS.global_var.bottom_alert("Ran link successfully", "GOOD");
 	}
 
