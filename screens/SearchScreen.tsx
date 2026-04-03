@@ -262,7 +262,7 @@ function SearchScreen() {
 				{search_result.state === "NONE" ? (
 					<FlatList
 						style={styles.search_list}
-						data={searching_data.sort((a, b) => suggestion_value(b) - suggestion_value(a))}
+						data={[...searching_data].sort((a, b) => suggestion_value(b) - suggestion_value(a))}
 						renderItem={render_query_items}
 						ListFooterComponent={() => <View style={{ height: 100 }} />}
 						ListEmptyComponent={() => <EmptyList />}

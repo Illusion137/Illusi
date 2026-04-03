@@ -13,7 +13,7 @@ import type { Prefs } from "@illusive/prefs";
 function get_playlist_artwork(playlist: FullPlaylist) {
 	if (playlist.artwork_url) return playlist.artwork_url;
 	if (playlist.artwork_index) return playlist.artwork_index;
-	const best = playlist.artwork_thumbnails?.sort((a, b) => (b.width ?? 0) - (a.width ?? 0))?.[0];
+	const best = [...(playlist.artwork_thumbnails ?? [])]?.sort((a, b) => (b.width ?? 0) - (a.width ?? 0))?.[0];
 	return best?.url ?? 0;
 }
 
