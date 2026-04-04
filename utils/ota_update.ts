@@ -23,11 +23,18 @@
  *   yarn ota:release          — builds + pushes to the ios-ota branch
  *
  * NOTE: OTA only applies in release builds. Debug/dev-client always uses Metro.
+ *
+ * NOTE on pull detection: isomorphic-git/http/web uses ReadableStream for progress
+ * reporting, which React Native's fetch() does not support. This means onProgress
+ * never fires during a pull, so the library's internal `count > 0` success check
+ * always returns false — calling onPullFailed("No updated") even on a real update.
+ * We work around this by comparing the bundle file's mtime before and after the pull.
  */
 
 import hotUpdate from "react-native-ota-hot-update";
 import { Alert } from "react-native";
 import { mmkv } from "@native/mmkv/mmkv";
+import RNFS from "react-native-fs";
 
 /** GitHub repo that stores the OTA bundles. Must be public (or use a token in the URL). */
 const OTA_REPO_URL = "https://github.com/Illusion137/Illusi-ota.git";
@@ -38,11 +45,29 @@ const OTA_BRANCH = "ios-ota";
 /** Path inside the cloned repo where main.jsbundle lives. */
 const OTA_BUNDLE_PATH = "output/main.jsbundle";
 
+/** The library clones into this subdirectory of the document directory. */
+const OTA_GIT_DIR = "git_hot_update";
+
 /** MMKV key for the consecutive crash/bad-launch counter. */
 const CRASH_COUNTER_KEY = "ota_crash_counter";
 
 /** How many consecutive failed launches before we roll back. */
 const CRASH_THRESHOLD = 3;
+
+/** Full path to the bundle file on device. */
+function device_bundle_path(): string {
+	return `${RNFS.DocumentDirectoryPath}/${OTA_GIT_DIR}/${OTA_BUNDLE_PATH}`;
+}
+
+/** Returns the mtime (ms) of the bundle file, or null if it doesn't exist. */
+async function bundle_mtime(): Promise<number | null> {
+	try {
+		const stat = await RNFS.stat(device_bundle_path());
+		return new Date(stat.mtime).getTime();
+	} catch (_) {
+		return null;
+	}
+}
 
 // ─── Crash guard ─────────────────────────────────────────────────────────────
 
@@ -96,6 +121,23 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 	const rolled_back = await check_crash_guard();
 	if (rolled_back) return;
 
+	// Snapshot the bundle mtime before the pull attempt.
+	// isomorphic-git/http/web doesn't support RN streaming so onProgress never
+	// fires, making the library report every pull as "No updated". We detect
+	// real updates by comparing mtime before vs after.
+	const mtime_before = await bundle_mtime();
+
+	function handle_pull_update() {
+		if (silent) {
+			hotUpdate.resetApp();
+		} else {
+			Alert.alert("Update ready", "A new version has been downloaded. Restart now?", [
+				{ text: "Later", style: "cancel" },
+				{ text: "Restart", onPress: async () => hotUpdate.resetApp() }
+			]);
+		}
+	}
+
 	await hotUpdate.git.checkForGitUpdate({
 		url: OTA_REPO_URL,
 		branch: OTA_BRANCH,
@@ -120,19 +162,27 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		},
 
 		// Subsequent update (pull): respect the silent flag.
+		// onPullSuccess fires only if onProgress reported bytes (unlikely in RN).
 		onPullSuccess: () => {
-			console.log("[OTA] Bundle updated via pull");
-			if (silent) {
-				hotUpdate.resetApp();
-			} else {
-				Alert.alert("Update ready", "A new version has been downloaded. Restart now?", [
-					{ text: "Later", style: "cancel" },
-					{ text: "Restart", onPress: async () => hotUpdate.resetApp() }
-				]);
-			}
+			console.log("[OTA] Bundle updated via pull (progress detected)");
+			handle_pull_update();
 		},
-		onPullFailed: (msg: string) => {
-			console.warn("[OTA] Pull failed:", msg);
+
+		// The library fires onPullFailed("No updated") whenever onProgress never
+		// fired — which is always in RN. Check mtime to distinguish a real "no
+		// changes" from a successful pull that went undetected.
+		onPullFailed: async (msg: string) => {
+			const mtime_after = await bundle_mtime();
+			if (mtime_before !== null && mtime_after !== null && mtime_after > mtime_before) {
+				console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
+				handle_pull_update();
+				return;
+			}
+			if (msg === "No updated") {
+				console.log("[OTA] Already up to date");
+			} else {
+				console.warn("[OTA] Pull failed:", msg);
+			}
 		},
 
 		onFinishProgress: () => {

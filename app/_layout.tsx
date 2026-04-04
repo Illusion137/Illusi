@@ -1,5 +1,7 @@
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import * as Font from "expo-font";
+import { Ionicons, MaterialIcons, Entypo, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import type { BottomAlertType, PlayingState, Track } from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { filter_play_tracks } from "@illusive/illusi/src/play";
@@ -91,6 +93,7 @@ export default Sentry.wrap(function App() {
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
 		(async () => {
+			await Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font });
 			await on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
 			mark_launch_success().catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
