@@ -1,0 +1,4 @@
+yarn add github:Illusion137/RNTPvE;
+sh scripts/prebuild.sh;
+yarn lint-staged;
+// yarn ts:check

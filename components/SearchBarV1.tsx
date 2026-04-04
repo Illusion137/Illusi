@@ -20,6 +20,7 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 	const query_ref = useRef<string>(Prefs.get_pref("default_to_strict_search") ? strict_equals_flag + " " : "");
 	const autocomplete_scrollview_ref = useRef<ScrollView>(null);
 
+	// eslint-disable-next-line @typescript-eslint/no-deprecated
 	function on_selection_change(e: NativeSyntheticEvent<TextInputSelectionChangeEventData>) {
 		const strict_mode_change = use_strict_search ? 4 : 0;
 		if (query_ref.current.includes("@") || query_ref.current.includes("!")) {
@@ -76,18 +77,7 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 	return (
 		<>
 			<View style={{ flexDirection: "row", height: 35, left: -5, width: "100%" }}>
-				<View
-					style={{
-						overflow: "hidden",
-						backgroundColor: props.background_color ?? colors.searchInput,
-						paddingTop: 5,
-						paddingLeft: 5,
-						paddingRight: 5,
-						bottom: 0,
-						left: 10,
-						borderRadius: 10,
-						zIndex: 1
-					}}>
+				<View style={{ overflow: "hidden", backgroundColor: props.background_color ?? colors.searchInput, paddingTop: 5, paddingLeft: 5, paddingRight: 5, bottom: 0, left: 10, borderRadius: 10, zIndex: 1 }}>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={{ top: 1, left: 2 }} />
 				</View>
 				<TextInput

@@ -25,6 +25,7 @@ import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
 import { CarPlayService } from "@illusive/carplay/carplay_service";
+import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -58,20 +59,18 @@ export default Sentry.wrap(function App() {
 	const [playing_from, set_playing_from] = useState("");
 	const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
 	const [is_loading, set_is_loading] = useState(true);
-	const [bottom_alert, set_bottom_alert] = useState({
-		uuid: "",
-		text: "",
-		type: "GOOD" as BottomAlertType,
-		more_info: "" as string | ResponseError
-	});
+	const [bottom_alert, set_bottom_alert] = useState({ uuid: "", text: "", type: "GOOD" as BottomAlertType, more_info: "" as string | ResponseError });
 
 	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
 		if (Prefs.get_pref("ignore_fat_finger_for_seconds") > 0) {
 			if (ignore_fat_fingers) return;
 			ignore_fat_fingers = true;
-			setTimeout(() => {
-				ignore_fat_fingers = false;
-			}, milliseconds_of({ seconds: Prefs.get_pref("ignore_fat_finger_for_seconds") }));
+			setTimeout(
+				() => {
+					ignore_fat_fingers = false;
+				},
+				milliseconds_of({ seconds: Prefs.get_pref("ignore_fat_finger_for_seconds") })
+			);
 		}
 		tracks = await filter_play_tracks(start_track, tracks, title);
 		if (tracks.length === 0) return;
@@ -93,6 +92,7 @@ export default Sentry.wrap(function App() {
 		load_illusi_icons();
 		(async () => {
 			await on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
+			mark_launch_success().catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
 				try {
@@ -102,6 +102,7 @@ export default Sentry.wrap(function App() {
 				} catch (e) {}
 			};
 			CarPlayService.init();
+			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
@@ -122,23 +123,13 @@ export default Sentry.wrap(function App() {
 	}, [path]);
 
 	function update_bottom_alert(text: string, type: BottomAlertType, more_info?: string | ResponseError) {
-		set_bottom_alert({
-			uuid: gen_uuid(),
-			text,
-			type,
-			more_info: more_info ?? ""
-		});
+		set_bottom_alert({ uuid: gen_uuid(), text, type, more_info: more_info ?? "" });
 	}
 
 	const theme_value = useMemo(
 		() => ({
 			...theme,
-			fonts: {
-				regular: { fontFamily: "", fontWeight: "400" as const },
-				medium: { fontFamily: "", fontWeight: "600" as const },
-				heavy: { fontFamily: "", fontWeight: "bold" as const },
-				bold: { fontFamily: "", fontWeight: "bold" as const }
-			}
+			fonts: { regular: { fontFamily: "", fontWeight: "400" as const }, medium: { fontFamily: "", fontWeight: "600" as const }, heavy: { fontFamily: "", fontWeight: "bold" as const }, bold: { fontFamily: "", fontWeight: "bold" as const } }
 		}),
 		[theme]
 	);

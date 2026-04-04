@@ -1,5 +1,5 @@
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from "react-native";
-import type { Prefs } from "@illusive/prefs";
+import { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { SQLDev } from "@illusive/sql/sql_dev";
 import * as Sharing from "expo-sharing";
@@ -10,6 +10,7 @@ import usePTheme from "@hooks/usePTheme";
 import { ChangeTracker } from "@illusive/db/sync/change_tracker";
 import { useEffect, useState } from "react";
 import type { CompressedChange } from "@illusive/db/sync/types";
+import { sync_engine_instance } from "@illusive/startup";
 
 export default function ExtraDeveloperScreen() {
 	const { colors } = usePTheme();
@@ -37,6 +38,15 @@ export default function ExtraDeveloperScreen() {
 			/>
 			<ExtrasSectionButton
 				show_arrow={true}
+				text="Mark Data Synced"
+				icon="hammer-outline"
+				onPress={async () => {
+					sync_engine_instance?.mark_all_tables_synced_now();
+					Prefs.save_pref("last_synced", new Date());
+				}}
+			/>
+			<ExtrasSectionButton
+				show_arrow={true}
 				text="Load Playlists from Playlist-Tracks"
 				icon="hammer-outline"
 				onPress={async () => {
@@ -55,14 +65,14 @@ export default function ExtraDeveloperScreen() {
 					});
 				}}
 			/>
-			<View style={{ flexDirection: "row", height: "30%" }}>
+			<View style={{ flexDirection: "row", height: 100 }}>
 				<TouchableOpacity style={styles.button} onPress={exportSQLData}>
 					<Text style={styles.button_text}>Export SQL Data</Text>
 				</TouchableOpacity>
 			</View>
 			{changes.map((change) => (
 				<View key={change.record_id}>
-					<Text>{JSON.stringify(change)}</Text>
+					<Text style={{ color: colors.text }}>{JSON.stringify(change)}</Text>
 				</View>
 			))}
 			{/* <TextInput
@@ -102,20 +112,8 @@ export default function ExtraDeveloperScreen() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		button: {
-			backgroundColor: "#201050",
-			width: "33%",
-			height: "100%",
-			borderRadius: 10,
-			justifyContent: "center",
-			alignItems: "center"
-		},
-		button_text: {
-			color: colors.text,
-			fontWeight: "bold",
-			width: 100,
-			textAlign: "center"
-		},
+		button: { backgroundColor: "#201050", width: "33%", height: "100%", borderRadius: 10, justifyContent: "center", alignItems: "center" },
+		button_text: { color: colors.text, fontWeight: "bold", width: 100, textAlign: "center" },
 		container: { flex: 1, padding: 16, paddingTop: 30, backgroundColor: "#fff" },
 		header: { height: 50, backgroundColor: "#537791" },
 		text: { textAlign: "center", fontWeight: "100" },

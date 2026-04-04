@@ -1,0 +1,50 @@
+name: OTA Release
+
+on:
+    push:
+        branches: [dev]
+
+jobs:
+    ota-release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Check if package.json changed
+              id: pkg_check
+              run: |
+                  if git diff --name-only HEAD~1 HEAD | grep -q "^package.json$"; then
+                    echo "changed=true" >> $GITHUB_OUTPUT
+                    echo "::notice::package.json changed — native rebuild required, skipping OTA"
+                  else
+                    echo "changed=false" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Setup Node
+              if: steps.pkg_check.outputs.changed != 'true'
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 18
+                  cache: yarn
+
+            - name: Install dependencies
+              if: steps.pkg_check.outputs.changed != 'true'
+              run: yarn install --frozen-lockfile
+
+            - name: Type check
+              if: steps.pkg_check.outputs.changed != 'true'
+              run: yarn ts:check
+
+            - name: Configure OTA repo auth
+              if: steps.pkg_check.outputs.changed != 'true'
+              run: |
+                  git config --global url."https://x-access-token:${{ secrets.OTA_REPO_PAT }}@github.com/".insteadOf "https://github.com/"
+
+            - name: Build & publish OTA bundle
+              if: steps.pkg_check.outputs.changed != 'true'
+              run: |
+                  sh scripts/ota_release.sh --message "CI: $GITHUB_SHA"
