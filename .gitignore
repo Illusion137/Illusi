@@ -9,6 +9,7 @@ tsconfig.json
 builds/
 sentry.properties
 .env
+ios/output
 
 # Expo
 .expo

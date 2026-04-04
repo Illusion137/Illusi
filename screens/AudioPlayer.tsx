@@ -221,7 +221,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				SharedRouter.goto_shared_player_lyrics(track.lyrics_uri);
 				return;
 			}
-		const lyrics = await Lyrics.get_track_lryics(track);
+		const lyrics = await Lyrics.get_track_lyrics(track);
 		if ("error" in lyrics) {
 			set_lyrics_loading_state("FAILED");
 			if (!lyrics.error.message.includes("YouTube")) {

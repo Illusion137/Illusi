@@ -17,8 +17,6 @@ import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { useFocusEffect } from "expo-router";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
-import { db } from "@illusive/db/database";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
 
 let search_query = "";
 function LibraryTrackList(
@@ -60,26 +58,6 @@ function LibraryTrackList(
 			refresh_data(search_query);
 		}, [])
 	);
-
-	useEffect(() => {
-		const unsubscribe_tracks = db.$client.reactiveExecute({
-			query: "SELECT uid from tracks LIMIT 1",
-			arguments: [],
-			fireOn: [
-				{
-					table: "tracks"
-				}
-			],
-			callback: () => {
-				SQLTracks.fetch_track_data().then(() => {
-					refresh_data(search_query);
-				});
-			}
-		});
-		return () => {
-			unsubscribe_tracks();
-		};
-	}, []);
 
 	useEffect(() => {
 		on_edit_mode_change(props.edit_mode);

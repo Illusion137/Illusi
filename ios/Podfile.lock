@@ -1910,6 +1910,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-ota-hot-update (2.4.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - SSZipArchive (~> 2.4.3)
+    - Yoga
   - react-native-quick-base64 (2.2.2):
     - React-Core
   - react-native-safe-area-context (5.6.2):
@@ -2618,6 +2641,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNFS (2.20.0):
+    - React-Core
   - RNGestureHandler (2.30.1):
     - hermes-engine
     - RCTRequired
@@ -3009,6 +3034,7 @@ PODS:
     - SDWebImage/Core (~> 5.17)
   - Sentry/HybridSDK (8.58.0)
   - shaquillehinds-ffmpeg-kit-ios (6.0.2)
+  - SSZipArchive (2.4.3)
   - SwiftAudioEx (1.1.0):
     - SwiftProtobuf (~> 1.27)
   - SwiftProtobuf (1.36.1)
@@ -3103,6 +3129,7 @@ DEPENDENCIES:
   - react-native-ios-utilities (from `../node_modules/react-native-ios-utilities`)
   - react-native-mmkv (from `../node_modules/react-native-mmkv`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
+  - react-native-ota-hot-update (from `../node_modules/react-native-ota-hot-update`)
   - react-native-quick-base64 (from `../node_modules/react-native-quick-base64`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-segmented-control (from `../node_modules/@react-native-segmented-control/segmented-control`)"
@@ -3150,6 +3177,7 @@ DEPENDENCIES:
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
+  - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNImageCropPicker (from `../node_modules/react-native-image-crop-picker`)
   - RNPermissions (from `../node_modules/react-native-permissions`)
@@ -3178,6 +3206,7 @@ SPEC REPOS:
     - SDWebImageSVGCoder
     - SDWebImageWebPCoder
     - Sentry
+    - SSZipArchive
     - SwiftProtobuf
     - TOCropViewController
     - ZipArchive
@@ -3354,6 +3383,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-mmkv"
   react-native-netinfo:
     :path: "../node_modules/@react-native-community/netinfo"
+  react-native-ota-hot-update:
+    :path: "../node_modules/react-native-ota-hot-update"
   react-native-quick-base64:
     :path: "../node_modules/react-native-quick-base64"
   react-native-safe-area-context:
@@ -3448,6 +3479,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-clipboard/clipboard"
   RNCPicker:
     :path: "../node_modules/@react-native-picker/picker"
+  RNFS:
+    :path: "../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNImageCropPicker:
@@ -3567,6 +3600,7 @@ SPEC CHECKSUMS:
   react-native-ios-utilities: 7bb6ce48acee7d83481518ef3f0206e08a365923
   react-native-mmkv: 3d69c8bbdbceb1c0d3754863ecffa6ec24e4be12
   react-native-netinfo: f852c868bf5175e46165c7e4db48a204a95c3800
+  react-native-ota-hot-update: c98e414d5414291f9722d5c8dd685969ca94019a
   react-native-quick-base64: 6568199bb2ac8e72ecdfdc73a230fbc5c1d3aac4
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
@@ -3614,6 +3648,7 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCClipboard: 88d7eeb555d1183915f0885bdbc5c97eb6f7f3ba
   RNCPicker: c8a3584b74133464ee926224463fcc54dfdaebca
+  RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   RNGestureHandler: 695faf9c1f0aa1a6d52ab778e459a1bcbae3153b
   RNImageCropPicker: 7e6bd58550bcb942bfa48847247dbf62eda20c89
   RNPermissions: d399c7a59280e8fb790531da7f76708fe9c6fd45
@@ -3630,6 +3665,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Sentry: d587a8fe91ca13503ecd69a1905f3e8a0fcf61be
   shaquillehinds-ffmpeg-kit-ios: ccc776103cae371e03b8eb62ecbab16bf18cec75
+  SSZipArchive: fe6a26b2a54d5a0890f2567b5cc6de5caa600aef
   SwiftAudioEx: 838afc83d33482a8a0539b9dce098176f6d643a8
   SwiftProtobuf: 9e106a71456f4d3f6a3b0c8fd87ef0be085efc38
   TOCropViewController: 797deaf39c90e6e9ddd848d88817f6b9a8a09888
