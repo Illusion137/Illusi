@@ -47,7 +47,7 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 	plugins: [
 		["expo-font", { fonts: ["./assets/fonts/LEMON.otf", "./assets/fonts/StarsBorneoDEMO.ttf"] }],
 		"expo-router",
-		["@sentry/react-native/expo", { url: "https://sentry.io/", project: "react-native", organization: "illusion-ke" }],
+		["@sentry/react-native/expo", { url: "https://sentry.io/", project: "illusi", organization: "illusion-ke" }],
 		"expo-audio",
 		"expo-sharing",
 		"expo-asset",

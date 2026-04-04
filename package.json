@@ -44,11 +44,13 @@
 		"publish": "eas submit -p ios",
 		"postinstall": "patch-package",
 		"lint": "expo lint",
+		"prebuild": "sh scripts/prebuild.sh",
 		"ota:release": "sh scripts/ota_release.sh",
 		"bump": "node scripts/bump_version.js",
 		"bump:minor": "node scripts/bump_version.js minor",
 		"bump:major": "node scripts/bump_version.js major",
-		"prepare": "husky"
+		"prepare": "husky",
+		"release": "sh scripts/release.sh"
 	},
 	"lint-staged": {
 		"*.{ts,tsx}": [
