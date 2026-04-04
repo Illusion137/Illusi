@@ -10,6 +10,7 @@ builds/
 sentry.properties
 .env
 ios/output
+nodejs-assets/*.sh
 
 # Expo
 .expo
