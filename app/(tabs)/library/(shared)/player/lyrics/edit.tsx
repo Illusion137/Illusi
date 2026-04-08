@@ -1,5 +1,6 @@
 import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string } from "@illusive/illusive_utils";
@@ -9,14 +10,16 @@ import type { LoadingState } from "@illusive/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function PlayerEditLyrics() {
 	const { lyrics_uri } = useLocalSearchParams<{ lyrics_uri: string }>();
 
 	const { colors } = usePTheme();
+	const { height } = useDimensions();
 	const styles = theme_styles(colors);
+	const gradient_height = useMemo(() => height * 0.4, [height]);
 
 	const track_ref = useRef(GLOBALS.global_var.sql_tracks.find((t) => t.lyrics_uri === lyrics_uri) ?? null);
 	const track = track_ref.current;
@@ -57,7 +60,7 @@ export default function PlayerEditLyrics() {
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<ModalHeader title="Edit Lyrics" background_color={track_colors?.secondary} text_color={track_colors?.background} close_color={track_colors?.background} />
-			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.4, width: "100%", zIndex: -1 }} /> : null}
+			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: gradient_height, width: "100%", zIndex: -1 }} /> : null}
 			<ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" scrollToOverflowEnabled={false} contentContainerStyle={{ paddingBottom: 20 }}>
 				{/* Track identity */}
 				<View style={{ marginHorizontal: 16, marginTop: 16 }}>
