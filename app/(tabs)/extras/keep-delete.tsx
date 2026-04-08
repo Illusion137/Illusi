@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Dimensions, Easing, Animated, PanResponder } from "react-native";
+import { View, Text, TouchableOpacity, Easing, Animated, PanResponder } from "react-native";
 import { empty_join_dot } from "@common/utils/util";
 import { Ionicons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import type { TrackMetaData } from "@illusive/types";
 import type { Track } from "@illusive/types";
 import { GLOBALS } from "@illusive/globals";
@@ -22,9 +23,8 @@ import { delete_track } from "@illusive/illusi/src/components/track";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 
 const SWIPE_THRESHOLD = 100;
-const SCREEN_WIDTH = Dimensions.get("screen").width;
 
-function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: number }) {
+function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: number; screen_width: number }) {
 	const { colors } = usePTheme();
 	const plays = props.track_data?.meta?.plays ?? 0;
 	const track_value = Math.round(KeepDelete.track_value(props.track_data, props.sum_plays, GLOBALS.global_var.sql_tracks.length));
@@ -44,11 +44,11 @@ function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: num
 				}}>
 				<IImage
 					source={props.track_data.playback?.artwork}
-					width={SCREEN_WIDTH - 70}
+					width={props.screen_width - 70}
 					style={{
 						borderRadius: 12,
-						maxWidth: SCREEN_WIDTH - 70,
-						height: SCREEN_WIDTH - 70
+						maxWidth: props.screen_width - 70,
+						height: props.screen_width - 70
 					}}
 				/>
 			</View>
@@ -92,6 +92,7 @@ function EmptyState() {
 
 export default function ExtraKeepDeleteScreen() {
 	const { colors } = usePTheme();
+	const { width: screen_width } = useDimensions();
 	const seek_amount_seconds = 15;
 
 	const sum_plays = useRef(sum(GLOBALS.global_var.sql_tracks.map((track) => track.meta?.plays ?? 0)));
@@ -118,7 +119,7 @@ export default function ExtraKeepDeleteScreen() {
 	const pan = useRef(new Animated.ValueXY()).current;
 
 	const card_rotate = pan.x.interpolate({
-		inputRange: [-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2],
+		inputRange: [-screen_width / 2, screen_width / 2],
 		outputRange: ["-8deg", "8deg"],
 		extrapolate: "clamp"
 	});
@@ -190,7 +191,7 @@ export default function ExtraKeepDeleteScreen() {
 	async function animate_off(direction: 1 | -1): Promise<void> {
 		return new Promise((resolve) => {
 			Animated.timing(pan, {
-				toValue: { x: direction * SCREEN_WIDTH * 1.5, y: 0 },
+				toValue: { x: direction * screen_width * 1.5, y: 0 },
 				duration: 220,
 				useNativeDriver: false
 			}).start(() => resolve());
@@ -301,7 +302,7 @@ export default function ExtraKeepDeleteScreen() {
 							opacity: 0.55
 						}}
 						pointerEvents="none">
-						<RenderKeepDeletePlayingTrack track_data={next_track} sum_plays={sum_plays.current} />
+						<RenderKeepDeletePlayingTrack track_data={next_track} sum_plays={sum_plays.current} screen_width={screen_width} />
 					</View>
 				)}
 
@@ -311,7 +312,7 @@ export default function ExtraKeepDeleteScreen() {
 						transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate: card_rotate }]
 					}}
 					{...panResponder.panHandlers}>
-					<RenderKeepDeletePlayingTrack track_data={current_track} sum_plays={sum_plays.current} />
+					<RenderKeepDeletePlayingTrack track_data={current_track} sum_plays={sum_plays.current} screen_width={screen_width} />
 				</Animated.View>
 			</View>
 

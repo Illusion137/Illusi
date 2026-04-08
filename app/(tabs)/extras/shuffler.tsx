@@ -2,12 +2,13 @@ import Equalizer from "@components/Equalizer";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { Entypo } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import { FutsalShuffle } from "@illusive/futsal_shuffle";
 import { GLOBALS } from "@illusive/globals";
 import { Prefs } from "@illusive/prefs";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Dimensions, ScrollView, Text, TextInput, View } from "react-native";
+import { useState, useMemo } from "react";
+import { ScrollView, Text, TextInput, View } from "react-native";
 
 const shuffler_min = -1;
 const shuffler_max = 1;
@@ -44,8 +45,10 @@ function ShufflerInput(props: { shuffler_key: string; initial_value: number; on_
 }
 
 export default function Shuffler() {
+	const { height } = useDimensions();
 	const shuffler_inputs: [string, number][] = Object.keys(Prefs.default_track_shuffle_bias).map((key) => [key, Prefs.get_pref("track_shuffle_bias")[key as keyof typeof Prefs.default_track_shuffle_bias] ?? 0]);
 	const [visualizer_state, set_visualizer_state] = useState(get_visualizer_values());
+	const scroll_padding_height = useMemo(() => height * 0.7, [height]);
 
 	function get_visualizer_values() {
 		return FutsalShuffle.get_bias_visualizer_data(GLOBALS.global_var.sql_tracks);
@@ -66,7 +69,7 @@ export default function Shuffler() {
 				{shuffler_inputs.map((input) => (
 					<ShufflerInput key={input[0]} shuffler_key={input[0]} initial_value={input[1]} on_update={update_visualizer_state} />
 				))}
-				<View style={{ height: Dimensions.get("screen").height * 0.7 }} />
+				<View style={{ height: scroll_padding_height }} />
 			</ScrollView>
 		</View>
 	);

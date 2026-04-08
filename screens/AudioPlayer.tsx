@@ -13,7 +13,7 @@ import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to
 import { alert_error } from "@illusive/illusi/src/alert";
 import { artist_string, track_exists } from "@illusive/illusive_utils";
 import ScaledImage from "@components/ScaledImage";
-import { ContextMenuButton, ContextMenuView } from "react-native-ios-context-menu";
+import { ContextMenuButton, ContextMenuView } from "@components/ContextMenu";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { remove_topic } from "@common/utils/clean_util";
 import usePTheme from "@hooks/usePTheme";

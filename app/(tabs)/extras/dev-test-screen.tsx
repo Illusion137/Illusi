@@ -1,8 +1,9 @@
 import { wait } from '@common/utils/timed_util';
 import IImage from '@components/IImage';
 import { GLOBALS } from '@illusive/globals';
-import React, { useEffect, useRef } from 'react';
-import { Dimensions, View } from 'react-native';
+import useDimensions from '@hooks/useDimensions';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { View } from 'react-native';
 import Animated, {
     useSharedValue,
     withTiming,
@@ -10,8 +11,6 @@ import Animated, {
     Easing,
     type SharedValue,
 } from 'react-native-reanimated';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Falling_item {
     id: number;
@@ -24,20 +23,23 @@ interface Falling_item {
 
 
 export default function ExtraDevTestScreen(){
+    const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useDimensions();
     const title = "Janurary";
     const images = useRef(GLOBALS.global_var.sql_tracks.slice(0, 50).map(t => t.playback?.artwork ?? 0));
-    
+
     const title_position = useSharedValue(0);
-    const falling_items: Falling_item[] = images.current.map((source, i) => {
-        return {
-            id: i,
-            x: Math.random() * SCREEN_WIDTH,
-            y: useSharedValue(-200),
-            rotation: (Math.random() - 0.5) * 30,
-            speed: 8000 + Math.random() * 3000,
-            source,
-        };
-    });
+    const falling_items: Falling_item[] = useMemo(() =>
+        images.current.map((source, i) => {
+            return {
+                id: i,
+                x: Math.random() * SCREEN_WIDTH,
+                y: useSharedValue(-200),
+                rotation: (Math.random() - 0.5) * 30,
+                speed: 8000 + Math.random() * 3000,
+                source,
+            };
+        })
+    , [SCREEN_WIDTH]);
 
     useEffect(() => {
         (async() => {

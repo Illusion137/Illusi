@@ -26,8 +26,14 @@ import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
-import { CarPlayService } from "@illusive/carplay/carplay_service";
+import { Platform } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
+// CarPlayService is iOS-only; will be gated below
+let CarPlayService: any;
+if (Platform.OS === "ios") {
+	const carplayModule = require("@illusive/carplay/carplay_service");
+	CarPlayService = carplayModule.CarPlayService;
+}
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -82,10 +88,13 @@ export default Sentry.wrap(function App() {
 	}
 
 	useEffect(() => {
-		nodejs.start("main.js");
-		nodejs.channel.addListener("message", (msg) => {
-			Sentry.addBreadcrumb({ message: "From node: " + msg });
-		});
+		// Initialize nodejs worker (mobile only)
+		if (Platform.OS !== "android" && Platform.OS !== "web") {
+			nodejs.start("main.js");
+			nodejs.channel.addListener("message", (msg) => {
+				Sentry.addBreadcrumb({ message: "From node: " + msg });
+			});
+		}
 		initialize_sentry_severity_handler();
 
 		const linking_handler = get_linking_handler();
@@ -104,13 +113,19 @@ export default Sentry.wrap(function App() {
 					TrackPlayer.reset().catch((e) => e);
 				} catch (e) {}
 			};
-			CarPlayService.init();
+			// Initialize CarPlay (iOS only)
+			if (CarPlayService) {
+				CarPlayService.init();
+			}
 			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
-			CarPlayService.destroy();
+			// Cleanup CarPlay (iOS only)
+			if (CarPlayService) {
+				CarPlayService.destroy();
+			}
 		};
 	}, []);
 	useEffect(() => {

@@ -1,8 +1,9 @@
-import { Animated, Dimensions, View } from "react-native";
+import { Animated, View } from "react-native";
 import { createRef, useEffect } from "react";
 import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
 import { LinearGradient } from 'expo-linear-gradient';
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 
 
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
@@ -10,7 +11,8 @@ export default function AlbumPlaceholder(props: {
     size?: number
 }){
 	const shimmer_colors = ['#ffffff', '#969696', '#ffffff'];
-    const size = props.size ?? Dimensions.get('screen').width * .40;
+	const { width } = useDimensions();
+    const size = props.size ?? width * .40;
     const { colors } = usePTheme();
 
     const thumbnail_ref = createRef<any>();

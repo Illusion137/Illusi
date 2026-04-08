@@ -1,16 +1,17 @@
-import { Dimensions, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import type { CompactPlaylist} from "@illusive/types";
 import type { Track } from "@illusive/types";
 import type { SecondLineType } from "./Album";
 import Album from "./Album";
 import { Prefs } from "@illusive/prefs";
 import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "./TouchableIconOpacity";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { ResponseError } from "@common/types";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { GLOBALS } from '@illusive/globals'
 import AlbumPlaceholder from "./AlbumPlaceholder";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import { FlashList } from "@shopify/flash-list";
 import { SharedRouter } from "@utils/shared_routes";
 
@@ -26,6 +27,8 @@ export default function AlbumList(props: {
     is_loading?: boolean;
 }) {
     const { colors } = usePTheme();
+    const { width } = useDimensions();
+    const album_list_height = useMemo(() => width * 0.4 + 50, [width]);
 
     const render_album_placeholder = () => (<AlbumPlaceholder/>);
     const other_tracks = props.albums.filter(album => album.song_track).map(album => album.song_track) as Track[];
@@ -75,7 +78,7 @@ export default function AlbumList(props: {
                 }
                 <AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{right: 20}} hitslop={12}/>
             </View>
-            <View style={{paddingHorizontal: 10, height: Dimensions.get('screen').width * .40 + 50, justifyContent: 'center'}}>
+            <View style={{paddingHorizontal: 10, height: album_list_height, justifyContent: 'center'}}>
                 {is_loading ? 
                     <FlashList data={new Array(3)} renderItem={render_album_placeholder} horizontal={true}/> : 
                     <FlashList data={albums.map(item => ({...item, album_type: item.album_type ?? props.else_type}))} renderItem={render_album} horizontal={true}/> }

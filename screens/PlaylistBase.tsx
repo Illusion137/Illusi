@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Platform } from "react-native";
+import useDimensions from "@hooks/useDimensions";
 import TrackComponent from "@components/TrackComponent";
 import BigList from "react-native-big-list";
 import { useIsFocused } from "@react-navigation/native";
@@ -24,8 +25,8 @@ import { presentShortcut } from "react-native-siri-shortcut";
 import { share_item } from "@illusive/illusi/src/illusi_utils";
 import type { ResponseError } from "@common/types";
 import { Ionicons } from "@expo/vector-icons";
-import type { MenuConfig } from "react-native-ios-context-menu";
-import { ContextMenuButton } from "react-native-ios-context-menu";
+import type { MenuConfig } from "@components/ContextMenu";
+import { ContextMenuButton } from "@components/ContextMenu";
 import LibraryTrackList from "@components/LibraryTrackList";
 import SearchBarV1 from "@components/SearchBarV1";
 import { TRACK_QUERY_FLAGS } from "@illusive/query_flags";
@@ -84,6 +85,10 @@ export default function PlaylistBase(props: PlaylistProps) {
 
 	const { colors, dark } = usePTheme();
 	const styles = theme_styles(colors);
+	const { width, height } = useDimensions();
+
+	const artwork_size = useMemo(() => width / 2, [width]);
+	const artwork_top_offset = useMemo(() => -height / 6, [height]);
 
 	const library_ref = useRef<typeof LibraryTrackList>(null);
 
@@ -323,13 +328,13 @@ export default function PlaylistBase(props: PlaylistProps) {
 				background={true}
 				thumbnail_uri={playlist_data?.thumbnail_uri}
 				four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks}
-				size={Dimensions.get("screen").width / 2}
-				base_view_style={{ top: -Dimensions.get("screen").height / 6 }}
+				size={artwork_size}
+				base_view_style={{ top: artwork_top_offset }}
 			/>
 			<BlurView
 				intensity={50}
 				tint={dark ? "prominent" : "extraLight"}
-				style={{ width: Dimensions.get("screen").width, height: 800, bottom: 150 - (props.type === "WRITE_PLAYLIST" ? 80 : 0), justifyContent: "center", alignItems: "center", position: "absolute" }}>
+				style={{ width: width, height: 800, bottom: 150 - (props.type === "WRITE_PLAYLIST" ? 80 : 0), justifyContent: "center", alignItems: "center", position: "absolute" }}>
 				<FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{ top: 260 }} />
 				<LinearGradient
 					colors={["transparent", "rgba(0,0,0,0.2)", colors.background]}
@@ -466,7 +471,9 @@ export default function PlaylistBase(props: PlaylistProps) {
 										GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
 										break;
 									case "playlist-actions-shortcut":
-										presentShortcut(getShortcut(), (data) => data);
+										if (Platform.OS === 'ios') {
+											presentShortcut(getShortcut(), (data) => data);
+										}
 										break;
 									case "playlist-actions-save-to-playlist":
 										await save_to_playlist(playlist_data?.title ?? "New Playlist");

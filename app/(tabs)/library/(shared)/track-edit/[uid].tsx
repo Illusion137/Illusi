@@ -24,7 +24,7 @@ import * as ffmpeg_kit from "ffmpeg-kit-react-native";
 import { ffmpeg } from "@native/ffmpeg/ffmpeg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { ContextMenuButton } from "react-native-ios-context-menu";
+import { ContextMenuButton } from "@components/ContextMenu";
 
 type SetArtistsState = (args: (prev: NamedUUID[]) => NamedUUID[]) => any;
 
