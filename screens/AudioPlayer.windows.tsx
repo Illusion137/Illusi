@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import TrackPlayer from "react-native-track-player";
+import TrackPlayer, { State } from "react-native-track-player";
 import type * as IllusiveType from "@illusive/types";
 import { artist_string } from "@illusive/illusive_utils";
 import usePTheme from "@hooks/usePTheme";
@@ -28,8 +28,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const handlePlayPause = async () => {
 		try {
-			const state = await TrackPlayer.getState();
-			if (state === "playing") {
+			const { state } = await TrackPlayer.getPlaybackState();
+			if (state === State.Playing) {
 				await TrackPlayer.pause();
 			} else {
 				await TrackPlayer.play();

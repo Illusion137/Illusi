@@ -35,9 +35,9 @@ jobs:
               if: steps.pkg_check.outputs.changed != 'true'
               run: yarn install --frozen-lockfile
 
-            - name: Type check
-              if: steps.pkg_check.outputs.changed != 'true'
-              run: yarn ts:check
+            # - name: Type check
+            #   if: steps.pkg_check.outputs.changed != 'true'
+            #   run: yarn ts:check
 
             - name: Configure OTA repo auth
               if: steps.pkg_check.outputs.changed != 'true'

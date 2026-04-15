@@ -6,15 +6,15 @@
 import React, { useRef, useState } from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { MenuElementConfig, MenuAttribute } from "./types";
+import type { MenuActionConfig, MenuAttribute } from "./types";
 
-interface MenuItem extends MenuElementConfig {
+interface MenuItem extends MenuActionConfig {
 	isVisible: boolean;
 }
 
 interface CustomPopoverProps {
 	menuItems: MenuItem[];
-	onItemPress: (actionKey: string) => void | Promise<void>;
+	onItemPress: (actionKey: string, actionTitle: string) => void | Promise<void>;
 	children: React.ReactNode;
 }
 
@@ -24,16 +24,16 @@ const CustomPopover: React.FC<CustomPopoverProps> = ({ menuItems, onItemPress, c
 	const viewRef = useRef<View>(null);
 
 	const handleLongPress = () => {
-		viewRef.current?.measure((fx, fy, width, height, px, py) => {
+		viewRef.current?.measure((_fx, _fy, _width, height, px, py) => {
 			setPosition({ top: py + height, left: px });
 			setVisible(true);
 		});
 	};
 
-	const handleMenuItemPress = async (actionKey: string) => {
+	const handleMenuItemPress = async (actionKey: string, actionTitle: string) => {
 		setVisible(false);
 		try {
-			await onItemPress(actionKey);
+			await onItemPress(actionKey, actionTitle);
 		} catch (e) {
 			console.error("Error in context menu action:", e);
 		}
@@ -44,17 +44,17 @@ const CustomPopover: React.FC<CustomPopoverProps> = ({ menuItems, onItemPress, c
 	const isDestructive = (attributes?: MenuAttribute[]) => attributes?.includes("destructive");
 
 	const renderMenuItem = ({ item }: { item: MenuItem }) => (
-		<TouchableOpacity style={[styles.menuItem, isDestructive(item.menuAttributes) && styles.destructiveItem]} onPress={() => handleMenuItemPress(item.actionKey)}>
-			{item.icon && <MaterialCommunityIcons name={typeof item.icon === "string" ? item.icon : "circle"} size={18} color={isDestructive(item.menuAttributes) ? "#FF3B30" : "#007AFF"} style={styles.menuIcon} />}
+		<TouchableOpacity style={[styles.menuItem, isDestructive(item.menuAttributes) && styles.destructiveItem]} onPress={async () => handleMenuItemPress(item.actionKey, item.actionTitle)}>
+			{item.icon && <MaterialCommunityIcons name={typeof item.icon === "string" ? (item.icon as any) : "circle"} size={18} color={isDestructive(item.menuAttributes) ? "#FF3B30" : "#007AFF"} style={styles.menuIcon} />}
 			<Text style={[styles.menuItemText, isDestructive(item.menuAttributes) && styles.destructiveText]}>{item.actionTitle}</Text>
 		</TouchableOpacity>
 	);
 
 	return (
 		<>
-			<View ref={viewRef} onLongPress={handleLongPress} delayLongPress={500} style={{ flex: 1 }}>
+			<TouchableOpacity ref={viewRef} onLongPress={handleLongPress} delayLongPress={500} style={{ flex: 1 }}>
 				{children}
-			</View>
+			</TouchableOpacity>
 
 			<Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
 				<TouchableOpacity style={styles.backdrop} onPress={() => setVisible(false)} activeOpacity={1}>

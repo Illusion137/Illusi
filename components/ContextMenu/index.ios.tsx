@@ -13,10 +13,11 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 			shouldEnableAggressiveCleanup={props.shouldEnableAggressiveCleanup}
 			shouldCleanupOnComponentWillUnmountForMenuPreview={props.shouldCleanupOnComponentWillUnmountForMenuPreview}
 			shouldCleanupOnComponentWillUnmountForAuxPreview={props.shouldCleanupOnComponentWillUnmountForAuxPreview}
+			isContextMenuEnabled={props.isContextMenuEnabled}
 			previewConfig={props.previewConfig}
 			menuConfig={props.menuConfig as any}
 			onMenuWillShow={props.onMenuWillShow}
-			onPressMenuItem={props.onPressMenuItem}>
+			onPressMenuItem={props.onPressMenuItem as any}>
 			{props.children}
 		</NativeContextMenuView>
 	);

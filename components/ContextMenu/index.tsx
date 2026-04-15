@@ -14,22 +14,22 @@
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import CustomPopover from "./CustomPopover";
-import type { ContextMenuViewProps, MenuElementConfig } from "./types";
+import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from "./types";
 
 export type { ContextMenuViewProps, MenuElementConfig, MenuConfig, OnPressMenuItemEvent } from "./types";
 export { ContextMenuButton } from "./ContextMenuButton";
 
 export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
-	const [menuItems, setMenuItems] = useState<MenuElementConfig[]>([]);
+	const [menuItems, setMenuItems] = useState<MenuActionConfig[]>([]);
 
 	useEffect(() => {
-		const items = flattenMenuItems(props.menuConfig.menuItems);
+		const items = flattenMenuItems(props.menuConfig?.menuItems ?? []);
 		setMenuItems(items);
 	}, [props.menuConfig]);
 
-	const handleItemPress = async (actionKey: string) => {
+	const handleItemPress = async (actionKey: string, actionTitle: string) => {
 		props.onMenuWillShow?.();
-		await props.onPressMenuItem({ nativeEvent: { actionKey } });
+		await props.onPressMenuItem({ nativeEvent: { actionKey, actionTitle } });
 	};
 
 	const visibleItems = menuItems.map((item) => ({ ...item, isVisible: !item.menuAttributes?.includes("hidden") }));
@@ -41,14 +41,14 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	);
 };
 
-function flattenMenuItems(items: any[]): MenuElementConfig[] {
-	const result: MenuElementConfig[] = [];
-	const process = (p_items: any[]) => {
+function flattenMenuItems(items: MenuElementConfig[]): MenuActionConfig[] {
+	const result: MenuActionConfig[] = [];
+	const process = (p_items: MenuElementConfig[]) => {
 		p_items.forEach((item) => {
-			if (item.actionKey) {
+			if ("actionKey" in item) {
 				result.push(item);
 			}
-			if (item.menuItems && Array.isArray(item.menuItems)) {
+			if ("menuItems" in item && Array.isArray(item.menuItems)) {
 				process(item.menuItems);
 			}
 		});

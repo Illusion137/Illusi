@@ -1,38 +1,11 @@
 {
 	"name": "illusi",
-	"version": "20.1.9",
+	"version": "20.1.10",
 	"main": "index",
-	"expo": {
-		"doctor": {
-			"reactNativeDirectoryCheck": {
-				"exclude": [
-					"react-native-track-player",
-					"@simform_solutions/react-native-audio-waveform",
-					"react-native-siri-shortcut",
-					"react-native-ota-hot-update",
-					"react-native-fs"
-				],
-				"listUnknownPackages": false
-			}
-		},
-		"autolinking": {
-			"android": {
-				"exclude": [
-					"react-native-carplay",
-					"nodejs-mobile-react-native"
-				]
-			},
-			"ios": {
-				"exclude": []
-			}
-		}
-	},
-	"engines": {
-		"node": ">=18.0.0"
-	},
 	"scripts": {
 		"start": "expo start --dev-client",
 		"android": "expo run:android",
+		"osx": "react-native run-macos",
 		"ios": "expo run:ios",
 		"web": "expo start --web",
 		"ts:check": "tsc -p tsconfig.json",
@@ -61,11 +34,39 @@
 			"prettier --write"
 		]
 	},
+	"expo": {
+		"doctor": {
+			"reactNativeDirectoryCheck": {
+				"exclude": [
+					"react-native-track-player",
+					"@simform_solutions/react-native-audio-waveform",
+					"react-native-siri-shortcut",
+					"react-native-ota-hot-update",
+					"react-native-fs"
+				],
+				"listUnknownPackages": false
+			}
+		},
+		"autolinking": {
+			"android": {
+				"exclude": [
+					"react-native-carplay",
+					"nodejs-mobile-react-native"
+				]
+			},
+			"ios": {
+				"exclude": []
+			}
+		}
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
 	"dependencies": {
 		"@craftzdog/react-native-buffer": "^6.1.0",
 		"@distube/ytdl-core": "4.16.12",
 		"@expo/metro-runtime": "56.0.0-canary-20260305-5163746",
-		"@expo/vector-icons": "^15.0.3",
+		"@expo/vector-icons": "^15.1.1",
 		"@gorhom/bottom-sheet": "^5.2.6",
 		"@iternio/react-native-auto-play": "^0.3.5",
 		"@legendapp/list": "^2.0.19",
@@ -150,6 +151,7 @@
 		"react-native-ios-context-menu": "^3.2.1",
 		"react-native-ios-kit": "^0.0.22",
 		"react-native-ios-utilities": "^5.2.0",
+		"react-native-macos": "^0.81.0-0",
 		"react-native-markdown-display": "^7.0.2",
 		"react-native-mmkv": "3.3.3",
 		"react-native-multi-slider": "^0.3.6",
@@ -229,7 +231,6 @@
 		"performanceMode": false
 	},
 	"resolutions": {
-		"hermes-compiler": "250829098.0.4",
 		"react-native-track-player": "github:Illusion137/RNTPvE#aa69edd00afc37b13eac83b5a7c1d24ccf5f04aa"
 	}
 }

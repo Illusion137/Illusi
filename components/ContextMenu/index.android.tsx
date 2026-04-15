@@ -6,20 +6,20 @@
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import CustomPopover from "./CustomPopover";
-import type { ContextMenuViewProps, MenuElementConfig } from "./types";
+import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from "./types";
 
 export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
-	const [menuItems, setMenuItems] = useState<MenuElementConfig[]>([]);
+	const [menuItems, setMenuItems] = useState<MenuActionConfig[]>([]);
 
 	useEffect(() => {
 		// Convert menu config to flat list of items
-		const items = flattenMenuItems(props.menuConfig.menuItems);
+		const items = flattenMenuItems(props.menuConfig?.menuItems ?? []);
 		setMenuItems(items);
 	}, [props.menuConfig]);
 
-	const handleItemPress = async (actionKey: string) => {
+	const handleItemPress = async (actionKey: string, actionTitle: string) => {
 		props.onMenuWillShow?.();
-		await props.onPressMenuItem({ nativeEvent: { actionKey } });
+		await props.onPressMenuItem({ nativeEvent: { actionKey, actionTitle } });
 	};
 
 	// Filter out hidden items
@@ -32,25 +32,24 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	);
 };
 
-// Helper to flatten nested menu items
-function flattenMenuItems(items: any[]): MenuElementConfig[] {
-	const result: MenuElementConfig[] = [];
+// Helper to flatten nested menu items into action-only items
+function flattenMenuItems(menu_items: MenuElementConfig[]): MenuActionConfig[] {
+	const result: MenuActionConfig[] = [];
 
-	const process = (items: any[]) => {
+	const process = (items: MenuElementConfig[]) => {
 		items.forEach((item) => {
-			if (item.actionKey) {
+			if ("actionKey" in item) {
 				result.push(item);
 			}
-			// If item has submenu items, flatten them
-			if (item.menuItems && Array.isArray(item.menuItems)) {
+			if ("menuItems" in item && Array.isArray(item.menuItems)) {
 				process(item.menuItems);
 			}
 		});
 	};
 
-	process(items);
+	process(menu_items);
 	return result;
 }
 
 export { ContextMenuButton } from "./ContextMenuButton";
-export * from "./types";
+export type * from "./types";
