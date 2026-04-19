@@ -212,7 +212,7 @@ PODS:
   - ExpoImageManipulator (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
     - SDWebImageWebPCoder
-  - ExpoImagePicker (55.0.16):
+  - ExpoImagePicker (55.0.18):
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
@@ -316,7 +316,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - NitroModules (0.35.3):
+  - NitroModules (0.35.4):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -341,7 +341,7 @@ PODS:
     - Yoga
   - nodejs-mobile-react-native (18.20.4):
     - React-Core
-  - op-sqlite (15.2.7):
+  - op-sqlite (15.2.11):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1910,7 +1910,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-ota-hot-update (2.4.0):
+  - react-native-ota-hot-update (2.4.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2006,7 +2006,7 @@ PODS:
     - Yoga
   - react-native-segmented-control (2.5.7):
     - React-Core
-  - react-native-skia (2.5.5):
+  - react-native-skia (2.6.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2550,7 +2550,7 @@ PODS:
     - React-perflogger (= 0.84.1)
     - React-utils (= 0.84.1)
     - ReactNativeDependencies
-  - ReactNativeAutoPlay (0.3.5):
+  - ReactNativeAutoPlay (0.3.7):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -2643,7 +2643,7 @@ PODS:
     - Yoga
   - RNFS (2.20.0):
     - React-Core
-  - RNGestureHandler (2.30.1):
+  - RNGestureHandler (2.31.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3532,7 +3532,7 @@ SPEC CHECKSUMS:
   ExpoHaptics: 3e06bfb64589ff88b551fc4c112838d35ab95fbd
   ExpoImage: 8a822d727aad72c2d9844ab1f6456019c1361010
   ExpoImageManipulator: a8c3cd03311dc669682bfe0688323fd6dd52a674
-  ExpoImagePicker: ca47c5ac15d1ccde2fbc765485e612c2a5a385d0
+  ExpoImagePicker: ce50d0bf7d27d1a822b08a84bea9bfc0b3924557
   ExpoKeepAwake: 83323bf6f9a16a8c30d25fd7fdd0940e961b41d1
   ExpoLinearGradient: 6140b4eac11f481f53e9c3c9a7a2c01316f6ab26
   ExpoLinking: 89439528a29d61314f4b9f723009833d8aa2acb4
@@ -3552,9 +3552,9 @@ SPEC CHECKSUMS:
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   NitroCookies: 2f49d1935f61cdbc7b62c8de092e1ac3e11566d1
-  NitroModules: 00c15fcce98b504f21bd5b0c99276db161efcb39
+  NitroModules: f45159491c5a0e7161685a301b1c6c11440b3ab1
   nodejs-mobile-react-native: 9efed1aafb3f02ec02240d539e24ec72fde97c21
-  op-sqlite: 9ad0095f12c88397bccd86e912a018049eb1caf5
+  op-sqlite: 76a46b48c90f0d318495bb55beb1d1d0f472f69e
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
   RCTSwiftUI: afc0a0a635860da1040a0b894bfd529da06d7810
@@ -3600,11 +3600,11 @@ SPEC CHECKSUMS:
   react-native-ios-utilities: 7bb6ce48acee7d83481518ef3f0206e08a365923
   react-native-mmkv: 3d69c8bbdbceb1c0d3754863ecffa6ec24e4be12
   react-native-netinfo: f852c868bf5175e46165c7e4db48a204a95c3800
-  react-native-ota-hot-update: c98e414d5414291f9722d5c8dd685969ca94019a
+  react-native-ota-hot-update: f854f1a6491d41887425ace2072aed605642beb0
   react-native-quick-base64: 6568199bb2ac8e72ecdfdc73a230fbc5c1d3aac4
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
-  react-native-skia: a53f6c24aff4d6aa0b048d821215186b84315c93
+  react-native-skia: e8b9354dc16c4099537ba0659cd70ea4adf8efc4
   react-native-slider: 8b9a218d1a3e526146a170cb6133be9cda23e70e
   react-native-track-player: a3baa89065c522e634de433cffc429801d5ac4cb
   react-native-uitextview: 6d95198d92dfc8f5450e81ca72e462c8cbc38ecf
@@ -3643,13 +3643,13 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: e96e93b493d8d86eeaee3e590ba0be53f6abe46f
   ReactCodegen: 797de5178718324c6eba3327b07f9a423fbd5787
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
-  ReactNativeAutoPlay: 5621604a82514bbc242f3e87291db230ff315ecb
+  ReactNativeAutoPlay: b16368da1e90c48399aabc300f604e27b655f2d3
   ReactNativeDependencies: 37432bff08e1c9ed3c485152e2f2ed2cef67cd33
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCClipboard: 88d7eeb555d1183915f0885bdbc5c97eb6f7f3ba
   RNCPicker: c8a3584b74133464ee926224463fcc54dfdaebca
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
-  RNGestureHandler: 695faf9c1f0aa1a6d52ab778e459a1bcbae3153b
+  RNGestureHandler: b633cb9b819ffb23661496af13bd6943d66f093c
   RNImageCropPicker: 7e6bd58550bcb942bfa48847247dbf62eda20c89
   RNPermissions: d399c7a59280e8fb790531da7f76708fe9c6fd45
   RNReanimated: 923eb30d50cea473eed734767d4c33c374fae5fc

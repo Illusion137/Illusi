@@ -28,12 +28,13 @@ import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
 import { Platform } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
+// TODO fix carplay in future; + make UI actually good; too buggy for prod right now, causing crashes
 // CarPlayService is iOS-only; will be gated below
-let CarPlayService: any;
-if (Platform.OS === "ios") {
-	const carplayModule = require("@illusive/carplay/carplay_service");
-	CarPlayService = carplayModule.CarPlayService;
-}
+// let CarPlayService: any;
+// if (Platform.OS === "ios") {
+// 	const carplayModule = require("@illusive/carplay/carplay_service");
+// 	CarPlayService = carplayModule.CarPlayService;
+// }
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -114,18 +115,18 @@ export default Sentry.wrap(function App() {
 				} catch (e) {}
 			};
 			// Initialize CarPlay (iOS only)
-			if (CarPlayService) {
-				CarPlayService.init();
-			}
+			// if (CarPlayService) {
+			// 	CarPlayService.init();
+			// }
 			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
 			// Cleanup CarPlay (iOS only)
-			if (CarPlayService) {
-				CarPlayService.destroy();
-			}
+			// if (CarPlayService) {
+			// 	CarPlayService.destroy();
+			// }
 		};
 	}, []);
 	useEffect(() => {
