@@ -1,6 +1,6 @@
 {
 	"name": "illusi",
-	"version": "20.1.11",
+	"version": "20.1.12",
 	"main": "index",
 	"scripts": {
 		"start": "expo start --dev-client",
@@ -187,6 +187,7 @@
 		"react-refresh": "^0.14.2",
 		"reanimated-bottom-sheet": "^1.0.0-alpha.22",
 		"rn-sliding-up-panel": "^2.4.6",
+		"rn-sliding-up-panel-reanimated": "^3.0.1",
 		"sha1-uint8array": "^0.10.7",
 		"stream": "^0.0.3",
 		"text-encoding-polyfill": "^0.6.7",

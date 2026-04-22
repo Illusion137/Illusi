@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import React, { useCallback, useEffect, useState } from "react";
 import { Fontisto, Ionicons, SimpleLineIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
-import { ActivityIndicator, Animated, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-track-player";
 import NavLink from "@components/NavLink";
@@ -21,10 +22,11 @@ import { SharedRouter } from "@utils/shared_routes";
 import { TrackContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
 import { reinterpret_cast } from "@common/cast";
-import SlidingUpPanel from "rn-sliding-up-panel";
+import SlidingUpPanel, { type SlidingUpPanelHandle } from "rn-sliding-up-panel-reanimated";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import TrackIconTags from "@components/TrackIconTags";
 import { Lyrics } from "@illusive/lyrics";
+import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const top_padding = Dimensions.get("screen").height * 0.08;
@@ -32,12 +34,12 @@ const panel_min_height = 125 + top_padding;
 const panel_max_height = Dimensions.get("screen").height;
 // const panel_bottom_height = panel_max_height - panel_min_height;
 
-const panel_animated = new Animated.Value(panel_min_height);
 export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playing_from: string }) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const bottom_sheet_ref = React.useRef<SlidingUpPanel>(null);
+	const bottom_sheet_ref = React.useRef<SlidingUpPanelHandle>(null);
+	const panel_animated = useSharedValue(panel_min_height);
 
 	const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
 	const [player_state_metadata, set_player_state_metadata] = useState({
@@ -47,12 +49,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		album: props.tracks[0]?.album,
 		duration: props.tracks[0]?.duration ?? 0
 	});
-	const [player_state_trackplayer, set_player_state_trackplayer] = useState({
-		elapsed_time: 0,
-		duration_remaining: props.tracks[0]?.duration ?? 0,
-		volume: 1,
-		loop_track: false
-	});
+	const [player_state_trackplayer, set_player_state_trackplayer] = useState({ elapsed_time: 0, duration_remaining: props.tracks[0]?.duration ?? 0, volume: 1, loop_track: false });
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
 	const [playing_track, set_playing_track] = useState<IllusiveType.Track>(props.tracks[0]);
 	const [does_track_exist, set_does_track_exist] = useState<boolean>(true);
@@ -61,15 +58,16 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const [panel_state_visible, set_panel_state_visible] = useState(true);
 
-	// Register the panel visibility listener once (in an effect) with cleanup,
-	// instead of on every render which accumulates duplicate listeners.
-	useEffect(() => {
-		const panel_transition_value = panel_min_height + 1;
-		const id = panel_animated.addListener(({ value }) => {
-			set_panel_state_visible(value > panel_transition_value);
-		});
-		return () => panel_animated.removeListener(id);
-	}, []);
+	// Drive panel_state_visible from the UI thread whenever the position crosses
+	// the transition threshold, then dispatch to the JS thread via runOnJS.
+	useAnimatedReaction(
+		() => panel_animated.value > panel_min_height + 1,
+		(isVisible, wasVisible) => {
+			if (wasVisible !== null && isVisible !== wasVisible) {
+				runOnJS(set_panel_state_visible)(isVisible);
+			}
+		}
+	);
 
 	function hide_sheet() {
 		// bottom_sheet_ref.current?.snapToIndex(0);
@@ -80,9 +78,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		// bottom_sheet_ref.current?.snapToIndex(1);
 	}
 
-	function interpolatePanelPosition(output_range: any[]) {
-		return panel_animated.interpolate({ inputRange: [panel_min_height, panel_max_height], outputRange: output_range, extrapolate: "clamp" });
-	}
+	const panel_top_padding_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 1], Extrapolation.CLAMP) }));
+	const panel_chevron_style = useAnimatedStyle(() => ({ transform: [{ rotate: `${interpolate(panel_animated.value, [panel_min_height, panel_max_height], [180, 0], Extrapolation.CLAMP)}deg` }] }));
+	const panel_content_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 2], Extrapolation.CLAMP) }));
 
 	async function reshuffle() {
 		const reshuffled_tracks = shuffle_array([...props.tracks]);
@@ -175,12 +173,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async (event) => {
 		if (event.type === Event.PlaybackProgressUpdated) {
-			set_player_state_trackplayer({
-				elapsed_time: event.position,
-				duration_remaining: event.duration - event.position,
-				volume: await TrackPlayer.getVolume(),
-				loop_track: (await TrackPlayer.getRepeatMode()) === RepeatMode.Track
-			});
+			set_player_state_trackplayer({ elapsed_time: event.position, duration_remaining: event.duration - event.position, volume: await TrackPlayer.getVolume(), loop_track: (await TrackPlayer.getRepeatMode()) === RepeatMode.Track });
 			if (is_empty(player_state_metadata.duration)) {
 				GLOBALS.global_var.playing_tracks[event.track].duration = event.duration ?? 0;
 				set_player_state_metadata({
@@ -251,14 +244,10 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			snappingPoints={[panel_min_height, panel_max_height]}
 			containerStyle={{ left: 0, right: 0, display: "flex", zIndex: 10, top: "100%" }}>
 			<>
-				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={{ backgroundColor: colors.playScreen, height: top_padding, opacity: interpolatePanelPosition([0, 1]) }} />
+				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ backgroundColor: colors.playScreen, height: top_padding }, panel_top_padding_style]} />
 				{/* HEADER ---------------------------------------------------- */}
 				<View style={styles.header}>
-					<Animated.View
-						style={{
-							left: 25,
-							transform: [{ rotate: interpolatePanelPosition(["180deg", "0deg"]) }]
-						}}>
+					<Animated.View style={[{ left: 25 }, panel_chevron_style]}>
 						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} onPress={toggle_panel}>
 							<Ionicons name="chevron-down-sharp" size={20} color="#808080" />
 						</TouchableOpacity>
@@ -288,9 +277,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						</TouchableOpacity>
 					) : null}
 				</View>
-				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={{ flex: 1, backgroundColor: colors.playScreen, opacity: interpolatePanelPosition([0, 2]) }}>
+				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, backgroundColor: colors.playScreen }, panel_content_style]}>
 					<View style={{ width: "100%", alignItems: "center", maxHeight: 500, minHeight: 400, overflow: "hidden" }}>
-						<View style={{ flexGrow: 1, height: 50 }} />
+						<View style={{ height: 50 }} />
 						<ContextMenuView
 							shouldEnableAggressiveCleanup
 							shouldCleanupOnComponentWillUnmountForMenuPreview
@@ -303,14 +292,10 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 								tint={tint ? { color: tint, opacity: 0.15 } : undefined}
 								artwork={player_state_metadata.artwork}
 								width={Dimensions.get("screen").width - 70}
-								style={{
-									opacity: player_state_type === State.Buffering ? 0.7 : 0.9,
-									borderRadius: 10
-								}}
+								style={{ opacity: player_state_type === State.Buffering ? 0.7 : 0.9, borderRadius: 10 }}
 							/>
 						</ContextMenuView>
 					</View>
-					<View style={{ height: 10 }} />
 					{/* TITLE & ARTIST ----------------------------------------------------*/}
 					<View style={styles.textcontainer}>
 						<TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
@@ -333,7 +318,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							</>
 						)}
 					</View>
-					<View style={{ height: 45 }} />
+					<View style={{ height: 35 }} />
 					{/* TIMESTAMPS & TIME----------------------------------------------------*/}
 					<View style={styles.timestampslidercontainer}>
 						<Slider
@@ -357,7 +342,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						<Text style={{ color: "#808080", fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
 					</View>
 					{/* PLAY CONTROLS ----------------------------------------------------*/}
-					<View style={{ bottom: 35 }}>
+					<View style={{ bottom: 45 }}>
 						<View style={styles.playbackcontainer}>
 							<TouchableOpacity onPress={reshuffle}>
 								<Ionicons name="shuffle" size={40} color={colors.primary} />
@@ -421,72 +406,17 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 }
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		topcontainer: {
-			flex: 1,
-			backgroundColor: colors.playScreen
-		},
-		header: {
-			backgroundColor: colors.playScreen,
-			height: 45,
-			alignItems: "center",
-			justifyContent: "space-between",
-			flexDirection: "row"
-		},
-		topfrom: {
-			color: colors.subtext,
-			fontSize: 12,
-			top: -4
-		},
-		toptitle: {
-			color: colors.text,
-			fontWeight: "bold",
-			top: -2
-		},
-		timestampslidercontainer: {
-			alignItems: "stretch",
-			justifyContent: "center",
-			bottom: 30,
-			marginHorizontal: 35
-		},
-		textcontainer: {
-			justifyContent: "flex-start",
-			alignItems: "flex-start",
-			top: 10,
-			marginLeft: 35,
-			marginRight: 35,
-			zIndex: 10
-		},
-		tsstyle: {
-			color: colors.subtext
-		},
-		title: {
-			color: colors.text,
-			fontSize: 22,
-			fontWeight: "bold"
-		},
-		artist: {
-			color: colors.subtext
-		},
-		playbackcontainer: {
-			justifyContent: "space-evenly",
-			alignItems: "center",
-			flexDirection: "row"
-		},
-		volumeslidercontainer: {
-			marginLeft: 40,
-			marginRight: 80
-		},
-		lyrics_text: {
-			color: colors.text,
-			fontWeight: "bold",
-			width: "85%",
-			fontSize: 24,
-			margin: 15,
-			marginVertical: 10
-		},
-		icon_glow: {
-			textShadowColor: colors.secondary,
-			textShadowOffset: { width: 2, height: 2 },
-			textShadowRadius: 10
-		}
+		topcontainer: { flex: 1, backgroundColor: colors.playScreen },
+		header: { backgroundColor: colors.playScreen, height: 45, alignItems: "center", justifyContent: "space-between", flexDirection: "row" },
+		topfrom: { color: colors.subtext, fontSize: 12, top: -4 },
+		toptitle: { color: colors.text, fontWeight: "bold", top: -2 },
+		timestampslidercontainer: { alignItems: "stretch", justifyContent: "center", bottom: 30, marginHorizontal: 35 },
+		textcontainer: { justifyContent: "flex-start", alignItems: "flex-start", top: 10, marginLeft: 35, marginRight: 35, zIndex: 10 },
+		tsstyle: { color: colors.subtext },
+		title: { color: colors.text, fontSize: 22, fontWeight: "bold" },
+		artist: { color: colors.subtext },
+		playbackcontainer: { justifyContent: "space-evenly", alignItems: "center", flexDirection: "row" },
+		volumeslidercontainer: { marginLeft: 40, marginRight: 80 },
+		lyrics_text: { color: colors.text, fontWeight: "bold", width: "85%", fontSize: 24, margin: 15, marginVertical: 10 },
+		icon_glow: { textShadowColor: colors.secondary, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 10 }
 	});
