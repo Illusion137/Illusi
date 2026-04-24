@@ -94,7 +94,8 @@ export namespace TrackContextMenu {
 		track_attributes_folder(track, write_playlist_uuid),
 		track_offline_folder(track, write_playlist_uuid),
 		track_share_folder(track, write_playlist_uuid),
-		track_destructive_folder(track, write_playlist_uuid)
+		track_destructive_folder(track, write_playlist_uuid),
+		...extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), ["track-push-discord"])
 	];
 
 	const track_component_more_options_folder = (track: Track, write_playlist_uuid: string) => menu_folder("More Options", track_component_inner_context_menu(track, write_playlist_uuid), "option");
