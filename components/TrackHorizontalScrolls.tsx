@@ -1,4 +1,4 @@
-import { Dimensions, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import type { Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { Constants } from "@illusive/constants";
@@ -9,6 +9,8 @@ import { get_common_styles } from "@utils/common_styles";
 import usePTheme from "@hooks/usePTheme";
 import { AntDesignTouchableOpacity } from "./TouchableIconOpacity";
 import { SharedRouter } from "@utils/shared_routes";
+import useDimensions from "@hooks/useDimensions";
+import { useMemo } from "react";
 
 export default function TrackHorizontalScrolls(props: {
     title: string;
@@ -18,8 +20,8 @@ export default function TrackHorizontalScrolls(props: {
 }){
     const { colors } = usePTheme();
     const common_styles = get_common_styles(colors);
-    const screen_width = Dimensions.get('screen').width;
-    const track_width = screen_width * .95;
+    const { width } = useDimensions();
+    const track_width = useMemo(() => width * .95, [width]);
     const split_tracks: Track[][] = chunkify(props.tracks, props.height);
     
     const RenderTrackComponent = (item: {item: Track}) =>

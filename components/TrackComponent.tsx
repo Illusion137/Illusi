@@ -6,7 +6,7 @@ import { play } from "@illusive/illusi/src/play";
 import { delete_track, insert_into_write_playlist, download_track } from "@illusive/illusi/src/components/track";
 import { Constants } from "@illusive/constants";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
-import { ContextMenuView, type MenuConfig } from "react-native-ios-context-menu";
+import { ContextMenuView, type MenuConfig } from "./ContextMenu";
 import { is_empty } from "@common/utils/util";
 import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";

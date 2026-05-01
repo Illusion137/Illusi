@@ -1,21 +1,21 @@
-import { View, Text, TouchableHighlight, StyleSheet, Dimensions } from "react-native";
+import { View, Text, TouchableHighlight, StyleSheet } from "react-native";
 import type { Track } from "@illusive/types";
 import type { Prefs } from "@illusive/prefs";
 import { sprinkle_into_queue } from "@illusive/illusi/src/play";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import FourTrackArtwork from "./FourTrackArtwork";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import { ContextMenuView } from "react-native-ios-context-menu";
+import { ContextMenuView } from "@components/ContextMenu";
 import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";
 import { SharedRouter } from "@utils/shared_routes";
-
-const { width } = Dimensions.get("screen");
-const item_size = width * 0.29;
+import useDimensions from "@hooks/useDimensions";
 export default function DefaultPlaylistComponent(props: { four_track: Track[]; title: string; force_order?: boolean }) {
 	const { colors } = usePTheme();
-	const styles = theme_styles(colors);
+	const { width } = useDimensions();
+	const item_size = useMemo(() => width * 0.29, [width]);
+	const styles = useMemo(() => theme_styles(colors, item_size), [colors, item_size]);
 
 	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
 
@@ -35,12 +35,7 @@ export default function DefaultPlaylistComponent(props: { four_track: Track[]; t
 						actionKey: "playlist-sprinkle-in-queue",
 						actionTitle: "Sprinke in Queue",
 						menuAttributes: is_playing_music ? undefined : ["disabled"],
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageValue: {
-								systemName: "square.3.layers.3d.middle.filled"
-							}
-						}
+						icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "square.3.layers.3d.middle.filled" } }
 					}
 				]
 			}}
@@ -66,22 +61,8 @@ export default function DefaultPlaylistComponent(props: { four_track: Track[]; t
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme["colors"], item_size: number) =>
 	StyleSheet.create({
-		default_playlist_text: {
-			color: "white",
-			fontSize: 18,
-			fontWeight: "bold",
-			textAlign: "center",
-			position: "absolute",
-			zIndex: 1
-		},
-		default_playlist_button: {
-			backgroundColor: colors.card,
-			height: item_size,
-			width: item_size,
-			borderRadius: 5,
-			margin: 5,
-			justifyContent: "center"
-		}
+		default_playlist_text: { color: "white", fontSize: 18, fontWeight: "bold", textAlign: "center", position: "absolute", zIndex: 1 },
+		default_playlist_button: { backgroundColor: colors.card, height: item_size, width: item_size, borderRadius: 5, margin: 5, justifyContent: "center" }
 	});

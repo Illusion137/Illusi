@@ -7,8 +7,8 @@ import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Dimensions, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import TrackIconTags from "@components/TrackIconTags";
 import TextTicker from "react-native-text-ticker";
@@ -22,10 +22,14 @@ import React from "react";
 import type { GraphPoint } from "react-native-graph";
 import { SQLTrackPlays } from "@illusive/sql/sql_track_plays";
 import { DateLineGraph } from "@components/DateLineGraph";
+import useDimensions from "@hooks/useDimensions";
 
 export default function EditTrackModal() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
+	const { width, height } = useDimensions();
+	const gradient_height = useMemo(() => height * 0.8, [height]);
+	const artwork_width = useMemo(() => width * 0.85, [width]);
 
 	const { uid } = useLocalSearchParams<{ uid: string }>();
 	const track_ref = useRef(GLOBALS.global_var.sql_tracks.find((track) => track.uid === uid));
@@ -77,11 +81,11 @@ export default function EditTrackModal() {
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<ModalHeader title="Track Info" background_color={track_colors?.secondary} text_color={track_colors?.background} close_color={track_colors?.background} />
 			<ScrollView scrollToOverflowEnabled={false}>
-				{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.8, width: "100%" }} /> : null}
+				{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: gradient_height, width: "100%" }} /> : null}
 
 				{/* Artwork */}
 				<View style={{ width: "100%", alignItems: "center", maxHeight: 450, minHeight: 350, overflow: "hidden", marginTop: 30 }}>
-					<ScaledImage tint={tint ? { color: tint, opacity: 0.15 } : undefined} artwork={track_ref.current?.playback?.artwork} width={Dimensions.get("screen").width * 0.85} style={{ borderRadius: 10 }} />
+					<ScaledImage tint={tint ? { color: tint, opacity: 0.15 } : undefined} artwork={track_ref.current?.playback?.artwork} width={artwork_width} style={{ borderRadius: 10 }} />
 				</View>
 
 				{/* Track identity */}

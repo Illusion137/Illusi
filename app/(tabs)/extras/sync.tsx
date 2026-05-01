@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-shadow */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, Text, TextInput, TouchableHighlight, ScrollView, ActivityIndicator } from "react-native";
 import { Prefs } from "@illusive/prefs";
 import { supabase } from "@illusive/db/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import type { Session } from "@supabase/supabase-js";
 import usePTheme from "@hooks/usePTheme";
+import { sync_engine_instance } from "@illusive/startup";
 
 export default function ExtraSyncScreen() {
 	const { colors } = usePTheme();
@@ -18,6 +19,20 @@ export default function ExtraSyncScreen() {
 	const [error, set_error] = useState<string | null>(null);
 	const [is_signup, set_is_signup] = useState(false);
 	const [last_synced] = useState(() => Prefs.get_pref("last_synced"));
+	const [resync_loading, set_resync_loading] = useState(false);
+
+	const handle_resync = useCallback(async () => {
+		set_resync_loading(true);
+		try {
+			// Option A (recommended): queue it and let SyncEngine do it on next cycle
+			sync_engine_instance?.request_resync();
+
+			// Option B (blocking): do it immediately (uncomment if you prefer)
+			// await sync_engine.resync({ mode: 'local_wins', wipe_deleted_flags: true });
+		} finally {
+			set_resync_loading(false);
+		}
+	}, [sync_engine_instance]);
 
 	useEffect(() => {
 		supabase()
@@ -78,6 +93,10 @@ export default function ExtraSyncScreen() {
 
 				<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={handle_sign_out} disabled={loading} style={styles.sign_out_btn}>
 					<View style={styles.btn_content}>{loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.sign_out_text}>Sign Out</Text>}</View>
+				</TouchableHighlight>
+
+				<TouchableHighlight activeOpacity={0.6} underlayColor={colors.highlightPressColor} onPress={handle_resync} disabled={loading || resync_loading} style={styles.sign_out_btn}>
+					<View style={styles.btn_content}>{resync_loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.sign_out_text}>Resync (Local Wins)</Text>}</View>
 				</TouchableHighlight>
 
 				<View style={styles.section}>
@@ -148,114 +167,24 @@ export default function ExtraSyncScreen() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		container: {
-			backgroundColor: colors.background,
-			flex: 1,
-			width: "100%"
-		},
-		section: {
-			marginTop: 20,
-			marginHorizontal: 14
-		},
-		row: {
-			flexDirection: "row",
-			alignItems: "center",
-			paddingBottom: 8
-		},
-		header_text: {
-			color: colors.primary,
-			fontWeight: "500",
-			fontSize: 20
-		},
-		line: {
-			width: "100%",
-			height: 1,
-			backgroundColor: colors.line,
-			marginBottom: 14
-		},
-		description: {
-			color: colors.subtext,
-			fontSize: 13,
-			marginBottom: 16,
-			lineHeight: 18
-		},
-		input: {
-			backgroundColor: colors.shelf,
-			color: colors.text,
-			borderRadius: 10,
-			paddingHorizontal: 14,
-			paddingVertical: 12,
-			fontSize: 16,
-			marginBottom: 12
-		},
-		error_text: {
-			color: colors.red ?? "#ff4444",
-			fontSize: 13,
-			marginBottom: 10
-		},
-		submit_btn: {
-			backgroundColor: colors.primary,
-			borderRadius: 10,
-			marginBottom: 12
-		},
-		sign_out_btn: {
-			backgroundColor: colors.shelf,
-			borderRadius: 10,
-			marginHorizontal: 14,
-			marginTop: 12
-		},
-		btn_disabled: {
-			opacity: 0.4
-		},
-		btn_content: {
-			paddingVertical: 14,
-			alignItems: "center"
-		},
-		submit_text: {
-			color: "#fff",
-			fontWeight: "600",
-			fontSize: 16
-		},
-		sign_out_text: {
-			color: colors.text,
-			fontWeight: "500",
-			fontSize: 16
-		},
-		toggle_text: {
-			color: colors.subtext,
-			fontSize: 13,
-			textAlign: "center",
-			paddingVertical: 8
-		},
-		info_row: {
-			flexDirection: "row",
-			justifyContent: "space-between",
-			alignItems: "center",
-			paddingVertical: 10,
-			borderBottomWidth: 0.5,
-			borderBottomColor: colors.line
-		},
-		label: {
-			color: colors.subtext,
-			fontSize: 14
-		},
-		value: {
-			color: colors.text,
-			fontSize: 14,
-			fontWeight: "500",
-			maxWidth: "60%"
-		},
-		uuid_container: {
-			paddingVertical: 16,
-			alignItems: "center",
-			backgroundColor: colors.shelf,
-			borderRadius: 10,
-			gap: 4
-		},
-		uuid_text: {
-			color: colors.text,
-			fontWeight: "bold",
-			fontSize: 20,
-			letterSpacing: 2
-		}
+		container: { backgroundColor: colors.background, flex: 1, width: "100%" },
+		section: { marginTop: 20, marginHorizontal: 14 },
+		row: { flexDirection: "row", alignItems: "center", paddingBottom: 8 },
+		header_text: { color: colors.primary, fontWeight: "500", fontSize: 20 },
+		line: { width: "100%", height: 1, backgroundColor: colors.line, marginBottom: 14 },
+		description: { color: colors.subtext, fontSize: 13, marginBottom: 16, lineHeight: 18 },
+		input: { backgroundColor: colors.shelf, color: colors.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, marginBottom: 12 },
+		error_text: { color: colors.red ?? "#ff4444", fontSize: 13, marginBottom: 10 },
+		submit_btn: { backgroundColor: colors.primary, borderRadius: 10, marginBottom: 12 },
+		sign_out_btn: { backgroundColor: colors.shelf, borderRadius: 10, marginHorizontal: 14, marginTop: 12 },
+		btn_disabled: { opacity: 0.4 },
+		btn_content: { paddingVertical: 14, alignItems: "center" },
+		submit_text: { color: "#fff", fontWeight: "600", fontSize: 16 },
+		sign_out_text: { color: colors.text, fontWeight: "500", fontSize: 16 },
+		toggle_text: { color: colors.subtext, fontSize: 13, textAlign: "center", paddingVertical: 8 },
+		info_row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.line },
+		label: { color: colors.subtext, fontSize: 14 },
+		value: { color: colors.text, fontSize: 14, fontWeight: "500", maxWidth: "60%" },
+		uuid_container: { paddingVertical: 16, alignItems: "center", backgroundColor: colors.shelf, borderRadius: 10, gap: 4 },
+		uuid_text: { color: colors.text, fontWeight: "bold", fontSize: 20, letterSpacing: 2 }
 	});

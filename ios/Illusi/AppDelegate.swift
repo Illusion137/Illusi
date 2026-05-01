@@ -1,6 +1,7 @@
 public import Expo
 import React
 import ReactAppDependencyProvider
+import react_native_ota_hot_update
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -83,7 +84,7 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
       return RCTBundleURLProvider.sharedSettings().jsBundleURL(
         forBundleRoot: ".expo/.virtual-metro-entry")
     #else
-      return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+      return OtaHotUpdate.getBundle()
     #endif
   }
 }

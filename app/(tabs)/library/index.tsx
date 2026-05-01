@@ -9,7 +9,7 @@ import SearchBarV1 from "@components/SearchBarV1";
 import usePTheme from "@hooks/usePTheme";
 import LibraryTrackList from "@components/LibraryTrackList";
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
-import { ContextMenuButton } from "react-native-ios-context-menu";
+import { ContextMenuButton } from "@components/ContextMenu";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { menuconfig_local_playlist } from "@utils/context_menu";
 import { GLOBALS } from "@illusive/globals";
@@ -17,6 +17,7 @@ import { presentShortcut, type ShortcutOptions } from "react-native-siri-shortcu
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { batch_download_track_lyrics, download_track_list } from "@illusive/downloader";
 import { Constants } from "@illusive/constants";
+import type { ContextMenuNativeEvent } from "@components/ContextMenu/types";
 
 export default function Library() {
 	const { colors } = usePTheme();
@@ -24,12 +25,7 @@ export default function Library() {
 
 	const [edit_mode, set_edit_mode] = useState<EditMode>("NONE");
 
-	const edit_mode_colors: Record<EditMode, HexColor> = {
-		NONE: colors.inactive as HexColor,
-		DOWNLOAD: colors.primary as HexColor,
-		DELETE: colors.red as HexColor,
-		EDIT: colors.orange as HexColor
-	};
+	const edit_mode_colors: Record<EditMode, HexColor> = { NONE: colors.inactive as HexColor, DOWNLOAD: colors.primary as HexColor, DELETE: colors.red as HexColor, EDIT: colors.orange as HexColor };
 
 	const library_ref = useRef<{ refresh_data: (query?: string) => Promise<void> }>(null);
 	const is_focused = useIsFocused();
@@ -83,7 +79,7 @@ export default function Library() {
 			<View style={styles.header}>
 				<Text style={styles.top_text}>My Library</Text>
 				<View style={styles.search_container}>
-					<ContextMenuButton menuConfig={menuconfig_local_playlist(edit_mode, colors, GLOBALS.global_var.sql_tracks)} onPressMenuItem={async (e) => run_context_menu(e.nativeEvent.actionKey)}>
+					<ContextMenuButton menuConfig={menuconfig_local_playlist(edit_mode, colors, GLOBALS.global_var.sql_tracks)} onPressMenuItem={async (e: ContextMenuNativeEvent) => run_context_menu(e.nativeEvent.actionKey)}>
 						<MaterialCommunityIcons name="pencil" size={25} color={edit_mode_colors[edit_mode]} style={{ bottom: 6, left: 3 }} />
 					</ContextMenuButton>
 					<View style={{ width: "75%", bottom: 5, right: 10 }}>
@@ -99,26 +95,9 @@ export default function Library() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		top_container: {
-			backgroundColor: colors.background,
-			flex: 1,
-			justifyContent: "flex-start"
-		},
-		header: {
-			backgroundColor: colors.shelf,
-			width: "100%",
-			height: "18%",
-			top: 0,
-			justifyContent: "flex-end",
-			alignItems: "center",
-			zIndex: 2
-		},
-		top_text: {
-			bottom: 20,
-			color: colors.text,
-			fontSize: 18,
-			fontWeight: "500"
-		},
+		top_container: { backgroundColor: colors.background, flex: 1, justifyContent: "flex-start" },
+		header: { backgroundColor: colors.shelf, width: "100%", height: "18%", top: 0, justifyContent: "flex-end", alignItems: "center", zIndex: 2 },
+		top_text: { bottom: 20, color: colors.text, fontSize: 18, fontWeight: "500" },
 		search_input: {
 			backgroundColor: colors.searchInput,
 			color: colors.text,
@@ -129,23 +108,6 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			borderTopRightRadius: 10, // Top Right Corner
 			borderBottomRightRadius: 10 // Bottom Right Corner
 		},
-		search_container: {
-			justifyContent: "space-evenly",
-			alignItems: "center",
-			height: "24%",
-			left: -5,
-			width: "100%",
-			flexDirection: "row"
-		},
-		icon: {
-			overflow: "hidden",
-			backgroundColor: colors.searchInput,
-			paddingTop: 5,
-			paddingLeft: 5,
-			paddingRight: 5,
-			bottom: 10,
-			left: 10,
-			borderRadius: 10,
-			zIndex: 1
-		}
+		search_container: { justifyContent: "space-evenly", alignItems: "center", height: "24%", left: -5, width: "100%", flexDirection: "row" },
+		icon: { overflow: "hidden", backgroundColor: colors.searchInput, paddingTop: 5, paddingLeft: 5, paddingRight: 5, bottom: 10, left: 10, borderRadius: 10, zIndex: 1 }
 	});

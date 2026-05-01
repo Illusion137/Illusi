@@ -6,7 +6,7 @@ import { music_service_uri_to_music_service, split_uri } from "@illusive/illusiv
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 import { Ionicons } from "@expo/vector-icons";
-import { ContextMenuView, type MenuConfig, type OnPressMenuItemEvent } from "react-native-ios-context-menu";
+import { ContextMenuView, type MenuConfig, type OnPressMenuItemEvent } from "@components/ContextMenu";
 import { resolve_icon } from "@utils/context_menu";
 import { Prefs } from "@illusive/prefs";
 import { run_link } from "@illusive/linker";

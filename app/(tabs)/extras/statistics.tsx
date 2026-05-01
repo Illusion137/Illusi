@@ -1,8 +1,9 @@
-import { Dimensions, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { GLOBALS } from "@illusive/globals";
 import { days_of, round_decimal_place } from "@common/utils/util";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import type { GraphPoint } from "react-native-graph";
 import { useEffect, useMemo, useState } from "react";
 import { DateLineGraph } from "@components/DateLineGraph";
@@ -12,6 +13,7 @@ import type { Track } from "@illusive/types";
 
 export default function ExtraStatisticsScreen() {
 	const { colors } = usePTheme();
+	const { width } = useDimensions();
 
 	function map_frequency(numbers: number[]) {
 		const frequency: Record<string, number> = {};
@@ -67,8 +69,6 @@ export default function ExtraStatisticsScreen() {
 			.sort((a, b) => a.getTime() - b.getTime());
 		return sorted_dates.map((date, i) => ({ date, value: i + 1 }));
 	}, []);
-
-	const width = Dimensions.get("screen").width;
 
 	const label_step = Math.ceil(histogram_labels.length / 6);
 	const display_labels = histogram_labels.map((l, i) => (i % label_step === 0 ? l : ""));

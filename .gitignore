@@ -9,6 +9,9 @@ tsconfig.json
 builds/
 sentry.properties
 .env
+ios/output
+nodejs-assets/*.sh
+DESKTOP_CHECKLIST.md
 
 # Expo
 .expo

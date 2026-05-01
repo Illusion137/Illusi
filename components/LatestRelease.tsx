@@ -1,14 +1,18 @@
 import type { CompactPlaylist } from "@illusive/types";
-import { Dimensions, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { empty_join_dot } from "@common/utils/util";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "./IImage";
 import { SharedRouter } from "../utils/shared_routes";
 import { GLOBALS } from "@illusive/globals";
+import useDimensions from "@hooks/useDimensions";
+import { useMemo } from "react";
 
 export default function LatestRelease(props: { album_data: CompactPlaylist }) {
 	const { colors } = usePTheme();
+	const { width } = useDimensions();
+	const card_width = useMemo(() => width - 20, [width]);
 
 	function on_press() {
 		if (props.album_data.song_track) {
@@ -19,7 +23,7 @@ export default function LatestRelease(props: { album_data: CompactPlaylist }) {
 	}
 
 	return (
-		<TouchableOpacity onPress={on_press} style={{ backgroundColor: colors.shelf, width: Dimensions.get("screen").width - 20, height: 90, alignSelf: "center", borderRadius: 3, flexDirection: "row", justifyContent: "space-between", borderColor: colors.line, borderWidth: 1 }}>
+		<TouchableOpacity onPress={on_press} style={{ backgroundColor: colors.shelf, width: card_width, height: 90, alignSelf: "center", borderRadius: 3, flexDirection: "row", justifyContent: "space-between", borderColor: colors.line, borderWidth: 1 }}>
 			<View>
 				<Text style={{ color: colors.subtext, fontSize: 16, fontWeight: "700", paddingLeft: 8, paddingTop: 12 }}>Latest Release</Text>
 				<Text style={{ color: colors.text, fontSize: 14, fontWeight: "bold", paddingLeft: 10, paddingTop: 4 }}>{props.album_data.title.name}</Text>

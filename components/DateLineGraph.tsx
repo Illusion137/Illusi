@@ -16,18 +16,16 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 	const display_point = selected_point ?? (props.points.length > 0 ? props.points[props.points.length - 1] : null);
 	const max_plays = props.points.length > 0 ? Math.max(...props.points.map((p) => p.value)) : 0;
 	const min_plays = props.points.length > 0 ? Math.min(...props.points.map((p) => p.value)) : 0;
-	const graph_x_min = props.points[0].date;
-	const graph_x_max = props.points.length > 0 ? props.points[props.points.length - 1].date : new Date();
 	const graph_points: GraphPoint[] = (() => {
 		if (props.points.length < 2) return props.points;
 		const result: GraphPoint[] = [];
-		const cur = new Date(props.points[0].date);
+		const cur = new Date(props.points[0]?.date);
 		cur.setHours(0, 0, 0, 0);
-		const last = props.points[props.points.length - 1].date;
+		const last = props.points[props.points.length - 1]?.date;
 		if (props.use_point_values) {
 			// Use last actual value per day (for pre-computed cumulative values like time played)
 			const by_day = new Map<string, number>();
-			props.points.forEach((p) => by_day.set(p.date.toDateString(), p.value));
+			props.points.forEach((p) => by_day.set(p.date?.toDateString(), p.value));
 			let last_value = props.points[0].value;
 			while (cur <= last) {
 				const val = by_day.get(cur.toDateString());
@@ -39,7 +37,7 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 			// Count occurrences per day and accumulate (for event-based data like plays)
 			const by_day = new Map<string, number>();
 			props.points.forEach((p) => {
-				const key = p.date.toDateString();
+				const key = p.date?.toDateString();
 				by_day.set(key, (by_day.get(key) ?? 0) + 1);
 			});
 			let running = min_plays - 1;
@@ -51,11 +49,12 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 		}
 		return result;
 	})();
-
+	if (graph_points.length < 2) return null;
+	const graph_x_min_norm = graph_points[0].date;
+	const graph_x_max_norm = graph_points[graph_points.length - 1].date;
 	function format_date_short(date: Date) {
 		return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
 	}
-
 	return (
 		<>
 			{props.points.length >= 2 ? (
@@ -65,7 +64,7 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 						{display_point ? (
 							<View style={{ alignItems: "flex-end" }}>
 								<Text style={{ color: graph_color, fontWeight: "800", fontSize: 22, letterSpacing: -0.5 }}>{display_point.value}</Text>
-								<Text style={{ color: colors.subtext, fontSize: 11, marginTop: 1 }}>{format_date_short(display_point.date)}</Text>
+								<Text style={{ color: colors.subtext, fontSize: 11, marginTop: 1 }}>{format_date_short(display_point?.date)}</Text>
 							</View>
 						) : null}
 					</View>
@@ -74,7 +73,7 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 						style={{ width: "100%", height: 180 }}
 						animated={true}
 						points={graph_points}
-						range={{ x: { min: graph_x_min, max: graph_x_max } }}
+						range={{ x: { min: graph_x_min_norm, max: graph_x_max_norm } }}
 						color={graph_color}
 						gradientFillColors={[graph_color + "BB", graph_color + "33", "transparent"]}
 						lineThickness={2.5}
@@ -91,9 +90,9 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 					/>
 					{/* X-axis date labels */}
 					<View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 }}>
-						<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(props.points[0].date)}</Text>
+						<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(props.points[0]?.date)}</Text>
 						{props.points.length > 2 ? <Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(props.points[Math.floor(props.points.length / 2)].date)}</Text> : null}
-						<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(props.points[props.points.length - 1].date)}</Text>
+						<Text style={{ color: colors.subtext, fontSize: 10, fontWeight: "500" }}>{format_date_short(props.points[props.points.length - 1]?.date)}</Text>
 					</View>
 				</View>
 			) : null}
@@ -103,47 +102,10 @@ export function DateLineGraph(props: { title: string; points: GraphPoint[]; grap
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		section_card: {
-			marginHorizontal: 16,
-			marginTop: 16,
-			backgroundColor: "#ffffff06",
-			borderRadius: 16,
-			borderWidth: 0.5,
-			borderColor: "#ffffff0f",
-			padding: 16
-		},
-		section_label: {
-			color: colors.text,
-			fontWeight: "800",
-			fontSize: 16,
-			letterSpacing: 0.2
-		},
-		field_divider: {
-			height: 0.5,
-			backgroundColor: colors.text + "30",
-			marginTop: 8
-		},
-		row_label: {
-			width: "45%",
-			color: colors.searchPlaceholder,
-			fontSize: 12,
-			fontWeight: "700",
-			letterSpacing: 0.4
-		},
-		row_value: {
-			flex: 1,
-			color: colors.text,
-			fontSize: 13,
-			fontWeight: "500"
-		},
-		action_button_inline: {
-			flexDirection: "row",
-			alignItems: "center",
-			backgroundColor: colors.primary + "18",
-			borderRadius: 8,
-			paddingVertical: 6,
-			paddingHorizontal: 10,
-			borderWidth: 0.5,
-			borderColor: colors.primary + "30"
-		}
+		section_card: { marginHorizontal: 16, marginTop: 16, backgroundColor: "#ffffff06", borderRadius: 16, borderWidth: 0.5, borderColor: "#ffffff0f", padding: 16 },
+		section_label: { color: colors.text, fontWeight: "800", fontSize: 16, letterSpacing: 0.2 },
+		field_divider: { height: 0.5, backgroundColor: colors.text + "30", marginTop: 8 },
+		row_label: { width: "45%", color: colors.searchPlaceholder, fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+		row_value: { flex: 1, color: colors.text, fontSize: 13, fontWeight: "500" },
+		action_button_inline: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primary + "18", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10, borderWidth: 0.5, borderColor: colors.primary + "30" }
 	});

@@ -83,10 +83,7 @@ export default function ExtraExternalServicesScreen() {
 
 		const cookie_jar = Prefs.get_pref(illusive_service.pref_cookie_jar!) as CookieJar;
 
-		console.log(CookieJar.fromCookies(result).toString());
-
 		cookie_jar.merge(CookieJar.fromCookies(result));
-		console.log(cookie_jar.toString());
 		await Prefs.save_pref(illusive_service.pref_cookie_jar!, cookie_jar);
 		const updated_cookies_enabled = { ...external_services_cookies_enabled };
 		if (illusive_service.has_credentials()) updated_cookies_enabled[current_service!] = true;

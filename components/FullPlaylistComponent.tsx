@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState, useMemo } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import type { FullPlaylist } from "@illusive/types";
 import type { Track } from "@illusive/types";
@@ -9,18 +9,20 @@ import { remove_topic } from "@common/utils/clean_util";
 import { SharedRouter } from "@utils/shared_routes";
 import IImage from "./IImage";
 import type { Prefs } from "@illusive/prefs";
+import useDimensions from "@hooks/useDimensions";
 
 function get_playlist_artwork(playlist: FullPlaylist) {
 	if (playlist.artwork_url) return playlist.artwork_url;
 	if (playlist.artwork_index) return playlist.artwork_index;
-	const best = playlist.artwork_thumbnails?.sort((a, b) => (b.width ?? 0) - (a.width ?? 0))?.[0];
+	const best = [...(playlist.artwork_thumbnails ?? [])]?.sort((a, b) => (b.width ?? 0) - (a.width ?? 0))?.[0];
 	return best?.url ?? 0;
 }
 
 export type SecondLineType = "YEAR" | "ARTIST";
 
 export default function FullPlaylistComponent(props: { playlist_data: FullPlaylist; second_line_type?: SecondLineType; size?: number; other_tracks?: Track[] }) {
-	const size = props.size ?? Dimensions.get("screen").width * 0.4;
+	const { width } = useDimensions();
+	const size = useMemo(() => props.size ?? width * 0.4, [props.size, width]);
 	const { colors } = usePTheme();
 	const [loading, set_loading] = useState(false);
 

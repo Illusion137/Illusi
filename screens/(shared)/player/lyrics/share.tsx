@@ -1,5 +1,6 @@
 import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string } from "@illusive/illusive_utils";
@@ -11,13 +12,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { useEffect, useMemo, useState } from "react";
-import { Dimensions, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { router } from "expo-router";
 
 export default function PlayerShareLyrics() {
 	const { colors } = usePTheme();
+	const { height } = useDimensions();
+	const gradient_height = useMemo(() => height * 0.4, [height]);
 	const [track, set_track] = useState<Track | null>(null);
 	const [lyrics, set_lyrics] = useState<string | null>(null);
 	const [copy_state, set_copy_state] = useState<LoadingState>("NONE");
@@ -96,7 +99,7 @@ export default function PlayerShareLyrics() {
 			{track_colors ? (
 				<LinearGradient
 					colors={[track_colors.primary, track_colors.background, "transparent"]}
-					style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.4, width: "100%", zIndex: -1 }}
+					style={{ position: "absolute", top: 0, height: gradient_height, width: "100%", zIndex: -1 }}
 				/>
 			) : null}
 			<ScrollView scrollToOverflowEnabled={false} contentContainerStyle={{ paddingBottom: 20 }}>

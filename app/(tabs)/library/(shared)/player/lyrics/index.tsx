@@ -1,6 +1,7 @@
 import { is_empty } from "@common/utils/util";
 import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
 import { GLOBALS } from "@illusive/globals";
 import { ExampleObj } from "@illusive/example_objs";
@@ -11,8 +12,8 @@ import type { Track } from "@illusive/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 import { UITextView } from "react-native-uitextview";
 import { SharedRouter } from "@utils/shared_routes";
@@ -48,6 +49,8 @@ export default function AudioPlayerLyrics() {
 	const { lyrics_uri } = useLocalSearchParams<{ lyrics_uri: string }>();
 
 	const { colors } = usePTheme();
+	const { height } = useDimensions();
+	const gradient_height = useMemo(() => height * 0.4, [height]);
 	const styles = theme_styles(colors);
 
 	const [track, set_track] = useState<Track | null>(null);
@@ -221,7 +224,7 @@ export default function AudioPlayerLyrics() {
 				<View style={{ height: 3, width: `${progress_ratio * 100}%`, backgroundColor: track_colors?.detail ?? colors.primary }} />
 			</View>
 			<View style={{ height: 30 }} />
-			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: Dimensions.get("screen").height * 0.4, width: "100%", zIndex: -1 }} /> : null}
+			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: gradient_height, width: "100%", zIndex: -1 }} /> : null}
 			<ScrollView
 				ref={scrollview_ref}
 				onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)}

@@ -1,27 +1,29 @@
-import { Dimensions, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import type { ArtistSortMode, CompactArtist, NamedUUID } from "@illusive/types";
 import BigList from "react-native-big-list";
 import SearchBarV1 from "@components/SearchBarV1";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { artist_query_filter } from "@illusive/illusive_utils";
 import { COMPACT_ARTIST_QUERY_FLAGS } from "@illusive/query_flags";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { MenuConfig } from "react-native-ios-context-menu";
-import { ContextMenuButton } from "react-native-ios-context-menu";
+import type { MenuConfig } from "@components/ContextMenu";
+import { ContextMenuButton } from "@components/ContextMenu";
 import { GLOBALS } from '@illusive/globals'
 import RowArtist from "@components/RowArtist";
 import usePTheme from "@hooks/usePTheme";
 import { SQLArtists } from "@illusive/sql/sql_artists";
 import { router } from "expo-router";
 import { AntDesignTouchableOpacity } from "@components/TouchableIconOpacity";
+import useDimensions from "@hooks/useDimensions";
 
 export default function ArtistGridRenderer(props: {
     title: string;
     artist_data: NamedUUID[];
 }){
     const { colors } = usePTheme();
-    
-    const artist_size = Dimensions.get('screen').width * .28;
+    const { width } = useDimensions();
+
+    const artist_size = useMemo(() => width * .28, [width]);
     const columns = 3;
     const [query, set_query] = useState<string>("");
     const [sort_mode, set_sort_mode] = useState<ArtistSortMode>("NEWEST");

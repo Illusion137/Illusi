@@ -5,7 +5,7 @@ import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import FourTrackArtwork from "./FourTrackArtwork";
 import type { Playlist, Track } from "@illusive/types";
 import type { Prefs } from "@illusive/prefs";
-import { ContextMenuView } from "react-native-ios-context-menu";
+import { ContextMenuView } from "@components/ContextMenu";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import { sprinkle_into_queue } from "@illusive/illusi/src/play";
 import { Constants } from "@illusive/constants";

@@ -37,6 +37,7 @@ export default function IllusiExplore() {
 	const [forgotten_favorites, set_forgotten_favorites] = useState<CompactPlaylist[]>([]);
 	const [top_tracks, set_top_tracks] = useState<Track[]>([]);
 	const [for_you_playlists, set_for_you_playlists] = useState<FullPlaylist[]>([]);
+	const [illusi_public_playlists, set_illusi_public_playlists] = useState<CompactPlaylist[]>([]);
 
 	async function get_persistant_new_releases(refreshed?: boolean) {
 		if (shared_values.cached_new_releases.length !== 0 && refreshed !== true) return [];
@@ -55,6 +56,7 @@ export default function IllusiExplore() {
 			await get_persistant_new_releases();
 			set_is_loading_new_releases(false);
 			set_for_you_playlists(await Explore.get_recommended_playlists());
+			set_illusi_public_playlists(await Explore.get_illusi_public_playlists());
 		})();
 	}, []);
 
@@ -79,7 +81,7 @@ export default function IllusiExplore() {
 			/>
 			<View style={{ height: 10 }} />
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
-			<FullPlaylistList title="For You" playlists={for_you_playlists} />
+			{for_you_playlists.length === 0 ? null : <FullPlaylistList title="For You" playlists={for_you_playlists} />}
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
 			{should_show_rewind ? <IllusiRewindComponent /> : null}
 			<View style={{ height: 10 }} />
@@ -102,7 +104,8 @@ export default function IllusiExplore() {
 				</>
 			) : null}
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
-			<AlbumList title="Illusi Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={[ExploreLocalData.christmas_playlist]} />
+			{illusi_public_playlists.length > 0 ? <AlbumList title="Illusi Public Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
+			<AlbumList title="Illusi Made Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={[ExploreLocalData.christmas_playlist]} />
 			<View style={{ height: 100 }} />
 		</ScrollView>
 	);

@@ -1,10 +1,10 @@
-import { Dimensions, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { CompactPlaylist } from "@illusive/types";
 import type { Track } from "@illusive/types";
 import { get_album_artwork, track_exists } from "@illusive/illusive_utils";
 import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
-import { ContextMenuView } from "react-native-ios-context-menu";
+import { ContextMenuView } from "@components/ContextMenu";
 import { useEffect, useState } from "react";
 import { GLOBALS } from "@illusive/globals";
 import { insert_into_write_playlist } from "@illusive/illusi/src/components/track";
@@ -14,10 +14,12 @@ import { empty_join_dot, single_case } from "@common/utils/util";
 import IImage from "./IImage";
 import { remove_topic } from "@common/utils/clean_util";
 import { SharedRouter } from "@utils/shared_routes";
+import useDimensions from "@hooks/useDimensions";
 
 export type SecondLineType = "YEAR" | "ARTIST";
 export default function Album(props: { album_data: CompactPlaylist; second_line_type?: SecondLineType; size?: number; other_tracks?: Track[] }) {
-	const size = props.size ?? Dimensions.get("screen").width * 0.4;
+	const { width } = useDimensions();
+	const size = props.size ?? width * 0.4;
 	const { colors } = usePTheme();
 
 	const [target_view_node, set_target_view_node] = useState();

@@ -4,6 +4,7 @@ import IImage from "@components/IImage";
 import ModalHeader from "@components/ModalHeader";
 import { Ionicons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
+import useDimensions from "@hooks/useDimensions";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { Illusive } from "@illusive/illusive";
 import { Prefs } from "@illusive/prefs";
@@ -13,7 +14,7 @@ import { get_common_styles } from "@utils/common_styles";
 import { router, useLocalSearchParams } from "expo-router";
 import hexToRgba from "hex-to-rgba";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Alert, Animated, Dimensions, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 
 function sorted_music_service_entries(type: MusicServiceType) {
@@ -25,8 +26,6 @@ function sorted_music_service_entries(type: MusicServiceType) {
 	[entries[0], entries[index]] = [entries[index], entries[0]];
 	return entries;
 }
-
-const service_selector_size = (Dimensions.get("window").width - 40 - Illusive.music_service.size * 2) / (Illusive.music_service.size - 2);
 export interface ServiceSelectorHandle {
 	force_set_selected: (type: MusicServiceType) => void;
 }
@@ -36,9 +35,12 @@ export interface ServiceSelectorProps {
 }
 const ServiceSelector = forwardRef<ServiceSelectorHandle, ServiceSelectorProps>((props: ServiceSelectorProps, ref) => {
 	const { colors } = usePTheme();
+	const { width } = useDimensions();
 	const common_styles = get_common_styles(colors);
 	const [selected, set_selected] = useState<MusicServiceType>("Illusi");
 	const [is_selecting, set_is_selecting] = useState(false);
+
+	const service_selector_size = useMemo(() => (width - 40 - Illusive.music_service.size * 2) / (Illusive.music_service.size - 2), [width]);
 
 	const force_set_selected = (type: MusicServiceType) => set_selected(type);
 

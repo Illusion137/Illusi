@@ -54,6 +54,18 @@ target 'Illusi' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # Ensure every pod target uses at least our app deployment target.
+    # This avoids Xcode 16+ archive failures from old podspec defaults (e.g. 8.0/9.0).
+    deployment_target = podfile_properties['ios.deploymentTarget'] || '15.1'
+    installer.pods_project.build_configurations.each do |build_configuration|
+      build_configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = deployment_target
+    end
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_configuration|
+        build_configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = deployment_target
+      end
+    end
+
     # RCTDeprecation lacks :modular_headers => true in react_native_pods.rb.
     # With DEFINES_MODULE=YES, Xcode looks for the module map at Headers/Public/RCTDeprecation/.
     # Create it there so the module can be resolved from React-Core-prebuilt imports.

@@ -1,5 +1,5 @@
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from "react-native";
-import type { Prefs } from "@illusive/prefs";
+import { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { SQLDev } from "@illusive/sql/sql_dev";
 import * as Sharing from "expo-sharing";
@@ -7,6 +7,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import usePTheme from "@hooks/usePTheme";
+import { ChangeTracker } from "@illusive/db/sync/change_tracker";
+import { useEffect, useState } from "react";
+import type { CompressedChange } from "@illusive/db/sync/types";
+import { sync_engine_instance } from "@illusive/startup";
 
 export default function ExtraDeveloperScreen() {
 	const { colors } = usePTheme();
@@ -16,6 +20,12 @@ export default function ExtraDeveloperScreen() {
 		await Sharing.shareAsync(FileSystem.documentDirectory + "SQLite");
 	}
 
+	const [changes, set_changes] = useState<CompressedChange[]>([]);
+
+	useEffect(() => {
+		ChangeTracker.get_pending_changes().then((c) => set_changes(c));
+	}, []);
+
 	return (
 		<ScrollView style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
 			<ExtrasSectionButton
@@ -24,6 +34,15 @@ export default function ExtraDeveloperScreen() {
 				icon="hammer-outline"
 				onPress={async () => {
 					SQLDev.fetch_and_load_new_sqlite_file();
+				}}
+			/>
+			<ExtrasSectionButton
+				show_arrow={true}
+				text="Mark Data Synced"
+				icon="hammer-outline"
+				onPress={async () => {
+					sync_engine_instance?.mark_all_tables_synced_now();
+					Prefs.save_pref("last_synced", new Date());
 				}}
 			/>
 			<ExtrasSectionButton
@@ -46,11 +65,16 @@ export default function ExtraDeveloperScreen() {
 					});
 				}}
 			/>
-			<View style={{ flexDirection: "row", height: "30%" }}>
+			<View style={{ flexDirection: "row", height: 100 }}>
 				<TouchableOpacity style={styles.button} onPress={exportSQLData}>
 					<Text style={styles.button_text}>Export SQL Data</Text>
 				</TouchableOpacity>
 			</View>
+			{changes.map((change) => (
+				<View key={change.record_id}>
+					<Text style={{ color: colors.text }}>{JSON.stringify(change)}</Text>
+				</View>
+			))}
 			{/* <TextInput
 				style={{ height: "15%", width: "100%", backgroundColor: "#302060", color: "white", padding: 5 }}
 				placeholder="Enter SQL Statement..."
@@ -88,20 +112,8 @@ export default function ExtraDeveloperScreen() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		button: {
-			backgroundColor: "#201050",
-			width: "33%",
-			height: "100%",
-			borderRadius: 10,
-			justifyContent: "center",
-			alignItems: "center"
-		},
-		button_text: {
-			color: colors.text,
-			fontWeight: "bold",
-			width: 100,
-			textAlign: "center"
-		},
+		button: { backgroundColor: "#201050", width: "33%", height: "100%", borderRadius: 10, justifyContent: "center", alignItems: "center" },
+		button_text: { color: colors.text, fontWeight: "bold", width: 100, textAlign: "center" },
 		container: { flex: 1, padding: 16, paddingTop: 30, backgroundColor: "#fff" },
 		header: { height: 50, backgroundColor: "#537791" },
 		text: { textAlign: "center", fontWeight: "100" },
