@@ -2,7 +2,7 @@ import { BG, buildURL, GOOG_API_KEY, USER_AGENT } from "bgutils-js";
 import { JSDOM } from "jsdom";
 import nodeFetch from "node-fetch";
 
-const REQUEST_KEY = "O43z0dpjhgX20SCx4KAo";
+const REQUEST_KEY = process.env.YOUTUBE_REQUEST_KEY;
 
 async function setupGlobals() {
 	if (typeof globalThis.document !== "undefined") return;
@@ -80,6 +80,10 @@ async function setupGlobals() {
 let attestation_challenge_cache;
 
 export async function generateContentBoundPoToken(content_binding, context) {
+	if (!REQUEST_KEY) {
+		throw new Error("YOUTUBE_REQUEST_KEY environment variable is not set");
+	}
+
 	await setupGlobals();
 
 	let challengeData;
