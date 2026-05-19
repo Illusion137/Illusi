@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Fontisto, Ionicons, SimpleLineIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
-import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-track-player";
 import NavLink from "@components/NavLink";
@@ -13,7 +13,6 @@ import { is_empty, shuffle_array } from "@common/utils/util";
 import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, save_past_queue, setup_track_player, track_player_next, track_player_previous } from "@illusive/track_player_service";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { artist_string, track_exists } from "@illusive/illusive_utils";
-import ScaledImage from "@components/ScaledImage";
 import { ContextMenuButton, ContextMenuView } from "@components/ContextMenu";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { remove_topic } from "@common/utils/clean_util";
@@ -26,13 +25,17 @@ import SlidingUpPanel, { type SlidingUpPanelHandle } from "rn-sliding-up-panel-r
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import TrackIconTags from "@components/TrackIconTags";
 import { Lyrics } from "@illusive/lyrics";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
+const screen_w = Dimensions.get("screen").width;
 const top_padding = Dimensions.get("screen").height * 0.08;
 const panel_min_height = 125 + top_padding;
 const panel_max_height = Dimensions.get("screen").height;
+const art_top_y = top_padding + 45; // y-offset of center art within the full-panel overlay
 // const panel_bottom_height = panel_max_height - panel_min_height;
 
 export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playing_from: string }) {
@@ -89,6 +92,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		return () => cancelAnimation(shimmer_position);
 	}, []);
 	const shimmer_style = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(shimmer_position.value, [0, 1], [-200, 600]) }] }));
+	const header_bg_opacity_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, (panel_min_height + panel_max_height) / 2], [1, 0], Extrapolation.CLAMP) }));
 
 	async function reshuffle() {
 		const reshuffled_tracks = shuffle_array([...props.tracks]);
@@ -208,24 +212,25 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			});
 		} else if (event.type === Event.PlaybackState) {
 			set_player_state_type(event.state);
-			console.log(event.state);
 			switch (event.state) {
 				default:
 				case State.None:
 				case State.Ready:
 				case State.Playing:
+					shimmer_position.value = 0;
 					shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
 					break;
 				case State.Stopped:
 				case State.Ended:
 				case State.Paused:
-					cancelAnimation(shimmer_position);
+					shimmer_position.value = 0;
 					break;
 				case State.Loading:
 				case State.Buffering:
 					shimmer_position.value = withRepeat(withTiming(1, { duration: 300 }), -1, false);
 					break;
 				case State.Error:
+					shimmer_position.value = 0;
 					shimmer_position.value = withRepeat(withTiming(1, { duration: 100 }), -1, false);
 					break;
 			}
@@ -257,7 +262,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		SharedRouter.goto_shared_player_lyrics(lyrics_uri);
 	}
 
-	const tint = GLOBALS.global_var.tint_table.get(playing_track.uid);
+	const artwork = player_state_metadata.artwork;
+	const artwork_source = artwork == null ? undefined : typeof artwork === "number" ? artwork : typeof artwork === "string" ? { uri: artwork } : { uri: artwork.uri, cache: artwork.cache };
 	const begdur = playing_track.meta?.begdur ?? 0,
 		enddur = playing_track.meta?.enddur ?? playing_track.duration;
 
@@ -273,9 +279,31 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			snappingPoints={[panel_min_height, panel_max_height]}
 			containerStyle={{ left: 0, right: 0, display: "flex", zIndex: 10, top: "100%" }}>
 			<>
-				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ backgroundColor: colors.playScreen, height: top_padding }, panel_top_padding_style]} />
+				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
+					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
+						<Image source={artwork_source} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+					</View>
+					<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
+						<Image source={artwork_source} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+					</View>
+					<Image source={artwork_source} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
+					<MaskedView
+						style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
+						maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
+						<BlurView intensity={35} tint="dark" style={{ flex: 1 }} />
+					</MaskedView>
+					<MaskedView
+						style={{ position: "absolute", top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
+						maskElement={<LinearGradient colors={["transparent", "transparent", "black", "black"]} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
+						<BlurView intensity={80} tint="dark" style={{ flex: 1 }} />
+					</MaskedView>
+					<LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]} locations={[0, 0.55, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 25 }} />
+					<LinearGradient colors={["transparent", colors.playScreen]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 220 }} />
+				</Animated.View>
+				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ height: top_padding }, panel_top_padding_style]} />
 				{/* HEADER ---------------------------------------------------- */}
-				<View style={styles.header}>
+				<View style={[styles.header, { backgroundColor: "transparent" }]}>
+					<Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.playScreen }, header_bg_opacity_style]} pointerEvents="none" />
 					{!panel_state_visible &&
 						(() => {
 							const progress = player_state_metadata.duration > 0 ? player_state_trackplayer.elapsed_time / player_state_metadata.duration : 0;
@@ -318,9 +346,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						</TouchableOpacity>
 					) : null}
 				</View>
-				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, backgroundColor: colors.playScreen }, panel_content_style]}>
-					<View style={{ width: "100%", alignItems: "center", maxHeight: 500, minHeight: 400, overflow: "hidden" }}>
-						<View style={{ height: 50 }} />
+				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, justifyContent: "flex-end" }, panel_content_style]}>
+					{/* Transparent context menu covering the artwork square */}
+					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: Dimensions.get("screen").width }}>
 						<ContextMenuView
 							shouldEnableAggressiveCleanup
 							shouldCleanupOnComponentWillUnmountForMenuPreview
@@ -335,12 +363,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							onPressMenuItem={async ({ nativeEvent }) => {
 								ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
 							}}>
-							<ScaledImage
-								tint={tint ? { color: tint, opacity: 0.15 } : undefined}
-								artwork={player_state_metadata.artwork}
-								width={Dimensions.get("screen").width - 70}
-								style={{ opacity: player_state_type === State.Buffering ? 0.7 : 0.9, borderRadius: 10 }}
-							/>
+							<View style={{ width: "100%", height: Dimensions.get("screen").width }} />
 						</ContextMenuView>
 					</View>
 					{/* TITLE & ARTIST ----------------------------------------------------*/}

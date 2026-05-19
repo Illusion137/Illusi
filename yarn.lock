@@ -2397,6 +2397,10 @@
     invariant "^2.2.4"
     nullthrows "^1.1.1"
 
+"@react-native-masked-view/masked-view@react-native-masked-view/masked-view":
+  version "0.3.2"
+  resolved "https://codeload.github.com/react-native-masked-view/masked-view/tar.gz/14df52650be2441fbf6f2a0308cc54a62e68820c"
+
 "@react-native-picker/picker@2.11.4":
   version "2.11.4"
   resolved "https://registry.yarnpkg.com/@react-native-picker/picker/-/picker-2.11.4.tgz#7fb09506ee00a82989125cc03e8495204c8afc01"
@@ -5348,10 +5352,10 @@ expo-battery@56.0.0-canary-20260305-5163746:
   resolved "https://registry.yarnpkg.com/expo-battery/-/expo-battery-56.0.0-canary-20260305-5163746.tgz#c68f8dcca08bfbf58a1a2858d1463d8ab20cc8cd"
   integrity sha512-stqw1a+7da4eKuteMQdlXMyLvIKNfINqtikIABSSilYz/v0X5+AHfng7nROr9w/Q7Qa1kVa941S+i3CTKuOCvw==
 
-expo-blur@56.0.0-canary-20260305-5163746:
-  version "56.0.0-canary-20260305-5163746"
-  resolved "https://registry.yarnpkg.com/expo-blur/-/expo-blur-56.0.0-canary-20260305-5163746.tgz#d9e096c57b058a0a6ad491e9a83a0f81461fc326"
-  integrity sha512-kvuVko68/pmDhvzOM6Pp47H6hEcJlZTdzJGQj6trLUqh5xwFG5uyJjOsBg20AQCWMuHrtLwgnDq5JeJofJ84lg==
+expo-blur@^55.0.14:
+  version "55.0.14"
+  resolved "https://registry.yarnpkg.com/expo-blur/-/expo-blur-55.0.14.tgz#ae2cc7eb7766279830fc6d622ca7b4c8706eb786"
+  integrity sha512-NKyCKFWTNpX4CZSsiE1sgkqk/yvR1K0UTukuIbxVKoobB+yALLg1CFav0NqfdQqjhtoj5oEzP0Brlq92Z08Zfg==
 
 expo-build-properties@56.0.0-canary-20260305-5163746:
   version "56.0.0-canary-20260305-5163746"
@@ -5470,10 +5474,10 @@ expo-keep-awake@56.0.0-canary-20260305-5163746:
   resolved "https://registry.yarnpkg.com/expo-keep-awake/-/expo-keep-awake-56.0.0-canary-20260305-5163746.tgz#e93e0d60b7d1461f0ea37a626c8aa0792ce3f11f"
   integrity sha512-TKvOFWae3e+/6XZ/w0BuLyq+zTBstxnUIOtYNsq7YJEYl8TovC3k1TaLR6uoWTHTCuLucrwKpyf1tUJ9IzOMzA==
 
-expo-linear-gradient@56.0.0-canary-20260305-5163746:
-  version "56.0.0-canary-20260305-5163746"
-  resolved "https://registry.yarnpkg.com/expo-linear-gradient/-/expo-linear-gradient-56.0.0-canary-20260305-5163746.tgz#4e588e0baee7cea216c98bd185e05031bc2953fe"
-  integrity sha512-ZPG0spfGOeggpKDi+EfHVFvffwaiILy8nsbV9QOZwvPU+/kQxLBlE6EEOxwHBaDZcgGZlGsoAZZjgHdnGj0dgw==
+expo-linear-gradient@^55.0.14:
+  version "55.0.14"
+  resolved "https://registry.yarnpkg.com/expo-linear-gradient/-/expo-linear-gradient-55.0.14.tgz#a7714e3b94223a1d1cea21bc24e5c8ecbfdce823"
+  integrity sha512-n01A9P0ZebRo8Rm4QHYEjMR8z4Y6MBc8uVnT8NB9cOJislvEmz2o2WQJoK6RD7FjoeFEW8KkRtggK7fQ3h7KIg==
 
 expo-linking@56.0.0-canary-20260305-5163746:
   version "56.0.0-canary-20260305-5163746"
@@ -9161,6 +9165,11 @@ react-native-dropdown-select-list@^2.0.4:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/react-native-dropdown-select-list/-/react-native-dropdown-select-list-2.0.5.tgz#3626b2bf9b9c5e157b02f60cf36174cde7550056"
   integrity sha512-TepbcagQVUMB6nLuIlVU2ghRpQHAECOeZWe8K04ymW6NqbKbxuczZSDFfdCiABiiQ2dFD+8Dz65y4K7/uUEqGg==
+
+react-native-easing-gradient@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/react-native-easing-gradient/-/react-native-easing-gradient-1.1.1.tgz#8d099795d7a0065e67d37a8489bffe354ffb94fa"
+  integrity sha512-KrGU97kPTMrLNzVXxFirFMgl65uo70gVNoKw2OngDzcDfoswb648I3ggeCnoY+JgMWkPyx4LlG7n3ZNgSPFnLw==
 
 react-native-element-dropdown@^2.10.0:
   version "2.12.4"

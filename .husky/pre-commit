@@ -1,3 +1,2 @@
 yarn add github:Illusion137/RNTPvE;
-
 yarn lint-staged;
