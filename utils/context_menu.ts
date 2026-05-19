@@ -21,7 +21,7 @@ export function menu_folder(title: string, items: MenuElementConfig[], icon?: Ic
 	return { menuTitle: title, icon: resolve_icon(icon), menuItems: items, menuOptions: attributes };
 }
 export function extract_menu_items<Keys extends string>(items: MenuElementConfig[], keys: Keys[]): MenuElementConfig[] {
-	return items.filter((item) => keys.includes(reinterpret_cast<{ actionKey: Keys }>(item).actionKey));
+	return keys.flatMap((key) => items.filter((item) => reinterpret_cast<{ actionKey: Keys }>(item).actionKey === key));
 }
 export function get_menu_item<Keys extends string>(items: MenuElementConfig[], key: Keys) {
 	return items.find((item) => reinterpret_cast<{ actionKey: Keys }>(item).actionKey === key)!;
@@ -33,7 +33,7 @@ export namespace TrackContextMenu {
 	export const track_all_functions = (track: Track, write_playlist_uuid: string) => {
 		const is_playlist_saved =
 			((track.downloading_data?.playlist_saved ?? false) && write_playlist_uuid !== Constants.library_write_playlist) || ((track.downloading_data?.saved ?? false) && write_playlist_uuid === Constants.library_write_playlist);
-		const is_saved = is_playlist_saved || (track.downloading_data?.saved ?? false);
+		const is_saved = is_playlist_saved || (track.downloading_data?.saved ?? false) || GLOBALS.global_var.sql_tracks.find((t) => t.uid === track.uid);
 		return [
 			track_menu_item("track-push-discord", "Push Discord", () => (is_empty(Prefs.get_pref("discord_webhook_url")) || !is_empty(track.imported_id) ? ["hidden"] : undefined), discord_app_icon),
 			track.artists.length <= 1
@@ -60,7 +60,9 @@ export namespace TrackContextMenu {
 			track_menu_item("track-share-downloaded", "Downloaded File", () => (is_empty(track.media_uri) ? ["hidden"] : undefined), "folder.circle"),
 			track_menu_item("track-share-thumbnail", "Thumbnail", () => (is_empty(track.thumbnail_uri) ? ["hidden"] : undefined), "photo.artframe"),
 			track_menu_item("track-enqueue", "Enqueue Track", () => (!GLOBALS.global_var.is_playing ? ["hidden"] : undefined), "text.append"),
-			track_menu_item("track-play-next", "Play Next", () => (!GLOBALS.global_var.is_playing ? ["hidden"] : undefined), "text.insert")
+			track_menu_item("track-play-next", "Play Next", () => (!GLOBALS.global_var.is_playing ? ["hidden"] : undefined), "text.insert"),
+			track_menu_item("track-add-to-library", "Save to Library", () => (is_saved ? ["hidden"] : undefined), "plus.circle"),
+			track_menu_item("track-add-to-playlist", "Add to Playlist", undefined, "text.badge.plus")
 		];
 	};
 	export const track_extracted_attributes = (track: Track, write_playlist_uuid: string) =>
@@ -89,23 +91,37 @@ export namespace TrackContextMenu {
 	export const track_artwork_folder = (track: Track, write_playlist_uuid: string) =>
 		extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), ["track-upload-artwork", "track-download-thumbnail", "track-remove-artwork"]);
 
-	export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => [
-		...extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), ["track-view-artist", "track-view-album"]),
-		track_attributes_folder(track, write_playlist_uuid),
-		track_offline_folder(track, write_playlist_uuid),
-		track_share_folder(track, write_playlist_uuid),
-		track_destructive_folder(track, write_playlist_uuid),
-		...extract_menu_items<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), ["track-push-discord"])
-	];
+	export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => {
+		const all_fns = track_all_functions(track, write_playlist_uuid);
+		return [
+			...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-artist", "track-view-album"]),
+			{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-info", "track-edit-info", "track-trim-media"]) },
+			{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-add-to-library", "track-add-to-playlist"]) },
+			track_offline_folder(track, write_playlist_uuid),
+			track_share_folder(track, write_playlist_uuid),
+			track_destructive_folder(track, write_playlist_uuid)
+		];
+	};
 
 	const track_component_more_options_folder = (track: Track, write_playlist_uuid: string) => menu_folder("More Options", track_component_inner_context_menu(track, write_playlist_uuid), "option");
 
-	export const track_component_context_menu = (track: Track, write_playlist_uuid: string) =>
-		menu_folder("", [
-			get_menu_item<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), "track-enqueue"),
-			get_menu_item<ContextResolver.TrackContextKeys>(track_all_functions(track, write_playlist_uuid), "track-play-next"),
-			...(GLOBALS.global_var.is_playing ? [track_component_more_options_folder(track, write_playlist_uuid)] : track_component_inner_context_menu(track, write_playlist_uuid))
-		]);
+	export const track_component_context_menu = (track: Track, write_playlist_uuid: string) => {
+		const all_fns = track_all_functions(track, write_playlist_uuid);
+		return menu_folder(
+			"",
+			GLOBALS.global_var.is_playing
+				? [
+						{
+							menuTitle: "",
+							menuOptions: ["displayInline"] as UIMenuOptions[],
+							menuPreferredElementSize: "small" as const,
+							menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-enqueue", "track-play-next", "track-push-discord"])
+						},
+						track_component_more_options_folder(track, write_playlist_uuid)
+					]
+				: track_component_inner_context_menu(track, write_playlist_uuid)
+		);
+	};
 
 	// const menuconfig_more_options: MenuElementConfig = 						{
 	//     menuTitle: "More Options",

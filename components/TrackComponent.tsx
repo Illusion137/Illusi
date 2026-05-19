@@ -18,12 +18,26 @@ import { track_downloader } from "@illusive/downloader";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 
 // TODO crown top tracks
-function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof Constants.library_write_playlist | (string & {}); from?: string; playlist_uuid?: string; edit_mode?: EditMode; display_plays?: boolean; track_callback?: () => Track[]; width_fn?: () => DimensionValue | undefined; replace_album_with?: keyof Track; base_background?: boolean }) {
+function TrackComponent(props: {
+	track_data: Track;
+	write_playlist_uuid?: typeof Constants.library_write_playlist | (string & {});
+	from?: string;
+	playlist_uuid?: string;
+	edit_mode?: EditMode;
+	display_plays?: boolean;
+	track_callback?: () => Track[];
+	width_fn?: () => DimensionValue | undefined;
+	replace_album_with?: keyof Track;
+	base_background?: boolean;
+}) {
 	const [track_data, set_track_data] = useState(props.track_data);
 
 	const [is_downloading, set_is_downloading] = useState(GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
-	const [playlist_saved, set_playlist_saved] = useState(((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) || ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
+	const [playlist_saved, set_playlist_saved] = useState(
+		((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
+			((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+	);
 	const [downloading_progress, set_downloading_progress] = useState(0);
 
 	const [context_menu, set_context_menu] = useState<MenuConfig>(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ""));
@@ -74,16 +88,12 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 		(async () => {
 			if (props.write_playlist_uuid && props.write_playlist_uuid !== Constants.library_write_playlist) {
 				const temp_track_data = track_data;
-				const new_track_data = {
-					...temp_track_data,
-					downloading_data: {
-						saved: true,
-						progress: 0,
-						playlist_saved: await SQLPlaylists.track_exists_in_playlist({ uuid: props.write_playlist_uuid, track_uid: temp_track_data.uid })
-					}
-				};
+				const new_track_data = { ...temp_track_data, downloading_data: { saved: true, progress: 0, playlist_saved: await SQLPlaylists.track_exists_in_playlist({ uuid: props.write_playlist_uuid, track_uid: temp_track_data.uid }) } };
 				set_track_data(new_track_data);
-				set_playlist_saved(((new_track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) || ((new_track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist));
+				set_playlist_saved(
+					((new_track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
+						((new_track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+				);
 			}
 		})();
 		return () => {
@@ -118,6 +128,8 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 			}}>
 			<TrackComponentBase
 				track_data={props.track_data}
+				is_downloading={is_downloading}
+				downloading_progress={is_downloading ? downloading_progress : undefined}
 				active_opacity={disabled_from_write_playlist ? 0.9 : 0.2}
 				width_fn={props.width_fn}
 				disabled={disabled_from_edit_mode || (disabled_from_write_playlist && !notdisabled_from_write_playlist)}
@@ -138,9 +150,19 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 						icon_style={{ left: 40 }}
 					/>
 				) : null}
-				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ? <IoniconsTouchableOpacity on_press={async () => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)} style={styles.centered} icon_name="download" icon_size={30} icon_color={colors.primary} icon_style={{ left: 30 }} /> : null}
-				{is_downloading ? <Text style={{ color: "white", alignSelf: "flex-end", right: 10, bottom: 10 }}>{Math.floor(downloading_progress * 100)}%</Text> : null}
-				{props.edit_mode === "DELETE" && !is_downloading ? <IoniconsTouchableOpacity on_press={async () => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name="trash" icon_size={30} icon_color={colors.red} icon_style={styles.else_icon} /> : null}
+				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ? (
+					<IoniconsTouchableOpacity
+						on_press={async () => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)}
+						style={styles.centered}
+						icon_name="download"
+						icon_size={30}
+						icon_color={colors.primary}
+						icon_style={{ left: 30 }}
+					/>
+				) : null}
+				{props.edit_mode === "DELETE" && !is_downloading ? (
+					<IoniconsTouchableOpacity on_press={async () => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name="trash" icon_size={30} icon_color={colors.red} icon_style={styles.else_icon} />
+				) : null}
 				{props.edit_mode === "NONE" && (props.display_plays ?? false) ? <Text style={{ color: colors.text, left: 30, fontWeight: "800", fontSize: 25, alignSelf: "center" }}>{props.track_data.meta?.plays ?? 0}</Text> : null}
 			</TrackComponentBase>
 		</ContextMenuView>
@@ -149,59 +171,17 @@ function TrackComponent(props: { track_data: Track; write_playlist_uuid?: typeof
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		track_box: {
-			width: "100%",
-			height: 60,
-			flexDirection: "row"
-		},
-		image: {
-			left: 10,
-			height: 48,
-			width: 52,
-			borderRadius: 2,
-			resizeMode: "cover"
-		},
-		text: {
-			width: "65%",
-			top: 5,
-			left: 20
-		},
-		title: {
-			color: colors.title,
-			fontSize: 15
-		},
-		artist: {
-			color: colors.subtext,
-			fontSize: 14
-		},
-		album: {
-			color: colors.deeptext,
-			fontSize: 12,
-			top: 1,
-			marginRight: 4
-		},
-		line: {
-			height: 1,
-			backgroundColor: colors.line,
-			width: "90%",
-			left: 85
-		},
-		icon_thin: {
-			marginRight: 5
-		},
-		icon_thick: {
-			marginRight: 3
-		},
-		else_icon: {
-			right: 10,
-			paddingTop: 10,
-			paddingBottom: 10,
-			paddingLeft: 30,
-			paddingRight: 30
-		},
-		centered: {
-			justifyContent: "center"
-		}
+		track_box: { width: "100%", height: 60, flexDirection: "row" },
+		image: { left: 10, height: 48, width: 52, borderRadius: 2, resizeMode: "cover" },
+		text: { width: "65%", top: 5, left: 20 },
+		title: { color: colors.title, fontSize: 15 },
+		artist: { color: colors.subtext, fontSize: 14 },
+		album: { color: colors.deeptext, fontSize: 12, top: 1, marginRight: 4 },
+		line: { height: 1, backgroundColor: colors.line, width: "90%", left: 85 },
+		icon_thin: { marginRight: 5 },
+		icon_thick: { marginRight: 3 },
+		else_icon: { right: 10, paddingTop: 10, paddingBottom: 10, paddingLeft: 30, paddingRight: 30 },
+		centered: { justifyContent: "center" }
 	});
 
 export default TrackComponent;

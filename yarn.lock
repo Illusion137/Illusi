@@ -9302,6 +9302,10 @@ react-native-mmkv@3.3.3:
   resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-3.3.3.tgz#1f0326f6314e23725af8145964343224d074e6cd"
   integrity sha512-GMsfOmNzx0p5+CtrCFRVtpOOMYNJXuksBVARSQrCFaZwjUyHJdQzcN900GGaFFNTxw2fs8s5Xje//RDKj9+PZA==
 
+"react-native-mr-lecture@https://github.com/Illusion137/mr-lecture":
+  version "0.1.0"
+  resolved "https://github.com/Illusion137/mr-lecture#994467a52e0aa276fe402a80e25418c501336fb2"
+
 react-native-multi-slider@^0.3.6:
   version "0.3.6"
   resolved "https://registry.yarnpkg.com/react-native-multi-slider/-/react-native-multi-slider-0.3.6.tgz#3fa9d98bb92c8c27e05e3b43849f0a99ee9a42cc"
@@ -9340,6 +9344,10 @@ react-native-progress@^5.0.1:
   integrity sha512-TYfJ4auAe5vubDma2yfFvt7ktSI+UCfysqJnkdHEcLXqAitRFOozgF/cLgN5VNi/iLdaf3ga1ETi2RF4jVZ/+g==
   dependencies:
     prop-types "^15.7.2"
+
+"react-native-ptp@https://github.com/Illusion137/react-native-ptp":
+  version "0.1.0"
+  resolved "https://github.com/Illusion137/react-native-ptp#7e9ee78ddd8cc59a4c147e775d786ecf4ec63309"
 
 react-native-quick-base64@^2.2.2:
   version "2.2.2"
@@ -9473,6 +9481,10 @@ react-native-vector-icons@10.3.0:
   dependencies:
     prop-types "^15.7.2"
     yargs "^16.1.1"
+
+"react-native-vibenet@https://github.com/Illusion137/react-native-vibenet":
+  version "0.0.1"
+  resolved "https://github.com/Illusion137/react-native-vibenet#91d4f812ffb22dd80ce2a69aed714d79cb1fafc9"
 
 react-native-webview@13.16.0:
   version "13.16.0"

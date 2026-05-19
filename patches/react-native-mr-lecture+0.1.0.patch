@@ -1,0 +1,61 @@
+diff --git a/node_modules/react-native-mr-lecture/MrLecture.podspec b/node_modules/react-native-mr-lecture/MrLecture.podspec
+index 7bac4ca..89f9ad2 100644
+--- a/node_modules/react-native-mr-lecture/MrLecture.podspec
++++ b/node_modules/react-native-mr-lecture/MrLecture.podspec
+@@ -30,8 +30,6 @@ Pod::Spec.new do |s|
+   install_modules_dependencies(s)
+ 
+   # Piper TTS engine (optional — only needed if using engine: 'piper').
+-  # If sherpa-onnx is not available via CocoaPods, download the XCFramework from:
+-  #   https://github.com/k2-fsa/sherpa-onnx/releases
+-  # and add it as a vendored framework.
+-  s.dependency 'sherpa-onnx', '~> 1.10'
++  # Add sherpa-onnx as a vendored framework from https://github.com/k2-fsa/sherpa-onnx/releases
++  # or add `pod 'sherpa-onnx', '~> 1.10'` manually in your app's Podfile if it becomes available.
+ end
+diff --git a/node_modules/react-native-mr-lecture/ios/AVSEngine.swift b/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
+index 8028205..1068d5d 100644
+--- a/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
++++ b/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
+@@ -42,13 +42,18 @@ class AVSEngine {
+             for job in jobs {
+                 group.addTask {
+                     await semaphore.wait()
+-                    defer { semaphore.signal() }
+-                    try await self.exportOne(
+-                        text: job.text,
+-                        outputPath: job.outputPath,
+-                        voiceId: options.voiceId,
+-                        rate: options.rate
+-                    )
++                    do {
++                        try await self.exportOne(
++                            text: job.text,
++                            outputPath: job.outputPath,
++                            voiceId: options.voiceId,
++                            rate: options.rate
++                        )
++                        await semaphore.signal()
++                    } catch {
++                        await semaphore.signal()
++                        throw error
++                    }
+                 }
+             }
+             try await group.waitForAll()
+diff --git a/node_modules/react-native-mr-lecture/ios/PiperEngine.swift b/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
+index b40166b..0c2d026 100644
+--- a/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
++++ b/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
+@@ -111,8 +111,9 @@ class PiperEngine {
+             for job in jobs {
+                 group.addTask {
+                     await semaphore.wait()
+-                    defer { semaphore.signal() }
+-                    try self.generate(text: job.text, rate: options.rate, to: job.outputPath)
++                    let result = Result { try self.generate(text: job.text, rate: options.rate, to: job.outputPath) }
++                    await semaphore.signal()
++                    try result.get()
+                 }
+             }
+             try await group.waitForAll()

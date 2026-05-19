@@ -292,6 +292,30 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - MrLecture (0.1.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - NitroCookies (1.1.0):
     - hermes-engine
     - NitroModules
@@ -318,6 +342,30 @@ PODS:
     - Yoga
   - NitroModules (0.35.4):
     - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroVibenet (0.0.1):
+    - hermes-engine
+    - NitroModules
     - RCTRequired
     - RCTTypeSafety
     - React-callinvoker
@@ -2575,6 +2623,30 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - ReactNativeDependencies (0.84.1)
+  - ReactNativePtp (0.1.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNCAsyncStorage (2.2.0):
     - hermes-engine
     - RCTRequired
@@ -3079,8 +3151,10 @@ DEPENDENCIES:
   - ffmpeg-kit-react-native (from `../node_modules/ffmpeg-kit-react-native`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - ImageColors (from `../node_modules/react-native-image-colors/ios`)
+  - MrLecture (from `../node_modules/react-native-mr-lecture`)
   - NitroCookies (from `../node_modules/react-native-nitro-cookies`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
+  - NitroVibenet (from `../node_modules/react-native-vibenet`)
   - nodejs-mobile-react-native (from `../node_modules/nodejs-mobile-react-native`)
   - "op-sqlite (from `../node_modules/@op-engineering/op-sqlite`)"
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -3174,6 +3248,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "ReactNativeAutoPlay (from `../node_modules/@iternio/react-native-auto-play`)"
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - ReactNativePtp (from `../node_modules/react-native-ptp`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
@@ -3285,10 +3360,14 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.9
   ImageColors:
     :path: "../node_modules/react-native-image-colors/ios"
+  MrLecture:
+    :path: "../node_modules/react-native-mr-lecture"
   NitroCookies:
     :path: "../node_modules/react-native-nitro-cookies"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
+  NitroVibenet:
+    :path: "../node_modules/react-native-vibenet"
   nodejs-mobile-react-native:
     :path: "../node_modules/nodejs-mobile-react-native"
   op-sqlite:
@@ -3473,6 +3552,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@iternio/react-native-auto-play"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  ReactNativePtp:
+    :path: "../node_modules/react-native-ptp"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCClipboard:
@@ -3551,8 +3632,10 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  MrLecture: a59c09da91c5acf7c82ae48372cbb77cb1c4ecbb
   NitroCookies: 2f49d1935f61cdbc7b62c8de092e1ac3e11566d1
   NitroModules: f45159491c5a0e7161685a301b1c6c11440b3ab1
+  NitroVibenet: e714fcead5fc864f42dc4426bf65d6914227b407
   nodejs-mobile-react-native: 9efed1aafb3f02ec02240d539e24ec72fde97c21
   op-sqlite: 76a46b48c90f0d318495bb55beb1d1d0f472f69e
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
@@ -3645,6 +3728,7 @@ SPEC CHECKSUMS:
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
   ReactNativeAutoPlay: b16368da1e90c48399aabc300f604e27b655f2d3
   ReactNativeDependencies: 37432bff08e1c9ed3c485152e2f2ed2cef67cd33
+  ReactNativePtp: 964d3cfcc9c5ff0ae66801fe9751d6886996c418
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCClipboard: 88d7eeb555d1183915f0885bdbc5c97eb6f7f3ba
   RNCPicker: c8a3584b74133464ee926224463fcc54dfdaebca

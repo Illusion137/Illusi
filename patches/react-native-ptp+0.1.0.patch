@@ -1,0 +1,176 @@
+diff --git a/node_modules/react-native-ptp/ios/HybridPTP.swift b/node_modules/react-native-ptp/ios/HybridPTP.swift
+index 4b2ca13..05d0545 100644
+--- a/node_modules/react-native-ptp/ios/HybridPTP.swift
++++ b/node_modules/react-native-ptp/ios/HybridPTP.swift
+@@ -9,6 +9,46 @@ import Foundation
+ import MultipeerConnectivity
+ import NitroModules
+ 
++// NSObject-based proxy so HybridPTP (which cannot inherit NSObject) can be used as
++// MC delegate. All calls are forwarded to the owning HybridPTP instance.
++private class MCDelegateProxy: NSObject {
++    weak var owner: HybridPTP?
++    init(_ owner: HybridPTP) { self.owner = owner }
++}
++
++extension MCDelegateProxy: MCSessionDelegate {
++    func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
++        owner?.session(session, peer: peerID, didChange: state)
++    }
++    func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
++        owner?.session(session, didReceive: data, fromPeer: peerID)
++    }
++    func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {}
++    func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {}
++    func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}
++}
++
++extension MCDelegateProxy: MCNearbyServiceAdvertiserDelegate {
++    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
++        owner?.advertiser(advertiser, didReceiveInvitationFromPeer: peerID, withContext: context, invitationHandler: invitationHandler)
++    }
++    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) {
++        owner?.advertiser(advertiser, didNotStartAdvertisingPeer: error)
++    }
++}
++
++extension MCDelegateProxy: MCNearbyServiceBrowserDelegate {
++    func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
++        owner?.browser(browser, foundPeer: peerID, withDiscoveryInfo: info)
++    }
++    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
++        owner?.browser(browser, lostPeer: peerID)
++    }
++    func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
++        owner?.browser(browser, didNotStartBrowsingForPeers: error)
++    }
++}
++
+ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+ 
+     // MARK: - Event callbacks (protocol requirements from HybridPTPSpec_protocol)
+@@ -22,6 +62,7 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+ 
+     // MARK: - Private state (all mutations happen on main thread)
+ 
++    private var delegateProxy: MCDelegateProxy?
+     private var peerID: MCPeerID?
+     private var session: MCSession?
+     private var advertiser: MCNearbyServiceAdvertiser?
+@@ -40,9 +81,11 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+ 
+     func initialize(displayName: String) throws {
+         if session != nil { try destroy() }
++        let proxy = MCDelegateProxy(self)
++        delegateProxy = proxy
+         peerID = MCPeerID(displayName: displayName)
+         session = MCSession(peer: peerID!, securityIdentity: nil, encryptionPreference: .required)
+-        session?.delegate = self
++        session?.delegate = proxy
+     }
+ 
+     // MARK: - Advertising
+@@ -55,7 +98,7 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+             discoveryInfo: discoveryInfo.isEmpty ? nil : discoveryInfo,
+             serviceType: serviceType
+         )
+-        advertiser?.delegate = self
++        advertiser?.delegate = delegateProxy
+         advertiser?.startAdvertisingPeer()
+     }
+ 
+@@ -69,7 +112,7 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+         guard let peerID = peerID else { onError?("Call initialize() first"); return }
+         teardownBrowser()
+         browser = MCNearbyServiceBrowser(peer: peerID, serviceType: serviceType)
+-        browser?.delegate = self
++        browser?.delegate = delegateProxy
+         browser?.startBrowsingForPeers()
+     }
+ 
+@@ -169,6 +212,7 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+         session?.delegate = nil
+         session = nil
+         peerID = nil
++        delegateProxy = nil
+         uuidByPeer.removeAll()
+         peerByUUID.removeAll()
+         discoveryInfoByUUID.removeAll()
+@@ -200,9 +244,9 @@ class HybridPTP: HybridPTPSpec_base, HybridPTPSpec_protocol {
+     }
+ }
+ 
+-// MARK: - MCSessionDelegate
++// MARK: - MC delegate forwarding targets (called by MCDelegateProxy)
+ 
+-extension HybridPTP: MCSessionDelegate {
++extension HybridPTP {
+ 
+     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+         DispatchQueue.main.async { [weak self] in
+@@ -235,15 +279,6 @@ extension HybridPTP: MCSessionDelegate {
+         }
+     }
+ 
+-    func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {}
+-    func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {}
+-    func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}
+-}
+-
+-// MARK: - MCNearbyServiceAdvertiserDelegate
+-
+-extension HybridPTP: MCNearbyServiceAdvertiserDelegate {
+-
+     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+         DispatchQueue.main.async { [weak self] in
+             guard let self else { invitationHandler(false, nil); return }
+@@ -259,11 +294,6 @@ extension HybridPTP: MCNearbyServiceAdvertiserDelegate {
+             self?.onError?("Advertising failed: \(error.localizedDescription)")
+         }
+     }
+-}
+-
+-// MARK: - MCNearbyServiceBrowserDelegate
+-
+-extension HybridPTP: MCNearbyServiceBrowserDelegate {
+ 
+     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
+         DispatchQueue.main.async { [weak self] in
+diff --git a/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.mm b/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.mm
+index 3cdcea9..b5d4996 100644
+--- a/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.mm
++++ b/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.mm
+@@ -10,7 +10,7 @@
+ #import "ReactNativePtp-Swift-Cxx-Umbrella.hpp"
+ #import <type_traits>
+ 
+-#include "HybridReactNativePtpSpecSwift.hpp"
++#include "HybridPTPSpecSwift.hpp"
+ 
+ @interface ReactNativePtpAutolinking : NSObject
+ @end
+@@ -24,7 +24,7 @@
+   HybridObjectRegistry::registerHybridObjectConstructor(
+     "ReactNativePtp",
+     []() -> std::shared_ptr<HybridObject> {
+-      std::shared_ptr<HybridReactNativePtpSpec> hybridObject = ReactNativePtp::ReactNativePtpAutolinking::createReactNativePtp();
++      std::shared_ptr<HybridPTPSpec> hybridObject = ReactNativePtp::ReactNativePtpAutolinking::createReactNativePtp();
+       return hybridObject;
+     }
+   );
+diff --git a/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.swift b/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.swift
+index 4a3d680..9532f42 100644
+--- a/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.swift
++++ b/node_modules/react-native-ptp/nitrogen/generated/ios/ReactNativePtpAutolinking.swift
+@@ -12,9 +12,9 @@ import NitroModules
+ public final class ReactNativePtpAutolinking {
+   public typealias bridge = margelo.nitro.reactnativeptp.bridge.swift
+ 
+-  public static func createReactNativePtp() -> bridge.std__shared_ptr_HybridReactNativePtpSpec_ {
++  public static func createReactNativePtp() -> bridge.std__shared_ptr_HybridPTPSpec_ {
+     let hybridObject = HybridPTP()
+-    return { () -> bridge.std__shared_ptr_HybridReactNativePtpSpec_ in
++    return { () -> bridge.std__shared_ptr_HybridPTPSpec_ in
+       let __cxxWrapped = hybridObject.getCxxWrapper()
+       return __cxxWrapped.getCxxPart()
+     }()

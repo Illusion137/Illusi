@@ -19,14 +19,15 @@ import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { remove_topic } from "@common/utils/clean_util";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";
-import { TrackContextMenu } from "@utils/context_menu";
+import { extract_menu_items, TrackContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
 import { reinterpret_cast } from "@common/cast";
 import SlidingUpPanel, { type SlidingUpPanelHandle } from "rn-sliding-up-panel-reanimated";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import TrackIconTags from "@components/TrackIconTags";
 import { Lyrics } from "@illusive/lyrics";
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const top_padding = Dimensions.get("screen").height * 0.08;
@@ -81,6 +82,13 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const panel_top_padding_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 1], Extrapolation.CLAMP) }));
 	const panel_chevron_style = useAnimatedStyle(() => ({ transform: [{ rotate: `${interpolate(panel_animated.value, [panel_min_height, panel_max_height], [180, 0], Extrapolation.CLAMP)}deg` }] }));
 	const panel_content_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 2], Extrapolation.CLAMP) }));
+
+	const shimmer_position = useSharedValue(0);
+	useEffect(() => {
+		shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
+		return () => cancelAnimation(shimmer_position);
+	}, []);
+	const shimmer_style = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(shimmer_position.value, [0, 1], [-200, 600]) }] }));
 
 	async function reshuffle() {
 		const reshuffled_tracks = shuffle_array([...props.tracks]);
@@ -200,6 +208,27 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			});
 		} else if (event.type === Event.PlaybackState) {
 			set_player_state_type(event.state);
+			console.log(event.state);
+			switch (event.state) {
+				default:
+				case State.None:
+				case State.Ready:
+				case State.Playing:
+					shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
+					break;
+				case State.Stopped:
+				case State.Ended:
+				case State.Paused:
+					cancelAnimation(shimmer_position);
+					break;
+				case State.Loading:
+				case State.Buffering:
+					shimmer_position.value = withRepeat(withTiming(1, { duration: 300 }), -1, false);
+					break;
+				case State.Error:
+					shimmer_position.value = withRepeat(withTiming(1, { duration: 100 }), -1, false);
+					break;
+			}
 		}
 	});
 
@@ -247,6 +276,18 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ backgroundColor: colors.playScreen, height: top_padding }, panel_top_padding_style]} />
 				{/* HEADER ---------------------------------------------------- */}
 				<View style={styles.header}>
+					{!panel_state_visible &&
+						(() => {
+							const progress = player_state_metadata.duration > 0 ? player_state_trackplayer.elapsed_time / player_state_metadata.duration : 0;
+							return (
+								<View style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: `${Math.round(progress * 100)}%`, overflow: "hidden" }}>
+									<View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary + "22" }]} />
+									<Animated.View style={[{ position: "absolute", top: 0, bottom: 0, width: 200 }, shimmer_style]}>
+										<LinearGradient colors={["transparent", colors.primary + "15", colors.primary + "55", colors.primary + "15", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+									</Animated.View>
+								</View>
+							);
+						})()}
 					<Animated.View style={[{ left: 25 }, panel_chevron_style]}>
 						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} onPress={toggle_panel}>
 							<Ionicons name="chevron-down-sharp" size={20} color="#808080" />
@@ -284,7 +325,13 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							shouldEnableAggressiveCleanup
 							shouldCleanupOnComponentWillUnmountForMenuPreview
 							shouldCleanupOnComponentWillUnmountForAuxPreview
-							menuConfig={{ menuTitle: "", menuItems: TrackContextMenu.track_component_inner_context_menu(playing_track, "") }}
+							menuConfig={{
+								menuTitle: "",
+								menuItems: [
+									...extract_menu_items<ContextResolver.TrackContextKeys>(TrackContextMenu.track_all_functions(playing_track, ""), ["track-push-discord"]),
+									...TrackContextMenu.track_component_inner_context_menu(playing_track, "")
+								]
+							}}
 							onPressMenuItem={async ({ nativeEvent }) => {
 								ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
 							}}>
