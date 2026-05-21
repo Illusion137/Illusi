@@ -14,9 +14,7 @@ export default function ModalHeader(props: { title: string; background_color?: C
 	}
 
 	// On mobile, modals are sheets with rounded top corners; on desktop they're full windows
-	const headerBorderRadius = Platform.OS === 'ios' || Platform.OS === 'android'
-		? { borderTopLeftRadius: 10, borderTopRightRadius: 10 }
-		: {};
+	const headerBorderRadius = Platform.OS === "ios" || Platform.OS === "android" ? { borderTopLeftRadius: 3, borderTopRightRadius: 3 } : {};
 
 	return (
 		<View style={{ width: "100%", height: 55, backgroundColor: props.background_color ?? colors.shelf, justifyContent: "center", alignItems: "center", ...headerBorderRadius, flexDirection: "row" }}>
