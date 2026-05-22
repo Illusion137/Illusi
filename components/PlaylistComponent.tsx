@@ -12,15 +12,11 @@ import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";
 import { GLOBALS } from "@illusive/globals";
+import { duration_to_string, track_durations } from "@illusive/illusive_utils";
+import { empty_join_dot } from "../lib-origin/common/utils/util";
+import { sum } from "../lib-origin/Illusive/src/illusive_utils";
 
-export default function PlaylistComponent(props: {
-	playlist_data: Playlist;
-	select?: {
-		mode: boolean;
-		track: Track;
-	};
-	compact?: boolean;
-}) {
+export default function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: boolean; track: Track }; compact?: boolean }) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
@@ -44,10 +40,7 @@ export default function PlaylistComponent(props: {
 		(async () => {
 			if (props.playlist_data.visual_data) {
 				const resolved_tracks = await Promise.resolve(props.playlist_data.visual_data.four_track);
-				set_visual_data({
-					four_track: resolved_tracks?.slice(0, 4) ?? [],
-					track_count: resolved_tracks?.length ?? 0
-				});
+				set_visual_data({ four_track: resolved_tracks?.slice(0, 4) ?? [], track_count: resolved_tracks?.length ?? 0 });
 			}
 		})();
 	}, [props.playlist_data]);
@@ -107,58 +100,17 @@ export default function PlaylistComponent(props: {
 						actionKey: "playlist-sprinkle-in-queue",
 						actionTitle: "Sprinke in Queue",
 						menuAttributes: is_playing_music ? undefined : ["hidden"],
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageValue: {
-								systemName: "square.3.layers.3d.middle.filled"
-							}
-						}
+						icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "square.3.layers.3d.middle.filled" } }
 					},
-					{
-						actionKey: "playlist-pin",
-						actionTitle: props.playlist_data.pinned ? "Unpin" : "Pin",
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageValue: {
-								systemName: "pin"
-							}
-						}
-					},
-					{
-						actionKey: "playlist-public",
-						actionTitle: props.playlist_data.public ? "Make Private" : "Make Public",
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageValue: {
-								systemName: props.playlist_data.public ? "person" : "person.3.sequence"
-							}
-						}
-					},
-					{
-						actionKey: "playlist-archive",
-						actionTitle: props.playlist_data.archived ? "Unarchive" : "Archive",
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageValue: {
-								systemName: "archivebox"
-							}
-						}
-					},
+					{ actionKey: "playlist-pin", actionTitle: props.playlist_data.pinned ? "Unpin" : "Pin", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "pin" } } },
+					{ actionKey: "playlist-public", actionTitle: props.playlist_data.public ? "Make Private" : "Make Public", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: props.playlist_data.public ? "person" : "person.3.sequence" } } },
+					{ actionKey: "playlist-archive", actionTitle: props.playlist_data.archived ? "Unarchive" : "Archive", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "archivebox" } } },
 					{
 						actionKey: "playlist-delete",
 						actionSubtitle: props.playlist_data.pinned ? "Unable to delete a pinned playlist" : undefined,
 						actionTitle: "Delete",
 						menuAttributes: props.playlist_data.pinned ? ["disabled", "destructive"] : ["destructive"],
-						icon: {
-							type: "IMAGE_SYSTEM",
-							imageOptions: {
-								tint: colors.red,
-								renderingMode: "alwaysOriginal"
-							},
-							imageValue: {
-								systemName: "trash"
-							}
-						}
+						icon: { type: "IMAGE_SYSTEM", imageOptions: { tint: colors.red, renderingMode: "alwaysOriginal" }, imageValue: { systemName: "trash" } }
 					}
 				]
 			}}
@@ -189,62 +141,44 @@ export default function PlaylistComponent(props: {
 			}}>
 			<TouchableOpacity
 				disabled={disabled}
-				style={{
-					...styles.button,
-					opacity: disabled ? 0.5 : 1.0,
-					height: compact ? 55 : 80
-				}}
+				style={{ ...styles.button, opacity: disabled ? 0.5 : 1.0, height: compact ? 55 : 80 }}
 				onLongPress={() => {
 					return;
 				}}
 				delayLongPress={Constants.long_press_delay}
 				onPress={select_mode ? toggle_state : on_press}>
 				<>
-					<View style={{ width: 15 }} />
+					<View style={{ width: 7 }} />
 					<FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={visual_data?.four_track ?? []} size={compact ? 22 : 35} />
-					<View style={{ flexDirection: "column", left: 25 }}>
-						<Text style={{ color: colors.text, fontSize: 15 }}>{props.playlist_data.title}</Text>
-						<View style={{ flexDirection: "row", top: 5, alignItems: "center" }}>
-							{pinned ? <MaterialIcons name="push-pin" size={22} color={colors.primary} /> : null}
-							<Text style={{ color: colors.subtext }}>{visual_data?.track_count ?? 0} Tracks</Text>
-							{is_public ? <MaterialIcons name="person" size={22} color={colors.primary} style={{ left: 5 }} /> : null}
+					<View style={{ flexDirection: "column", left: 15, justifyContent: "center" }}>
+						<Text style={{ color: colors.text, fontSize: 15, fontWeight: "bold" }}>{props.playlist_data.title}</Text>
+						<View style={{ flexDirection: "row", alignItems: "center", top: 2 }}>
+							{pinned ? (
+								<>
+									<MaterialIcons name="push-pin" size={16} color={colors.primary} />
+									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
+								</>
+							) : null}
+							<Text style={{ color: colors.subtext, fontSize: 14 }}>
+								{empty_join_dot([`${visual_data?.track_count ?? 0} ${(visual_data?.track_count ?? 0) === 1 ? "track" : "tracks"}`, duration_to_string(sum(track_durations(visual_data?.four_track ?? [])))])}
+							</Text>
+							{is_public ? (
+								<>
+									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
+									<MaterialIcons name="people" size={16} color={colors.primary} />
+								</>
+							) : null}
 						</View>
 					</View>
 					{!select_mode ? null : (
-						<View
-							style={{
-								flex: 1,
-								justifyContent: "flex-end",
-								alignItems: "center"
-							}}>
+						<View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center" }}>
 							<Ionicons name={"checkmark"} size={22} color={selected ? colors.green : "#808080"} style={{ left: 80 }} />
 						</View>
 					)}
 				</>
 			</TouchableOpacity>
-			<View
-				style={{
-					width: "100%",
-					height: 1,
-					marginLeft: 90,
-					backgroundColor: colors.line
-				}}
-			/>
+			<View style={{ width: "100%", height: 1, marginLeft: 90, backgroundColor: colors.line }} />
 		</ContextMenuView>
 	);
 }
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
-	StyleSheet.create({
-		button: {
-			width: "100%",
-			alignItems: "center",
-			backgroundColor: colors.track,
-			flexDirection: "row"
-		},
-		notfound: {
-			width: 70,
-			height: 70,
-			borderRadius: 5,
-			left: 15
-		}
-	});
+const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({ button: { width: "100%", alignItems: "center", backgroundColor: colors.track, flexDirection: "row" }, notfound: { width: 70, height: 70, borderRadius: 5, left: 15 } });

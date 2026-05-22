@@ -1,0 +1,30 @@
+diff --git a/node_modules/react-native-vibenet/ios/NitroVibenetRegistration.mm b/node_modules/react-native-vibenet/ios/NitroVibenetRegistration.mm
+index b2c0f49..5cafcb6 100644
+--- a/node_modules/react-native-vibenet/ios/NitroVibenetRegistration.mm
++++ b/node_modules/react-native-vibenet/ios/NitroVibenetRegistration.mm
+@@ -1,9 +1,15 @@
+-#include "NitroVibenet-Swift-Cxx-Umbrella.hpp"
++#import <Foundation/Foundation.h>
++#import <NitroModules/HybridObjectRegistry.hpp>
++#import "NitroVibenet-Swift-Cxx-Umbrella.hpp"
++
+ #include "HybridVibenetSpecSwift.hpp"
+-#include <NitroModules/HybridObjectRegistry.hpp>
+ 
+-__attribute__((constructor))
+-static void register_nitro_vibenet() {
++@interface NitroVibenetRegistration : NSObject
++@end
++
++@implementation NitroVibenetRegistration
++
+++ (void)load {
+     margelo::nitro::HybridObjectRegistry::registerHybridObjectConstructor(
+         "Vibenet",
+         []() -> std::shared_ptr<margelo::nitro::HybridObject> {
+@@ -12,3 +18,5 @@ static void register_nitro_vibenet() {
+         }
+     );
+ }
++
++@end

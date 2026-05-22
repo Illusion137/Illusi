@@ -17,6 +17,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent }
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 import { UITextView } from "react-native-uitextview";
 import { SharedRouter } from "@utils/shared_routes";
+import { alert_error } from "@illusive/illusi/src/alert";
 
 interface LyricsSection {
 	header: string | null;
@@ -105,6 +106,7 @@ export default function AudioPlayerLyrics() {
 			const synced_text = await SQLTracks.read_track_synced_lyrics(resolved);
 			if (typeof synced_text === "string") {
 				const parsed = Lyrics.lrclib_synced_lyrics_to_json(synced_text);
+				if ("error" in parsed) alert_error(parsed);
 				if (!("error" in parsed) && parsed.lyrics.length > 0) {
 					synced_lyrics_ref.current = parsed.lyrics;
 					set_synced_lyrics(parsed.lyrics);
@@ -293,36 +295,8 @@ export default function AudioPlayerLyrics() {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		lyrics_text: {
-			color: colors.text,
-			fontWeight: "bold",
-			width: "85%",
-			fontSize: 24,
-			margin: 15,
-			marginVertical: 5
-		},
-		section_header: {
-			color: colors.primary,
-			fontWeight: "800",
-			fontSize: 11,
-			letterSpacing: 1.2,
-			textTransform: "uppercase",
-			marginBottom: 2,
-			marginHorizontal: 15
-		},
-		sync_button: {
-			position: "absolute",
-			bottom: 30,
-			alignSelf: "center",
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 6,
-			paddingHorizontal: 16,
-			paddingVertical: 8,
-			borderRadius: 20
-		},
-		sync_button_text: {
-			fontWeight: "700",
-			fontSize: 14
-		}
+		lyrics_text: { color: colors.text, fontWeight: "bold", width: "85%", fontSize: 24, margin: 15, marginVertical: 5 },
+		section_header: { color: colors.primary, fontWeight: "800", fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2, marginHorizontal: 15 },
+		sync_button: { position: "absolute", bottom: 30, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+		sync_button_text: { fontWeight: "700", fontSize: 14 }
 	});

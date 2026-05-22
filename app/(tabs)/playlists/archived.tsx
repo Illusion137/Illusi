@@ -73,14 +73,25 @@ export default function ArchivedPlaylists() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
-			<View style={{ flexDirection: "row", alignItems: "center", height: 55, width: "100%", backgroundColor: colors.shelf, borderTopLeftRadius: 15, borderTopRightRadius: 15, borderColor: colors.deeptext, borderWidth: 1 }}>
+			<View style={{ flexDirection: "row", alignItems: "center", height: 55, width: "100%", backgroundColor: colors.shelf, borderTopLeftRadius: 5, borderTopRightRadius: 5, borderColor: colors.deeptext, borderWidth: 1 }}>
 				<View style={{ marginLeft: 10 }}></View>
 				<Button title="Hide" color={colors.primary} onPress={hide}></Button>
 				<View style={{ marginRight: 60 }}></View>
 				<Text style={{ color: colors.text, fontWeight: "500", fontSize: 18, alignSelf: "center" }}>Archived Playlists</Text>
 			</View>
 			<View style={{ height: 0.6, backgroundColor: colors.line }} />
-			<BigList style={{ height: "70%" }} data={sorted_queried_playlists} keyExtractor={(item, _) => item.uuid} renderEmpty={() => <EmptyArchivedPlaylistsComponent />} itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81} headerHeight={0} footerHeight={500} renderItem={render_item} renderHeader={() => <></>} renderFooter={render_footer} />
+			<BigList
+				style={{ height: "70%" }}
+				data={sorted_queried_playlists}
+				keyExtractor={(item, _) => item.uuid}
+				renderEmpty={() => <EmptyArchivedPlaylistsComponent />}
+				itemHeight={Prefs.get_pref("compact_playlists") ? 56 : 81}
+				headerHeight={0}
+				footerHeight={500}
+				renderItem={render_item}
+				renderHeader={() => <></>}
+				renderFooter={render_footer}
+			/>
 		</View>
 	);
 }
