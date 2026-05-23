@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Fontisto, Ionicons, SimpleLineIcons } from "@expo/vector-icons";
+import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
 import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -409,14 +409,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						</Text>
 					</TouchableOpacity>
 					{panel_state_visible ? (
-						<TouchableOpacity
-							hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }}
-							style={{ top: 0, right: 20 }}
-							onPress={async () => {
-								SharedRouter.goto_shared_player_queue();
-							}}>
-							<Fontisto name="play-list" size={15} color={colors.primary} />
-						</TouchableOpacity>
+						<View>
+							<Fontisto name="play-list" size={15} color={"#00000000"} />
+						</View>
 					) : null}
 					{!panel_state_visible ? (
 						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20 }} onPress={toggle_playing}>
@@ -455,7 +450,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 								<>
 									<NavLink type="album" text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet} />
 									<View style={{ flexDirection: "row", marginTop: 3 }}>
-										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} />
+										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} darken />
 									</View>
 								</>
 							) : (
@@ -489,8 +484,13 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 								</View>
 							) : (
 								<TouchableOpacity disabled={lyrics_loading_state === "FAILED"} onPress={open_lyrics}>
-									<View style={styles.action_btn}>
-										<Ionicons name="mic-outline" style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}} size={22} color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary} />
+									<View style={[styles.action_btn, { borderWidth: lyrics_overlay_visible ? 1 : 0, borderColor: colors.text }]}>
+										<MaterialCommunityIcons
+											name="comment-quote-outline"
+											style={lyrics_loading_state === "DOWNLOADED" ? styles.icon_glow : {}}
+											size={22}
+											color={lyrics_loading_state === "FAILED" ? colors.inactive : colors.primary}
+										/>
 									</View>
 								</TouchableOpacity>
 							)}
@@ -550,7 +550,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 								<Ionicons name="play-back" size={36} color={colors.primary} />
 							</TouchableOpacity>
 							<TouchableOpacity onPress={toggle_playing}>
-								<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={84} color={colors.primary} />
+								<Ionicons name={player_state_type === State.Playing ? "pause" : "play"} size={60} color={colors.primary} />
 							</TouchableOpacity>
 							<TouchableOpacity onPress={track_player_next}>
 								<Ionicons name="play-forward" size={36} color={colors.primary} />
@@ -593,7 +593,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		playbackcontainer: { justifyContent: "space-evenly", alignItems: "center", flexDirection: "row" },
 		volumeslidercontainer: { marginLeft: 40, marginRight: 80 },
 		lyrics_text: { color: colors.text, fontWeight: "bold", width: "85%", fontSize: 24, margin: 15, marginVertical: 10 },
-		icon_glow: { textShadowColor: colors.secondary, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 10 },
-		action_btn: { backgroundColor: colors.shelf, width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+		icon_glow: { textShadowColor: colors.background, textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 2 },
+		action_btn: { backgroundColor: colors.shelf + "8A", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
 		round_btn: { backgroundColor: colors.primary + "22", width: 52, height: 52, borderRadius: 26, justifyContent: "center", alignItems: "center" }
 	});
