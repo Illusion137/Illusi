@@ -1,0 +1,22 @@
+diff --git a/node_modules/pdfjs-dist/legacy/build/pdf.mjs b/node_modules/pdfjs-dist/legacy/build/pdf.mjs
+index 5559b93..5e181dd 100644
+--- a/node_modules/pdfjs-dist/legacy/build/pdf.mjs
++++ b/node_modules/pdfjs-dist/legacy/build/pdf.mjs
+@@ -15981,7 +15981,7 @@ class DOMFilterFactory extends BaseFilterFactory {
+ if (isNodeJS) {
+   let canvas;
+   try {
+-    const require = process.getBuiltinModule("module").createRequire(import.meta.url);
++    const require = process.getBuiltinModule("module").createRequire('');
+     try {
+       canvas = require("@napi-rs/canvas");
+     } catch (ex) {
+@@ -16027,7 +16027,7 @@ async function node_utils_fetchData(url) {
+ class NodeFilterFactory extends BaseFilterFactory {}
+ class NodeCanvasFactory extends BaseCanvasFactory {
+   _createCanvas(width, height) {
+-    const require = process.getBuiltinModule("module").createRequire(import.meta.url);
++    const require = process.getBuiltinModule("module").createRequire('');
+     const canvas = require("@napi-rs/canvas");
+     return canvas.createCanvas(width, height);
+   }

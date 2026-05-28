@@ -174,3 +174,16 @@ index 4a3d680..9532f42 100644
        let __cxxWrapped = hybridObject.getCxxWrapper()
        return __cxxWrapped.getCxxPart()
      }()
+diff --git a/node_modules/react-native-ptp/nitrogen/generated/shared/c++/HybridPTPSpec.hpp b/node_modules/react-native-ptp/nitrogen/generated/shared/c++/HybridPTPSpec.hpp
+index e2264fc..fafdeb2 100644
+--- a/node_modules/react-native-ptp/nitrogen/generated/shared/c++/HybridPTPSpec.hpp
++++ b/node_modules/react-native-ptp/nitrogen/generated/shared/c++/HybridPTPSpec.hpp
+@@ -87,7 +87,7 @@ namespace margelo::nitro::reactnativeptp {
+ 
+     protected:
+       // Tag for logging
+-      static constexpr auto TAG = "PTP";
++      static constexpr auto TAG = "ReactNativePtp";
+   };
+ 
+ } // namespace margelo::nitro::reactnativeptp

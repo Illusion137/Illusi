@@ -21,6 +21,16 @@ config = {
 					type: "sourceFile"
 				};
 			}
+			// Node.js-only packages that cannot run in Hermes — stub for all RN platforms
+			const nodeOnlyStubs = {
+				"sharp": "stubs/sharp.ts",
+			};
+			if (nodeOnlyStubs[moduleName]) {
+				return {
+					filePath: require.resolve(nodeOnlyStubs[moduleName]),
+					type: "sourceFile"
+				};
+			}
 			// Resolve iOS-only modules to stubs on desktop platforms
 			const desktopStubs = {
 				"react-native-track-player": "stubs/react-native-track-player.ts",
