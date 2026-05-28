@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Easing, Animated, PanResponder } from "react-native";
+import { View, Text, TouchableOpacity, Easing } from "react-native";
 import { empty_join_dot } from "@common/utils/util";
 import { Ionicons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
 import useDimensions from "@hooks/useDimensions";
-import type { TrackMetaData } from "@illusive/types";
 import type { Track } from "@illusive/types";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string, sum, time_to_timestamp } from "@illusive/illusive_utils";
@@ -16,11 +15,18 @@ import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
 import { illusive_track_to_track_player_track, setup_track_player } from "@illusive/track_player_service";
 import { router } from "expo-router";
-import { alert_error } from "@illusive/illusi/src/alert";
-import { generror } from "@common/utils/error_util";
-import { reinterpret_cast } from "@common/cast";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
+import Animated, {
+	useSharedValue,
+	useAnimatedStyle,
+	withSpring,
+	withTiming,
+	interpolate,
+	cancelAnimation,
+	Extrapolation
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 const SWIPE_THRESHOLD = 100;
 
@@ -99,14 +105,15 @@ export default function ExtraKeepDeleteScreen() {
 	const [tracks, set_tracks] = useState<Track[]>(() => KeepDelete.ordered_keep_delete_tracks(GLOBALS.global_var.sql_tracks.filter((track) => track.media_uri)).slice(0, 20));
 	const [current_index, set_current_index] = useState(0);
 	const [undo_track, set_undo_track] = useState<Track | null>(null);
+	const [is_sliding, set_is_sliding] = useState(false);
 
-	// Refs to keep advance() closure fresh without re-creating PanResponder
 	const tracks_ref = useRef(tracks);
 	const current_index_ref = useRef(current_index);
 	tracks_ref.current = tracks;
 	current_index_ref.current = current_index;
 
 	const is_advancing = useRef(false);
+	const skip_count = useRef(0);
 	const playing_track = useRef<Track>(tracks[0]);
 
 	const [player_state_trackplayer, set_player_state_trackplayer] = useState({
@@ -115,46 +122,48 @@ export default function ExtraKeepDeleteScreen() {
 	});
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
 
-	// Swipe gesture animation
-	const pan = useRef(new Animated.ValueXY()).current;
+	const translate_x = useSharedValue(0);
+	const translate_y = useSharedValue(0);
 
-	const card_rotate = pan.x.interpolate({
-		inputRange: [-screen_width / 2, screen_width / 2],
-		outputRange: ["-8deg", "8deg"],
-		extrapolate: "clamp"
+	const card_style = useAnimatedStyle(() => {
+		const rotate = interpolate(translate_x.value, [-screen_width / 2, screen_width / 2], [-8, 8], Extrapolation.CLAMP);
+		return {
+			transform: [
+				{ translateX: translate_x.value },
+				{ translateY: translate_y.value },
+				{ rotate: `${rotate}deg` }
+			]
+		};
 	});
-	const red_opacity = pan.x.interpolate({
-		inputRange: [-SWIPE_THRESHOLD, 0],
-		outputRange: [0.45, 0],
-		extrapolate: "clamp"
-	});
-	const green_opacity = pan.x.interpolate({
-		inputRange: [0, SWIPE_THRESHOLD],
-		outputRange: [0, 0.45],
-		extrapolate: "clamp"
-	});
+
+	const red_overlay_style = useAnimatedStyle(() => ({
+		opacity: interpolate(translate_x.value, [-SWIPE_THRESHOLD, 0], [0.45, 0], Extrapolation.CLAMP)
+	}));
+
+	const green_overlay_style = useAnimatedStyle(() => ({
+		opacity: interpolate(translate_x.value, [0, SWIPE_THRESHOLD], [0, 0.45], Extrapolation.CLAMP)
+	}));
 
 	const advance_ref = useRef<(action: "keep" | "delete") => Promise<void>>(null);
 
-	const panResponder = useRef(
-		PanResponder.create({
-			onStartShouldSetPanResponder: () => !is_advancing.current,
-			onMoveShouldSetPanResponder: (_, gs) => !is_advancing.current && Math.abs(gs.dx) > 8,
-			onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
-			onPanResponderRelease: (_, gs) => {
-				if (gs.dx < -SWIPE_THRESHOLD) {
-					advance_ref.current?.("delete");
-				} else if (gs.dx > SWIPE_THRESHOLD) {
-					advance_ref.current?.("keep");
-				} else {
-					Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
-				}
-			},
-			onPanResponderTerminate: () => {
-				Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
-			}
+	const swipe_gesture = Gesture.Pan()
+		.activeOffsetX([-10, 10])
+		.failOffsetY([-15, 15])
+		.runOnJS(true)
+		.onUpdate((e) => {
+			if (is_advancing.current) return;
+			translate_x.value = e.translationX;
+			translate_y.value = e.translationY;
 		})
-	).current;
+		.onEnd((e) => {
+			if (is_advancing.current) return;
+			if (e.translationX < -SWIPE_THRESHOLD) advance_ref.current?.("delete");
+			else if (e.translationX > SWIPE_THRESHOLD) advance_ref.current?.("keep");
+			else {
+				translate_x.value = withSpring(0, { damping: 20, stiffness: 200 });
+				translate_y.value = withSpring(0, { damping: 20, stiffness: 200 });
+			}
+		});
 
 	useEffect(() => {
 		if (tracks.length === 0) return;
@@ -162,11 +171,15 @@ export default function ExtraKeepDeleteScreen() {
 		load_and_play(tracks[0]);
 	}, []);
 
-	async function load_and_play(track: Track) {
-		playing_track.current = {
-			...track,
-			meta: reinterpret_cast<TrackMetaData>({ ...(track ?? {}) })
+	useEffect(() => {
+		return () => {
+			GLOBALS.global_var.kill_audioplayer?.();
+			TrackPlayer.reset().catch(() => {});
 		};
+	}, []);
+
+	async function load_and_play(track: Track) {
+		playing_track.current = { ...track };
 
 		const is_setup = await setup_track_player();
 		await TrackPlayer.reset();
@@ -179,9 +192,7 @@ export default function ExtraKeepDeleteScreen() {
 			}
 			const trackplayer_track = await illusive_track_to_track_player_track(playing_track.current);
 			if (trackplayer_track === "skip") {
-				alert_error(generror("Couldn't play track", "INFO", { playing_track: playing_track.current }));
-				router.back();
-				return;
+				throw new Error("skip");
 			}
 			await TrackPlayer.add(trackplayer_track);
 		}
@@ -189,13 +200,10 @@ export default function ExtraKeepDeleteScreen() {
 	}
 
 	async function animate_off(direction: 1 | -1): Promise<void> {
-		return new Promise((resolve) => {
-			Animated.timing(pan, {
-				toValue: { x: direction * screen_width * 1.5, y: 0 },
-				duration: 220,
-				useNativeDriver: false
-			}).start(() => resolve());
-		});
+		cancelAnimation(translate_x);
+		cancelAnimation(translate_y);
+		translate_x.value = withTiming(direction * screen_width * 1.5, { duration: 220 });
+		return new Promise(resolve => setTimeout(resolve, 225));
 	}
 
 	async function advance(action: "keep" | "delete") {
@@ -215,17 +223,34 @@ export default function ExtraKeepDeleteScreen() {
 			set_undo_track(null);
 		}
 
-		pan.setValue({ x: 0, y: 0 });
+		translate_x.value = 0;
+		translate_y.value = 0;
 
 		const new_tracks = action === "delete" ? cur_tracks.filter((t) => t.uid !== track.uid) : cur_tracks;
 		const new_idx = action === "delete" ? cur_index : cur_index + 1;
 
 		if (new_idx >= new_tracks.length) {
 			set_tracks([]);
-		} else {
-			set_tracks(new_tracks);
-			set_current_index(new_idx);
+			is_advancing.current = false;
+			return;
+		}
+
+		set_tracks(new_tracks);
+		set_current_index(new_idx);
+
+		try {
+			skip_count.current = 0;
 			await load_and_play(new_tracks[new_idx]);
+		} catch (_) {
+			skip_count.current++;
+			if (skip_count.current >= new_tracks.length) {
+				set_tracks([]);
+				is_advancing.current = false;
+				return;
+			}
+			is_advancing.current = false;
+			await advance("keep");
+			return;
 		}
 
 		is_advancing.current = false;
@@ -254,10 +279,12 @@ export default function ExtraKeepDeleteScreen() {
 
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackState], async (event) => {
 		if (event.type === Event.PlaybackProgressUpdated) {
-			set_player_state_trackplayer({
-				elapsed_time: event.position,
-				duration_remaining: event.duration - event.position
-			});
+			if (!is_sliding) {
+				set_player_state_trackplayer({
+					elapsed_time: event.position,
+					duration_remaining: event.duration - event.position
+				});
+			}
 		} else if (event.type === Event.PlaybackState) {
 			set_player_state_type(event.state);
 		}
@@ -283,13 +310,13 @@ export default function ExtraKeepDeleteScreen() {
 
 	return (
 		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
-			{/* Full-screen tint overlays driven by swipe gesture */}
-			<Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#cc2222", opacity: red_opacity }} />
-			<Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#22aa44", opacity: green_opacity }} />
+			{/* Full-screen tint overlays driven by swipe */}
+			<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#cc2222" }, red_overlay_style]} />
+			<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#22aa44" }, green_overlay_style]} />
 
 			{/* Card area */}
 			<View style={{ flex: 1, paddingTop: 60 }}>
-				{/* Next card shown behind current one */}
+				{/* Next card shown behind current — subtle */}
 				{next_track && (
 					<View
 						style={{
@@ -298,35 +325,45 @@ export default function ExtraKeepDeleteScreen() {
 							left: 0,
 							right: 0,
 							alignItems: "center",
-							transform: [{ scale: 0.94 }],
-							opacity: 0.55
+							transform: [{ scale: 0.90 }],
+							opacity: 0.25
 						}}
 						pointerEvents="none">
 						<RenderKeepDeletePlayingTrack track_data={next_track} sum_plays={sum_plays.current} screen_width={screen_width} />
 					</View>
 				)}
 
-				{/* Current card with gesture handler */}
-				<Animated.View
-					style={{
-						transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate: card_rotate }]
-					}}
-					{...panResponder.panHandlers}>
-					<RenderKeepDeletePlayingTrack track_data={current_track} sum_plays={sum_plays.current} screen_width={screen_width} />
-				</Animated.View>
+				<GestureDetector gesture={swipe_gesture}>
+					<Animated.View style={card_style}>
+						<RenderKeepDeletePlayingTrack track_data={current_track} sum_plays={sum_plays.current} screen_width={screen_width} />
+					</Animated.View>
+				</GestureDetector>
 			</View>
 
 			{/* Playback footer */}
 			<View style={{ paddingBottom: 36 }}>
 				<View style={{ marginHorizontal: 35 }}>
-					<Slider value={player_state_trackplayer.elapsed_time} onValueChange={async (val) => await TrackPlayer.seekTo(val[0])} thumbTintColor={colors.primary} minimumTrackTintColor={colors.primary} maximumTrackTintColor="#DADADAA0" thumbStyle={{ width: 8, height: 8 }} thumbTouchSize={{ width: 40, height: 40 }} minimumValue={0} maximumValue={isNaN(playing_track.current.duration) ? 1 : playing_track.current.duration} />
+					<Slider
+						value={player_state_trackplayer.elapsed_time}
+						onSlidingStart={() => set_is_sliding(true)}
+						onSlidingComplete={async (val) => {
+							set_is_sliding(false);
+							await TrackPlayer.seekTo(val[0]);
+						}}
+						thumbTintColor={colors.primary}
+						minimumTrackTintColor={colors.primary}
+						maximumTrackTintColor="#DADADAA0"
+						thumbStyle={{ width: 8, height: 8 }}
+						thumbTouchSize={{ width: 40, height: 40 }}
+						minimumValue={0}
+						maximumValue={isNaN(playing_track.current.duration) ? 1 : playing_track.current.duration}
+					/>
 					<View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: -6 }}>
 						<Text style={{ color: "#808080", fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
 						<Text style={{ color: "#808080", fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
 					</View>
 				</View>
 
-				{/* Undo delete — only visible after a deletion */}
 				{undo_track ? (
 					<TouchableOpacity onPress={undo_delete} style={{ alignSelf: "center", marginTop: 10, paddingHorizontal: 16, paddingVertical: 5 }}>
 						<Text style={{ color: colors.subtext, fontSize: 13 }} numberOfLines={1}>
@@ -337,7 +374,6 @@ export default function ExtraKeepDeleteScreen() {
 					<View style={{ height: 28 }} />
 				)}
 
-				{/* Controls: Delete | Skip- | Play/Pause | Skip+ | Keep */}
 				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 8, gap: 10 }}>
 					<TouchableOpacity onPress={async () => advance("delete")} style={{ alignItems: "center" }}>
 						<Ionicons name="close-circle" size={52} color={colors.red} />

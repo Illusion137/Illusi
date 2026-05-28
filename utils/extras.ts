@@ -23,7 +23,7 @@ export const extras_layout: () => ExtraLayout[] = () => [
             {
                 title: "Sync",
                 href: "/extras/sync",
-                icon: "sync-circle-outline",
+                icon: "sync-outline",
             }
         ],
         description: "Backup your music, transfer your playlists to other devices, recover deleted music and more"
@@ -31,10 +31,19 @@ export const extras_layout: () => ExtraLayout[] = () => [
     {
         buttons: [
             {
+                title: "SyncPlay",
+                href: "/extras/sync-play",
+                icon: "sync-circle-outline",
+            },
+            {
+                title: "Samples",
+                href: "/extras/samples",
+                icon: "color-wand-outline",
+            },
+            {
                 title: "Keep Delete",
                 href: "/extras/keep-delete",
                 icon: "heart-outline",
-                indev: true
             }
         ],
         description: "The Tinder of your Music; Swipe left to delete tracks or swipe right to keep"
@@ -66,28 +75,28 @@ export const extras_layout: () => ExtraLayout[] = () => [
     },
     {
         buttons: [
-            // {
-            //     title: "Batch Downloader",
-            //     href: "/extras/batch-downloader",
-            //     icon: "file-tray-stacked-outline"
-            // },
+            {
+                title: "Service Importer",
+                href: "/extras/service-importer",
+                icon: "albums-outline"
+            },
             {
                 title: "Linker",
                 href: "/extras/linker",
                 icon: "link-outline",
-            }
+            },
+            {
+                title: "Track Sampler",
+                href: "/extras/track-sampler",
+                icon: "color-filter-outline",
+            },
+            {
+                title: "Lyrics Finder",
+                href: "/extras/lyrics-finder",
+                icon: "text-outline",
+            },
         ],
         description: "Hard Link playlist and other data from other Music Services. Automatically fetched on app startup."
-    },
-    {
-        buttons: [
-            {
-                title: "Backpack",
-                href: "/extras/backpack",
-                icon: "bag-outline"
-            }
-        ],
-        description: "Restore unavailable videos from Backpack"
     },
     {
         buttons: [
@@ -98,6 +107,16 @@ export const extras_layout: () => ExtraLayout[] = () => [
             }
         ],
         description: "Customize the look of Illusi"
+    },
+    {
+        buttons: [
+            {
+                title: "Backpack",
+                href: "/extras/backpack",
+                icon: "bag-outline"
+            }
+        ],
+        description: "Restore unavailable videos from Backpack"
     },
     {
         buttons: [
