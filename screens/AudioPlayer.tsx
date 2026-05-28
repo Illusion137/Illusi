@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
-import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
 import LyricsPlayer from "@screens/LyricsPlayer";
@@ -33,7 +33,6 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import IImage from "@components/IImage";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const screen_w = Dimensions.get("screen").width;
@@ -372,12 +371,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			<>
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
 					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
-						<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+						<Image source={artwork_source} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 					</View>
 					<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
-						<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+						<Image source={artwork_source} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 					</View>
-					<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
+					<Image source={artwork_source} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
 					<MaskedView
 						style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
 						maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
