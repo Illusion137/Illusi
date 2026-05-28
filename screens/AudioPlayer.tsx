@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
-import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
 import LyricsPlayer from "@screens/LyricsPlayer";
@@ -33,6 +33,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import IImage from "@components/IImage";
 
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const screen_w = Dimensions.get("screen").width;
@@ -42,6 +43,28 @@ const panel_min_height = 125 + top_padding;
 const panel_max_height = Dimensions.get("screen").height;
 const art_top_y = top_padding + 45; // y-offset of center art within the full-panel overlay
 // const panel_bottom_height = panel_max_height - panel_min_height;
+
+function time_to_timestamp(time_seconds: number): string {
+	const time_ms = Math.floor(time_seconds * 1000);
+	const time_min = Math.floor(time_ms / 60000);
+	const time_sec = Math.floor((time_ms - time_min * 60000) / 1000);
+	return String(time_min).padStart(2, "0") + ":" + String(time_sec).padStart(2, "0");
+}
+
+function TrackTimestamps() {
+	const [elapsed, set_elapsed] = useState(0);
+	const [remaining, set_remaining] = useState(0);
+	useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
+		set_elapsed(event.position);
+		set_remaining(event.duration - event.position);
+	});
+	return (
+		<View style={{ flexDirection: "row", justifyContent: "space-between", marginHorizontal: 35, marginTop: 4 }}>
+			<Text style={{ color: "#808080", fontSize: 12 }}>{time_to_timestamp(elapsed)}</Text>
+			<Text style={{ color: "#808080", fontSize: 12 }}>-{time_to_timestamp(remaining)}</Text>
+		</View>
+	);
+}
 
 export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playing_from: string }) {
 	const { colors } = usePTheme();
@@ -58,7 +81,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		album: props.tracks[0]?.album,
 		duration: props.tracks[0]?.duration ?? 0
 	});
-	const [player_state_trackplayer, set_player_state_trackplayer] = useState({ elapsed_time: 0, duration_remaining: props.tracks[0]?.duration ?? 0 });
 	const metadata_duration_ref = useRef(props.tracks[0]?.duration ?? 0);
 	metadata_duration_ref.current = player_state_metadata.duration;
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
@@ -158,6 +180,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const track_fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * seekbar_width }));
 	const thumb_seek_style = useAnimatedStyle(() => ({ left: seek_progress.value * seekbar_width - 4 }));
+	const mini_progress_fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * screen_w }));
 
 	async function reshuffle() {
 		const reshuffled_tracks = shuffle_array([...props.tracks]);
@@ -240,17 +263,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		else show_sheet();
 	}
 
-	function time_to_timestamp(time_seconds: number): string {
-		const time_ms = Math.floor(time_seconds * 1000);
-		const time_min = Math.floor(time_ms / 60000);
-		const time_sec = Math.floor((time_ms - time_min * 60000) / 1000);
-
-		return String(time_min).padStart(2, "0") + ":" + String(time_sec).padStart(2, "0");
-	}
-
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async (event) => {
 		if (event.type === Event.PlaybackProgressUpdated) {
-			set_player_state_trackplayer({ elapsed_time: event.position, duration_remaining: event.duration - event.position });
 			if (!is_seeking.value) {
 				seek_progress.value = event.position / (metadata_duration_ref.current || 1);
 			}
@@ -358,12 +372,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			<>
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
 					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
-						<Image source={artwork_source} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+						<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 					</View>
 					<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
-						<Image source={artwork_source} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+						<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 					</View>
-					<Image source={artwork_source} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
+					<IImage source={artwork_source as IllusiveType.Artwork} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
 					<MaskedView
 						style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
 						maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
@@ -382,28 +396,24 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				{/* HEADER ---------------------------------------------------- */}
 				<View style={[styles.header, { backgroundColor: "transparent" }]}>
 					<Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.playScreen }, header_bg_opacity_style]} pointerEvents="none" />
-					{!panel_state_visible &&
-						(() => {
-							const progress = player_state_metadata.duration > 0 ? player_state_trackplayer.elapsed_time / player_state_metadata.duration : 0;
-							return (
-								<View style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: `${Math.round(progress * 100)}%`, overflow: "hidden" }}>
-									<View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary + "22" }]} />
-									<Animated.View style={[{ position: "absolute", top: 0, bottom: 0, width: 200 }, shimmer_style]}>
-										<LinearGradient colors={["transparent", colors.primary + "15", colors.primary + "55", colors.primary + "15", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
-									</Animated.View>
-								</View>
-							);
-						})()}
+					{!panel_state_visible && (
+						<Animated.View style={[{ position: "absolute", top: 0, left: 0, bottom: 0, overflow: "hidden" }, mini_progress_fill_style]}>
+							<View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary + "22" }]} />
+							<Animated.View style={[{ position: "absolute", top: 0, bottom: 0, width: 200 }, shimmer_style]}>
+								<LinearGradient colors={["transparent", colors.primary + "15", colors.primary + "55", colors.primary + "15", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+							</Animated.View>
+						</Animated.View>
+					)}
 					<Animated.View style={[{ left: 25 }, panel_chevron_style]}>
 						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} onPress={toggle_panel}>
-							<Ionicons name="chevron-down-sharp" size={20} color="#808080" />
+							<Ionicons name="chevron-down-sharp" size={20} color={colors.subtext} style={styles.text_glow} />
 						</TouchableOpacity>
 					</Animated.View>
 					<TouchableOpacity style={{ alignItems: "center", justifyContent: "center", width: 250 }} disabled={panel_state_visible} onPress={show_sheet}>
-						<Text style={{ color: colors.subtext, fontSize: 12, top: panel_state_visible ? -4 : 19 }} numberOfLines={1}>
+						<Text style={[{ color: colors.subtext, fontSize: 12, top: panel_state_visible ? -4 : 19 }, panel_state_visible ? styles.text_glow : {}]} numberOfLines={1}>
 							{panel_state_visible ? "PLAYING FROM" : remove_topic(player_state_metadata.artist)}
 						</Text>
-						<Text numberOfLines={1} style={{ color: colors.text, fontWeight: "bold", top: panel_state_visible ? -2 : -15 }}>
+						<Text numberOfLines={1} style={[{ color: colors.text, fontWeight: "bold", top: panel_state_visible ? -2 : -15 }, panel_state_visible ? styles.text_glow : {}]}>
 							{" "}
 							{panel_state_visible ? props.playing_from : player_state_metadata.title}
 						</Text>
@@ -533,10 +543,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						{playing_track.meta?.begdur && begdur !== 0 ? <View style={{ height: 20, width: 1, left: `${(begdur / playing_track.duration) * 100}%`, backgroundColor: colors.green, position: "absolute" }} /> : null}
 						{playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{ height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: "absolute" }} /> : null}
 					</View>
-					<View style={{ flexDirection: "row", justifyContent: "space-between", marginHorizontal: 35, marginTop: 4 }}>
-						<Text style={{ color: "#808080", fontSize: 12 }}>{time_to_timestamp(player_state_trackplayer.elapsed_time)}</Text>
-						<Text style={{ color: "#808080", fontSize: 12 }}>-{time_to_timestamp(player_state_trackplayer.duration_remaining)}</Text>
-					</View>
+					<TrackTimestamps />
 					<View style={{ height: 8 }} />
 					{/* PLAY CONTROLS ----------------------------------------------------*/}
 					<View style={{ marginBottom: 72 }}>
@@ -593,6 +600,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		playbackcontainer: { justifyContent: "space-evenly", alignItems: "center", flexDirection: "row" },
 		volumeslidercontainer: { marginLeft: 40, marginRight: 80 },
 		lyrics_text: { color: colors.text, fontWeight: "bold", width: "85%", fontSize: 24, margin: 15, marginVertical: 10 },
+		text_glow: { textShadowColor: colors.background + "8A", textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 },
 		icon_glow: { textShadowColor: colors.background, textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 2 },
 		action_btn: { backgroundColor: colors.shelf + "8A", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
 		round_btn: { backgroundColor: colors.primary + "22", width: 52, height: 52, borderRadius: 26, justifyContent: "center", alignItems: "center" }

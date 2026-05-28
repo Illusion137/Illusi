@@ -53,13 +53,7 @@ function SearchScreen() {
 
 	async function refresh_data() {
 		if (search_result.state === "FUFILLED" && search_result.search_data.tracks.length > 0) {
-			set_search_result((prev_search_result) => ({
-				...prev_search_result,
-				search_data: {
-					...prev_search_result.search_data,
-					tracks: SQLTracks.add_playback_saved_data_to_tracks(prev_search_result.search_data.tracks)
-				}
-			}));
+			set_search_result((prev_search_result) => ({ ...prev_search_result, search_data: { ...prev_search_result.search_data, tracks: SQLTracks.add_playback_saved_data_to_tracks(prev_search_result.search_data.tracks) } }));
 		}
 	}
 
@@ -276,12 +270,12 @@ function SearchScreen() {
 							search_mode === "Smart"
 								? Illusive.smart_search(search_query_state, search_result.search_data)
 								: search_mode === "Tracks"
-								? search_result.search_data.tracks
-								: search_mode === "Albums"
-								? search_result.search_data.albums
-								: search_mode === "Artists"
-								? search_result.search_data.artists
-								: search_result.search_data.playlists
+									? search_result.search_data.tracks
+									: search_mode === "Albums"
+										? search_result.search_data.albums
+										: search_mode === "Artists"
+											? search_result.search_data.artists
+											: search_result.search_data.playlists
 						}
 						renderItem={render_misc_component}
 						ListFooterComponent={() => <View style={{ height: 100 }} />}
@@ -294,56 +288,18 @@ function SearchScreen() {
 }
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		topcontainer: {
-			backgroundColor: colors.background,
-			flex: 1,
-			justifyContent: "flex-start"
-		},
+		topcontainer: { backgroundColor: colors.background, flex: 1, justifyContent: "flex-start" },
 		wrapper: {
 			// justifyContent: 'center',
 			alignItems: "center"
 		},
-		searchinput: {
-			color: "#F0F0F0",
-			backgroundColor: colors.searchInput,
-			padding: 15,
-			borderRadius: 30,
-			width: "90%"
-		},
+		searchinput: { color: "#F0F0F0", backgroundColor: colors.searchInput, padding: 15, borderRadius: 30, width: "90%" },
 		search_list: {},
-		searchview: {
-			backgroundColor: colors.background,
-			top: 10,
-			flex: 1
-		},
-		queryItemsText: {
-			color: colors.text,
-			fontSize: 17,
-			marginLeft: 40,
-			width: "70%"
-		},
-		queryItems: {
-			height: 50,
-			width: "100%",
-			alignItems: "center",
-			flexDirection: "row"
-		},
-		chip: {
-			borderRadius: 6,
-			padding: 10,
-			borderColor: colors.primary,
-			borderWidth: 1
-		},
-		chip_text: {
-			color: colors.text,
-			fontSize: 12,
-			fontWeight: "bold"
-		},
-		chips_container: {
-			flexDirection: "row",
-			flexGrow: 1,
-			justifyContent: "space-around",
-			marginBottom: 8
-		}
+		searchview: { backgroundColor: colors.background, top: 10, flex: 1 },
+		queryItemsText: { color: colors.text, fontSize: 17, marginLeft: 40, width: "70%" },
+		queryItems: { height: 50, width: "100%", alignItems: "center", flexDirection: "row" },
+		chip: { borderRadius: 6, padding: 10, borderColor: colors.primary, borderWidth: 1 },
+		chip_text: { color: colors.text, fontSize: 12, fontWeight: "bold" },
+		chips_container: { flexDirection: "row", flexGrow: 1, justifyContent: "space-around", marginBottom: 8 }
 	});
 export default SearchScreen;

@@ -77,7 +77,22 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 	return (
 		<>
 			<View style={{ flexDirection: "row", height: 35, left: -5, width: "100%" }}>
-				<View style={{ overflow: "hidden", backgroundColor: props.background_color ?? colors.searchInput, paddingTop: 5, paddingLeft: 5, paddingRight: 5, bottom: 0, left: 10, borderRadius: 10, zIndex: 1 }}>
+				<View
+					style={{
+						overflow: "hidden",
+						backgroundColor: props.background_color ?? colors.background,
+						paddingTop: 5,
+						paddingLeft: 5,
+						paddingRight: 5,
+						bottom: 0,
+						left: 10,
+						borderRadius: 5,
+						zIndex: 1,
+						borderColor: colors.line,
+						borderTopWidth: 1,
+						borderLeftWidth: 1,
+						borderBottomWidth: 1
+					}}>
 					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={{ top: 1, left: 2 }} />
 				</View>
 				<TextInput
@@ -90,14 +105,18 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 					autoCorrect={false}
 					placeholderTextColor={colors.searchPlaceholder}
 					style={{
-						backgroundColor: props.background_color ?? colors.searchInput,
+						backgroundColor: props.background_color ?? colors.background,
 						color: colors.text,
 						width: "95%",
 						bottom: 0,
 						paddingLeft: 10,
 						fontSize: 15,
-						borderTopRightRadius: 10, // Top Right Corner
-						borderBottomRightRadius: 10 // Bottom Right Corner
+						borderTopRightRadius: 5,
+						borderBottomRightRadius: 5,
+						borderColor: colors.line,
+						borderTopWidth: 1,
+						borderRightWidth: 1,
+						borderBottomWidth: 1
 					}}
 				/>
 				<IoniconsTouchableOpacity
@@ -107,7 +126,7 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 					icon_style={{}}
 					on_press={on_toggle_strict_mode}
 					hitslop={5}
-					style={{ position: "absolute", left: show_clear_button ? "83%" : "92%", top: "15%" }}
+					style={{ position: "absolute", left: show_clear_button ? "86%" : "95%", top: 4.25 }}
 				/>
 				{show_clear_button ? (
 					<IoniconsTouchableOpacity
@@ -121,7 +140,7 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 							set_flag_query_section(undefined);
 						}}
 						hitslop={5}
-						style={{ position: "absolute", left: "92%", top: "15%" }}
+						style={{ position: "absolute", left: "95%", top: 4.25 }}
 					/>
 				) : null}
 			</View>

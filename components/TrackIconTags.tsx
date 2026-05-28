@@ -53,5 +53,5 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		icon_thick: { marginRight: 3, alignSelf: "center" },
 		else_icon: { right: 10, paddingTop: 10, paddingBottom: 10, paddingLeft: 30, paddingRight: 30 },
 		centered: { justifyContent: "center" },
-		darken: { textShadowColor: colors.background, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 5 }
+		darken: { textShadowColor: "#000000", textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 5 }
 	});
