@@ -5,7 +5,7 @@ let config = getSentryExpoConfig(__dirname);
 
 config = {
 	...config,
-	platforms: ['ios', 'android', 'macos', 'windows'],
+	platforms: ["ios", "android", "macos", "windows"],
 	resolver: {
 		...config.resolver,
 		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/, /\/nodejs-assets\/.*/],
@@ -16,20 +16,12 @@ config = {
 		// The compiled lib/ files have no such cycle (type-only imports were erased by tsc).
 		resolveRequest: (context, moduleName, platform) => {
 			if (moduleName === "react-native-carplay") {
-				return {
-					filePath: require.resolve("react-native-carplay/lib/index.js"),
-					type: "sourceFile"
-				};
+				return { filePath: require.resolve("react-native-carplay/lib/index.js"), type: "sourceFile" };
 			}
 			// Node.js-only packages that cannot run in Hermes — stub for all RN platforms
-			const nodeOnlyStubs = {
-				"sharp": "stubs/sharp.ts",
-			};
+			const nodeOnlyStubs = { sharp: "stubs/sharp.ts" };
 			if (nodeOnlyStubs[moduleName]) {
-				return {
-					filePath: require.resolve(nodeOnlyStubs[moduleName]),
-					type: "sourceFile"
-				};
+				return { filePath: path.resolve(__dirname, nodeOnlyStubs[moduleName]), type: "sourceFile" };
 			}
 			// Resolve iOS-only modules to stubs on desktop platforms
 			const desktopStubs = {
@@ -40,10 +32,7 @@ config = {
 				"@simform_solutions/react-native-audio-waveform": "stubs/react-native-audio-waveform.ts"
 			};
 			if ((platform === "macos" || platform === "windows") && desktopStubs[moduleName]) {
-				return {
-					filePath: require.resolve(desktopStubs[moduleName]),
-					type: "sourceFile"
-				};
+				return { filePath: require.resolve(desktopStubs[moduleName]), type: "sourceFile" };
 			}
 			return context.resolveRequest(context, moduleName, platform);
 		}
