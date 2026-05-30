@@ -18,7 +18,7 @@ export default function ModalHeader(props: { title: string; background_color?: C
 
 	return (
 		<View style={{ width: "100%", height: 55, backgroundColor: props.background_color ?? colors.shelf, justifyContent: "center", alignItems: "center", ...headerBorderRadius, flexDirection: "row" }}>
-			<View style={{ marginLeft: 10, position: "absolute", left: 0 }}>
+			<View style={{ marginLeft: 20, position: "absolute", left: 0 }}>
 				<Button color={props.close_color ?? colors.primary} title="Close" onPress={close} />
 			</View>
 			<Text style={{ color: props.text_color ?? colors.text, fontWeight: "bold", fontSize: 17 }}>{props.title}</Text>

@@ -171,8 +171,8 @@ export default function PlaylistComponent(props: { playlist_data: Playlist; sele
 						</View>
 					</View>
 					{!select_mode ? null : (
-						<View style={{ flex: 1, justifyContent: "flex-end", alignItems: "center" }}>
-							<Ionicons name={"checkmark"} size={22} color={selected ? colors.green : "#808080"} style={{ left: 80 }} />
+						<View style={{ flex: 1, justifyContent: "center", alignItems: "flex-end", paddingRight: 20 }}>
+							<Ionicons name={selected ? "checkmark" : "ellipse-outline"} size={24} color={selected ? colors.green : colors.subtext} />
 						</View>
 					)}
 				</>

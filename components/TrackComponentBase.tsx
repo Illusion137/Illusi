@@ -29,6 +29,7 @@ export default function TrackComponentBase(props: {
 	width_fn?: () => DimensionValue | undefined;
 	replace_album_with?: keyof Track;
 	base_background?: boolean;
+	background_opacity?: string;
 	score?: number;
 }) {
 	const shimmer_position = useSharedValue(0);
@@ -55,7 +56,7 @@ export default function TrackComponentBase(props: {
 			disabled={props.disabled}
 			onLongPress={props.on_long_press}
 			delayLongPress={Constants.long_press_delay}
-			style={{ ...reinterpret_cast<any>(props.style), backgroundColor: props.base_background ? colors.background : colors.track }}
+			style={{ ...reinterpret_cast<any>(props.style), backgroundColor: props.base_background ? colors.background + (props.background_opacity ?? "") : colors.track + (props.background_opacity ?? "") }}
 			onPress={props.on_press}>
 			<View style={styles.track_box}>
 				{props.downloading_progress !== undefined && (

@@ -12,7 +12,12 @@ export default function ExtrasLayout() {
 			<Stack.Screen name="discord" options={{ title: "Discord", headerShown: true }} />
 			<Stack.Screen name="external-services" options={{ title: "External Services", headerShown: true }} />
 			<Stack.Screen name="help" options={{ title: "Help", headerShown: true }} />
-			<Stack.Screen name="keep-delete" options={{ title: "Keep Delete", headerShown: true }} />
+			<Stack.Screen name="keep-delete" options={{ title: "Keep Delete", headerShown: true, gestureEnabled: false }} />
+			<Stack.Screen name="sync-play" options={{ title: "SyncPlay", headerShown: true }} />
+			<Stack.Screen name="samples" options={{ title: "Samples", headerShown: true, gestureEnabled: false }} />
+			<Stack.Screen name="service-importer" options={{ title: "Service Importer", headerShown: true }} />
+			<Stack.Screen name="lyrics-finder" options={{ title: "Lyrics Finder", headerShown: true }} />
+			<Stack.Screen name="track-sampler" options={{ title: "Track Sampler", headerShown: true }} />
 			<Stack.Screen name="linker" options={{ title: "Linker", headerShown: true }} />
 			<Stack.Screen name="sync" options={{ title: "Sync", headerShown: true }} />
 			<Stack.Screen name="shuffler" options={{ title: "Shuffler", headerShown: true }} />
