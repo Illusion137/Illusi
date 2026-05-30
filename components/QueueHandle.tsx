@@ -1,17 +1,18 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome6 } from "@expo/vector-icons";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
 import { SwipeListView } from "react-native-swipe-list-view";
 import * as Haptics from "expo-haptics";
 import { GLOBALS } from "@illusive/globals";
 import usePTheme from "@hooks/usePTheme";
 import { delete_track_from_player_queue } from "@illusive/track_player_service";
-import { duration_to_string } from "@illusive/illusive_utils";
+import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Track } from "@illusive/types";
 import TrackComponentBase from "@components/TrackComponentBase";
+import { empty_join_dot } from "@common/utils/util";
 
 const HANDLE_H = 58;
 const PANEL_H = Math.min(Dimensions.get("screen").height * 0.58, 520);
@@ -62,16 +63,43 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 
 	const container_style = useAnimatedStyle(() => ({ height: panel_h.value }));
 
-	const next_track = queue[1] ?? null;
+	const next_track = useMemo(() => queue[1] ?? null, [queue]);
+	const up_next_data = useMemo(() => queue.slice(1, 50), [queue]);
+	const now_playing = useMemo(() => queue[0] ?? null, [queue]);
+	const has_up_next = up_next_data.length > 0;
 
-	async function remove_track(item: Track, index: number) {
+	const remove_track = useCallback(async (item: Track, index: number) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
 		await delete_track_from_player_queue(item, index);
 		update_queue();
-	}
+	}, []);
+
+	const list_header = useCallback(
+		() => (
+			<View>
+				<Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 2, paddingBottom: 2 }}>Now Playing</Text>
+				{now_playing ? <TrackComponentBase track_data={now_playing} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="40" /> : null}
+				{has_up_next ? <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 8, paddingBottom: 2 }}>Up Next</Text> : null}
+			</View>
+		),
+		[colors.text, now_playing, has_up_next]
+	);
+
+	const render_item = useCallback(({ item }: { item: Track }) => <TrackComponentBase track_data={item} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="C0" />, []);
+
+	const render_hidden_item = useCallback(
+		(data: { item: Track; index: number }) => (
+			<TouchableOpacity onPress={async () => remove_track(data.item, data.index)} style={{ backgroundColor: "#8B000040", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
+				<FontAwesome6 name="delete-left" style={{ right: 10 }} color="white" size={22} />
+			</TouchableOpacity>
+		),
+		[remove_track]
+	);
+
+	const key_extractor = useCallback((item: Track, i: number) => item.uid + i, []);
 
 	return (
-		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf, overflow: "hidden", zIndex: 30 }, container_style]}>
+		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + "40", overflow: "hidden", zIndex: 30 }, container_style]}>
 			{/* Drag handle + collapsed next-up preview */}
 			<GestureDetector gesture={pan}>
 				<View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
@@ -81,7 +109,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 							<View style={{ flex: 1 }}>
 								<Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 2 }}>NEXT UP</Text>
 								<Text style={{ color: colors.text, fontSize: 14, fontWeight: "600" }} numberOfLines={1}>
-									{next_track.title}
+									{empty_join_dot([next_track.title, next_track ? artist_string(next_track) : undefined])}
 								</Text>
 							</View>
 							{next_track.duration ? <Text style={{ color: colors.subtext, fontSize: 12 }}>{duration_to_string(next_track.duration)}</Text> : null}
@@ -93,24 +121,19 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 			</GestureDetector>
 			{/* Expanded queue list */}
 			<SwipeListView
-				data={queue.slice(1, 50)}
-				keyExtractor={(item, i) => item.uid + i}
+				data={up_next_data}
+				keyExtractor={key_extractor}
 				scrollEnabled={true}
 				nestedScrollEnabled={true}
-				ListHeaderComponent={() => (
-					<View>
-						<Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 2, paddingBottom: 2 }}>Now Playing</Text>
-						{queue[0] ? <TrackComponentBase track_data={queue[0]} on_press={undefined} on_long_press={() => {}} disabled={true} /> : null}
-						{queue.length > 1 ? <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 8, paddingBottom: 2 }}>Up Next</Text> : null}
-					</View>
-				)}
-				renderItem={({ item }) => <TrackComponentBase track_data={item} on_press={undefined} on_long_press={() => {}} disabled={true} />}
-				renderHiddenItem={(item) => (
-					<TouchableOpacity onPress={async () => remove_track(item.item, item.index)} style={{ backgroundColor: "#8B0000", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
-						<Ionicons name="trash-bin" style={{ right: 10 }} color="white" size={22} />
-					</TouchableOpacity>
-				)}
+				removeClippedSubviews={true}
+				initialNumToRender={10}
+				maxToRenderPerBatch={8}
+				windowSize={7}
+				ListHeaderComponent={list_header}
+				renderItem={render_item}
+				renderHiddenItem={render_hidden_item}
 				rightOpenValue={-75}
+				rightActionValue={-80}
 				rightActivationValue={-80}
 				disableRightSwipe
 			/>

@@ -93,7 +93,7 @@ export default function SearchBarV1(props: TextInputProps & { query_flags?: Quer
 						borderLeftWidth: 1,
 						borderBottomWidth: 1
 					}}>
-					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={{ top: 1, left: 2 }} />
+					<Ionicons name="search" size={22} color={colors.searchPlaceholder} style={{ top: 0.33, left: 2 }} />
 				</View>
 				<TextInput
 					{...props}

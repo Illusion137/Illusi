@@ -9510,6 +9510,11 @@ react-native-elevation@^1.0.0:
   resolved "https://registry.yarnpkg.com/react-native-elevation/-/react-native-elevation-1.0.0.tgz#2a091c688290ac9b08b5842d1a8e8a00fc84233e"
   integrity sha512-BWIKcEYtzjRV6GpkX0Km5/w2E7fgIcywiQOT7JZTc5NSbv/YI9kpFinB9lRFsOoRVGmiqq/O3VfP/oH2clIiBA==
 
+react-native-external-display@^0.6.6:
+  version "0.6.6"
+  resolved "https://registry.yarnpkg.com/react-native-external-display/-/react-native-external-display-0.6.6.tgz#d9b5baae550b50504966b47875590910c715bb08"
+  integrity sha512-Oh3vsW3USWEvo6PRFMIV1vS8Bog4VrAT1BVgyEKShemMCeFL5SxXPe0MedhwqJJFIDpgeJFj7JSIPXYTf/irhg==
+
 react-native-fit-image@^1.5.5:
   version "1.5.5"
   resolved "https://registry.yarnpkg.com/react-native-fit-image/-/react-native-fit-image-1.5.5.tgz#c660d1ad74b9dcaa1cba27a0d9c23837e000226c"

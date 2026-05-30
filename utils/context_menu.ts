@@ -10,6 +10,7 @@ import type { AudiobookTableItem } from "@illusive/db/schema";
 import { reinterpret_cast } from "../lib-origin/common/cast";
 import { GLOBALS } from "@illusive/globals";
 import { Constants } from "@illusive/constants";
+import { RepeatMode } from "react-native-track-player";
 
 // TODO add support for discord without play mode
 type Icon = ImageResolvedAssetSource | string;
@@ -179,6 +180,31 @@ export namespace SeriesContextMenu {
 		menuTitle: series_name,
 		menuSubtitle: `${novels.length} books`,
 		menuItems: series_all_functions(novels, expanded)
+	});
+}
+
+export namespace PlaybackContextMenu {
+	export type PlaybackContextKeys = "playback-shuffle" | "playback-repeat-off" | "playback-repeat-queue" | "playback-repeat-track";
+	const playback_menu_item = (key: PlaybackContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: Icon): MenuElementConfig => base_menu_item<PlaybackContextKeys>(key, title, attributes, icon);
+
+	export const playback_modes_menu = (repeat_mode: RepeatMode): MenuConfig => ({
+		menuTitle: "Playback",
+		menuItems: [
+			{
+				menuTitle: "Shuffle",
+				menuOptions: ["displayInline"],
+				menuItems: [playback_menu_item("playback-shuffle", "Shuffle Queue", undefined, "shuffle")]
+			},
+			{
+				menuTitle: "Repeat",
+				menuOptions: ["displayInline"],
+				menuItems: [
+					playback_menu_item("playback-repeat-off", "Off", () => (repeat_mode === RepeatMode.Off ? ["disabled"] : undefined), "minus.circle"),
+					playback_menu_item("playback-repeat-queue", "Repeat Queue", () => (repeat_mode === RepeatMode.Queue ? ["disabled"] : undefined), "repeat"),
+					playback_menu_item("playback-repeat-track", "Repeat Track", () => (repeat_mode === RepeatMode.Track ? ["disabled"] : undefined), "repeat.1")
+				]
+			}
+		]
 	});
 }
 

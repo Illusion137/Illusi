@@ -15,6 +15,7 @@ import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid, milliseconds_of } from "@common/utils/util";
 import AudioPlayer from "@screens/AudioPlayer";
+import ExternalDisplayHost from "@components/external_display/ExternalDisplayHost";
 import { GLOBALS } from "@illusive/globals";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
 import * as Sentry from "@sentry/react-native";
@@ -30,11 +31,11 @@ import { Platform } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 // TODO fix carplay in future; + make UI actually good; too buggy for prod right now, causing crashes
 // CarPlayService is iOS-only; will be gated below
-// let CarPlayService: any;
-// if (Platform.OS === "ios") {
-// 	const carplayModule = require("@illusive/carplay/carplay_service");
-// 	CarPlayService = carplayModule.CarPlayService;
-// }
+let CarPlayService: any;
+if (Platform.OS === "ios") {
+	const carplayModule = require("@illusive/carplay/carplay_service");
+	CarPlayService = carplayModule.CarPlayService;
+}
 
 const splash_screen_image = require("../assets/splash.png");
 
@@ -115,18 +116,18 @@ export default Sentry.wrap(function App() {
 				} catch (e) {}
 			};
 			// Initialize CarPlay (iOS only)
-			// if (CarPlayService) {
-			// 	CarPlayService.init();
-			// }
+			if (CarPlayService) {
+				CarPlayService.init();
+			}
 			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
 			// Cleanup CarPlay (iOS only)
-			// if (CarPlayService) {
-			// 	CarPlayService.destroy();
-			// }
+			if (CarPlayService) {
+				CarPlayService.destroy();
+			}
 		};
 	}, []);
 	useEffect(() => {
@@ -158,6 +159,7 @@ export default Sentry.wrap(function App() {
 			<ThemeProvider value={theme_value}>
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+				{!is_loading ? <ExternalDisplayHost /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
 				{!is_loading ? (
 					<SafeAreaProvider>

@@ -1,0 +1,130 @@
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/extensions/CarPlayTemplateExtensions.swift b/node_modules/@iternio/react-native-auto-play/ios/extensions/CarPlayTemplateExtensions.swift
+index e15d37c..dd3d523 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/extensions/CarPlayTemplateExtensions.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/extensions/CarPlayTemplateExtensions.swift
+@@ -19,7 +19,7 @@ extension CPTemplate {
+         initTemplate(template: self, id: id)
+     }
+     @objc var id: String {
+-        return (self.userInfo as? [String: Any])?["id"] as! String
++        return (self.userInfo as? [String: Any])?["id"] as? String ?? ""
+     }
+ }
+ 
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/hybrid/HybridGridTemplate.swift b/node_modules/@iternio/react-native-auto-play/ios/hybrid/HybridGridTemplate.swift
+index 980ab38..ed6fbf8 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/hybrid/HybridGridTemplate.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/hybrid/HybridGridTemplate.swift
+@@ -9,14 +9,25 @@ import NitroModules
+ 
+ class HybridGridTemplate: HybridGridTemplateSpec {
+     func createGridTemplate(config: GridTemplateConfig) throws {
+-        let template = GridTemplate(config: config)
+-
+-        try RootModule.withTemplateStore { templateStore in
+-            templateStore.addTemplate(
+-                template: template,
+-                templateId: config.id
+-            )
++        // CPGridTemplate is a CarPlay/UIKit object and must be created on the main thread.
++        // NitroModules calls this on a background thread, so we dispatch synchronously.
++        var storedError: Error?
++        let block = {
++            let template = GridTemplate(config: config)
++            do {
++                try RootModule.withTemplateStore { templateStore in
++                    templateStore.addTemplate(template: template, templateId: config.id)
++                }
++            } catch {
++                storedError = error
++            }
++        }
++        if Thread.isMainThread {
++            block()
++        } else {
++            DispatchQueue.main.sync(execute: block)
+         }
++        if let error = storedError { throw error }
+     }
+ 
+     func updateGridTemplateButtons(
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/scenes/HeadUnitSceneDelegate.swift b/node_modules/@iternio/react-native-auto-play/ios/scenes/HeadUnitSceneDelegate.swift
+index a93a165..cd8e871 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/scenes/HeadUnitSceneDelegate.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/scenes/HeadUnitSceneDelegate.swift
+@@ -34,6 +34,7 @@ class HeadUnitSceneDelegate: AutoPlayScene, CPTemplateApplicationSceneDelegate {
+         ]
+ 
+         connect(props: props)
++        configureNowPlayingTemplate()
+         HybridAutoPlay.emit(event: .didconnect)
+     }
+ 
+@@ -49,9 +50,20 @@ class HeadUnitSceneDelegate: AutoPlayScene, CPTemplateApplicationSceneDelegate {
+             "colorScheme": interfaceController.carTraitCollection
+                 .userInterfaceStyle == .dark ? "dark" : "light"
+         ])
++        configureNowPlayingTemplate()
+         HybridAutoPlay.emit(event: .didconnect)
+     }
+ 
++    // Apps with carplay-audio entitlement must initialize CPNowPlayingTemplate.shared.
++    // CarPlay navigates to it automatically when audio is playing; without setup it crashes.
++    private func configureNowPlayingTemplate() {
++        if #available(iOS 14, *) {
++            CPNowPlayingTemplate.shared.updateNowPlayingButtons([])
++            CPNowPlayingTemplate.shared.isUpNextButtonEnabled = false
++            CPNowPlayingTemplate.shared.isAlbumArtistButtonEnabled = false
++        }
++    }
++
+     func templateApplicationScene(
+         _ templateApplicationScene: CPTemplateApplicationScene,
+         didDisconnect interfaceController: CPInterfaceController,
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/templates/GridTemplate.swift b/node_modules/@iternio/react-native-auto-play/ios/templates/GridTemplate.swift
+index e48661c..280eb32 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/templates/GridTemplate.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/templates/GridTemplate.swift
+@@ -41,7 +41,8 @@ class GridTemplate: AutoPlayHeaderProviding {
+         let gridButtonHeight: CGFloat
+ 
+         if #available(iOS 26.0, *) {
+-            gridButtonHeight = CPGridTemplate.maximumGridButtonImageSize.height
++            let maxHeight = CPGridTemplate.maximumGridButtonImageSize.height
++            gridButtonHeight = maxHeight > 0 ? maxHeight : 44
+         }
+         else {
+             gridButtonHeight = 44
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/templates/Parser.swift b/node_modules/@iternio/react-native-auto-play/ios/templates/Parser.swift
+index 9adbf12..d95a631 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/templates/Parser.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/templates/Parser.swift
+@@ -66,7 +66,7 @@ class Parser {
+                         // this icon is not scaled properly when used as image asset, so we use the plain image, as CP does the correct coloring anyways
+                         noImageAsset: true,
+                         traitCollection: traitCollection
+-                    )!
++                    )
+                 }
+                 if let assetImage = action.image?.assetImage {
+                     image = Parser.parseAssetImage(
+diff --git a/node_modules/@iternio/react-native-auto-play/ios/utils/SymbolFont.swift b/node_modules/@iternio/react-native-auto-play/ios/utils/SymbolFont.swift
+index d2a30c5..0421da9 100644
+--- a/node_modules/@iternio/react-native-auto-play/ios/utils/SymbolFont.swift
++++ b/node_modules/@iternio/react-native-auto-play/ios/utils/SymbolFont.swift
+@@ -86,6 +86,7 @@ class SymbolFont {
+         // Start drawing
+         UIGraphicsBeginImageContextWithOptions(canvasSize, false, 0)
+         guard let context = UIGraphicsGetCurrentContext() else {
++            UIGraphicsEndImageContext()
+             return nil
+         }
+ 
+@@ -195,6 +196,6 @@ class SymbolFont {
+             backgroundColor: image.backgroundColor,
+             fontScale: image.fontScale ?? 1.0,
+             traitCollection: traitCollection
+-        )!
++        )
+     }
+ }

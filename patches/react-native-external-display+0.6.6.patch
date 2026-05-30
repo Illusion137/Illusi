@@ -1,0 +1,15 @@
+diff --git a/node_modules/react-native-external-display/ios/RNExternalDisplayEvent.mm b/node_modules/react-native-external-display/ios/RNExternalDisplayEvent.mm
+index 213e37b..952f5b7 100644
+--- a/node_modules/react-native-external-display/ios/RNExternalDisplayEvent.mm
++++ b/node_modules/react-native-external-display/ios/RNExternalDisplayEvent.mm
+@@ -152,7 +152,9 @@ RCT_EXPORT_METHOD(resumeMainScene:(RCTPromiseResolveBlock)resolve reject:(RCTPro
+ -(NSDictionary *)getUISceneInfo API_AVAILABLE(ios(13.0)) {
+   NSSet *scenes = [UIApplication sharedApplication].connectedScenes;
+   NSMutableDictionary *screenInfo = [[NSMutableDictionary alloc] init];
+-  for (UIWindowScene* scene in scenes) {
++  for (UIScene* rawScene in scenes) {
++    if (![rawScene isKindOfClass:[UIWindowScene class]]) continue;
++    UIWindowScene* scene = (UIWindowScene*)rawScene;
+     if (
+       ![scene.session.role isEqual:UIWindowSceneSessionRoleApplication] ||
+       (

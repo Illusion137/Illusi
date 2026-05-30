@@ -12,6 +12,11 @@ sentry.properties
 ios/output
 nodejs-assets/*.sh
 DESKTOP_CHECKLIST.md
+**/library/(shared)/
+**/playlists/(shared)/
+**/explore/(shared)/
+**/extras/(shared)/
+**/audiobooks/(shared)/
 
 # Expo
 .expo

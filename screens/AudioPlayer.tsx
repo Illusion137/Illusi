@@ -5,7 +5,7 @@ import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
 import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
-import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
+import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-track-player";
 import LyricsPlayer from "@screens/LyricsPlayer";
 import QueueHandle from "@components/QueueHandle";
 import NavLink from "@components/NavLink";
@@ -22,7 +22,7 @@ import { SQLfs } from "@illusive/sql/sql_fs";
 import { remove_topic } from "@common/utils/clean_util";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";
-import { extract_menu_items, TrackContextMenu } from "@utils/context_menu";
+import { extract_menu_items, PlaybackContextMenu, TrackContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
 import { reinterpret_cast } from "@common/cast";
 import SlidingUpPanel, { type SlidingUpPanelHandle } from "rn-sliding-up-panel-reanimated";
@@ -85,6 +85,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
 	const [playing_track, set_playing_track] = useState<IllusiveType.Track>(props.tracks[0]);
 	const [does_track_exist, set_does_track_exist] = useState<boolean>(true);
+	const [repeat_mode, set_repeat_mode] = useState<RepeatMode>(RepeatMode.Off);
 	const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>("NONE");
 	const [lyrics_overlay_visible, set_lyrics_overlay_visible] = useState(false);
 	// const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
@@ -116,10 +117,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const panel_content_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 2], Extrapolation.CLAMP) }));
 
 	const shimmer_position = useSharedValue(0);
-	useEffect(() => {
-		shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
-		return () => cancelAnimation(shimmer_position);
-	}, []);
 	const shimmer_style = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(shimmer_position.value, [0, 1], [-200, 600]) }] }));
 	const header_bg_opacity_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, (panel_min_height + panel_max_height) / 2], [1, 0], Extrapolation.CLAMP) }));
 
@@ -225,7 +222,34 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	useEffect(() => {
 		setup();
+		TrackPlayer.getRepeatMode()
+			.then(set_repeat_mode)
+			.catch(() => {});
 	}, []);
+
+	const playback_menu_config = useMemo(() => PlaybackContextMenu.playback_modes_menu(repeat_mode), [repeat_mode]);
+	async function on_press_playback_menu({ nativeEvent }: { nativeEvent: { actionKey: string } }) {
+		switch (nativeEvent.actionKey) {
+			case "playback-shuffle":
+				await reshuffle();
+				break;
+			case "playback-repeat-off":
+				await TrackPlayer.setRepeatMode(RepeatMode.Off);
+				set_repeat_mode(RepeatMode.Off);
+				break;
+			case "playback-repeat-queue":
+				await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+				set_repeat_mode(RepeatMode.Queue);
+				break;
+			case "playback-repeat-track":
+				await TrackPlayer.setRepeatMode(RepeatMode.Track);
+				set_repeat_mode(RepeatMode.Track);
+				break;
+			default:
+				break;
+		}
+	}
+	const repeat_icon = repeat_mode === RepeatMode.Track ? "repeat-once" : repeat_mode === RepeatMode.Queue ? "repeat" : "repeat-off";
 
 	async function refresh_data() {
 		const refresh_map = new Map<string, IllusiveType.Track>(GLOBALS.global_var.sql_tracks.map((track) => [track.uid, track]));
@@ -235,7 +259,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				GLOBALS.global_var.playing_tracks[i] = { ...refreshed_track, playback: GLOBALS.global_var.playing_tracks[i].playback ?? refreshed_track.playback };
 			}
 		}
-		const index = await TrackPlayer.getActiveTrackIndex();
+		let index: number | undefined;
+		try {
+			index = await TrackPlayer.getActiveTrackIndex();
+		} catch {
+			return;
+		}
 		if (index === undefined) return;
 		set_playing_track(GLOBALS.global_var.playing_tracks[index]);
 		set_player_state_metadata((metadata) => ({
@@ -250,11 +279,14 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	useGlobalTracksRefresh(refresh_data);
 
 	const toggle_playing = useCallback(async () => {
-		const tp_state = await TrackPlayer.getPlaybackState();
-		set_player_state_type((prev) => (prev === State.Playing ? State.Paused : State.Playing));
-
-		if (tp_state.state === State.Playing) await TrackPlayer.pause();
-		else await TrackPlayer.play();
+		try {
+			const tp_state = await TrackPlayer.getPlaybackState();
+			set_player_state_type((prev) => (prev === State.Playing ? State.Paused : State.Playing));
+			if (tp_state.state === State.Playing) await TrackPlayer.pause();
+			else await TrackPlayer.play();
+		} catch {
+			// player not initialized yet
+		}
 	}, []);
 
 	function toggle_panel() {
@@ -283,7 +315,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			set_playing_track(GLOBALS.global_var.playing_tracks[event.index]);
 			set_does_track_exist(track_exists(GLOBALS.global_var.playing_tracks[event.index], GLOBALS.global_var.sql_tracks));
 			set_lyrics_loading_state(!is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri) ? "DOWNLOADED" : "NONE");
-			if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
+			// TODO investigate auto downloading n shit (FSCache results for a week)
+			// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
 			set_artist_data(GLOBALS.global_var.playing_tracks[event.index].artists[0]);
 			set_player_state_metadata({
 				title: GLOBALS.global_var.playing_tracks[event.index]?.title,
@@ -293,27 +326,29 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				album: GLOBALS.global_var.playing_tracks[event.index]?.album
 			});
 		} else if (event.type === Event.PlaybackState) {
-			set_player_state_type(event.state);
+			set_player_state_type((prev) => (prev === event.state ? prev : event.state));
+			cancelAnimation(shimmer_position);
 			switch (event.state) {
-				default:
-				case State.None:
-				case State.Ready:
-				case State.Playing:
-					shimmer_position.value = 0;
-					shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
-					break;
-				case State.Stopped:
-				case State.Ended:
-				case State.Paused:
-					shimmer_position.value = 0;
-					break;
 				case State.Loading:
 				case State.Buffering:
+					shimmer_position.value = 0;
 					shimmer_position.value = withRepeat(withTiming(1, { duration: 300 }), -1, false);
 					break;
 				case State.Error:
 					shimmer_position.value = 0;
 					shimmer_position.value = withRepeat(withTiming(1, { duration: 100 }), -1, false);
+					break;
+				case State.Playing:
+				case State.Ready:
+					shimmer_position.value = 0;
+					shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
+					break;
+				case State.None:
+				case State.Paused:
+				case State.Stopped:
+				case State.Ended:
+				default:
+					shimmer_position.value = 0;
 					break;
 			}
 		}
@@ -355,6 +390,22 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const waveform_path = useMemo(() => (playing_track.media_uri ? SQLfs.media_directory(playing_track.media_uri) : null), [playing_track.media_uri]);
 	const begdur = playing_track.meta?.begdur ?? 0,
 		enddur = playing_track.meta?.enddur ?? playing_track.duration;
+
+	const artwork_menu_config = useMemo(
+		() => ({
+			menuTitle: "",
+			menuItems: [...extract_menu_items<ContextResolver.TrackContextKeys>(TrackContextMenu.track_all_functions(playing_track, ""), ["track-push-discord"]), ...TrackContextMenu.track_component_inner_context_menu(playing_track, "")]
+		}),
+		[playing_track]
+	);
+	const share_menu_config = useMemo(() => ({ menuTitle: "", menuItems: TrackContextMenu.track_share_folder(playing_track, "").menuItems }), [playing_track]);
+	const on_press_artwork_menu = useCallback(
+		({ nativeEvent }: { nativeEvent: { actionKey: string } }) => {
+			ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
+		},
+		[playing_track]
+	);
+	const on_press_share_menu = on_press_artwork_menu;
 
 	return (
 		<SlidingUpPanel
@@ -431,20 +482,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, justifyContent: "flex-end" }, panel_content_style]}>
 					{/* Transparent context menu covering the artwork square */}
 					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: Dimensions.get("screen").width }}>
-						<ContextMenuView
-							shouldEnableAggressiveCleanup
-							shouldCleanupOnComponentWillUnmountForMenuPreview
-							shouldCleanupOnComponentWillUnmountForAuxPreview
-							menuConfig={{
-								menuTitle: "",
-								menuItems: [
-									...extract_menu_items<ContextResolver.TrackContextKeys>(TrackContextMenu.track_all_functions(playing_track, ""), ["track-push-discord"]),
-									...TrackContextMenu.track_component_inner_context_menu(playing_track, "")
-								]
-							}}
-							onPressMenuItem={async ({ nativeEvent }) => {
-								ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
-							}}>
+						<ContextMenuView shouldEnableAggressiveCleanup shouldCleanupOnComponentWillUnmountForMenuPreview shouldCleanupOnComponentWillUnmountForAuxPreview menuConfig={artwork_menu_config} onPressMenuItem={on_press_artwork_menu}>
 							<View style={{ width: "100%", height: Dimensions.get("screen").width }} />
 						</ContextMenuView>
 					</View>
@@ -547,10 +585,15 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 					{/* PLAY CONTROLS ----------------------------------------------------*/}
 					<View style={{ marginBottom: 72 }}>
 						<View style={styles.playbackcontainer}>
-							<TouchableOpacity onPress={reshuffle}>
-								<View style={styles.round_btn}>
-									<Ionicons name="shuffle" size={22} color={colors.primary} />
-								</View>
+							<TouchableOpacity>
+								<ContextMenuButton menuConfig={playback_menu_config} onPressMenuItem={on_press_playback_menu}>
+									<View style={styles.round_btn}>
+										<Ionicons name="shuffle" size={24} color={colors.primary} style={{ left: -4, top: -3 }} />
+										<View style={[styles.repeat_badge, { backgroundColor: colors.background, borderColor: colors.line }]}>
+											<MaterialCommunityIcons name={repeat_icon} size={13} color={repeat_mode === RepeatMode.Off ? colors.subtext : colors.primary} />
+										</View>
+									</View>
+								</ContextMenuButton>
 							</TouchableOpacity>
 							<TouchableOpacity onPress={track_player_previous}>
 								<Ionicons name="play-back" size={36} color={colors.primary} />
@@ -562,11 +605,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 								<Ionicons name="play-forward" size={36} color={colors.primary} />
 							</TouchableOpacity>
 							<TouchableOpacity>
-								<ContextMenuButton
-									menuConfig={{ menuTitle: "", menuItems: TrackContextMenu.track_share_folder(playing_track, "").menuItems }}
-									onPressMenuItem={async ({ nativeEvent }) => {
-										ContextResolver.resolve_track_context(playing_track, undefined, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
-									}}>
+								<ContextMenuButton menuConfig={share_menu_config} onPressMenuItem={on_press_share_menu}>
 									<View style={styles.round_btn}>
 										<Ionicons name="share-outline" size={22} color={colors.primary} />
 									</View>
@@ -574,7 +613,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							</TouchableOpacity>
 						</View>
 					</View>
-					<LyricsPlayer key={playing_track.uid} visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} />
+					<LyricsPlayer visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} />
 				</Animated.View>
 				{/* Single queue dim — covers everything (background, top padding, header, content) */}
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
@@ -602,5 +641,6 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		text_glow: { textShadowColor: colors.background + "8A", textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 },
 		icon_glow: { textShadowColor: colors.background, textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 2 },
 		action_btn: { backgroundColor: colors.shelf + "8A", width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
-		round_btn: { backgroundColor: colors.primary + "22", width: 52, height: 52, borderRadius: 26, justifyContent: "center", alignItems: "center" }
+		round_btn: { backgroundColor: colors.primary + "22", width: 52, height: 52, borderRadius: 26, justifyContent: "center", alignItems: "center" },
+		repeat_badge: { position: "absolute", right: 6, bottom: 6, width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: "center", justifyContent: "center" }
 	});

@@ -148,6 +148,7 @@
 		"react-native-dropdown-select-list": "^2.0.4",
 		"react-native-easing-gradient": "^1.1.1",
 		"react-native-element-dropdown": "^2.10.0",
+		"react-native-external-display": "^0.6.6",
 		"react-native-fs": "^2.20.0",
 		"react-native-gesture-handler": "^2.30.1",
 		"react-native-graph": "^1.1.0",
