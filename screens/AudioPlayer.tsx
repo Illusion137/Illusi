@@ -503,7 +503,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							) : (
 								<>
 									<View style={{ flexDirection: "row", marginTop: 3 }}>
-										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} />
+										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} darken />
 									</View>
 									<NavLink type="album" text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet} />
 								</>
