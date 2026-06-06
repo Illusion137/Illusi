@@ -23,13 +23,13 @@ export default function CompactPlaylistComponent(props: { playlist_data: Compact
 
 	return (
 		<>
-			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track }]} onPress={navigate}>
+			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track, opacity: !props.playlist_data.title.uri ? 0.5 : 1.0 }]} onPress={navigate}>
 				<>
-					<View style={{ width: 10 }} />
+					<View style={{ width: 2 }} />
 					<IImage source={thumbnail_uri} style={styles.image} />
-					<View style={{ flexDirection: "column", left: 15 }}>
-						<Text style={{ color: colors.text, fontSize: 15, fontWeight: "500" }}>{props.playlist_data.title.name}</Text>
-						<View style={{ flexDirection: "row", top: 5 }}>
+					<View style={{ flexDirection: "column", left: 12 }}>
+						<Text style={{ color: colors.text, fontSize: 15, fontWeight: "bold" }}>{props.playlist_data.title.name}</Text>
+						<View style={{ flexDirection: "row", top: 2 }}>
 							{(props.playlist_data.explicit ?? "NONE") === "EXPLICIT" ? <MaterialIcons name="explicit" size={15} color={colors.secondary} style={styles.icon_thin} /> : null}
 							<Text style={{ color: colors.subtext }}>
 								{empty_join_dot([
@@ -48,26 +48,8 @@ export default function CompactPlaylistComponent(props: { playlist_data: Compact
 }
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		button: {
-			width: "100%",
-			height: 60,
-			alignItems: "center",
-			backgroundColor: colors.track,
-			flexDirection: "row"
-		},
-		icon_thin: {
-			marginRight: 5
-		},
-		notfound: {
-			width: 70,
-			height: 70,
-			borderRadius: 5,
-			left: 15
-		},
-		image: {
-			left: 5,
-			height: 52,
-			width: 52,
-			borderRadius: 5
-		}
+		button: { width: "100%", height: 60, alignItems: "center", backgroundColor: colors.track, flexDirection: "row" },
+		icon_thin: { marginRight: 5 },
+		notfound: { width: 70, height: 70, borderRadius: 5, left: 15 },
+		image: { left: 5, height: 52, width: 52, borderRadius: 2, borderWidth: 1, borderColor: colors.line }
 	});

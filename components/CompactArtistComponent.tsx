@@ -22,8 +22,8 @@ export default function CompactArtistComponent(props: { artist_data: CompactArti
 		typeof props.artist_data.profile_artwork_url !== "string"
 			? props.artist_data.profile_artwork_url
 			: !props.artist_data.profile_artwork_url?.includes("http")
-			? props.artist_data.profile_artwork_url.replace("//", "https://")
-			: props.artist_data.profile_artwork_url;
+				? props.artist_data.profile_artwork_url.replace("//", "https://")
+				: props.artist_data.profile_artwork_url;
 
 	return (
 		<>
@@ -46,23 +46,7 @@ export default function CompactArtistComponent(props: { artist_data: CompactArti
 }
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		button: {
-			width: "100%",
-			height: 60,
-			alignItems: "center",
-			backgroundColor: colors.track,
-			flexDirection: "row"
-		},
-		notfound: {
-			width: 70,
-			height: 70,
-			borderRadius: 5,
-			left: 15
-		},
-		image: {
-			left: 5,
-			height: 52,
-			width: 52,
-			borderRadius: 50
-		}
+		button: { width: "100%", height: 60, alignItems: "center", backgroundColor: colors.track, flexDirection: "row" },
+		notfound: { width: 70, height: 70, borderRadius: 5, left: 15 },
+		image: { left: 5, height: 52, width: 52, borderRadius: 50, borderWidth: 1, borderColor: colors.line }
 	});

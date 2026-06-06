@@ -80,31 +80,4 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 			)}
 		</>
 	);
-
-	// return (
-	//     <>
-	//         {
-	//             props.fade ?
-	//             (
-	//                 <View style={{
-	//                     position: 'relative',
-	//                     width: '100%',
-	//                     height: image_height,
-	//                     backgroundColor: colors.background, // helps blend the fade
-	//                   }}>
-	//                     <RenderImageBlur/>
-	//                     <LinearGradient
-	//                             colors={['transparent', 'rgba(0,0,0,0.2)', colors.background]}
-	//                             style={{
-	//                                 position: 'absolute',
-	//                                 bottom: 0,
-	//                                 height: props.fade.percent,
-	//                                 width: '100%',
-	//                             }}/>
-	//                 </View>
-	//             )
-	//             : <RenderImageBlur/>
-	//         }
-	//     </>
-	// );
 }

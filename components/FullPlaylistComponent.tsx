@@ -39,7 +39,7 @@ export default function FullPlaylistComponent(props: { playlist_data: FullPlayli
 
 	const year = new Date(props.playlist_data.date ?? 0).getFullYear();
 	const artist_name = remove_topic(props.playlist_data.artist?.[0]?.name ?? "");
-	const second_line = props.playlist_data.description ?? ((props.second_line_type ?? "YEAR") === "YEAR" ? (year > 1970 ? String(year) : artist_name) : artist_name ?? (year > 1970 ? String(year) : undefined));
+	const second_line = props.playlist_data.description ?? ((props.second_line_type ?? "YEAR") === "YEAR" ? (year > 1970 ? String(year) : artist_name) : (artist_name ?? (year > 1970 ? String(year) : undefined)));
 
 	const artwork = get_playlist_artwork(props.playlist_data);
 	const styles = make_styles(colors, size);
@@ -82,55 +82,12 @@ export default function FullPlaylistComponent(props: { playlist_data: FullPlayli
 
 const make_styles = (colors: Prefs.Theme["colors"], size: number) =>
 	StyleSheet.create({
-		container: {
-			padding: 5
-		},
-		artwork: {
-			width: size,
-			height: size,
-			borderRadius: 10
-		},
-		explicit_badge: {
-			position: "absolute",
-			bottom: 6,
-			left: 6,
-			backgroundColor: "rgba(0,0,0,0.6)",
-			borderRadius: 4,
-			paddingHorizontal: 4,
-			paddingVertical: 2
-		},
-		playlist_badge: {
-			position: "absolute",
-			bottom: 6,
-			right: 6,
-			backgroundColor: "rgba(0,0,0,0.5)",
-			borderRadius: 4,
-			paddingHorizontal: 5,
-			paddingVertical: 3
-		},
-		loading_overlay: {
-			position: "absolute",
-			top: 0,
-			left: 0,
-			width: size,
-			height: size,
-			borderRadius: 10,
-			backgroundColor: "rgba(0,0,0,0.4)",
-			alignItems: "center",
-			justifyContent: "center"
-		},
-		text_container: {
-			width: size,
-			paddingTop: 6,
-			gap: 2
-		},
-		title: {
-			color: colors.text,
-			fontWeight: "600",
-			fontSize: 14
-		},
-		subtitle: {
-			color: colors.subtext,
-			fontSize: 13
-		}
+		container: { padding: 5 },
+		artwork: { width: size, height: size, borderRadius: 2, borderWidth: 1, borderColor: colors.line },
+		explicit_badge: { position: "absolute", bottom: 6, left: 6, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 },
+		playlist_badge: { position: "absolute", bottom: 6, right: 6, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 3 },
+		loading_overlay: { position: "absolute", top: 0, left: 0, width: size, height: size, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
+		text_container: { width: size, paddingTop: 6, gap: 2 },
+		title: { color: colors.text, fontWeight: "600", fontSize: 14 },
+		subtitle: { color: colors.subtext, fontSize: 13 }
 	});
