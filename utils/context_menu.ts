@@ -32,6 +32,15 @@ export function get_menu_item<Keys extends string>(items: MenuElementConfig[], k
 export namespace TrackContextMenu {
 	const track_menu_item = (key: ContextResolver.TrackContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: Icon): MenuElementConfig => base_menu_item<ContextResolver.TrackContextKeys>(key, title, attributes, icon);
 
+	const view_artist_element = (track: Track): MenuElementConfig =>
+		track.artists.length <= 1
+			? track_menu_item("track-view-artist", "View Artist", () => (is_empty(track.artists?.[0]?.uri) ? ["hidden"] : undefined), "music.mic")
+			: menu_folder(
+				"View Artists",
+				track.artists.map((artist, i) => track_menu_item(`track-view-artist-${i}`, artist.name, () => (is_empty(track.artists[i]?.uri) ? ["hidden"] : undefined), "music.mic")),
+				"music.mic"
+			);
+
 	const discord_app_icon = Image.resolveAssetSource(require("../assets/discord.png"));
 	export const track_all_functions = (track: Track, write_playlist_uuid: string) => {
 		const is_playlist_saved =
@@ -40,12 +49,7 @@ export namespace TrackContextMenu {
 		return [
 			track_menu_item("track-station", "Play Station", () => (is_empty(track.youtube_id) && is_empty(track.soundcloud_id)) ? ["hidden"] : undefined, "waveform.circle"),
 			track_menu_item("track-push-discord", "Push Discord", () => (is_empty(Prefs.get_pref("discord_webhook_url")) || !is_empty(track.imported_id) ? ["hidden"] : undefined), discord_app_icon),
-			track.artists.length <= 1
-				? track_menu_item("track-view-artist", "View Artist", () => (is_empty(track.artists?.[0]?.uri) ? ["hidden"] : undefined), "music.mic")
-				: menu_folder(
-					"View Artists",
-					track.artists.map((artist, i) => track_menu_item(`track-view-artist-${i}`, `View Artist - ${artist.name}`, () => (is_empty(track.artists[i]?.uri) ? ["hidden"] : undefined), "music.mic"))
-				),
+			view_artist_element(track),
 			track_menu_item("track-view-album", "View Album", () => (is_empty(track.album?.uri) ? ["hidden"] : undefined), "list.bullet"),
 			track_menu_item("track-view-info", "View Track Info", () => (!is_saved ? ["hidden"] : undefined), "plus.viewfinder"),
 			track_menu_item("track-edit-info", "Edit Track Info", () => (!is_saved ? ["hidden"] : undefined), "pencil"),
@@ -98,7 +102,9 @@ export namespace TrackContextMenu {
 	export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => {
 		const all_fns = track_all_functions(track, write_playlist_uuid);
 		return [
-			...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-station", "track-view-artist", "track-view-artist-0", "track-view-artist-1", "track-view-artist-2", "track-view-artist-3", "track-view-artist-4", "track-view-album"]),
+			...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-station"]),
+			view_artist_element(track),
+			...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-album"]),
 			{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-info", "track-edit-info", "track-trim-media"]) },
 			{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-add-to-library", "track-add-to-playlist"]) },
 			track_offline_folder(track, write_playlist_uuid),
