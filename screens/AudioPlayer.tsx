@@ -13,6 +13,7 @@ import { GLOBALS } from "@illusive/globals";
 import type * as IllusiveType from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { is_empty, shuffle_array } from "@common/utils/util";
+import { P2P, type P2PStatus } from "@illusive/p2p";
 import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, save_past_queue, setup_track_player, track_player_next, track_player_previous } from "@illusive/track_player_service";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { artist_string, track_exists } from "@illusive/illusive_utils";
@@ -34,6 +35,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 
+// TODO ensure highest quality thumbnails here
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
 const screen_w = Dimensions.get("screen").width;
 const seekbar_width = screen_w - 70; // marginHorizontal: 35 each side
@@ -72,7 +74,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const bottom_sheet_ref = React.useRef<SlidingUpPanelHandle>(null);
 	const panel_animated = useSharedValue(panel_min_height);
 
-	const [artist_data, set_artist_data] = useState<IllusiveType.NamedUUID>();
 	const [player_state_metadata, set_player_state_metadata] = useState({
 		title: props.tracks[0]?.title,
 		artist: artist_string(props.tracks[0]),
@@ -130,6 +131,22 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const queue_dim_style = useAnimatedStyle(() => ({ opacity: interpolate(queue_expanded_progress.value, [0, 1], [0, 0.65], Extrapolation.CLAMP) }));
 	const [outer_drag_enabled, set_outer_drag_enabled] = useState(true);
 
+	// SyncPlay awareness: guests may have their controls locked by the host.
+	// When connected as a guest with control permission, button taps proxy
+	// through P2P to the host instead of acting on the local TrackPlayer.
+	const [p2p_status, set_p2p_status] = useState<P2PStatus>(P2P.get_status());
+	useEffect(() => P2P.subscribe_status(set_p2p_status), []);
+	const is_guest = p2p_status.role === "guest" && p2p_status.connected;
+	// Permanent lock from the host's permission toggle
+	const guest_permission_locked = is_guest && !p2p_status.guest_can_control;
+	// Transient lock during a coordinated track change (prepare/play_at cycle)
+	// so guests can't spam play/seek/skip against a loading player.
+	const guest_loading_locked = is_guest && p2p_status.loading;
+	const guest_locked = guest_permission_locked || guest_loading_locked;
+	// Controls are routed through P2P only when guest has permission AND
+	// isn't in a loading window.
+	const guest_controls_routed = is_guest && p2p_status.guest_can_control && !p2p_status.loading;
+
 	useAnimatedReaction(
 		() => queue_expanded_progress.value > 0.01,
 		(queue_open, was_open) => {
@@ -142,9 +159,19 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const seek_progress = useSharedValue(0);
 	const is_seeking = useSharedValue(false);
 
-	const do_seek = useCallback((ratio: number) => {
-		TrackPlayer.seekTo(ratio * (metadata_duration_ref.current || 1));
-	}, []);
+	const do_seek = useCallback(
+		(ratio: number) => {
+			const position = ratio * (metadata_duration_ref.current || 1);
+			if (guest_controls_routed) {
+				P2P.request_seek(position);
+				return;
+			}
+			if (guest_locked) return;
+			TrackPlayer.seekTo(position);
+			if (P2P.get_role() === "host") P2P.on_seek(position);
+		},
+		[guest_controls_routed, guest_locked]
+	);
 
 	const pan_seek = Gesture.Pan()
 		.activeOffsetX([-3, 3])
@@ -194,6 +221,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		if (!Prefs.get_pref("play_without_popup") || TrackPlayer.getActiveTrack().catch((e) => e) instanceof Error) show_sheet();
 		const is_setup = await setup_track_player();
 		await TrackPlayer.reset();
+		await TrackPlayer.setRate(1.0);
 		const queue = await TrackPlayer.getQueue();
 		if (is_setup && queue.length <= 0) {
 			const tracks = reshuffled_tracks ?? props.tracks;
@@ -281,13 +309,37 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const toggle_playing = useCallback(async () => {
 		try {
 			const tp_state = await TrackPlayer.getPlaybackState();
+			if (guest_controls_routed) {
+				if (tp_state.state === State.Playing) P2P.request_pause();
+				else P2P.request_play();
+				return;
+			}
+			if (guest_locked) return;
 			set_player_state_type((prev) => (prev === State.Playing ? State.Paused : State.Playing));
 			if (tp_state.state === State.Playing) await TrackPlayer.pause();
 			else await TrackPlayer.play();
 		} catch {
 			// player not initialized yet
 		}
-	}, []);
+	}, [guest_controls_routed, guest_locked]);
+
+	const handle_prev = useCallback(() => {
+		if (guest_controls_routed) {
+			P2P.request_prev();
+			return;
+		}
+		if (guest_locked) return;
+		track_player_previous();
+	}, [guest_controls_routed, guest_locked]);
+
+	const handle_next = useCallback(() => {
+		if (guest_controls_routed) {
+			P2P.request_next();
+			return;
+		}
+		if (guest_locked) return;
+		track_player_next();
+	}, [guest_controls_routed, guest_locked]);
 
 	function toggle_panel() {
 		if (panel_state_visible) hide_sheet();
@@ -317,7 +369,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			set_lyrics_loading_state(!is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri) ? "DOWNLOADED" : "NONE");
 			// TODO investigate auto downloading n shit (FSCache results for a week)
 			// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
-			set_artist_data(GLOBALS.global_var.playing_tracks[event.index].artists[0]);
 			set_player_state_metadata({
 				title: GLOBALS.global_var.playing_tracks[event.index]?.title,
 				artist: artist_string(GLOBALS.global_var.playing_tracks[event.index]),
@@ -474,8 +525,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						</View>
 					) : null}
 					{!panel_state_visible ? (
-						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20 }} onPress={toggle_playing}>
-							<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={colors.primary} />
+						<TouchableOpacity disabled={guest_locked} hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20, opacity: guest_locked ? 0.4 : 1 }} onPress={toggle_playing}>
+							<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={guest_locked ? colors.subtext : colors.primary} />
 						</TouchableOpacity>
 					) : null}
 				</View>
@@ -492,10 +543,27 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
 								{player_state_metadata.title}
 							</TextTicker>
-							<NavLink type="artist" text_style={styles.artist} text={remove_topic(player_state_metadata.artist)} uri={artist_data?.uri ?? ""} callforward={hide_sheet} />
+							<View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start" }}>
+								{playing_track.artists.map((artist, index) => {
+									const artist_uri = artist?.uri ?? "";
+									const separator = index === playing_track.artists.length - 1 ? "" : index === playing_track.artists.length - 2 ? " & " : ", ";
+									return (
+										<View key={`${artist_uri || artist?.name}-${index}`} style={{ flexDirection: "row" }}>
+											<NavLink type="artist" text_style={[styles.artist, is_empty(artist_uri) ? { color: colors.subtext + "A0" } : null]} text={remove_topic(artist?.name ?? "")} uri={artist_uri} callforward={hide_sheet} />
+											{separator ? <Text style={styles.artist}>{separator}</Text> : null}
+										</View>
+									);
+								})}
+							</View>
 							{!is_empty(player_state_metadata.album?.name ?? "") ? (
 								<>
-									<NavLink type="album" text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet} />
+									<NavLink
+										type="album"
+										text_style={[styles.artist, is_empty(player_state_metadata.album?.uri ?? "") ? { color: colors.subtext + "A0" } : null]}
+										text={player_state_metadata.album?.name ?? ""}
+										uri={player_state_metadata.album?.uri ?? ""}
+										callforward={hide_sheet}
+									/>
 									<View style={{ flexDirection: "row", marginTop: 3 }}>
 										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} darken />
 									</View>
@@ -505,7 +573,13 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 									<View style={{ flexDirection: "row", marginTop: 3 }}>
 										<TrackIconTags track_data={playing_track} is_downloading={false} size={20} darken />
 									</View>
-									<NavLink type="album" text_style={styles.artist} text={player_state_metadata.album?.name ?? ""} uri={player_state_metadata.album?.uri ?? ""} callforward={hide_sheet} />
+									<NavLink
+										type="album"
+										text_style={[styles.artist, is_empty(player_state_metadata.album?.uri ?? "") ? { color: colors.subtext + "A0" } : null]}
+										text={player_state_metadata.album?.name ?? ""}
+										uri={player_state_metadata.album?.uri ?? ""}
+										callforward={hide_sheet}
+									/>
 								</>
 							)}
 						</View>
@@ -595,14 +669,14 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 									</View>
 								</ContextMenuButton>
 							</TouchableOpacity>
-							<TouchableOpacity onPress={track_player_previous}>
-								<Ionicons name="play-back" size={36} color={colors.primary} />
+							<TouchableOpacity disabled={guest_locked} onPress={handle_prev} style={{ opacity: guest_locked ? 0.35 : 1 }}>
+								<Ionicons name="play-back" size={36} color={guest_locked ? colors.subtext : colors.primary} />
 							</TouchableOpacity>
-							<TouchableOpacity onPress={toggle_playing}>
-								<Ionicons name={player_state_type === State.Playing ? "pause" : "play"} size={60} color={colors.primary} />
+							<TouchableOpacity disabled={guest_locked} onPress={toggle_playing} style={{ opacity: guest_locked ? 0.35 : 1 }}>
+								<Ionicons name={player_state_type === State.Playing ? "pause" : "play"} size={60} color={guest_locked ? colors.subtext : colors.primary} />
 							</TouchableOpacity>
-							<TouchableOpacity onPress={track_player_next}>
-								<Ionicons name="play-forward" size={36} color={colors.primary} />
+							<TouchableOpacity disabled={guest_locked} onPress={handle_next} style={{ opacity: guest_locked ? 0.35 : 1 }}>
+								<Ionicons name="play-forward" size={36} color={guest_locked ? colors.subtext : colors.primary} />
 							</TouchableOpacity>
 							<TouchableOpacity>
 								<ContextMenuButton menuConfig={share_menu_config} onPressMenuItem={on_press_share_menu}>
