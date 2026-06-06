@@ -1,5 +1,22 @@
+diff --git a/node_modules/pdfjs-dist/build/pdf.mjs b/node_modules/pdfjs-dist/build/pdf.mjs
+index 3b08593..57528e3 100644
+--- a/node_modules/pdfjs-dist/build/pdf.mjs
++++ b/node_modules/pdfjs-dist/build/pdf.mjs
+@@ -15752,11 +15752,7 @@ class PDFWorker {
+       if (this.#mainThreadWorkerMessageHandler) {
+         return this.#mainThreadWorkerMessageHandler;
+       }
+-      const worker = await import(
+-      /*webpackIgnore: true*/
+-      /*@vite-ignore*/
+-      this.workerSrc);
+-      return worker.WorkerMessageHandler;
++      throw new Error('pdfjs: dynamic worker import is unsupported on Hermes; set globalThis.pdfjsWorker to the worker module.');
+     };
+     return shadow(this, "_setupFakeWorkerGlobal", loader());
+   }
 diff --git a/node_modules/pdfjs-dist/legacy/build/pdf.mjs b/node_modules/pdfjs-dist/legacy/build/pdf.mjs
-index 5559b93..5e181dd 100644
+index 5559b93..430d51b 100644
 --- a/node_modules/pdfjs-dist/legacy/build/pdf.mjs
 +++ b/node_modules/pdfjs-dist/legacy/build/pdf.mjs
 @@ -15981,7 +15981,7 @@ class DOMFilterFactory extends BaseFilterFactory {
@@ -19,4 +36,17 @@ index 5559b93..5e181dd 100644
 +    const require = process.getBuiltinModule("module").createRequire('');
      const canvas = require("@napi-rs/canvas");
      return canvas.createCanvas(width, height);
+   }
+@@ -22493,11 +22493,7 @@ class PDFWorker {
+       if (this.#mainThreadWorkerMessageHandler) {
+         return this.#mainThreadWorkerMessageHandler;
+       }
+-      const worker = await import(
+-      /*webpackIgnore: true*/
+-      /*@vite-ignore*/
+-      this.workerSrc);
+-      return worker.WorkerMessageHandler;
++      throw new Error('pdfjs: dynamic worker import is unsupported on Hermes; set globalThis.pdfjsWorker to the worker module.');
+     };
+     return shadow(this, "_setupFakeWorkerGlobal", loader());
    }
