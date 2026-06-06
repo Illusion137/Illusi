@@ -18,6 +18,9 @@ target 'Illusi' do
   pod 'ffmpeg-kit-react-native', :path => '../node_modules/ffmpeg-kit-react-native'
   pod 'SwiftAudioEx', :path => '../../../RNTPvE/SwiftAudioEx/'
   # pod 'react-native-siri-shortcut', :path => '../node_modules/react-native-siri-shortcut'
+  # Piper TTS for react-native-mr-lecture — vendored sherpa-onnx + bundled voice
+  # model. Binaries fetched by scripts/fetch-piper.sh (gitignored). See podspec.
+  pod 'SherpaOnnx', :path => './SherpaOnnx'
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'

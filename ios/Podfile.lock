@@ -315,6 +315,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+    - SherpaOnnx
     - Yoga
   - NitroCookies (1.1.0):
     - hermes-engine
@@ -3150,6 +3151,7 @@ PODS:
     - SDWebImage/Core (~> 5.17)
   - Sentry/HybridSDK (8.58.0)
   - shaquillehinds-ffmpeg-kit-ios (6.0.2)
+  - SherpaOnnx (1.13.2)
   - SSZipArchive (2.4.3)
   - SwiftAudioEx (1.1.0):
     - SwiftProtobuf (~> 1.27)
@@ -3310,6 +3312,7 @@ DEPENDENCIES:
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - shaquillehinds-ffmpeg-kit-ios (from `https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec`)
+  - SherpaOnnx (from `./SherpaOnnx`)
   - SwiftAudioEx (from `../../../RNTPvE/SwiftAudioEx/`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
   - ZipArchive
@@ -3634,6 +3637,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-worklets"
   shaquillehinds-ffmpeg-kit-ios:
     :podspec: https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec
+  SherpaOnnx:
+    :path: "./SherpaOnnx"
   SwiftAudioEx:
     :path: "../../../RNTPvE/SwiftAudioEx/"
   Yoga:
@@ -3682,7 +3687,7 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  MrLecture: a59c09da91c5acf7c82ae48372cbb77cb1c4ecbb
+  MrLecture: 295b41442f011d3860caa380ad2d38389b321cc6
   NitroCookies: 2f49d1935f61cdbc7b62c8de092e1ac3e11566d1
   NitroModules: f45159491c5a0e7161685a301b1c6c11440b3ab1
   NitroVibenet: e714fcead5fc864f42dc4426bf65d6914227b407
@@ -3801,6 +3806,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Sentry: d587a8fe91ca13503ecd69a1905f3e8a0fcf61be
   shaquillehinds-ffmpeg-kit-ios: ccc776103cae371e03b8eb62ecbab16bf18cec75
+  SherpaOnnx: 5f14123a1d274825eb8639ad9e0c66803e60071c
   SSZipArchive: fe6a26b2a54d5a0890f2567b5cc6de5caa600aef
   SwiftAudioEx: 838afc83d33482a8a0539b9dce098176f6d643a8
   SwiftProtobuf: 9e106a71456f4d3f6a3b0c8fd87ef0be085efc38
@@ -3808,6 +3814,6 @@ SPEC CHECKSUMS:
   Yoga: c0b3f2c7e8d3e327e450223a2414ca3fa296b9a2
   ZipArchive: e25a4373192673e3229ac8d6e9f64a3e5713c966
 
-PODFILE CHECKSUM: b21fe759adea9bc985e865dbacbcc6790e4c3532
+PODFILE CHECKSUM: 18765425a55eb1bf62d74f0260a481dadc5f85d6
 
 COCOAPODS: 1.16.2

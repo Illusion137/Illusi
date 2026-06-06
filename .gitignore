@@ -18,6 +18,8 @@ DESKTOP_CHECKLIST.md
 **/extras/(shared)/
 **/audiobooks/(shared)/
 
+LIB_MODIFIED.txt
+
 # Expo
 .expo
 __generated__
@@ -236,6 +238,11 @@ buck-out/
 
 # CocoaPods
 /ios/Pods/
+
+# Piper TTS binaries — fetched by scripts/fetch-piper.sh (gitignored, ~145MB)
+/ios/SherpaOnnx/vendor/
+/ios/SherpaOnnx/model/
+/ios/SherpaOnnx/c-api.h
 
 # Expo
 .expo/

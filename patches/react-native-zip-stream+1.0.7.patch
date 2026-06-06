@@ -1,0 +1,18 @@
+diff --git a/node_modules/react-native-zip-stream/ios/ZipStream.swift b/node_modules/react-native-zip-stream/ios/ZipStream.swift
+index e4e3486..072be70 100644
+--- a/node_modules/react-native-zip-stream/ios/ZipStream.swift
++++ b/node_modules/react-native-zip-stream/ios/ZipStream.swift
+@@ -9,9 +9,11 @@ class ZipStream: NSObject {
+             if !zipFile.unzipOpenFile(zipFilePath) {
+                 throw NSError(domain: "com.zipstream", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to open ZIP file"])
+             }
+-            let fileNames = zipFile.getZipFileContents()
++            guard let fileData = zipFile.unzipFileToMemory() else {
++                throw NSError(domain: "com.zipstream", code: 404, userInfo: [NSLocalizedDescriptionKey: "No files in ZIP"])
++            }
+             zipFile.unzipCloseFile()
+-            resolve(fileNames)
++            resolve(Array(fileData.keys))
+         } catch let error {
+             reject("ERROR_LISTING_CONTENTS", "Failed to list contents of the ZIP file", error)
+         }
