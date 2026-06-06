@@ -6,7 +6,7 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 	...config,
 	name: IS_DEV ? "Illusi (Dev)" : "Illusi",
 	slug: "Illusi",
-	version: "21.0.0",
+	version: "21.0.1",
 	// "orientation": "portrait",
 	// "icon": "./assets/icon.png",
 	// "userInterfaceStyle": "dark",
@@ -32,15 +32,15 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 	},
 	assetBundlePatterns: ["**/*"],
 	ios: {
-		bundleIdentifier: IS_DEV ? "com.illusion137.Illusi.dev" : "com.illusion137.Illusi"
+		bundleIdentifier: IS_DEV ? "com.illusion137.Illusi.dev" : "com.illusion137.Illusi",
+		// Required for Syncplay (MultipeerConnectivity) on iOS 14+. Without these the
+		// advertiser fails with NSNetServicesErrorDomain -72008 (missing config).
+		infoPlist: {
+			NSLocalNetworkUsageDescription: "Allow Illusi to find and sync playback with nearby devices.",
+			NSBonjourServices: ["_illusi-p2p._tcp", "_illusi-p2p._udp"]
+		}
 		// "supportsTablet": false,
 		// "usesIcloudStorage": false,
-		// "infoPlist": {
-		//     "UIBackgroundModes": [
-		//         "audio",
-		//         "fetch"
-		//     ]
-		// },
 		// "associatedDomains": ["applinks:illusi.dev"]
 	},
 	web: { favicon: "./assets/favicon.png" },

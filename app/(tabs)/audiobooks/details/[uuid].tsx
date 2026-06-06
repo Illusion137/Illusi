@@ -23,6 +23,9 @@ interface GenState {
 	active: boolean;
 	current: number;
 	total: number;
+	// Progress within the chapter currently being generated.
+	chapter_done: number;
+	chapter_total: number;
 }
 
 function format_date(iso: string): string {
@@ -109,15 +112,28 @@ export default function AudiobookDetailsScreen() {
 	async function run_generation() {
 		if (novel === null) return;
 		set_voice_open(false);
+		// Each chapter's segment count (roz content entries) is the denominator for its bar.
+		const chapter_content_total = (i: number) => roz?.chapters?.[i]?.contents?.length ?? 0;
+		const bump = () => set_gen((g) => (g ? { ...g, chapter_done: g.chapter_total > 0 ? Math.min(g.chapter_done + 1, g.chapter_total) : g.chapter_done + 1 } : g));
+		const finish_chapter = () => set_gen((g) => (g ? { ...g, chapter_done: g.chapter_total } : g));
 		const result =
 			gen_chapter === null
 				? await (async () => {
-						set_gen({ active: true, current: 0, total: novel.chapter_count });
-						return Audiobooks.generate_full_audio(novel.uuid, { engine, voice_id }, { on_chapter_start: (i, total) => set_gen({ active: true, current: i, total }) });
+						set_gen({ active: true, current: 0, total: novel.chapter_count, chapter_done: 0, chapter_total: chapter_content_total(0) });
+						return Audiobooks.generate_full_audio(
+							novel.uuid,
+							{ engine, voice_id },
+							{
+								on_chapter_start: (i, total) => set_gen({ active: true, current: i, total, chapter_done: 0, chapter_total: chapter_content_total(i) }),
+								on_content_export: bump,
+								on_content_skip: bump,
+								on_chapter_finish: finish_chapter
+							}
+						);
 					})()
 				: await (async () => {
-						set_gen({ active: true, current: gen_chapter, total: novel.chapter_count });
-						return Audiobooks.generate_chapter_audio(novel.uuid, gen_chapter, { engine, voice_id });
+						set_gen({ active: true, current: gen_chapter, total: novel.chapter_count, chapter_done: 0, chapter_total: chapter_content_total(gen_chapter) });
+						return Audiobooks.generate_chapter_audio(novel.uuid, gen_chapter, { engine, voice_id }, { on_content_export: bump, on_content_skip: bump, on_chapter_finish: finish_chapter });
 					})();
 		set_gen(null);
 		await refresh();
@@ -313,10 +329,13 @@ export default function AudiobookDetailsScreen() {
 							const chapter_title = roz_chapters[i]?.chapter.title?.trim() || `Chapter ${i + 1}`;
 							const can_generate = roz_ready && !generating && i < roz_chapters.length;
 							const filled_index = is_completed || is_current;
+							const is_generating_this = gen !== null && gen.active && gen.current === i;
+							const chapter_frac = is_generating_this && gen.chapter_total > 0 ? gen.chapter_done / gen.chapter_total : 0;
+							const highlight = is_generating_this || is_current;
 							return (
 								<TouchableOpacity
 									key={i}
-									style={[styles.chapter_card, { borderColor: is_current ? colors.primary : colors.line, backgroundColor: is_current ? colors.primary_dark : colors.shelf }]}
+									style={[styles.chapter_card, { borderColor: highlight ? colors.primary : colors.line, backgroundColor: is_current ? colors.primary_dark : colors.shelf }]}
 									disabled={!can_generate}
 									onPress={() => open_voice_picker(i)}>
 									<View style={[styles.chapter_index, { borderColor: colors.line, backgroundColor: filled_index ? colors.primary : "transparent" }]}>
@@ -329,14 +348,29 @@ export default function AudiobookDetailsScreen() {
 										)}
 									</View>
 									<View style={styles.chapter_meta}>
-										<Text style={[styles.chapter_title, { color: is_current ? colors.primary : colors.text }]} numberOfLines={1}>
+										<Text style={[styles.chapter_title, { color: highlight ? colors.primary : colors.text }]} numberOfLines={1}>
 											{chapter_title}
 										</Text>
 										<Text style={[styles.chapter_sub, { color: colors.subtext }]} numberOfLines={1}>
-											{is_current && novel.last_chapter_timestamp_ms > 0 ? `${duration_to_string(Math.floor(novel.last_chapter_timestamp_ms / 1000))} in` : has_chapter_audio ? "Audio ready" : roz_ready ? "Text only" : "Locked"}
+											{is_generating_this
+												? `Generating… ${gen.chapter_done}/${gen.chapter_total || "?"}${gen.chapter_total > 0 ? ` (${Math.round(chapter_frac * 100)}%)` : ""}`
+												: is_current && novel.last_chapter_timestamp_ms > 0
+													? `${duration_to_string(Math.floor(novel.last_chapter_timestamp_ms / 1000))} in`
+													: has_chapter_audio
+														? "Audio ready"
+														: roz_ready
+															? "Text only"
+															: "Locked"}
 										</Text>
+										{is_generating_this ? (
+											<View style={[styles.chapter_gen_track, { backgroundColor: colors.line }]}>
+												<View style={[styles.chapter_gen_fill, { width: `${Math.round(chapter_frac * 100)}%`, backgroundColor: colors.primary }]} />
+											</View>
+										) : null}
 									</View>
-									{is_current && has_chapter_audio ? (
+									{is_generating_this ? (
+										<ActivityIndicator size="small" color={colors.primary} />
+									) : is_current && has_chapter_audio ? (
 										<Ionicons name="headset" size={16} color={colors.primary} />
 									) : has_chapter_audio ? (
 										<Ionicons name="volume-medium" size={16} color={colors.subtext} />
@@ -527,6 +561,8 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		chapter_meta: { flex: 1 },
 		chapter_title: { fontSize: 14, fontWeight: "600" },
 		chapter_sub: { fontSize: 11, marginTop: 1 },
+		chapter_gen_track: { height: 3, borderRadius: 2, overflow: "hidden", marginTop: 5 },
+		chapter_gen_fill: { height: "100%", borderRadius: 2 },
 		empty_inline: { fontSize: 13, padding: 14, textAlign: "center" },
 		danger_section: { padding: 14, gap: 6 },
 		danger_btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 2, borderWidth: 1, borderColor: colors.line },

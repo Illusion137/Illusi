@@ -1,8 +1,34 @@
+diff --git a/node_modules/react-native-vibenet/ios/AudioProcessor.swift b/node_modules/react-native-vibenet/ios/AudioProcessor.swift
+index 14346db..cd57568 100644
+--- a/node_modules/react-native-vibenet/ios/AudioProcessor.swift
++++ b/node_modules/react-native-vibenet/ios/AudioProcessor.swift
+@@ -15,6 +15,9 @@ private let win_length: Int = 640
+ private let n_mels: Int = 128
+ private let fmin: Double = 0.0
+ private let fmax: Double = 8000.0
++// CoreML model accepts a flexible time dimension in 1...20000. Longer audio
++// (>~6.7 min) overflows that range, so cap the analyzed frames.
++private let max_frames: Int = 20000
+ 
+ func load_audio(path: String) throws -> [Float] {
+     let url = URL(fileURLWithPath: path)
+@@ -66,8 +69,9 @@ func extract_mel(y: [Float], sr: Int) -> [[Float]] {
+     let hann_window = make_hann_window(length: win_length)
+     let mel_fb = make_mel_filterbank()
+ 
+-    let n_frames = (y.count - win_length) / hop_length + 1
+-    guard n_frames > 0 else { return Array(repeating: Array(repeating: 0, count: 1), count: n_mels) }
++    let raw_frames = (y.count - win_length) / hop_length + 1
++    guard raw_frames > 0 else { return Array(repeating: Array(repeating: 0, count: 1), count: n_mels) }
++    let n_frames = min(raw_frames, max_frames)
+ 
+     let half_fft = n_fft / 2 + 1
+     var mel_spec = Array(repeating: Array(repeating: Float(0), count: n_frames), count: n_mels)
 diff --git a/node_modules/react-native-vibenet/ios/HybridVibenet.swift b/node_modules/react-native-vibenet/ios/HybridVibenet.swift
-index ac11914..14cd46b 100644
+index ac11914..c4d7ee7 100644
 --- a/node_modules/react-native-vibenet/ios/HybridVibenet.swift
 +++ b/node_modules/react-native-vibenet/ios/HybridVibenet.swift
-@@ -15,12 +15,16 @@ public class HybridVibenet: HybridVibenetSpec_base, HybridVibenetSpec_protocol {
+@@ -15,12 +15,19 @@ public class HybridVibenet: HybridVibenetSpec_base, HybridVibenetSpec_protocol {
      public override init() {
          super.init()
          let bundle = Bundle(for: HybridVibenet.self)
@@ -13,7 +39,10 @@ index ac11914..14cd46b 100644
 -            config.computeUnits = .all
 -            self.model = try? MLModel(contentsOf: model_url, configuration: config)
 +        let config = MLModelConfiguration()
-+        config.computeUnits = .all
++        // .all lets CoreML schedule GPU work, which iOS forbids while the app is
++        // backgrounded (E5RT "Insufficient Permission to submit GPU work from
++        // background"). CPU + Neural Engine are both permitted in the background.
++        config.computeUnits = .cpuAndNeuralEngine
 +
 +        if let compiled_url = bundle.url(forResource: "vibenet", withExtension: "mlmodelc")
 +            ?? Bundle.main.url(forResource: "vibenet", withExtension: "mlmodelc") {

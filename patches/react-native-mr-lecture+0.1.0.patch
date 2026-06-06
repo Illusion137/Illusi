@@ -19,10 +19,21 @@ index 7bac4ca..dec6409 100644
 +  s.dependency 'SherpaOnnx'
  end
 diff --git a/node_modules/react-native-mr-lecture/ios/AVSEngine.swift b/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
-index 8028205..1068d5d 100644
+index 8028205..7a30675 100644
 --- a/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
 +++ b/node_modules/react-native-mr-lecture/ios/AVSEngine.swift
-@@ -42,13 +42,18 @@ class AVSEngine {
+@@ -35,20 +35,28 @@ class AVSEngine {
+     }
+ 
+     func exportBatch(jobs: [ExportJob], options: ExportOptions) async throws {
+-        let maxConcurrency = Int(options.concurrency ?? Double(min(8, ProcessInfo.processInfo.processorCount)))
++        // Keep this low: many concurrent AVSpeechSynthesizer instances overwhelm the
++        // iOS speech daemon, which then drops jobs (they never call back) and can freeze
++        // the UI. The per-job watchdog in exportOne recovers any that still stall.
++        let maxConcurrency = Int(options.concurrency ?? Double(min(4, ProcessInfo.processInfo.processorCount)))
+         let semaphore = AsyncSemaphore(value: maxConcurrency)
+ 
+         try await withThrowingTaskGroup(of: Void.self) { group in
              for job in jobs {
                  group.addTask {
                      await semaphore.wait()
@@ -48,8 +59,101 @@ index 8028205..1068d5d 100644
                  }
              }
              try await group.waitForAll()
+@@ -60,19 +68,41 @@ class AVSEngine {
+     private func exportOne(text: String, outputPath: String, voiceId: String?, rate: Double?) async throws {
+         let session = SynthesisSession()
+         let utterance = makeUtterance(text: text, voiceId: voiceId, rate: rate)
+-        let url = URL(fileURLWithPath: outputPath)
++        // outputPath arrives as an Expo cacheDirectory URI ("file:///var/.../x.wav").
++        // URL(fileURLWithPath:) would treat that whole string as a literal path and produce a
++        // bogus directory, so ExtAudioFileCreateWithURL fails with kAudioFileUnspecifiedError
++        // (2003334207). Parse the scheme when present; fall back to a plain path otherwise.
++        let url = outputPath.contains("://") ? (URL(string: outputPath) ?? URL(fileURLWithPath: outputPath)) : URL(fileURLWithPath: outputPath)
+ 
+         // session is captured strongly by both the coroutine frame (local var) and the closure,
+         // ensuring the synthesizer stays alive until the empty-buffer completion signal.
+         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
++            // Watchdog: on real devices the synthesizer occasionally never delivers its
++            // completion (empty) buffer, which would otherwise hang the whole batch forever.
++            // Fail this single job after a generous deadline so the rest can finish.
++            DispatchQueue.global().asyncAfter(deadline: .now() + 90.0) { [session] in
++                guard session.claimResume() else { return }
++                session.synthesizer.stopSpeaking(at: .immediate)
++                continuation.resume(throwing: NSError(
++                    domain: "MrLecture",
++                    code: -2,
++                    userInfo: [NSLocalizedDescriptionKey: "TTS export timed out"]
++                ))
++            }
++
+             session.synthesizer.write(utterance) { [session] buffer in
+                 guard let pcmBuffer = buffer as? AVAudioPCMBuffer else { return }
+ 
+                 if pcmBuffer.frameLength == 0 {
+                     // Empty buffer = synthesis complete
+-                    guard !session.resumed else { return }
+-                    session.resumed = true
+-                    if let err = session.writeError {
++                    guard session.claimResume() else { return }
++                    let err = session.writeError
++                    // Release the AVAudioFile now so its header is finalized/flushed before the
++                    // batch's ffmpeg step reads it. The 90s watchdog block retains `session`, so
++                    // without this the file stays open (unfinalized) until the watchdog fires —
++                    // ffmpeg then reports "corrupt packet / estimating duration from bitrate".
++                    session.audioFile = nil
++                    if let err = err {
+                         continuation.resume(throwing: err)
+                     } else {
+                         continuation.resume()
+@@ -82,7 +112,20 @@ class AVSEngine {
+ 
+                 if session.audioFile == nil {
+                     do {
+-                        session.audioFile = try AVAudioFile(forWriting: url, settings: pcmBuffer.format.settings)
++                        // AVSpeechSynthesizer hands back non-interleaved Float32 buffers, which a
++                        // WAV/AIFF container can't represent — passing pcmBuffer.format.settings
++                        // straight through makes ExtAudioFileCreateWithURL fail with
++                        // kAudioFileUnspecifiedError (2003334207). Write a standard 16-bit
++                        // interleaved PCM file instead; AVAudioFile converts the float buffer on
++                        // write (its processingFormat still matches the incoming buffer).
++                        let outputSettings: [String: Any] = [
++                            AVFormatIDKey: kAudioFormatLinearPCM,
++                            AVSampleRateKey: pcmBuffer.format.sampleRate,
++                            AVNumberOfChannelsKey: pcmBuffer.format.channelCount,
++                            AVLinearPCMBitDepthKey: 16,
++                            AVLinearPCMIsFloatKey: false
++                        ]
++                        session.audioFile = try AVAudioFile(forWriting: url, settings: outputSettings)
+                     } catch {
+                         session.writeError = error
+                         return
+@@ -132,11 +175,22 @@ class AVSEngine {
+ 
+ // MARK: - Synthesis session (carries state across the async callback boundary)
+ 
+-private final class SynthesisSession {
++private final class SynthesisSession: @unchecked Sendable {
+     let synthesizer = AVSpeechSynthesizer()
+     var audioFile: AVAudioFile?
+     var writeError: Error?
+-    var resumed = false
++    private var resumed = false
++    private let resumeLock = NSLock()
++
++    // Atomically claims the right to resume the continuation. Returns true exactly
++    // once; the write callback and the watchdog both race for it from different threads.
++    func claimResume() -> Bool {
++        resumeLock.lock()
++        defer { resumeLock.unlock() }
++        if resumed { return false }
++        resumed = true
++        return true
++    }
+ }
+ 
+ // MARK: - Delegate for live speak (keeps session + synthesizer alive until playback finishes)
 diff --git a/node_modules/react-native-mr-lecture/ios/PiperEngine.swift b/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
-index b40166b..361c97b 100644
+index b40166b..d0f8f0c 100644
 --- a/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
 +++ b/node_modules/react-native-mr-lecture/ios/PiperEngine.swift
 @@ -42,16 +42,16 @@ class PiperEngine {
@@ -156,7 +260,7 @@ index b40166b..361c97b 100644
              throw NSError(
                  domain: "MrLecture",
                  code: -3,
-@@ -131,16 +171,17 @@ class PiperEngine {
+@@ -131,20 +171,24 @@ class PiperEngine {
              )
          }
          let speed = Float(rate ?? 1.0)
@@ -170,13 +274,23 @@ index b40166b..361c97b 100644
 +                userInfo: [NSLocalizedDescriptionKey: "Piper synthesis produced no audio for text: \(text.prefix(80))"]
              )
          }
-         // sherpa-onnx writes a standard WAV file directly
-         let ok = audio.save(filename: outputPath)
+-        // sherpa-onnx writes a standard WAV file directly
+-        let ok = audio.save(filename: outputPath)
 -        if !ok {
++        // sherpa-onnx writes a standard WAV file directly. Its C save API needs a plain
++        // filesystem path, but the JS layer passes an Expo cacheDirectory URI
++        // ("file:///var/.../x.wav"); save() can't write to that, so strip the scheme.
++        let savePath = outputPath.hasPrefix("file://") ? (URL(string: outputPath)?.path ?? outputPath) : outputPath
++        let ok = audio.save(filename: savePath)
 +        if ok != 1 {
              throw NSError(
                  domain: "MrLecture",
                  code: -5,
+-                userInfo: [NSLocalizedDescriptionKey: "Failed to save audio to \(outputPath)"]
++                userInfo: [NSLocalizedDescriptionKey: "Failed to save audio to \(savePath)"]
+             )
+         }
+         #else
 diff --git a/node_modules/react-native-mr-lecture/ios/SherpaOnnxAPI.swift b/node_modules/react-native-mr-lecture/ios/SherpaOnnxAPI.swift
 new file mode 100644
 index 0000000..f664932

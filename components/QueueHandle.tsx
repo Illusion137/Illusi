@@ -15,7 +15,8 @@ import TrackComponentBase from "@components/TrackComponentBase";
 import { empty_join_dot } from "@common/utils/util";
 
 const HANDLE_H = 58;
-const PANEL_H = Math.min(Dimensions.get("screen").height * 0.58, 520);
+const PANEL_H = Math.min(Dimensions.get("screen").height * 0.72, 640);
+const SNAP_SPRING = { damping: 900, stiffness: 1000 };
 
 const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function QueueHandle({ expanded_progress }) {
 	const { colors } = usePTheme();
@@ -23,6 +24,8 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 
 	const panel_h = useSharedValue(HANDLE_H);
 	const drag_base = useSharedValue(HANDLE_H);
+	// True while a drag is mid-flight and hasn't been resolved to a rest state yet.
+	const needs_snap = useSharedValue(false);
 
 	async function update_queue() {
 		try {
@@ -44,11 +47,21 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 		}
 	});
 
+	const snap_to = useCallback(
+		(open: boolean) => {
+			"worklet";
+			panel_h.value = withSpring(open ? PANEL_H : HANDLE_H, SNAP_SPRING);
+			expanded_progress.value = withSpring(open ? 1 : 0, SNAP_SPRING);
+		},
+		[panel_h, expanded_progress]
+	);
+
 	const pan = Gesture.Pan()
-		.activeOffsetY([-8, 8])
+		.activeOffsetY([-12, 12])
 		.failOffsetX([-10, 10])
 		.onStart(() => {
 			drag_base.value = panel_h.value;
+			needs_snap.value = true;
 		})
 		.onUpdate((e) => {
 			const new_h = Math.max(HANDLE_H, Math.min(PANEL_H, drag_base.value - e.translationY));
@@ -56,10 +69,31 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 			expanded_progress.value = (new_h - HANDLE_H) / (PANEL_H - HANDLE_H);
 		})
 		.onEnd((e) => {
-			const snap_open = e.velocityY < -400 || panel_h.value > (HANDLE_H + PANEL_H) / 2;
-			panel_h.value = withSpring(snap_open ? PANEL_H : HANDLE_H, { damping: 22, stiffness: 220 });
-			expanded_progress.value = withSpring(snap_open ? 1 : 0, { damping: 22, stiffness: 220 });
+			// A deliberate flick wins over position; otherwise snap to nearest end.
+			const snap_open = e.velocityY < -400 ? true : e.velocityY > 400 ? false : panel_h.value > (HANDLE_H + PANEL_H) / 2;
+			snap_to(snap_open);
+			needs_snap.value = false;
+		})
+		// onEnd is skipped when a drag is cancelled (e.g. the parent panel or a
+		// horizontal swipe steals the gesture). Without this, panel_h/expanded_progress
+		// would be left stranded at a partial value — which freezes the queue half-open
+		// AND permanently disables the parent player's drag-to-dismiss. onFinalize always
+		// runs, so resolve to the nearest rest state here as a safety net.
+		.onFinalize(() => {
+			if (!needs_snap.value) return;
+			needs_snap.value = false;
+			snap_to(panel_h.value > (HANDLE_H + PANEL_H) / 2);
 		});
+
+	// Tap the handle to toggle fully open / closed (no precise drag needed).
+	const tap = Gesture.Tap()
+		.maxDuration(250)
+		.onEnd(() => {
+			const is_open = panel_h.value > (HANDLE_H + PANEL_H) / 2;
+			snap_to(!is_open);
+		});
+
+	const handle_gesture = Gesture.Exclusive(pan, tap);
 
 	const container_style = useAnimatedStyle(() => ({ height: panel_h.value }));
 
@@ -101,7 +135,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 	return (
 		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + "40", overflow: "hidden", zIndex: 30 }, container_style]}>
 			{/* Drag handle + collapsed next-up preview */}
-			<GestureDetector gesture={pan}>
+			<GestureDetector gesture={handle_gesture}>
 				<View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
 					<View style={{ alignSelf: "center", width: 32, height: 4, borderRadius: 2, backgroundColor: colors.subtext + "40", marginBottom: 4 }} />
 					{next_track ? (
