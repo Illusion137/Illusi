@@ -1,8 +1,7 @@
 import { ScrollView, View } from "react-native";
-import type { CompactPlaylist, FullPlaylist, Track } from "@illusive/types";
+import type { CompactArtist, CompactPlaylist, FullPlaylist, Track } from "@illusive/types";
 import AlbumList from "@components/AlbumList";
 import { GLOBALS } from "@illusive/globals";
-import { Prefs } from "@illusive/prefs";
 import { useEffect, useRef, useState } from "react";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import HorizontalRowArtists from "@components/HorizontalRowArtists";
@@ -19,6 +18,7 @@ import { SharedRouter } from "@utils/shared_routes";
 import { ExploreLocalData } from "@illusive/explore_local_data";
 import { LinearGradient } from "expo-linear-gradient";
 import FullPlaylistList from "@components/FullPlaylistList";
+import { shuffle_array } from "../../lib-origin/common/utils/util";
 
 const top_tracks_slice = 50;
 const rewind_date = new Date();
@@ -37,6 +37,7 @@ export default function IllusiExplore() {
 	const [forgotten_favorites, set_forgotten_favorites] = useState<CompactPlaylist[]>([]);
 	const [top_tracks, set_top_tracks] = useState<Track[]>([]);
 	const [for_you_playlists, set_for_you_playlists] = useState<FullPlaylist[]>([]);
+	const [for_you_artists, set_for_you_artists] = useState<CompactArtist[]>([]);
 	const [illusi_public_playlists, set_illusi_public_playlists] = useState<CompactPlaylist[]>([]);
 
 	async function get_persistant_new_releases(refreshed?: boolean) {
@@ -51,16 +52,15 @@ export default function IllusiExplore() {
 		(async function () {
 			set_forgotten_favorites(Explore.get_forgotten_favorites());
 			set_top_tracks(await Explore.get_top_tracks());
+			set_for_you_playlists(await Explore.get_recommended_playlists());
+			set_for_you_artists(shuffle_array(await Explore.get_recommended_artists()));
+			set_illusi_public_playlists(await Explore.get_illusi_public_playlists());
 			if (shared_values.cached_new_releases.length !== 0) return;
 			Explore.refresh_all_services_new_releases(get_persistant_new_releases, set_is_loading_new_releases);
 			await get_persistant_new_releases();
 			set_is_loading_new_releases(false);
-			set_for_you_playlists(await Explore.get_recommended_playlists());
-			set_illusi_public_playlists(await Explore.get_illusi_public_playlists());
 		})();
 	}, []);
-
-	function on_artist_watch_progress() {}
 
 	return (
 		<ScrollView bounces={false}>
@@ -70,25 +70,22 @@ export default function IllusiExplore() {
 				end={{ x: 1, y: 2 }}
 				style={{ width: "100%", height: "50%", position: "absolute", flex: 1, backgroundColor: colors.background, pointerEvents: "box-none" }}
 			/>
-			<View style={{ height: 100 }} />
-			<AlbumList
-				second_line_type="ARTIST"
-				is_loading={is_loading_new_releases}
-				refresh={{ last_refresh: Prefs.get_pref("new_releases_last_refreshed"), refresh_data: async () => await Explore.refresh_new_releases(get_persistant_new_releases, on_artist_watch_progress) }}
-				title="New Releases"
-				else_type="ALBUM"
-				albums={new_releases}
-			/>
-			<View style={{ height: 10 }} />
+			<View style={{ height: 80 }} />
+			<AlbumList second_line_type="ARTIST" is_loading={is_loading_new_releases} title="New Releases" else_type="ALBUM" albums={new_releases} />
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
 			{for_you_playlists.length === 0 ? null : <FullPlaylistList title="For You" playlists={for_you_playlists} />}
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
 			{should_show_rewind ? <IllusiRewindComponent /> : null}
-			<View style={{ height: 10 }} />
+			<View style={{ height: 5 }} />
 			{/* <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text> */}
 			{your_artists_ref.current.length > 0 ? (
 				<HeaderWith title="Your Artists" fullpage={() => SharedRouter.goto_shared_artist_grid("Your Artists", your_artists_ref.current)}>
 					<HorizontalRowArtists size={80} artists={your_artists_ref.current} />
+				</HeaderWith>
+			) : null}
+			{for_you_artists.length > 0 ? (
+				<HeaderWith title="Recommended Artists" fullpage={() => SharedRouter.goto_shared_artist_grid("Your Artists", for_you_artists)}>
+					<HorizontalRowArtists size={80} artists={for_you_artists} />
 				</HeaderWith>
 			) : null}
 			<View style={{ height: 10 }} />

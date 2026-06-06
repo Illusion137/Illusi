@@ -151,21 +151,30 @@ function SearchScreen() {
 			</ScrollView>
 			{search_result.state === "FUFILLED" ? (
 				<ScrollView horizontal={true} contentContainerStyle={styles.chips_container}>
-					{search_modes.map((mode) => (
-						<TouchableOpacity
-							style={{
-								...styles.chip,
-								flex: 1,
-								marginHorizontal: 10,
-								alignItems: "center",
-								borderColor: search_mode === mode ? colors.secondary : colors.primary,
-								backgroundColor: search_mode === mode ? colors.shelf : colors.background
-							}}
-							key={mode}
-							onPress={() => (mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode))}>
-							<Text style={[styles.chip_text, { color: search_mode === mode ? colors.text : colors.subtext }]}>{mode}</Text>
-						</TouchableOpacity>
-					))}
+					{search_modes
+						.filter((mode) => {
+							if (mode === "Smart") return true;
+							if (mode === "Tracks" && search_result.search_data.tracks.length > 0) return true;
+							if (mode === "Albums" && search_result.search_data.albums.length > 0) return true;
+							if (mode === "Artists" && search_result.search_data.artists.length > 0) return true;
+							if (mode === "Playlists" && search_result.search_data.playlists.length > 0) return true;
+							return false;
+						})
+						.map((mode) => (
+							<TouchableOpacity
+								style={{
+									...styles.chip,
+									flex: 1,
+									marginHorizontal: 10,
+									alignItems: "center",
+									borderColor: search_mode === mode ? colors.secondary : colors.primary,
+									backgroundColor: search_mode === mode ? colors.shelf : colors.background
+								}}
+								key={mode}
+								onPress={() => (mode === search_mode ? on_search_mode_chip_press("Smart") : on_search_mode_chip_press(mode))}>
+								<Text style={[styles.chip_text, { color: search_mode === mode ? colors.text : colors.subtext }]}>{mode}</Text>
+							</TouchableOpacity>
+						))}
 				</ScrollView>
 			) : null}
 		</View>
