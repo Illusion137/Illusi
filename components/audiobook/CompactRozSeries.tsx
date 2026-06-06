@@ -7,7 +7,7 @@ import usePTheme from "@hooks/usePTheme";
 import { Constants } from "@illusive/constants";
 import { ContextMenuView } from "@components/ContextMenu";
 import IImage from "@components/IImage";
-import { novel_progress_percent } from "./types";
+import { novel_progress_percent, series_display_title } from "./types";
 import CompactRozNovel from "./CompactRozNovel";
 import { SeriesContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
@@ -56,7 +56,7 @@ export default function CompactRozSeries(props: CompactRozSeriesProps) {
 					</View>
 					<View style={styles.meta}>
 						<Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-							{props.series_name}
+							{series_display_title(props.series_name, props.novels)}
 						</Text>
 						<Text style={[styles.subtitle, { color: colors.subtext }]} numberOfLines={1}>
 							{props.novels.length} books{head?.author ? ` • ${head.author}` : ""} • {finished}/{props.novels.length} done
@@ -79,7 +79,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
 		row: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingLeft: 12, paddingRight: 12, gap: 12 },
 		stack_wrap: { width: COVER_SIZE + 8, height: COVER_SIZE * 1.4, position: "relative" },
-		cover: { width: COVER_SIZE, height: COVER_SIZE * 1.4, borderRadius: 4, position: "absolute", backgroundColor: colors.shelf },
+		cover: { width: COVER_SIZE, height: COVER_SIZE * 1.4, borderRadius: 2, borderWidth: 1, borderColor: colors.line, position: "absolute", backgroundColor: colors.shelf },
 		cover_back: { top: 0, left: 8, opacity: 0.7, transform: [{ rotate: "5deg" }] },
 		cover_front: { top: 0, left: 0 },
 		meta: { flex: 1, gap: 2 },

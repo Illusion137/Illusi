@@ -9,8 +9,7 @@ import type { Prefs } from "@illusive/prefs";
 import usePTheme from "@hooks/usePTheme";
 import ElscioneItem from "@components/audiobook/ElscioneItem";
 import { SQLAudiobook } from "@illusive/sql/sql_audiobook";
-import { Audiobooks } from "@illusive/audiobooks";
-import { extract_epub_metadata_from_file } from "@utils/epub_extractor";
+import { AudiobookDownloads } from "@illusive/audiobook_downloads";
 
 const INITIAL_PATH = "/Officially%20Translated%20Light%20Novels/";
 
@@ -132,11 +131,6 @@ export default function ElscioneScreen() {
 		return dot === -1 ? decoded : decoded.slice(0, dot);
 	}
 
-	function is_epub(item: Item): boolean {
-		const href = item.href.toLowerCase();
-		return href.endsWith(".epub");
-	}
-
 	async function on_add_to_library(item: Item) {
 		const url = Elscione.select_item(item);
 		if (added_uris.has(url)) return;
@@ -145,21 +139,18 @@ export default function ElscioneScreen() {
 			next.add(url);
 			return next;
 		});
-		const inserted = await Audiobooks.add_from_remote_url({ url, title: derive_title(item), source_file_type: "ELSCIONE" });
-		if ("error" in inserted) return;
-		if (!is_epub(item)) return;
-		(async () => {
-			const local_path = await Audiobooks.download_audiobook(inserted.uuid, { cookie_jar: cookie_jar.current });
-			if (typeof local_path !== "string") return;
-			const metadata = await extract_epub_metadata_from_file(local_path, inserted.uuid);
-			const changes: Parameters<typeof SQLAudiobook.update_audiobook>[1] = {};
-			if (metadata.title && metadata.title.length > 0) changes.title = metadata.title;
-			if (metadata.author && metadata.author.length > 0) changes.author = metadata.author;
-			if (metadata.publisher && metadata.publisher.length > 0) changes.publisher = metadata.publisher;
-			if (metadata.date && metadata.date.length > 0) changes.date = metadata.date;
-			if (metadata.cover_path && metadata.cover_path.length > 0) changes.cover = metadata.cover_path;
-			if (Object.keys(changes).length > 0) await Audiobooks.update_meta(inserted.uuid, changes);
-		})().catch((e) => console.warn("audiobook enrichment failed", e));
+		// Hands off to the download manager: it inserts the placeholder row, then
+		// downloads (resumably, with progress) + finalizes in the background. The
+		// epub cover enhancement runs inside finalize via a GLOBALS host hook.
+		const result = await AudiobookDownloads.enqueue_remote_import({ url, title: derive_title(item), source_file_type: "ELSCIONE", cookie_jar: cookie_jar.current });
+		if ("error" in result && result.error) {
+			// Roll back the optimistic add so the user can retry.
+			set_added_uris((prev) => {
+				const next = new Set(prev);
+				next.delete(url);
+				return next;
+			});
+		}
 	}
 
 	function on_press_item(item: Item) {

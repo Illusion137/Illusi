@@ -8,7 +8,7 @@ import type { Prefs } from "@illusive/prefs";
 import usePTheme from "@hooks/usePTheme";
 import IImage from "@components/IImage";
 import CompactRozNovel from "@components/audiobook/CompactRozNovel";
-import { novel_progress_percent } from "@components/audiobook/types";
+import { compare_by_title, novel_progress_percent, series_display_title, series_title_prefix, strip_series_prefix } from "@components/audiobook/types";
 import { duration_to_string } from "@illusive/illusive_utils";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 
@@ -29,9 +29,11 @@ export default function AudiobookSeriesScreen() {
 	useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
 	const novels = useMemo(
-		() => all_novels.filter(n => (n.series_name ?? "").trim() === series_name).sort((a, b) => a.series_no - b.series_no),
+		() => all_novels.filter(n => (n.series_name ?? "").trim() === series_name).sort(compare_by_title),
 		[all_novels, series_name]
 	);
+	const title_prefix = useMemo(() => series_title_prefix(novels), [novels]);
+	const display_title = series_display_title(series_name, novels);
 
 	const head = novels[0];
 	const total_listened = novels.reduce((a, n) => a + n.total_listened_ms, 0);
@@ -68,7 +70,7 @@ export default function AudiobookSeriesScreen() {
 					<IImage source={novels[1]?.cover ?? head.cover ?? null} style={[styles.cover, styles.cover_back]} />
 					<IImage source={head.cover ?? null} style={[styles.cover, styles.cover_front]} />
 				</View>
-				<Text style={[styles.title, { color: colors.text }]} numberOfLines={3}>{series_name}</Text>
+				<Text style={[styles.title, { color: colors.text }]} numberOfLines={3}>{display_title}</Text>
 				{head.author ? <Text style={[styles.author, { color: colors.subtext }]} numberOfLines={2}>{head.author}</Text> : null}
 				<Text style={[styles.meta, { color: colors.deeptext }]}>
 					{novels.length} books • {finished}/{novels.length} done
@@ -95,8 +97,8 @@ export default function AudiobookSeriesScreen() {
 				{novels.map(novel => (
 					<CompactRozNovel
 						key={novel.uuid}
-						novel={novel}
-						on_press={(n) => router.push(`/audiobooks/details/${n.uuid}`)}
+						novel={title_prefix.length > 0 ? { ...novel, title: strip_series_prefix(novel.title, title_prefix) } : novel}
+						on_press={() => router.push(`/audiobooks/details/${novel.uuid}`)}
 						on_refresh={refresh}
 					/>
 				))}
@@ -116,11 +118,11 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
 		center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30, gap: 14 },
 		empty_text: { fontSize: 16 },
-		back_btn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+		back_btn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 2, borderWidth: 1, borderColor: colors.line },
 		back_btn_text: { color: "#ffffff", fontWeight: "700" },
 		hero: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 22, alignItems: "center", gap: 8 },
 		stack_wrap: { width: 220, height: 260, marginBottom: 14 },
-		cover: { position: "absolute", width: 170, height: 240, borderRadius: 8, backgroundColor: colors.background, borderColor: "#ffffff20", borderTopWidth: 0.4, borderRightWidth: 0.6 },
+		cover: { position: "absolute", width: 170, height: 240, borderRadius: 2, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.background },
 		cover_front: { top: 0, left: 25, zIndex: 3 },
 		cover_back: { top: 10, left: 38, opacity: 0.85, zIndex: 2, transform: [{ rotate: "-3deg" }] },
 		cover_back2: { top: 20, left: 12, opacity: 0.55, zIndex: 1, transform: [{ rotate: "4deg" }] },
@@ -131,13 +133,13 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		progress_label_row: { flexDirection: "row", justifyContent: "space-between" },
 		progress_label: { fontSize: 12, fontWeight: "600" },
 		progress_value: { fontSize: 13, fontWeight: "700" },
-		progress_track: { height: 6, borderRadius: 3, overflow: "hidden" },
-		progress_fill: { height: "100%", borderRadius: 3 },
+		progress_track: { height: 6, borderRadius: 2, overflow: "hidden" },
+		progress_fill: { height: "100%", borderRadius: 2 },
 		progress_sub: { fontSize: 11, textAlign: "right" },
 		section_header: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 4 },
 		section_title: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
-		list: { marginHorizontal: 14, borderRadius: 10, overflow: "hidden" },
+		list: { marginHorizontal: 14, borderRadius: 2, borderWidth: 1, borderColor: colors.line, overflow: "hidden" },
 		danger_section: { padding: 14 },
-		danger_btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 8 },
+		danger_btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 2, borderWidth: 1, borderColor: colors.line },
 		danger_btn_text: { fontSize: 14, fontWeight: "600" }
 	});

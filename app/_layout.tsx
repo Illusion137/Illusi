@@ -15,8 +15,13 @@ import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid, milliseconds_of } from "@common/utils/util";
 import AudioPlayer from "@screens/AudioPlayer";
+import AudiobookSlidingPlayer from "@screens/audiobook/AudiobookSlidingPlayer";
 import ExternalDisplayHost from "@components/external_display/ExternalDisplayHost";
+import SyncPlayIndicator from "@components/SyncPlayIndicator";
 import { GLOBALS } from "@illusive/globals";
+import { AudiobookPlayer } from "@illusive/audiobook_player_service";
+import { AudiobookDownloads } from "@illusive/audiobook_downloads";
+import { extract_epub_metadata_from_file } from "@utils/epub_extractor";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
 import * as Sentry from "@sentry/react-native";
 import IImage from "@components/IImage";
@@ -27,7 +32,7 @@ import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
-import { Platform } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 // TODO fix carplay in future; + make UI actually good; too buggy for prod right now, causing crashes
 // CarPlayService is iOS-only; will be gated below
@@ -68,6 +73,7 @@ export default Sentry.wrap(function App() {
 	const [playing_tracks, set_playing_tracks] = useState<Track[]>([]);
 	const [playing_from, set_playing_from] = useState("");
 	const [is_playing, set_is_playing] = useState<PlayingState>("OFF");
+	const [audiobook_uuid, set_audiobook_uuid] = useState<string | null>(null);
 	const [is_loading, set_is_loading] = useState(true);
 	const [bottom_alert, set_bottom_alert] = useState({ uuid: "", text: "", type: "GOOD" as BottomAlertType, more_info: "" as string | ResponseError });
 
@@ -84,6 +90,12 @@ export default Sentry.wrap(function App() {
 		}
 		tracks = await filter_play_tracks(start_track, tracks, title);
 		if (tracks.length === 0) return;
+		// Music takes the shared player over from the audiobook side: drop the
+		// overlay and release ownership so the music setup can reset+reload.
+		// Both calls are idempotent, so no need to read audiobook_uuid (stale in
+		// this mount-time closure).
+		set_audiobook_uuid(null);
+		AudiobookPlayer.mark_inactive();
 		set_playing_tracks(tracks);
 		set_playing_from(title);
 		set_is_playing("LOADING");
@@ -115,15 +127,39 @@ export default Sentry.wrap(function App() {
 					TrackPlayer.reset().catch((e) => e);
 				} catch (e) {}
 			};
+			// Opening an audiobook takes the shared player over from music: tear
+			// the music player down first, then mount the audiobook overlay.
+			GLOBALS.global_var.open_audiobook = (uuid: string) => {
+				GLOBALS.global_var.kill_audioplayer();
+				set_audiobook_uuid(uuid);
+			};
+			// The roz parser's cover heuristic drops most epub covers, so during a
+			// remote import pull the epub's declared OPF cover from the downloaded
+			// source. Returns a RELATIVE path (or undefined to keep the current).
+			GLOBALS.global_var.enhance_audiobook_cover = async (uuid: string, source_path: string) => {
+				if (!source_path.toLowerCase().endsWith(".epub")) return undefined;
+				const local = source_path.startsWith("file://") ? source_path.slice("file://".length) : source_path;
+				const meta = await extract_epub_metadata_from_file(local, uuid);
+				return meta.cover_path && meta.cover_path.length > 0 ? meta.cover_path : undefined;
+			};
+			// Pick up any remote imports interrupted by a previous app close.
+			AudiobookDownloads.resume_all().catch((e) => e);
 			// Initialize CarPlay (iOS only)
 			if (CarPlayService) {
 				CarPlayService.init();
 			}
 			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
+		// Snapshot resume tokens for in-flight downloads when backgrounding, and
+		// restart them when we come back, so a download survives a suspend/kill.
+		const app_state_subscription = AppState.addEventListener("change", (next: AppStateStatus) => {
+			if (next === "active") AudiobookDownloads.resume_all().catch((e) => e);
+			else if (next === "background" || next === "inactive") AudiobookDownloads.persist_for_background().catch((e) => e);
+		});
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
+			app_state_subscription.remove();
 			// Cleanup CarPlay (iOS only)
 			if (CarPlayService) {
 				CarPlayService.destroy();
@@ -159,7 +195,9 @@ export default Sentry.wrap(function App() {
 			<ThemeProvider value={theme_value}>
 				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
+				{audiobook_uuid !== null && <AudiobookSlidingPlayer key={audiobook_uuid} uuid={audiobook_uuid} on_dismiss={() => set_audiobook_uuid(null)} />}
 				{!is_loading ? <ExternalDisplayHost /> : null}
+				{!is_loading ? <SyncPlayIndicator /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
 				{!is_loading ? (
 					<SafeAreaProvider>

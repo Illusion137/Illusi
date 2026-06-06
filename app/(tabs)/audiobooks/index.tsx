@@ -1,10 +1,11 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { upload_music_files } from "@illusive/document_picker";
 import type { Prefs } from "@illusive/prefs";
 import { SQLAudiobook } from "@illusive/sql/sql_audiobook";
+import { AudiobookDownloads } from "@illusive/audiobook_downloads";
 import type { AudiobookTableItem } from "@illusive/db/schema";
 import SearchBarV1 from "@components/SearchBarV1";
 import usePTheme from "@hooks/usePTheme";
@@ -34,6 +35,19 @@ export default function Audiobooks() {
 		}, [refresh])
 	);
 
+	// Re-fetch when a download is enqueued (placeholder appears) or its status
+	// changes (e.g. finishes → real cover/title land in sql). Keyed on status so
+	// per-byte progress ticks don't trigger a full reload.
+	const download_keys = useRef("");
+	useEffect(() => {
+		return AudiobookDownloads.subscribe(() => {
+			const keys = AudiobookDownloads.get_states().map((s) => `${s.uuid}:${s.status}`).sort().join(",");
+			if (keys === download_keys.current) return;
+			download_keys.current = keys;
+			refresh();
+		});
+	}, [refresh]);
+
 	const filtered = search.length === 0 ? novels : novels.filter((n) => (n.title + " " + n.author + " " + n.series_name).toLowerCase().includes(search.toLowerCase()));
 
 	async function group_novels(source: AudiobookTableItem, target: AudiobookTableItem) {
@@ -46,6 +60,15 @@ export default function Audiobooks() {
 	async function add_to_series(novel: AudiobookTableItem, series_name: string) {
 		const next_no = novels.filter((n) => n.series_name === series_name).length + 1;
 		await SQLAudiobook.update_audiobook(novel.uuid, { series_name, series_no: next_no });
+		await refresh();
+	}
+
+	async function reorder(ordered_uuids: string[]) {
+		set_novels((prev) => {
+			const by_uuid = new Map(prev.map((n) => [n.uuid, n]));
+			return ordered_uuids.map((uuid) => by_uuid.get(uuid)).filter((n): n is AudiobookTableItem => n !== undefined);
+		});
+		await SQLAudiobook.reorder_audiobooks(ordered_uuids);
 		await refresh();
 	}
 
@@ -81,6 +104,7 @@ export default function Audiobooks() {
 					on_press_series={(series_name) => router.push(`/audiobooks/series/${encodeURIComponent(series_name)}`)}
 					on_group_novels={group_novels}
 					on_add_to_series={add_to_series}
+					on_reorder={reorder}
 					on_refresh={refresh}
 				/>
 			) : (
@@ -90,6 +114,7 @@ export default function Audiobooks() {
 					on_press_series={(series_name) => router.push(`/audiobooks/series/${encodeURIComponent(series_name)}`)}
 					on_group_novels={group_novels}
 					on_add_to_series={add_to_series}
+					on_reorder={reorder}
 					on_refresh={refresh}
 				/>
 			)}

@@ -9,6 +9,7 @@ import IImage from "@components/IImage";
 import { format_progress_text, novel_progress_percent } from "./types";
 import { AudiobookContextMenu } from "@utils/context_menu";
 import { ContextResolver } from "@utils/context_resolver";
+import useAudiobookDownload, { download_label, download_percent } from "@hooks/useAudiobookDownload";
 
 export interface RozNovelProps {
 	novel: AudiobookTableItem;
@@ -26,6 +27,7 @@ export default function RozNovel(props: RozNovelProps) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 	const percent = novel_progress_percent(props.novel);
+	const download = useAudiobookDownload(props.novel.uuid);
 
 	return (
 		<ContextMenuView
@@ -41,7 +43,15 @@ export default function RozNovel(props: RozNovelProps) {
 			<View style={{ ...props.container_style, width: props.size, opacity: props.dimmed ? 0.4 : 1 }}>
 				<TouchableOpacity activeOpacity={cover_touch_active_opacity} onPress={() => props.on_press?.(props.novel)} onLongPress={() => props.on_long_press?.(props.novel)} delayLongPress={Constants.long_press_delay}>
 					<IImage source={props.novel.cover || null} style={{ ...styles.cover, width: props.size, height: props.size * 1.45 }} />
-					{percent > 0 ? (
+					{download !== undefined ? (
+						<View style={[styles.download_overlay, { width: props.size, height: props.size * 1.45, borderColor: colors.line }]} pointerEvents="none">
+							<Ionicons name={download.status === "error" ? "alert-circle" : "cloud-download"} size={26} color="#ffffff" />
+							<Text style={styles.download_label} numberOfLines={1}>{download_label(download)}</Text>
+							<View style={[styles.download_track, { width: props.size - 24 }]}>
+								<View style={[styles.download_fill, { width: `${download_percent(download) * 100}%`, backgroundColor: download.status === "error" ? colors.red : colors.primary }]} />
+							</View>
+						</View>
+					) : percent > 0 ? (
 						<View style={[styles.progress_track, { width: props.size - 8 }]}>
 							<View style={[styles.progress_fill, { width: `${percent * 100}%`, backgroundColor: colors.primary }]} />
 						</View>
@@ -78,9 +88,13 @@ export default function RozNovel(props: RozNovelProps) {
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		cover: { borderRadius: 6, borderColor: "#ffffff20", borderTopWidth: 0.4, borderRightWidth: 0.6, backgroundColor: colors.shelf },
+		cover: { borderRadius: 2, borderWidth: 1, borderColor: colors.line, borderTopWidth: 0.4, borderRightWidth: 0.6, backgroundColor: colors.shelf },
 		progress_track: { position: "absolute", bottom: 6, left: 4, height: 3, borderRadius: 2, backgroundColor: "#00000066", overflow: "hidden" },
 		progress_fill: { height: "100%", borderRadius: 2 },
+		download_overlay: { position: "absolute", top: 0, left: 0, borderRadius: 2, borderWidth: 1, backgroundColor: "#000000b0", justifyContent: "center", alignItems: "center", gap: 6, paddingHorizontal: 8 },
+		download_label: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
+		download_track: { height: 3, borderRadius: 2, backgroundColor: "#ffffff33", overflow: "hidden" },
+		download_fill: { height: "100%", borderRadius: 2 },
 		series_badge: { position: "absolute", top: 6, left: 6, backgroundColor: "#000000aa", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
 		series_badge_text: { color: "#ffffff", fontSize: 10, fontWeight: "700" },
 		bottom_info_container: { paddingTop: 7, flexDirection: "row", justifyContent: "space-between" },

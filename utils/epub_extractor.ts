@@ -43,12 +43,12 @@ async function download_epub_to_cache(remote_url: string, audiobook_uuid: string
 		const local_path = join_path(cache_dir, `${audiobook_uuid}_${gen_uuid()}.epub`);
 		const result = await expo_fs.downloadAsync(remote_url, local_path, { headers });
 		if (result.status < 200 || result.status >= 300) {
-			await fs().remove(local_path).catch(() => {});
+			await fs().remove(local_path).catch(() => { });
 			return null;
 		}
 		const content_type = result.headers["Content-Type"] ?? result.headers["content-type"] ?? "";
 		if (content_type.includes("text/html")) {
-			await fs().remove(local_path).catch(() => {});
+			await fs().remove(local_path).catch(() => { });
 			return null;
 		}
 		return local_path;
@@ -189,15 +189,16 @@ export async function extract_epub_metadata_from_file(file_path: string, audiobo
 			if (!("error" in cover_buf)) {
 				const book_dir = SQLfs.audiobook_directory(`${audiobook_uuid}/`);
 				if (!(await fs().get_info(book_dir)).exists) {
-					await fs().make_directory(book_dir).catch(() => {});
+					await fs().make_directory(book_dir).catch(() => { });
 				}
 				const ext = extension_for_media_type(cover_item.media_type);
-				const dest = SQLfs.audiobook_directory(`${audiobook_uuid}/cover.${ext}`);
+				const cover_rel = `${audiobook_uuid}/cover.${ext}`;
+				const dest = SQLfs.audiobook_directory(cover_rel);
 				const base64 = cover_buf.toString("base64");
 				const write_result = await fs().write_file_as_string(dest, base64, { encoding: "base64" });
 				if (write_result === undefined || !("error" in write_result)) {
 					const info = await fs().get_info(dest);
-					if (info.exists) metadata.cover_path = info.uri;
+					if (info.exists) metadata.cover_path = cover_rel;
 				}
 			}
 		}
