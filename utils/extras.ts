@@ -78,7 +78,8 @@ export const extras_layout: () => ExtraLayout[] = () => [
             {
                 title: "Service Importer",
                 href: "/extras/service-importer",
-                icon: "albums-outline"
+                icon: "albums-outline",
+                indev: true
             },
             {
                 title: "Linker",
@@ -89,6 +90,7 @@ export const extras_layout: () => ExtraLayout[] = () => [
                 title: "Track Sampler",
                 href: "/extras/track-sampler",
                 icon: "color-filter-outline",
+                indev: true
             },
             {
                 title: "Lyrics Finder",
