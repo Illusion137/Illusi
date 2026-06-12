@@ -28,26 +28,28 @@ import { ContextMenuButton } from "@components/ContextMenu";
 
 type SetArtistsState = (args: (prev: NamedUUID[]) => NamedUUID[]) => any;
 
+const MAX_SUGGESTIONS = 30;
+
 function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: number; set_artists_state: SetArtistsState; on_focus?: (row: View | null) => void }) {
 	const { colors } = usePTheme();
 
-	const all_artists_ref = useRef(get_unique_artists(GLOBALS.global_var.sql_tracks));
+	const all_artists = useMemo(() => get_unique_artists(GLOBALS.global_var.sql_tracks), []);
 	const artist_name_ref = useRef(props.artist.name);
 	const row_ref = useRef<View>(null);
-	const [close_artists, set_close_artists] = useState(all_artists_ref.current);
+	const [close_artists, set_close_artists] = useState(() => all_artists.slice(0, MAX_SUGGESTIONS));
 	const [input_focused, set_input_focused] = useState(false);
 
 	const is_only = props.total_artists === 1;
 
 	function on_name_change(name: string) {
 		artist_name_ref.current = name;
-		set_close_artists(all_artists_ref.current.filter((a) => a?.name?.toLowerCase().includes(name?.toLowerCase())));
+		set_close_artists(all_artists.filter((a) => a?.name?.toLowerCase().includes(name?.toLowerCase())).slice(0, MAX_SUGGESTIONS));
 	}
 
 	function on_name_submit() {
 		const typed = artist_name_ref.current.trim();
 		if (!typed) return;
-		const matched = all_artists_ref.current.find((a) => a.name?.toLowerCase() === typed?.toLowerCase());
+		const matched = all_artists.find((a) => a.name?.toLowerCase() === typed?.toLowerCase());
 		props.set_artists_state((prev) => {
 			const updated = [...prev];
 			updated[props.index] = matched ? { name: matched.name, uri: matched.uri ?? null } : { name: typed, uri: null };
@@ -148,8 +150,11 @@ function QuickDownloadButton(props: { icon: React.ComponentProps<typeof Ionicons
 
 export default function EditTrackModal() {
 	const { uid } = useLocalSearchParams<{ uid: string }>();
-	const track_ref = useRef(GLOBALS.global_var.sql_tracks.find((track) => track.uid === uid));
-	const all_albums_ref = useRef(get_unique_album_names_with_uris(GLOBALS.global_var.sql_tracks));
+	// useMemo, NOT useRef(expensive()): ref initializer arguments re-run on every
+	// render, so these full-library scans executed per keystroke (App Hangs).
+	const initial_track = useMemo(() => GLOBALS.global_var.sql_tracks.find((track) => track.uid === uid), [uid]);
+	const track_ref = useRef(initial_track);
+	const all_albums = useMemo(() => get_unique_album_names_with_uris(GLOBALS.global_var.sql_tracks), []);
 
 	const { colors } = usePTheme();
 	const { track_colors } = useTrackColors(track_ref.current);
@@ -180,7 +185,7 @@ export default function EditTrackModal() {
 		[album_ref.current?.uri]
 	);
 	const [close_albums, set_close_album] = useState<ArtworkNamedUUID[]>([]);
-	useEffect(() => set_close_album(all_albums_ref.current?.filter((album) => album.name?.toLowerCase().includes(album_ref.current?.name?.toLowerCase() ?? ""))), [album_ref.current?.name]);
+	useEffect(() => set_close_album(all_albums.filter((album) => album.name?.toLowerCase().includes(album_ref.current?.name?.toLowerCase() ?? "")).slice(0, MAX_SUGGESTIONS)), [album_ref.current?.name]);
 	const [album_name_input_focused, set_album_name_input_focused] = useState<boolean>(false);
 	const [editing_album_name_state, set_editing_album_name_state] = useState<LoadingState>("NONE");
 
@@ -225,7 +230,7 @@ export default function EditTrackModal() {
 		if (album_ref.current === null) album_ref.current = { name: new_album_name, uri: null };
 		else album_ref.current.name = new_album_name;
 		set_editing_album_name_state("LOADING");
-		set_close_album(all_albums_ref.current?.filter((album) => album.name?.toLowerCase().includes(new_album_name?.toLowerCase())));
+		set_close_album(all_albums.filter((album) => album.name?.toLowerCase().includes(new_album_name?.toLowerCase())).slice(0, MAX_SUGGESTIONS));
 	}
 	function on_album_name_submit() {
 		if (album_ref.current && track_ref.current) {

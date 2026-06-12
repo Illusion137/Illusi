@@ -1,14 +1,15 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
 import { FontAwesome6 } from "@expo/vector-icons";
 import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
-import { SwipeListView } from "react-native-swipe-list-view";
+import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { GLOBALS } from "@illusive/globals";
 import usePTheme from "@hooks/usePTheme";
-import { delete_track_from_player_queue } from "@illusive/track_player_service";
+import { delete_track_from_player_queue, subscribe_track_player_queue_modified } from "@illusive/track_player_service";
 import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Track } from "@illusive/types";
 import TrackComponentBase from "@components/TrackComponentBase";
@@ -16,7 +17,24 @@ import { empty_join_dot } from "@common/utils/util";
 
 const HANDLE_H = 58;
 const PANEL_H = Math.min(Dimensions.get("screen").height * 0.72, 640);
-const SNAP_SPRING = { damping: 900, stiffness: 1000 };
+const SNAP_SPRING = { damping: 34, stiffness: 350, overshootClamping: true };
+const SWIPE_ACTION_W = 75;
+
+const QueueRow = memo(function QueueRow({ item, index, on_remove }: { item: Track; index: number; on_remove: (item: Track, index: number) => void }) {
+	const render_right_actions = useCallback(
+		() => (
+			<TouchableOpacity onPress={() => on_remove(item, index)} style={{ backgroundColor: "#8B000040", width: SWIPE_ACTION_W, justifyContent: "center", alignItems: "center" }}>
+				<FontAwesome6 name="delete-left" color="white" size={22} />
+			</TouchableOpacity>
+		),
+		[item, index, on_remove]
+	);
+	return (
+		<ReanimatedSwipeable renderRightActions={render_right_actions} rightThreshold={40} overshootRight={false} friction={2} dragOffsetFromRightEdge={10}>
+			<TrackComponentBase track_data={item} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="C0" />
+		</ReanimatedSwipeable>
+	);
+});
 
 const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function QueueHandle({ expanded_progress }) {
 	const { colors } = usePTheme();
@@ -26,6 +44,15 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 	const drag_base = useSharedValue(HANDLE_H);
 	// True while a drag is mid-flight and hasn't been resolved to a rest state yet.
 	const needs_snap = useSharedValue(false);
+
+	const [list_mounted, set_list_mounted] = useState(false);
+	useAnimatedReaction(
+		() => panel_h.value > HANDLE_H + 1,
+		(open, was) => {
+			// eslint-disable-next-line @typescript-eslint/no-deprecated
+			if (open !== was && was !== null) runOnJS(set_list_mounted)(open);
+		}
+	);
 
 	async function update_queue() {
 		try {
@@ -39,6 +66,8 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 
 	useEffect(() => {
 		update_queue();
+		const unsubscribe = subscribe_track_player_queue_modified(update_queue);
+		return () => unsubscribe();
 	}, []);
 
 	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
@@ -74,11 +103,6 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 			snap_to(snap_open);
 			needs_snap.value = false;
 		})
-		// onEnd is skipped when a drag is cancelled (e.g. the parent panel or a
-		// horizontal swipe steals the gesture). Without this, panel_h/expanded_progress
-		// would be left stranded at a partial value — which freezes the queue half-open
-		// AND permanently disables the parent player's drag-to-dismiss. onFinalize always
-		// runs, so resolve to the nearest rest state here as a safety net.
 		.onFinalize(() => {
 			if (!needs_snap.value) return;
 			needs_snap.value = false;
@@ -119,16 +143,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 		[colors.text, now_playing, has_up_next]
 	);
 
-	const render_item = useCallback(({ item }: { item: Track }) => <TrackComponentBase track_data={item} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="C0" />, []);
-
-	const render_hidden_item = useCallback(
-		(data: { item: Track; index: number }) => (
-			<TouchableOpacity onPress={async () => remove_track(data.item, data.index)} style={{ backgroundColor: "#8B000040", flex: 1, justifyContent: "center", alignItems: "flex-end" }}>
-				<FontAwesome6 name="delete-left" style={{ right: 10 }} color="white" size={22} />
-			</TouchableOpacity>
-		),
-		[remove_track]
-	);
+	const render_item = useCallback(({ item, index }: { item: Track; index: number }) => <QueueRow item={item} index={index} on_remove={remove_track} />, [remove_track]);
 
 	const key_extractor = useCallback((item: Track, i: number) => item.uid + i, []);
 
@@ -153,24 +168,8 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 					)}
 				</View>
 			</GestureDetector>
-			{/* Expanded queue list */}
-			<SwipeListView
-				data={up_next_data}
-				keyExtractor={key_extractor}
-				scrollEnabled={true}
-				nestedScrollEnabled={true}
-				removeClippedSubviews={true}
-				initialNumToRender={10}
-				maxToRenderPerBatch={8}
-				windowSize={7}
-				ListHeaderComponent={list_header}
-				renderItem={render_item}
-				renderHiddenItem={render_hidden_item}
-				rightOpenValue={-75}
-				rightActionValue={-80}
-				rightActivationValue={-80}
-				disableRightSwipe
-			/>
+			{/* Expanded queue list — only mounted while the panel is open. */}
+			<View style={{ flex: 1 }}>{list_mounted ? <FlashList data={up_next_data} keyExtractor={key_extractor} ListHeaderComponent={list_header} renderItem={render_item} nestedScrollEnabled={true} /> : null}</View>
 		</Animated.View>
 	);
 });

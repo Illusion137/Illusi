@@ -103,14 +103,15 @@ export default function Artist() {
 		GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, artist_data.name);
 	}
 
-	const shared_tracks: Track[] = tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name).map((track) => ({
-		...track,
-		downloading_data: { ...track.downloading_data!, saved: true }
-	}));
+	const shared_tracks: Track[] = useMemo(() => tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name).map((track) => ({ ...track, downloading_data: { ...track.downloading_data!, saved: true } })), [artist_data.name]);
 
-	const popular_tracks = uri.includes(Constants.import_uri_id)
-		? artist_data.tracks.filter((track) => track.meta?.plays).sort((a, b) => (b.meta?.plays ?? 0) - (a.meta?.plays ?? 0))
-		: artist_data.tracks.filter((track) => track.plays).sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0));
+	const popular_tracks = useMemo(
+		() =>
+			uri.includes(Constants.import_uri_id)
+				? artist_data.tracks.filter((track) => track.meta?.plays).sort((a, b) => (b.meta?.plays ?? 0) - (a.meta?.plays ?? 0))
+				: artist_data.tracks.filter((track) => track.plays).sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)),
+		[uri, artist_data.tracks]
+	);
 
 	const background_image_url_possibilities = [
 		artist_data.profile_artwork_url,
@@ -168,7 +169,20 @@ export default function Artist() {
 					</View>
 				</View>
 
-				<View style={{ marginHorizontal: 16, marginTop: 14, marginBottom: 4, flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderRadius: 2, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, height: 40 }}>
+				<View
+					style={{
+						marginHorizontal: 16,
+						marginTop: 14,
+						marginBottom: 4,
+						flexDirection: "row",
+						alignItems: "center",
+						backgroundColor: colors.card,
+						borderRadius: 2,
+						borderWidth: 1,
+						borderColor: colors.line,
+						paddingHorizontal: 12,
+						height: 40
+					}}>
 					<Ionicons name="search" size={16} color={colors.subtext} />
 					<TextInput
 						value={search_query}

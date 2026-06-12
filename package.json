@@ -1,6 +1,6 @@
 {
   "name": "illusi",
-  "version": "21.0.1",
+  "version": "21.0.9",
   "main": "index",
   "scripts": {
     "start": "expo start --dev-client",
@@ -110,6 +110,7 @@
     "expo-file-system": "56.0.0-canary-20260305-5163746",
     "expo-font": "56.0.0-canary-20260305-5163746",
     "expo-haptics": "56.0.0-canary-20260305-5163746",
+    "expo-image": "56.0.0-canary-20260305-5163746",
     "expo-image-manipulator": "56.0.0-canary-20260305-5163746",
     "expo-image-picker": "^55.0.16",
     "expo-keep-awake": "56.0.0-canary-20260305-5163746",
