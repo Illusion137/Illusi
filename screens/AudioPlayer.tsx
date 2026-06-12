@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
-import { ActivityIndicator, Dimensions, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
 import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-track-player";
 import LyricsPlayer from "@screens/LyricsPlayer";
 import QueueHandle from "@components/QueueHandle";
 import NavLink from "@components/NavLink";
+import IImage from "@components/IImage";
+import * as Sentry from "@sentry/react-native";
+import { Illusive } from "@illusive/illusive";
 import { GLOBALS } from "@illusive/globals";
 import type * as IllusiveType from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
@@ -30,10 +33,9 @@ import SlidingUpPanel, { type SlidingUpPanelHandle } from "rn-sliding-up-panel-r
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import TrackIconTags from "@components/TrackIconTags";
 import { Lyrics } from "@illusive/lyrics";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
-import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
 
 // TODO ensure highest quality thumbnails here
 type LyricsLoadingState = "NONE" | "LOADING" | "FAILED" | "DOWNLOADED";
@@ -52,7 +54,7 @@ function time_to_timestamp(time_seconds: number): string {
 	return String(time_min).padStart(2, "0") + ":" + String(time_sec).padStart(2, "0");
 }
 
-function TrackTimestamps() {
+const TrackTimestamps = memo(function TrackTimestamps() {
 	const [elapsed, set_elapsed] = useState(0);
 	const [remaining, set_remaining] = useState(0);
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
@@ -65,7 +67,140 @@ function TrackTimestamps() {
 			<Text style={{ color: "#808080", fontSize: 12 }}>-{time_to_timestamp(remaining)}</Text>
 		</View>
 	);
+});
+
+function usePlaybackPlaying() {
+	const [is_playing, set_is_playing] = useState(false);
+	useEffect(() => {
+		TrackPlayer.getPlaybackState()
+			.then((s) => set_is_playing(s.state === State.Playing))
+			.catch(() => {});
+	}, []);
+	useTrackPlayerEvents([Event.PlaybackState], (event) => {
+		if (event.type === Event.PlaybackState) set_is_playing((prev) => (prev === (event.state === State.Playing) ? prev : event.state === State.Playing));
+	});
+	return [is_playing, set_is_playing] as const;
 }
+
+interface PlayPauseButtonProps {
+	variant: "mini" | "big";
+	guest_locked: boolean;
+	guest_controls_routed: boolean;
+	primary_color: string;
+	subtext_color: string;
+}
+
+const PlayPauseButton = memo(function PlayPauseButton({ variant, guest_locked, guest_controls_routed, primary_color, subtext_color }: PlayPauseButtonProps) {
+	const [is_playing, set_is_playing] = usePlaybackPlaying();
+	const toggle = useCallback(async () => {
+		try {
+			const tp_state = await TrackPlayer.getPlaybackState();
+			if (guest_controls_routed) {
+				if (tp_state.state === State.Playing) P2P.request_pause();
+				else P2P.request_play();
+				return;
+			}
+			if (guest_locked) return;
+			set_is_playing((prev) => !prev);
+			if (tp_state.state === State.Playing) await TrackPlayer.pause();
+			else await TrackPlayer.play();
+		} catch {
+			// player not initialized yet
+		}
+	}, [guest_controls_routed, guest_locked, set_is_playing]);
+
+	if (variant === "mini") {
+		return (
+			<TouchableOpacity disabled={guest_locked} hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20, opacity: guest_locked ? 0.4 : 1 }} onPress={toggle}>
+				<Ionicons name={is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={guest_locked ? subtext_color : primary_color} />
+			</TouchableOpacity>
+		);
+	}
+	return (
+		<TouchableOpacity disabled={guest_locked} onPress={toggle} style={{ opacity: guest_locked ? 0.35 : 1 }}>
+			<Ionicons name={is_playing ? "pause" : "play"} size={60} color={guest_locked ? subtext_color : primary_color} />
+		</TouchableOpacity>
+	);
+});
+
+// The collapsed mini-bar progress fill + shimmer. Only mounted while the panel is
+// collapsed, so its infinite shimmer animation (and its PlaybackState subscription)
+// stay off the JS/UI threads while the full panel is open.
+const MiniProgressBar = memo(function MiniProgressBar({ seek_progress, primary_color }: { seek_progress: SharedValue<number>; primary_color: string }) {
+	const shimmer_position = useSharedValue(0);
+	const [phase, set_phase] = useState<State>(State.None);
+	useEffect(() => {
+		TrackPlayer.getPlaybackState()
+			.then((s) => set_phase(s.state))
+			.catch(() => {});
+	}, []);
+	useTrackPlayerEvents([Event.PlaybackState], (event) => {
+		if (event.type === Event.PlaybackState) set_phase((prev) => (prev === event.state ? prev : event.state));
+	});
+	useEffect(() => {
+		cancelAnimation(shimmer_position);
+		// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+		switch (phase) {
+			case State.Loading:
+			case State.Buffering:
+				shimmer_position.value = 0;
+				shimmer_position.value = withRepeat(withTiming(1, { duration: 300 }), -1, false);
+				break;
+			case State.Error:
+				shimmer_position.value = 0;
+				shimmer_position.value = withRepeat(withTiming(1, { duration: 100 }), -1, false);
+				break;
+			default:
+				shimmer_position.value = 0;
+				break;
+		}
+		return () => cancelAnimation(shimmer_position);
+	}, [phase, shimmer_position]);
+	const fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * screen_w }));
+	const shimmer_style = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(shimmer_position.value, [0, 1], [-200, 600]) }] }));
+	return (
+		<Animated.View style={[{ position: "absolute", top: 0, left: 0, bottom: 0, overflow: "hidden" }, fill_style]}>
+			<View style={[StyleSheet.absoluteFill, { backgroundColor: primary_color + "22" }]} />
+			<Animated.View style={[{ position: "absolute", top: 0, bottom: 0, width: 200 }, shimmer_style]}>
+				<LinearGradient colors={["transparent", primary_color + "15", primary_color + "55", primary_color + "15", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+			</Animated.View>
+		</Animated.View>
+	);
+});
+
+const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork }: { best_artwork: IllusiveType.Artwork | undefined | null }) {
+	return (
+		<>
+			<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
+				<IImage source={best_artwork} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+			</View>
+			<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
+				<IImage source={best_artwork} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+			</View>
+			<IImage source={best_artwork} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+			{/* Top fade-out blur: blurred duplicates of the mirrored-top strip + the first
+			    60px of the center art, positioned to line up exactly with the sharp layers. */}
+			<MaskedView
+				style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
+				maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
+				<IImage source={best_artwork} blurRadius={18} style={{ position: "absolute", bottom: 60, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} blurRadius={18} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+				<View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.25)" }]} />
+			</MaskedView>
+			{/* Bottom fade-in blur: blurred duplicates of the center art's lower 270px + the
+			    mirrored-bottom strip (container starts at art_top_y + screen_w - 270). */}
+			<MaskedView
+				style={{ position: "absolute", top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
+				maskElement={<LinearGradient colors={["transparent", "transparent", "black", "black"]} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
+				<IImage source={best_artwork} blurRadius={45} style={{ position: "absolute", top: 270 - screen_w, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+				<IImage source={best_artwork} blurRadius={45} style={{ position: "absolute", top: 270, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.35)" }]} />
+			</MaskedView>
+			<LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]} locations={[0, 0.55, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 25 }} />
+			<LinearGradient colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.95)"]} locations={[0, 0.45, 1]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 320 }} />
+		</>
+	);
+});
 
 export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playing_from: string }) {
 	const { colors } = usePTheme();
@@ -83,22 +218,22 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	});
 	const metadata_duration_ref = useRef(props.tracks[0]?.duration ?? 0);
 	metadata_duration_ref.current = player_state_metadata.duration;
-	const [player_state_type, set_player_state_type] = useState<State>(State.None);
 	const [playing_track, set_playing_track] = useState<IllusiveType.Track>(props.tracks[0]);
 	const [does_track_exist, set_does_track_exist] = useState<boolean>(true);
 	const [repeat_mode, set_repeat_mode] = useState<RepeatMode>(RepeatMode.Off);
 	const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>("NONE");
 	const [lyrics_overlay_visible, set_lyrics_overlay_visible] = useState(false);
+	const open_lyrics_token = useRef(0);
 	// const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
 
-	const [panel_state_visible, set_panel_state_visible] = useState(true);
+	const [panel_state_visible, set_panel_state_visible] = useState(false);
 
 	// Drive panel_state_visible from the UI thread whenever the position crosses
 	// the transition threshold, then dispatch to the JS thread via runOnJS.
 	useAnimatedReaction(
 		() => panel_animated.value > panel_min_height + 1,
 		(isVisible, wasVisible) => {
-			if (wasVisible !== null && isVisible !== wasVisible) {
+			if (isVisible !== wasVisible) {
 				runOnJS(set_panel_state_visible)(isVisible);
 			}
 		}
@@ -117,8 +252,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const panel_chevron_style = useAnimatedStyle(() => ({ transform: [{ rotate: `${interpolate(panel_animated.value, [panel_min_height, panel_max_height], [180, 0], Extrapolation.CLAMP)}deg` }] }));
 	const panel_content_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, panel_max_height], [0, 2], Extrapolation.CLAMP) }));
 
-	const shimmer_position = useSharedValue(0);
-	const shimmer_style = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(shimmer_position.value, [0, 1], [-200, 600]) }] }));
 	const header_bg_opacity_style = useAnimatedStyle(() => ({ opacity: interpolate(panel_animated.value, [panel_min_height, (panel_min_height + panel_max_height) / 2], [1, 0], Extrapolation.CLAMP) }));
 
 	const lyrics_dim_opacity = useSharedValue(0);
@@ -129,7 +262,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const queue_expanded_progress = useSharedValue(0);
 	const queue_dim_style = useAnimatedStyle(() => ({ opacity: interpolate(queue_expanded_progress.value, [0, 1], [0, 0.65], Extrapolation.CLAMP) }));
-	const [outer_drag_enabled, set_outer_drag_enabled] = useState(true);
+	const [queue_drag_disabled, set_queue_drag_disabled] = useState(false);
+	const outer_drag_enabled = !queue_drag_disabled;
+	const lyrics_scroll_gesture = useMemo(() => Gesture.Native(), []);
 
 	// SyncPlay awareness: guests may have their controls locked by the host.
 	// When connected as a guest with control permission, button taps proxy
@@ -151,7 +286,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		() => queue_expanded_progress.value > 0.01,
 		(queue_open, was_open) => {
 			if (queue_open !== was_open && was_open !== null) {
-				runOnJS(set_outer_drag_enabled)(!queue_open);
+				runOnJS(set_queue_drag_disabled)(queue_open);
 			}
 		}
 	);
@@ -203,7 +338,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const track_fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * seekbar_width }));
 	const thumb_seek_style = useAnimatedStyle(() => ({ left: seek_progress.value * seekbar_width - 4 }));
-	const mini_progress_fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * screen_w }));
 
 	async function reshuffle() {
 		const reshuffled_tracks = shuffle_array([...props.tracks]);
@@ -218,7 +352,13 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	}
 
 	async function setup(reshuffled_tracks?: IllusiveType.Track[]) {
-		if (!Prefs.get_pref("play_without_popup") || TrackPlayer.getActiveTrack().catch((e) => e) instanceof Error) show_sheet();
+		const setup_t0 = Date.now();
+		const tracks_input = reshuffled_tracks ?? props.tracks;
+		Sentry.addBreadcrumb({ message: "AudioPlayer: setup start", category: "audio", level: "info", data: { track_count: tracks_input.length, first_title: tracks_input[0]?.title?.slice(0, 60) } });
+		const has_active_track = await TrackPlayer.getActiveTrack()
+			.then((t) => t !== undefined)
+			.catch(() => false);
+		if (!Prefs.get_pref("play_without_popup") || !has_active_track) show_sheet();
 		const is_setup = await setup_track_player();
 		await TrackPlayer.reset();
 		await TrackPlayer.setRate(1.0);
@@ -228,6 +368,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			GLOBALS.global_var.playing_track_index = 0;
 			GLOBALS.global_var.playing_tracks = tracks.slice();
 			for (let i = 0; i < tracks.length; i++) {
+				if (GLOBALS.global_var.playing_tracks[i].playback === undefined) {
+					SQLTracks.add_playback_saved_data_to_track(GLOBALS.global_var.playing_tracks[i]);
+				}
 				GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
 				GLOBALS.global_var.playing_tracks[i].playback!.added = false;
 			}
@@ -246,6 +389,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		}
 		await TrackPlayer.play();
 		save_past_queue();
+		Sentry.addBreadcrumb({ message: "AudioPlayer: setup done", category: "audio", level: "info", data: { elapsed_ms: Date.now() - setup_t0, track_misses_skipped: tracks_input.length - GLOBALS.global_var.playing_tracks.length } });
 	}
 
 	useEffect(() => {
@@ -306,23 +450,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	useGlobalTracksRefresh(refresh_data);
 
-	const toggle_playing = useCallback(async () => {
-		try {
-			const tp_state = await TrackPlayer.getPlaybackState();
-			if (guest_controls_routed) {
-				if (tp_state.state === State.Playing) P2P.request_pause();
-				else P2P.request_play();
-				return;
-			}
-			if (guest_locked) return;
-			set_player_state_type((prev) => (prev === State.Playing ? State.Paused : State.Playing));
-			if (tp_state.state === State.Playing) await TrackPlayer.pause();
-			else await TrackPlayer.play();
-		} catch {
-			// player not initialized yet
-		}
-	}, [guest_controls_routed, guest_locked]);
-
 	const handle_prev = useCallback(() => {
 		if (guest_controls_routed) {
 			P2P.request_prev();
@@ -351,7 +478,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			if (!is_seeking.value) {
 				seek_progress.value = event.position / (metadata_duration_ref.current || 1);
 			}
-			if (is_empty(metadata_duration_ref.current)) {
+			if (is_empty(metadata_duration_ref.current) && !is_empty(event.duration)) {
 				GLOBALS.global_var.playing_tracks[event.track].duration = event.duration ?? 0;
 				set_player_state_metadata({
 					title: GLOBALS.global_var.playing_tracks[event.track]?.title,
@@ -364,55 +491,45 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			}
 		} else if (event.type === Event.PlaybackActiveTrackChanged) {
 			if (event.index === undefined) return;
-			set_playing_track(GLOBALS.global_var.playing_tracks[event.index]);
-			set_does_track_exist(track_exists(GLOBALS.global_var.playing_tracks[event.index], GLOBALS.global_var.sql_tracks));
-			set_lyrics_loading_state(!is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri) ? "DOWNLOADED" : "NONE");
+			open_lyrics_token.current++; // cancel any in-flight open_lyrics fetch for the old track
+			const active_track = GLOBALS.global_var.playing_tracks[event.index];
+			set_playing_track(active_track);
+			set_does_track_exist(track_exists(active_track, GLOBALS.global_var.sql_tracks));
+			set_lyrics_loading_state(!is_empty(active_track.lyrics_uri) ? "DOWNLOADED" : "NONE");
 			// TODO investigate auto downloading n shit (FSCache results for a week)
 			// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
-			set_player_state_metadata({
-				title: GLOBALS.global_var.playing_tracks[event.index]?.title,
-				artist: artist_string(GLOBALS.global_var.playing_tracks[event.index]),
-				duration: event.track?.duration ?? 0,
-				artwork: GLOBALS.global_var.playing_tracks[event.index]?.playback!.artwork,
-				album: GLOBALS.global_var.playing_tracks[event.index]?.album
+			set_player_state_metadata({ title: active_track?.title, artist: artist_string(active_track), duration: event.track?.duration ?? 0, artwork: active_track?.playback!.artwork, album: active_track?.album });
+			Sentry.addBreadcrumb({
+				message: "AudioPlayer: track changed",
+				category: "audio",
+				level: "info",
+				data: { index: event.index, title: active_track?.title?.slice(0, 60), has_lyrics: !is_empty(active_track?.lyrics_uri), queue_remaining: GLOBALS.global_var.playing_tracks.length - event.index }
 			});
-		} else if (event.type === Event.PlaybackState) {
-			set_player_state_type((prev) => (prev === event.state ? prev : event.state));
-			cancelAnimation(shimmer_position);
-			switch (event.state) {
-				case State.Loading:
-				case State.Buffering:
-					shimmer_position.value = 0;
-					shimmer_position.value = withRepeat(withTiming(1, { duration: 300 }), -1, false);
-					break;
-				case State.Error:
-					shimmer_position.value = 0;
-					shimmer_position.value = withRepeat(withTiming(1, { duration: 100 }), -1, false);
-					break;
-				case State.Playing:
-				case State.Ready:
-					shimmer_position.value = 0;
-					shimmer_position.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
-					break;
-				case State.None:
-				case State.Paused:
-				case State.Stopped:
-				case State.Ended:
-				default:
-					shimmer_position.value = 0;
-					break;
-			}
+			Sentry.setContext("playback", {
+				track_title: active_track?.title?.slice(0, 80),
+				track_uid: active_track?.uid,
+				track_index: event.index,
+				queue_length: GLOBALS.global_var.playing_tracks.length,
+				has_synced_lyrics: !is_empty(active_track?.synced_lyrics_uri),
+				has_lyrics: !is_empty(active_track?.lyrics_uri),
+				has_local_media: !is_empty(active_track?.media_uri)
+			});
 		}
 	});
 
 	async function open_lyrics() {
 		if (lyrics_overlay_visible) {
+			Sentry.addBreadcrumb({ message: "LyricsPlayer: closed", category: "audio", level: "info" });
+			Sentry.setTag("lyrics_open", "false");
 			set_lyrics_overlay_visible(false);
 			return;
 		}
+		Sentry.addBreadcrumb({ message: "LyricsPlayer: opening", category: "audio", level: "info", data: { has_lyrics: !is_empty(playing_track.lyrics_uri), has_synced: !is_empty(playing_track.synced_lyrics_uri) } });
+		Sentry.setTag("lyrics_open", "true");
+		const token = ++open_lyrics_token.current;
 		set_lyrics_loading_state("LOADING");
 		const current_track_index = await TrackPlayer.getActiveTrackIndex();
-		if (current_track_index === undefined) return;
+		if (token !== open_lyrics_token.current || current_track_index === undefined) return;
 		const track = GLOBALS.global_var.playing_tracks[current_track_index];
 		if (track.lyrics_uri && !is_empty(track.lyrics_uri)) {
 			set_lyrics_loading_state("DOWNLOADED");
@@ -420,6 +537,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			return;
 		}
 		const lyrics = await Lyrics.get_track_lyrics(track);
+		if (token !== open_lyrics_token.current) return;
 		if ("error" in lyrics) {
 			set_lyrics_loading_state("FAILED");
 			if (!lyrics.error.message.includes("YouTube")) {
@@ -428,16 +546,26 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			return;
 		}
 		const saved_uri = await SQLTracks.save_track_lyrics(track, lyrics);
+		if (token !== open_lyrics_token.current) return;
 		GLOBALS.global_var.playing_tracks[current_track_index].lyrics_uri = saved_uri;
 		set_playing_track({ ...GLOBALS.global_var.playing_tracks[current_track_index] });
 		set_lyrics_loading_state("DOWNLOADED");
 		set_lyrics_overlay_visible(true);
 	}
 
-	const artwork_source = useMemo(() => {
-		const artwork = player_state_metadata.artwork;
-		return artwork == null ? undefined : typeof artwork === "number" ? artwork : typeof artwork === "string" ? { uri: artwork } : { uri: artwork.uri, cache: artwork.cache };
-	}, [player_state_metadata.artwork]);
+	const [best_artwork, set_best_artwork] = useState<IllusiveType.Artwork | undefined | null>(props.tracks[0]?.playback?.artwork);
+	useEffect(() => {
+		let cancelled = false;
+		set_best_artwork(playing_track.playback?.artwork ?? undefined);
+		Illusive.get_best_track_artwork(SQLfs.document_directory(""), playing_track)
+			.then((artwork) => {
+				if (!cancelled) set_best_artwork(artwork);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, [playing_track.uid]);
 	const waveform_path = useMemo(() => (playing_track.media_uri ? SQLfs.media_directory(playing_track.media_uri) : null), [playing_track.media_uri]);
 	const begdur = playing_track.meta?.begdur ?? 0,
 		enddur = playing_track.meta?.enddur ?? playing_track.duration;
@@ -462,49 +590,27 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		<SlidingUpPanel
 			ref={bottom_sheet_ref}
 			allowDragging={outer_drag_enabled}
+			blockingGesture={lyrics_scroll_gesture}
 			showBackdrop={true}
 			animatedValue={panel_animated}
 			height={panel_max_height}
 			friction={1}
-			minimumDistanceThreshold={8}
+			minimumDistanceThreshold={24}
 			draggableRange={{ bottom: panel_min_height, top: panel_max_height }}
 			snappingPoints={[panel_min_height, panel_max_height]}
 			containerStyle={{ left: 0, right: 0, display: "flex", zIndex: 10, top: "100%" }}>
 			<>
-				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
-					<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
-						<Image source={artwork_source} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
-					</View>
-					<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
-						<Image source={artwork_source} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
-					</View>
-					<Image source={artwork_source} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, opacity: player_state_type === State.Buffering ? 0.6 : 1 }} resizeMode="cover" />
-					<MaskedView
-						style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
-						maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
-						<BlurView intensity={35} tint="dark" style={{ flex: 1 }} />
-					</MaskedView>
-					<MaskedView
-						style={{ position: "absolute", top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
-						maskElement={<LinearGradient colors={["transparent", "transparent", "black", "black"]} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
-						<BlurView intensity={80} tint="dark" style={{ flex: 1 }} />
-					</MaskedView>
-					<LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]} locations={[0, 0.55, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 25 }} />
-					<LinearGradient colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.95)"]} locations={[0, 0.45, 1]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 320 }} />
-					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, lyrics_dim_style, { backgroundColor: "rgba(0,0,0,0.6)" }]} />
-				</Animated.View>
+				{panel_state_visible ? (
+					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
+						<PlayerBackdrop best_artwork={best_artwork} />
+						<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, lyrics_dim_style, { backgroundColor: "rgba(0,0,0,0.6)" }]} />
+					</Animated.View>
+				) : null}
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ height: top_padding }, panel_top_padding_style]} />
 				{/* HEADER ---------------------------------------------------- */}
 				<View style={[styles.header, { backgroundColor: "transparent" }]}>
 					<Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.playScreen }, header_bg_opacity_style]} pointerEvents="none" />
-					{!panel_state_visible && (
-						<Animated.View style={[{ position: "absolute", top: 0, left: 0, bottom: 0, overflow: "hidden" }, mini_progress_fill_style]}>
-							<View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary + "22" }]} />
-							<Animated.View style={[{ position: "absolute", top: 0, bottom: 0, width: 200 }, shimmer_style]}>
-								<LinearGradient colors={["transparent", colors.primary + "15", colors.primary + "55", colors.primary + "15", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
-							</Animated.View>
-						</Animated.View>
-					)}
+					{!panel_state_visible && <MiniProgressBar seek_progress={seek_progress} primary_color={colors.primary} />}
 					<Animated.View style={[{ left: 25 }, panel_chevron_style]}>
 						<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} onPress={toggle_panel}>
 							<Ionicons name="chevron-down-sharp" size={20} color={colors.subtext} style={styles.text_glow} />
@@ -524,11 +630,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<Fontisto name="play-list" size={15} color={"#00000000"} />
 						</View>
 					) : null}
-					{!panel_state_visible ? (
-						<TouchableOpacity disabled={guest_locked} hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20, opacity: guest_locked ? 0.4 : 1 }} onPress={toggle_playing}>
-							<Ionicons name={player_state_type === State.Playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={guest_locked ? colors.subtext : colors.primary} />
-						</TouchableOpacity>
-					) : null}
+					{!panel_state_visible ? <PlayPauseButton variant="mini" guest_locked={guest_locked} guest_controls_routed={guest_controls_routed} primary_color={colors.primary} subtext_color={colors.subtext} /> : null}
 				</View>
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, justifyContent: "flex-end" }, panel_content_style]}>
 					{/* Transparent context menu covering the artwork square */}
@@ -672,9 +774,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<TouchableOpacity disabled={guest_locked} onPress={handle_prev} style={{ opacity: guest_locked ? 0.35 : 1 }}>
 								<Ionicons name="play-back" size={36} color={guest_locked ? colors.subtext : colors.primary} />
 							</TouchableOpacity>
-							<TouchableOpacity disabled={guest_locked} onPress={toggle_playing} style={{ opacity: guest_locked ? 0.35 : 1 }}>
-								<Ionicons name={player_state_type === State.Playing ? "pause" : "play"} size={60} color={guest_locked ? colors.subtext : colors.primary} />
-							</TouchableOpacity>
+							<PlayPauseButton variant="big" guest_locked={guest_locked} guest_controls_routed={guest_controls_routed} primary_color={colors.primary} subtext_color={colors.subtext} />
 							<TouchableOpacity disabled={guest_locked} onPress={handle_next} style={{ opacity: guest_locked ? 0.35 : 1 }}>
 								<Ionicons name="play-forward" size={36} color={guest_locked ? colors.subtext : colors.primary} />
 							</TouchableOpacity>
@@ -687,7 +787,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							</TouchableOpacity>
 						</View>
 					</View>
-					<LyricsPlayer visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} />
+					<LyricsPlayer visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} scroll_gesture={lyrics_scroll_gesture} />
 				</Animated.View>
 				{/* Single queue dim — covers everything (background, top padding, header, content) */}
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>

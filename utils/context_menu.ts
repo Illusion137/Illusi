@@ -59,7 +59,7 @@ export namespace TrackContextMenu {
 			track_menu_item("track-download-media", "Download Media", () => (!is_empty(track.media_uri) || !is_saved ? ["hidden"] : undefined), "arrow.down.circle"),
 			track_menu_item("track-download-lyrics", "Download Lyrics", () => (!is_empty(track.lyrics_uri) || !is_saved ? ["hidden"] : undefined), "arrow.down.circle.dotted"),
 			track_menu_item("track-remove-artwork", "Remove Artwork", () => (is_empty(track.thumbnail_uri) || !is_saved ? ["hidden"] : ["destructive"]), "trash"),
-			track_menu_item("track-delete-media", "Delete Media", () => (is_empty(track.media_uri) || !is_saved ? ["hidden"] : ["destructive"]), "trash"),
+			track_menu_item("track-delete-media", "Delete Media", () => (is_empty(track.media_uri) || !is_empty(track.imported_id) || !is_saved ? ["hidden"] : ["destructive"]), "trash"),
 			track_menu_item("track-delete-lyrics", "Delete Lyrics", () => (is_empty(track.lyrics_uri) || !is_saved ? ["hidden"] : ["destructive"]), "trash"),
 			track_menu_item("track-delete", "Delete", () => (!is_saved ? ["hidden"] : ["destructive"]), "trash"),
 			track_menu_item("track-delete-playlist", "Delete From Playlist", () => (is_empty(write_playlist_uuid) || write_playlist_uuid === Constants.library_write_playlist || !is_playlist_saved ? ["hidden"] : ["destructive"]), "trash"),
@@ -101,6 +101,19 @@ export namespace TrackContextMenu {
 
 	export const track_component_inner_context_menu = (track: Track, write_playlist_uuid: string) => {
 		const all_fns = track_all_functions(track, write_playlist_uuid);
+		if (!GLOBALS.global_var.is_playing) {
+			return [
+				{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-push-discord"]) },
+				...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-station"]),
+				view_artist_element(track),
+				...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-album"]),
+				{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-view-info", "track-edit-info", "track-trim-media"]) },
+				{ menuTitle: "", menuOptions: ["displayInline"] as UIMenuOptions[], menuItems: extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-add-to-library", "track-add-to-playlist"]) },
+				track_offline_folder(track, write_playlist_uuid),
+				track_share_folder(track, write_playlist_uuid),
+				track_destructive_folder(track, write_playlist_uuid),
+			];
+		}
 		return [
 			...extract_menu_items<ContextResolver.TrackContextKeys>(all_fns, ["track-station"]),
 			view_artist_element(track),

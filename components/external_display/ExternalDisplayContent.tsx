@@ -1,5 +1,7 @@
-import { is_empty } from "@common/utils/util";
+import { gen_uuid, is_empty } from "@common/utils/util";
 import { GLOBALS } from "@illusive/globals";
+import { SQLGlobal } from "@illusive/sql/sql_global";
+import { subscribe_track_player_queue_modified } from "@illusive/track_player_service";
 import type { Track } from "@illusive/types";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -42,7 +44,7 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 	function apply_track(next: Track | undefined) {
 		set_playing_track((prev) => {
 			if (!next) return undefined;
-			if (!prev || prev.uid !== next.uid) return next;
+			if (prev?.uid !== next.uid) return next;
 			if (!is_empty(prev.synced_lyrics_uri) && is_empty(next.synced_lyrics_uri)) return prev;
 			return next;
 		});
@@ -61,6 +63,17 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 
 	useEffect(() => {
 		sync_active_track();
+		const key = gen_uuid();
+		SQLGlobal.push_global_sql_tracks_update_callback(key, () => {
+			sync_active_track();
+		});
+		const unsubscribe_queue = subscribe_track_player_queue_modified(() => {
+			sync_active_track();
+		});
+		return () => {
+			SQLGlobal.pop_global_sql_tracks_update_callback(key);
+			unsubscribe_queue();
+		};
 	}, []);
 
 	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged, Event.PlaybackState], (event) => {
@@ -92,15 +105,9 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 	const idle_layer_style = useAnimatedStyle(() => ({ opacity: idle_progress.value }));
 	const playing_layer_style = useAnimatedStyle(() => ({ opacity: 1 - idle_progress.value }));
 	const now_playing_content_style = useAnimatedStyle(() => ({
-		transform: [
-			{ translateX: interpolate(synced_progress.value, [0, 1], [0, -width * 0.25], Extrapolation.CLAMP) },
-			{ scale: interpolate(synced_progress.value, [0, 1], [1, 0.82], Extrapolation.CLAMP) }
-		]
+		transform: [{ translateX: interpolate(synced_progress.value, [0, 1], [0, -width * 0.25], Extrapolation.CLAMP) }, { scale: interpolate(synced_progress.value, [0, 1], [1, 0.82], Extrapolation.CLAMP) }]
 	}));
-	const lyrics_layer_style = useAnimatedStyle(() => ({
-		opacity: synced_progress.value,
-		transform: [{ translateX: interpolate(synced_progress.value, [0, 1], [width * 0.5, 0], Extrapolation.CLAMP) }]
-	}));
+	const lyrics_layer_style = useAnimatedStyle(() => ({ opacity: synced_progress.value, transform: [{ translateX: interpolate(synced_progress.value, [0, 1], [width * 0.5, 0], Extrapolation.CLAMP) }] }));
 
 	return (
 		<View style={{ width, height, overflow: "hidden" }}>

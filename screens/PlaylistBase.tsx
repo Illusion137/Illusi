@@ -48,7 +48,6 @@ let tracks_ref: Track[] = [];
 
 export type PlaylistType = "DEFAULT_PLAYLIST" | "URI" | "UUID" | "WRITE_PLAYLIST" | "TRACKS_LIST";
 
-// TODO better playing in order
 export interface PlaylistDefaultPlaylistProps {
 	type: "DEFAULT_PLAYLIST";
 	default_playlist_title: string;
@@ -280,7 +279,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 		const start_index = from_index ?? GLOBALS.global_var.past_track_index;
 		const cloned_tracks = [...play_tracks].slice(start_index);
 		try {
-			GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+			GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title, true);
 		} finally {
 			Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
 		}
@@ -296,7 +295,6 @@ export default function PlaylistBase(props: PlaylistProps) {
 	}
 
 	const write_playlist_uuid = props.type === "URI" ? Constants.library_write_playlist : props.type === "WRITE_PLAYLIST" ? props.write_playlist_uuid : undefined;
-	const is_non_illusi_external = props.type === "URI" && split_uri(props.uri)[0] !== "illusi";
 
 	const render_track = (item: { item: Track }) => (
 		<TrackComponent
@@ -327,7 +325,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					) : null}
 					<NavLink
 						text={empty_join_dot([playlist_data?.creator?.map((item) => item.name).join(", ") ?? "Sudo", new Date(playlist_data?.date ?? 0)?.getFullYear()])}
-						uri={playlist_data?.creator?.[0].uri ?? ""}
+						uri={playlist_data?.creator?.[0]?.uri ?? ""}
 						type="artist"
 						text_style={{ color: colors.text, fontSize: 14, marginBottom: 20, top: 10 }}
 					/>
@@ -351,7 +349,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					{props.type !== "WRITE_PLAYLIST" ? (
 						<IoniconsTouchableOpacity
 							on_press={() => {
-								play_order(tracks);
+								play_order(track_query_filter(tracks, search_query_state), 0);
 							}}
 							style={styles.playlist_button}
 							icon_name="play-sharp"
@@ -397,10 +395,9 @@ export default function PlaylistBase(props: PlaylistProps) {
 			</View>
 			{props.type !== "WRITE_PLAYLIST" ? (
 				<ShufflePlayButton
-					text={force_order ? "Continue Listening" : is_non_illusi_external ? "Play in Order" : is_empty(search_query) ? undefined : "Shuffle Searched"}
+					text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"}
 					on_press={() => {
 						if (force_order) play_order(tracks);
-						else if (is_non_illusi_external) play_order(track_query_filter(tracks, search_query_state), 0);
 						else play_shuffle(track_query_filter(tracks, search_query_state));
 					}}
 					top={-50}

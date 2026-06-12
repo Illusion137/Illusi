@@ -21,7 +21,7 @@ interface ExternalSyncedLyricsProps {
 
 // Only the lines near the active one run the per-word glow animation; the rest are
 // plain Text so the external surface isn't bogged down by dozens of animated worklets.
-const ANIMATED_WINDOW = 5;
+const ANIMATED_WINDOW = 3;
 
 function glow_from_color(base: string): string {
 	if (base.startsWith("#")) {
@@ -71,25 +71,31 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 
 	async function load(load_track: Track) {
 		const token = ++load_token_ref.current;
-		// Use the warm cache for an instant switch; only await when it's a cold track.
-		let lyrics = get_cached_synced_lyrics(load_track);
-		if (lyrics === undefined) lyrics = await load_synced_lyrics(load_track);
-		if (token !== load_token_ref.current) return;
-		if (lyrics === null) {
-			tracker.clear();
-			return;
-		}
-		const synced = with_intro_marker(lyrics);
-		let position = 0;
 		try {
-			position = (await TrackPlayer.getProgress()).position;
+			// Use the warm cache for an instant switch; only await when it's a cold track.
+			let lyrics = get_cached_synced_lyrics(load_track);
+			if (lyrics === undefined) lyrics = await load_synced_lyrics(load_track);
+			if (token !== load_token_ref.current) return;
+			if (lyrics === null) {
+				tracker.clear();
+				return;
+			}
+			const synced = with_intro_marker(lyrics);
+			let position = 0;
+			try {
+				position = (await TrackPlayer.getProgress()).position;
+			} catch {
+				// TrackPlayer not ready — start from the top.
+			}
+			if (token !== load_token_ref.current) return;
+			line_y_positions.current = [];
+			line_heights.current = [];
+			tracker.begin(synced, position);
 		} catch {
-			// TrackPlayer not ready — start from the top.
+			// A failed load (e.g. transient fs error) must not strand the PREVIOUS
+			// track's lyrics on screen, frozen against the new track's position.
+			if (token === load_token_ref.current) tracker.clear();
 		}
-		if (token !== load_token_ref.current) return;
-		line_y_positions.current = [];
-		line_heights.current = [];
-		tracker.begin(synced, position);
 	}
 
 	useEffect(() => {
@@ -121,12 +127,14 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 				<Animated.View style={[{ position: "absolute", top: 0, left: 0, width }, teleprompter_style]}>
 					<View style={{ height: height / 2 }} />
 					{tracker.synced_lyrics.map((lyric, i) => {
-						const near = Math.abs(i - tracker.current_line_idx) <= ANIMATED_WINDOW;
+						const near = Math.abs(i - tracker.window_center) <= ANIMATED_WINDOW;
 						const next_from = tracker.synced_lyrics![i + 1]?.interval.from;
 						const lyric_duration_ms = next_from !== undefined ? (next_from - lyric.interval.from) * 1000 : 3000;
 						return (
 							<View
-								key={i}
+								// Keyed by track so lines remount on a track change — index-only keys let
+								// unchanged layouts skip onLayout, stranding the teleprompter on stale offsets.
+								key={`${track?.uid ?? "none"}-${i}`}
 								style={styles.line_wrapper}
 								onLayout={(e: LayoutChangeEvent) => {
 									line_y_positions.current[i] = e.nativeEvent.layout.y;
@@ -139,7 +147,8 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 								{near ? (
 									<AnimatedLyricLine
 										text={lyric.text}
-										is_active={i === tracker.current_line_idx}
+										line_index={i}
+										active_line_sv={tracker.active_line_sv}
 										color_active={colors.text}
 										color_inactive={colors.subtext}
 										glow_color={glow_color}

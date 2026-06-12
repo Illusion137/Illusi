@@ -17,15 +17,7 @@ import { illusive_track_to_track_player_track, setup_track_player } from "@illus
 import { router } from "expo-router";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
-import Animated, {
-	useSharedValue,
-	useAnimatedStyle,
-	withSpring,
-	withTiming,
-	interpolate,
-	cancelAnimation,
-	Extrapolation
-} from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, cancelAnimation, Extrapolation } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 const SWIPE_THRESHOLD = 100;
@@ -38,25 +30,8 @@ function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: num
 
 	return (
 		<View>
-			<View
-				style={{
-					alignSelf: "center",
-					borderRadius: 12,
-					shadowColor: "#000",
-					shadowOffset: { width: 0, height: 4 },
-					shadowOpacity: 0.2,
-					shadowRadius: 8,
-					elevation: 5
-				}}>
-				<IImage
-					source={props.track_data.playback?.artwork}
-					width={props.screen_width - 70}
-					style={{
-						borderRadius: 12,
-						maxWidth: props.screen_width - 70,
-						height: props.screen_width - 70
-					}}
-				/>
+			<View style={{ alignSelf: "center", borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}>
+				<IImage source={props.track_data.playback?.artwork} style={{ borderRadius: 2, borderWidth: 1, borderColor: colors.line, maxWidth: props.screen_width - 70, width: props.screen_width - 70, height: props.screen_width - 70 }} />
 			</View>
 			<View style={{ marginHorizontal: 35, paddingTop: 18 }}>
 				<TextTicker style={{ color: colors.text, fontSize: 22, fontWeight: "800" }} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
@@ -75,7 +50,7 @@ function RenderKeepDeletePlayingTrack(props: { track_data: Track; sum_plays: num
 					<View style={{ backgroundColor: colors.shelf, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 }}>
 						<Text style={{ color: colors.subtext, fontSize: 12 }}>{track_value} value</Text>
 					</View>
-					<TrackIconTags is_downloading={false} size={20} track_data={props.track_data} />
+					<TrackIconTags is_downloading={false} size={20} track_data={props.track_data} darken />
 				</View>
 			</View>
 		</View>
@@ -88,7 +63,9 @@ function EmptyState() {
 		<View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 40 }}>
 			<Ionicons name="checkmark-done-circle-outline" size={80} color={colors.primary} />
 			<Text style={{ color: colors.text, fontSize: 22, fontWeight: "700", marginTop: 20, textAlign: "center" }}>Your library is in good shape</Text>
-			<Text style={{ color: colors.subtext, fontSize: 15, marginTop: 12, textAlign: "center", lineHeight: 22 }}>Keep/Delete helps you curate your library by surfacing tracks you haven't listened to in a while. Come back when you have more music.</Text>
+			<Text style={{ color: colors.subtext, fontSize: 15, marginTop: 12, textAlign: "center", lineHeight: 22 }}>
+				Keep/Delete helps you curate your library by surfacing tracks you haven't listened to in a while. Come back when you have more music.
+			</Text>
 			<TouchableOpacity onPress={() => router.back()} style={{ marginTop: 32, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 10 }}>
 				<Text style={{ color: colors.background, fontSize: 16, fontWeight: "600" }}>Go Back</Text>
 			</TouchableOpacity>
@@ -116,10 +93,7 @@ export default function ExtraKeepDeleteScreen() {
 	const skip_count = useRef(0);
 	const playing_track = useRef<Track>(tracks[0]);
 
-	const [player_state_trackplayer, set_player_state_trackplayer] = useState({
-		elapsed_time: 0,
-		duration_remaining: tracks[0]?.duration ?? 0
-	});
+	const [player_state_trackplayer, set_player_state_trackplayer] = useState({ elapsed_time: 0, duration_remaining: tracks[0]?.duration ?? 0 });
 	const [player_state_type, set_player_state_type] = useState<State>(State.None);
 
 	const translate_x = useSharedValue(0);
@@ -127,22 +101,12 @@ export default function ExtraKeepDeleteScreen() {
 
 	const card_style = useAnimatedStyle(() => {
 		const rotate = interpolate(translate_x.value, [-screen_width / 2, screen_width / 2], [-8, 8], Extrapolation.CLAMP);
-		return {
-			transform: [
-				{ translateX: translate_x.value },
-				{ translateY: translate_y.value },
-				{ rotate: `${rotate}deg` }
-			]
-		};
+		return { transform: [{ translateX: translate_x.value }, { translateY: translate_y.value }, { rotate: `${rotate}deg` }] };
 	});
 
-	const red_overlay_style = useAnimatedStyle(() => ({
-		opacity: interpolate(translate_x.value, [-SWIPE_THRESHOLD, 0], [0.45, 0], Extrapolation.CLAMP)
-	}));
+	const red_overlay_style = useAnimatedStyle(() => ({ opacity: interpolate(translate_x.value, [-SWIPE_THRESHOLD, 0], [0.45, 0], Extrapolation.CLAMP) }));
 
-	const green_overlay_style = useAnimatedStyle(() => ({
-		opacity: interpolate(translate_x.value, [0, SWIPE_THRESHOLD], [0, 0.45], Extrapolation.CLAMP)
-	}));
+	const green_overlay_style = useAnimatedStyle(() => ({ opacity: interpolate(translate_x.value, [0, SWIPE_THRESHOLD], [0, 0.45], Extrapolation.CLAMP) }));
 
 	const advance_ref = useRef<(action: "keep" | "delete") => Promise<void>>(null);
 
@@ -203,7 +167,7 @@ export default function ExtraKeepDeleteScreen() {
 		cancelAnimation(translate_x);
 		cancelAnimation(translate_y);
 		translate_x.value = withTiming(direction * screen_width * 1.5, { duration: 220 });
-		return new Promise(resolve => setTimeout(resolve, 225));
+		return new Promise((resolve) => setTimeout(resolve, 225));
 	}
 
 	async function advance(action: "keep" | "delete") {
@@ -260,7 +224,7 @@ export default function ExtraKeepDeleteScreen() {
 
 	async function undo_delete() {
 		if (!undo_track) return;
-		await SQLTracks.insert_track(undo_track);
+		await SQLTracks.undelete_track(undo_track.uid);
 		GLOBALS.global_var.sql_tracks.push(undo_track);
 
 		const cur_index = current_index_ref.current;
@@ -280,10 +244,7 @@ export default function ExtraKeepDeleteScreen() {
 	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackState], async (event) => {
 		if (event.type === Event.PlaybackProgressUpdated) {
 			if (!is_sliding) {
-				set_player_state_trackplayer({
-					elapsed_time: event.position,
-					duration_remaining: event.duration - event.position
-				});
+				set_player_state_trackplayer({ elapsed_time: event.position, duration_remaining: event.duration - event.position });
 			}
 		} else if (event.type === Event.PlaybackState) {
 			set_player_state_type(event.state);
@@ -318,17 +279,7 @@ export default function ExtraKeepDeleteScreen() {
 			<View style={{ flex: 1, paddingTop: 60 }}>
 				{/* Next card shown behind current — subtle */}
 				{next_track && (
-					<View
-						style={{
-							position: "absolute",
-							top: 60,
-							left: 0,
-							right: 0,
-							alignItems: "center",
-							transform: [{ scale: 0.90 }],
-							opacity: 0.25
-						}}
-						pointerEvents="none">
+					<View style={{ position: "absolute", top: 60, left: 0, right: 0, alignItems: "center", transform: [{ scale: 0.9 }], opacity: 0.25 }} pointerEvents="none">
 						<RenderKeepDeletePlayingTrack track_data={next_track} sum_plays={sum_plays.current} screen_width={screen_width} />
 					</View>
 				)}
@@ -341,7 +292,7 @@ export default function ExtraKeepDeleteScreen() {
 			</View>
 
 			{/* Playback footer */}
-			<View style={{ paddingBottom: 36 }}>
+			<View>
 				<View style={{ marginHorizontal: 35 }}>
 					<Slider
 						value={player_state_trackplayer.elapsed_time}
@@ -364,17 +315,7 @@ export default function ExtraKeepDeleteScreen() {
 					</View>
 				</View>
 
-				{undo_track ? (
-					<TouchableOpacity onPress={undo_delete} style={{ alignSelf: "center", marginTop: 10, paddingHorizontal: 16, paddingVertical: 5 }}>
-						<Text style={{ color: colors.subtext, fontSize: 13 }} numberOfLines={1}>
-							↩ Undo delete "{undo_track.title}"
-						</Text>
-					</TouchableOpacity>
-				) : (
-					<View style={{ height: 28 }} />
-				)}
-
-				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 8, gap: 10 }}>
+				<View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10 }}>
 					<TouchableOpacity onPress={async () => advance("delete")} style={{ alignItems: "center" }}>
 						<Ionicons name="close-circle" size={52} color={colors.red} />
 					</TouchableOpacity>
@@ -397,6 +338,16 @@ export default function ExtraKeepDeleteScreen() {
 						<Ionicons name="checkmark-circle" size={52} color={colors.green} />
 					</TouchableOpacity>
 				</View>
+
+				{undo_track ? (
+					<TouchableOpacity onPress={undo_delete} style={{ alignSelf: "center", marginTop: 10, paddingHorizontal: 16, paddingVertical: 5 }}>
+						<Text style={{ color: colors.subtext, fontSize: 13 }} numberOfLines={1}>
+							↩ Undo delete "{undo_track.title}"
+						</Text>
+					</TouchableOpacity>
+				) : (
+					<View style={{ height: 28 }} />
+				)}
 			</View>
 		</View>
 	);
