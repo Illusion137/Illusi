@@ -159,9 +159,7 @@ export default function PlaylistComponent(props: { playlist_data: Playlist; sele
 									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
 								</>
 							) : null}
-							<Text style={{ color: colors.subtext, fontSize: 14 }}>
-								{empty_join_dot([`${visual_data?.track_count ?? 0} ${(visual_data?.track_count ?? 0) === 1 ? "track" : "tracks"}`, duration_to_string(sum(track_durations(visual_data?.four_track ?? [])))])}
-							</Text>
+							<Text style={{ color: colors.subtext, fontSize: 14 }}>{empty_join_dot([`${visual_data?.track_count ?? 0} ${(visual_data?.track_count ?? 0) === 1 ? "track" : "tracks"}`])}</Text>
 							{is_public ? (
 								<>
 									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
