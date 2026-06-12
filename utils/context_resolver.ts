@@ -6,17 +6,22 @@ import { download_track, undownload_track } from "@illusive/downloader";
 import { GLOBALS } from "@illusive/globals";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { if_confirm, share_item } from "@illusive/illusi/src/illusi_utils";
-import { play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
+import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
 import { Prefs } from "@illusive/prefs";
 import { SQLfs } from "@illusive/sql/sql_fs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
+import { SQLAudiobook } from "@illusive/sql/sql_audiobook";
+import type { AudiobookTableItem } from "@illusive/db/schema";
 import type { Track } from "@illusive/types";
 import { SharedRouter } from './shared_routes';
 import { alert_error } from "@illusive/illusi/src/alert";
+import { Illusive } from "@illusive/illusive";
+import { error_undefined } from '../lib-origin/common/utils/util';
 
 export namespace ContextResolver {
     export type TrackContextKeys =
-        "track-push-discord"
+        "track-station"
+        | "track-push-discord"
         | "track-enqueue"
         | "track-play-next"
         | "track-trim-media"
@@ -47,6 +52,11 @@ export namespace ContextResolver {
             SharedRouter.goto_shared_artist(track.artists[index].uri ?? "");
         }
         switch (action_key) {
+            case "track-station": {
+                const station_tracks = error_undefined(await Illusive.get_station_tracks(track)) ?? [];
+                play(track, "Station", () => SQLTracks.add_playback_saved_data_to_tracks(station_tracks));
+                break;
+            }
             case "track-push-discord":
                 play_track_discord_send(Prefs.get_pref('discord_webhook_url'), track, (e) => alert_error(e));
                 break;
@@ -155,5 +165,86 @@ export namespace ContextResolver {
         }
     }
 
+    export type AudiobookContextKeys =
+        | "audiobook-resume"
+        | "audiobook-restart"
+        | "audiobook-view-details"
+        | "audiobook-mark-finished"
+        | "audiobook-remove-from-series"
+        | "audiobook-delete";
 
+    export interface AudiobookContextHandlers {
+        on_play?: (novel: AudiobookTableItem) => void;
+        on_restart?: (novel: AudiobookTableItem) => void;
+        on_view_details?: (novel: AudiobookTableItem) => void;
+        on_refresh?: () => void | Promise<void>;
+    }
+
+    export async function resolve_audiobook_context(novel: AudiobookTableItem, action_key: AudiobookContextKeys, handlers: AudiobookContextHandlers = {}) {
+        const percent = novel.total_duration_ms > 0 ? novel.total_listened_ms / novel.total_duration_ms : 0;
+        const finished = percent >= 0.999;
+        switch (action_key) {
+            case "audiobook-resume":
+                handlers.on_play?.(novel);
+                break;
+            case "audiobook-restart":
+                handlers.on_restart?.(novel);
+                break;
+            case "audiobook-view-details":
+                handlers.on_view_details?.(novel);
+                break;
+            case "audiobook-mark-finished":
+                await SQLAudiobook.update_audiobook(novel.uuid, {
+                    total_listened_ms: finished ? 0 : novel.total_duration_ms,
+                    last_read_date: new Date().toISOString()
+                });
+                await handlers.on_refresh?.();
+                break;
+            case "audiobook-remove-from-series":
+                await SQLAudiobook.update_audiobook(novel.uuid, { series_name: "", series_no: 0 });
+                await handlers.on_refresh?.();
+                break;
+            case "audiobook-delete":
+                if_confirm(`Delete:\n ${novel.title || "Untitled"}?`, "This action can't be undone.", async () => {
+                    await SQLAudiobook.delete_audiobook(novel.uuid);
+                    await handlers.on_refresh?.();
+                });
+                break;
+        }
+    }
+
+    export type SeriesContextKeys =
+        | "series-open"
+        | "series-resume"
+        | "series-toggle-expand"
+        | "series-ungroup";
+
+    export interface SeriesContextHandlers {
+        on_open?: (series_name: string, novels: AudiobookTableItem[]) => void;
+        on_resume?: (series_name: string, novels: AudiobookTableItem[]) => void;
+        on_toggle_expand?: () => void;
+        on_refresh?: () => void | Promise<void>;
+    }
+
+    export async function resolve_series_context(series_name: string, novels: AudiobookTableItem[], action_key: SeriesContextKeys, handlers: SeriesContextHandlers = {}) {
+        switch (action_key) {
+            case "series-open":
+                handlers.on_open?.(series_name, novels);
+                break;
+            case "series-resume":
+                handlers.on_resume?.(series_name, novels);
+                break;
+            case "series-toggle-expand":
+                handlers.on_toggle_expand?.();
+                break;
+            case "series-ungroup":
+                if_confirm(`Ungroup "${series_name}"?`, "Each book will be removed from the series.", async () => {
+                    for (const novel of novels) {
+                        await SQLAudiobook.update_audiobook(novel.uuid, { series_name: "", series_no: 0 });
+                    }
+                    await handlers.on_refresh?.();
+                });
+                break;
+        }
+    }
 }

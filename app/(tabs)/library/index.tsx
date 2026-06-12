@@ -8,7 +8,7 @@ import { TRACK_QUERY_FLAGS } from "@illusive/query_flags";
 import SearchBarV1 from "@components/SearchBarV1";
 import usePTheme from "@hooks/usePTheme";
 import LibraryTrackList from "@components/LibraryTrackList";
-import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
+import { MaterialCommunityIconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import { ContextMenuButton } from "@components/ContextMenu";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { menuconfig_local_playlist } from "@utils/context_menu";
@@ -85,7 +85,7 @@ export default function Library() {
 					<View style={{ width: "75%", bottom: 5, right: 10 }}>
 						<SearchBarV1 placeholder="Search My Library" query_flags={TRACK_QUERY_FLAGS} onChangeText={async (query) => library_ref.current?.refresh_data(query)} />
 					</View>
-					<IoniconsTouchableOpacity icon_name="cloud-upload" icon_size={25} icon_color={colors.inactive} style={{ bottom: 4 }} on_press={upload_music_files} />
+					<MaterialCommunityIconsTouchableOpacity icon_name="file-upload" icon_size={25} icon_color={colors.inactive} style={{ bottom: 4 }} on_press={upload_music_files} />
 				</View>
 			</View>
 			<LibraryTrackList edit_mode={edit_mode} ref={library_ref} is_focused={is_focused} />

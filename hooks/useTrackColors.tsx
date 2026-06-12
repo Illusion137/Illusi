@@ -1,9 +1,9 @@
-import { reinterpret_cast } from "@common/cast";
 import type { Track } from "@illusive/types";
 import usePTheme from "./usePTheme";
 import { is_empty } from "@common/utils/util";
+import { SQLfs } from "@illusive/sql/sql_fs";
 import ImageColors from "react-native-image-colors";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface TrackColors {
 	track_colors?: {
@@ -22,13 +22,30 @@ export default function useTrackColors(track: Track | undefined): TrackColors {
 		detail: colors.primary_dark
 	};
 	const [track_colors, set_track_colors] = useState<TrackColors>({ track_colors: base_colors });
-	const raw_artwork = reinterpret_cast<string>(typeof track?.playback?.artwork === "object" ? track?.playback?.artwork?.uri : track?.playback?.artwork);
+
+	// Prefer a downloaded / custom local thumbnail. Imported tracks resolve playback.artwork
+	// to a generic placeholder icon, so sampling that gives nothing — but if a thumbnail was
+	// downloaded we can still pull colours from the local file.
+	const raw_artwork = useMemo(() => {
+		if (!track) return undefined;
+		if (!is_empty(track.thumbnail_uri)) {
+			return track.thumbnail_uri!.includes(track.uid) ? SQLfs.thumbnail_directory(track.thumbnail_uri!) : SQLfs.custom_thumbnail_directory(track.thumbnail_uri!);
+		}
+		const artwork = track.playback?.artwork;
+		if (typeof artwork === "string") return artwork;
+		if (artwork && typeof artwork === "object") return artwork.uri;
+		return undefined; // numeric placeholder icon — nothing real to sample
+	}, [track?.uid, track?.thumbnail_uri]);
+
 	const execute = useCallback(async () => {
-		if (!track || !raw_artwork || !is_empty(track.imported_id)) return;
-		ImageColors.getColors(raw_artwork).then((artwork_colors) => {
+		if (!raw_artwork) return;
+		try {
+			const artwork_colors = await ImageColors.getColors(raw_artwork);
 			if (artwork_colors.platform === "ios") set_track_colors({ track_colors: artwork_colors });
-		});
-	}, [track?.uid]);
+		} catch {
+			// keep base colours if extraction fails
+		}
+	}, [raw_artwork]);
 	useEffect(() => {
 		execute();
 	}, [execute]);

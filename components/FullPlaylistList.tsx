@@ -17,7 +17,6 @@ export default function FullPlaylistList(props: { title: string; playlists: Full
 		<View style={{ paddingVertical: 10 }}>
 			<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
 				<Text style={{ color: colors.text, fontSize: 25, fontWeight: "bold", left: 15 }}>{props.title}</Text>
-				{/* <AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{ right: 20 }} hitslop={12} /> */}
 			</View>
 			<View style={{ paddingHorizontal: 10, height: list_height, justifyContent: "center" }}>
 				<FlashList data={props.playlists} renderItem={render_playlist} horizontal={true} />

@@ -30,7 +30,7 @@ export default function PlaylistsLayout() {
 				})}
 			/>
 			<Stack.Screen name="create" options={{ title: "Create Playlist", headerShown: false, presentation: "modal" }} />
-			<Stack.Screen name="archived" options={{ title: "Archived Playlists", headerShown: false, presentation: "modal" }} />
+			<Stack.Screen name="archived" options={{ title: "Archived Playlists", headerShown: false, presentation: "modal", sheetAllowedDetents: [1.0], sheetCornerRadius: 0 }} />
 			<Stack.Screen name="(shared)/add-to-playlists/[track]" options={{ title: "Add To Playlist", presentation: "modal", headerShown: false }} />
 			<Stack.Screen name="(shared)/artist/[uri]" options={{ title: "Artist", headerShown: false }} />
 			<Stack.Screen name="(shared)/playlist/[uri]" options={{ title: "Playlist", headerShown: false }} />

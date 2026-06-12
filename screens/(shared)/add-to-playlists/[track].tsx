@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { GLOBALS } from "@illusive/globals";
@@ -9,6 +10,7 @@ import { artist_string, track_exists } from "@illusive/illusive_utils";
 import PlaylistComponent from "@components/PlaylistComponent";
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
+import type { Prefs } from "@illusive/prefs";
 import { router } from "expo-router";
 import useParsedLocalSearchParams from "@hooks/useParsedLocalSearchParams";
 import ModalHeader from "@components/ModalHeader";
@@ -22,6 +24,7 @@ export default function AddToPlaylistsModal() {
 	const { _track } = useParsedLocalSearchParams<AddToPlaylistsModalParams>();
 
 	const { colors } = usePTheme();
+	const styles = theme_styles(colors);
 
 	const [playlists_data, set_playlists_data] = useState<Playlist[]>([]);
 
@@ -33,7 +36,8 @@ export default function AddToPlaylistsModal() {
 		})();
 	}, []);
 
-	const render_playlist_item = (item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} select={{ mode: true, track: _track! }} />;
+	const render_playlist_item = useCallback((item: { item: Playlist }) => <PlaylistComponent playlist_data={item.item} select={{ mode: true, track: _track! }} />, [_track]);
+	const key_extractor = useCallback((item: Playlist) => item.uuid, []);
 
 	function close() {
 		if (!router.canDismiss()) return;
@@ -54,24 +58,133 @@ export default function AddToPlaylistsModal() {
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<ModalHeader title={"Add To Playlists"} />
-			<IImage
-				source={_track?.playback?.artwork}
-				resizeMode="cover"
-				style={{
-					width: "100%",
-					height: "21%",
-					opacity: 0.7
-				}}
+			<View style={styles.header_wrap}>
+				<IImage
+					source={_track?.playback?.artwork}
+					resizeMode="cover"
+					style={styles.header_image}
+					blur={{ intensity: 18, tint: "dark" }}
+					fade={{ percent: "100%", middle_opacity: 0.35, end_opacity: 1 }}
+				/>
+				<View style={styles.header_content}>
+					<IImage source={_track?.playback?.artwork} resizeMode="cover" style={styles.header_artwork} />
+					<View style={styles.header_text_wrap}>
+						<Text style={styles.caption}>ADD TO PLAYLIST</Text>
+						<Text numberOfLines={1} style={styles.header_title}>
+							{_track?.title || ""}
+						</Text>
+						<Text numberOfLines={1} style={styles.header_artist}>
+							{artist_string(_track!)}
+						</Text>
+					</View>
+				</View>
+			</View>
+			<Text style={styles.section_label}>YOUR PLAYLISTS</Text>
+			<View style={styles.section_divider} />
+			<FlatList
+				style={{ flex: 1 }}
+				contentContainerStyle={{ paddingTop: 4, paddingBottom: 120 }}
+				data={playlists_data}
+				renderItem={render_playlist_item}
+				keyExtractor={key_extractor}
+				initialNumToRender={12}
+				maxToRenderPerBatch={12}
+				windowSize={7}
+				removeClippedSubviews
 			/>
-			<Text numberOfLines={1} style={{ marginHorizontal: 20, bottom: 60, color: colors.text, fontWeight: "bold", fontSize: 24 }}>
-				{_track?.title || ""}
-			</Text>
-			<Text style={{ marginHorizontal: 20, bottom: 62, color: colors.text, fontSize: 14 }}>{artist_string(_track!)}</Text>
-			<View style={{ height: 10 }} />
-			<FlatList style={{ bottom: 45 }} data={playlists_data} renderItem={render_playlist_item} />
-			<TouchableOpacity style={{ width: "90%", alignSelf: "center", height: 60, backgroundColor: colors.primary, borderRadius: 50, bottom: 30, alignItems: "center", justifyContent: "center" }} onPress={async () => save_selection()}>
-				<Text style={{ color: colors.text, fontSize: 24, fontWeight: "600" }}>Save</Text>
+			<TouchableOpacity activeOpacity={0.85} style={styles.save_btn} onPress={async () => save_selection()}>
+				<Text style={styles.save_btn_text}>Save</Text>
+				<Ionicons name="chevron-forward" size={22} color={colors.text} style={{ marginLeft: 8 }} />
 			</TouchableOpacity>
 		</View>
 	);
 }
+
+const theme_styles = (colors: Prefs.Theme["colors"]) =>
+	StyleSheet.create({
+		header_wrap: {
+			width: "100%",
+			height: 150,
+			overflow: "hidden"
+		},
+		header_image: {
+			width: "100%",
+			height: "100%",
+			position: "absolute"
+		},
+		header_content: {
+			flex: 1,
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 18,
+			paddingTop: 8
+		},
+		header_artwork: {
+			width: 90,
+			height: 90,
+			borderRadius: 2,
+			borderWidth: 1,
+			borderColor: colors.line,
+			backgroundColor: colors.shelf
+		},
+		header_text_wrap: {
+			flex: 1,
+			marginLeft: 14,
+			justifyContent: "center"
+		},
+		caption: {
+			color: colors.primary,
+			fontSize: 11,
+			fontWeight: "700",
+			letterSpacing: 1.2,
+			marginBottom: 4
+		},
+		header_title: {
+			color: colors.text,
+			fontWeight: "bold",
+			fontSize: 22
+		},
+		header_artist: {
+			color: colors.subtext,
+			fontSize: 14,
+			marginTop: 2
+		},
+		section_label: {
+			color: colors.subtext,
+			fontSize: 11,
+			fontWeight: "700",
+			letterSpacing: 1.2,
+			marginTop: 14,
+			marginLeft: 18,
+			marginBottom: 6
+		},
+		section_divider: {
+			height: StyleSheet.hairlineWidth,
+			backgroundColor: colors.line,
+			marginHorizontal: 18,
+			marginBottom: 4
+		},
+		save_btn: {
+			position: "absolute",
+			bottom: 30,
+			width: "90%",
+			alignSelf: "center",
+			height: 58,
+			backgroundColor: colors.primary,
+			borderRadius: 32,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			shadowColor: "#000",
+			shadowOpacity: 0.35,
+			shadowRadius: 14,
+			shadowOffset: { width: 0, height: 6 },
+			elevation: 8
+		},
+		save_btn_text: {
+			color: colors.text,
+			fontSize: 20,
+			fontWeight: "600",
+			letterSpacing: 0.3
+		}
+	});

@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>20.1.13</string>
+	<string>21.0.9</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -53,6 +53,13 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to find and sync playback with nearby devices.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_illusi-p2p._tcp</string>
+		<string>_illusi-p2p._udp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to access your camera</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -124,6 +131,17 @@
 					<string>Phone</string>
 					<key>UISceneDelegateClassName</key>
 					<string>Illusi.PhoneSceneDelegate</string>
+				</dict>
+			</array>
+			<key>UIWindowSceneSessionRoleExternalDisplayNonInteractive</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>RNExternalDisplay</string>
+					<key>UISceneDelegateClassName</key>
+					<string>RNExternalSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

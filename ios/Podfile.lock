@@ -188,7 +188,7 @@ PODS:
     - ExpoModulesCore
   - ExpoBattery (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
-  - ExpoBlur (56.0.0-canary-20260305-5163746):
+  - ExpoBlur (55.0.14):
     - ExpoModulesCore
   - ExpoDocumentPicker (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
@@ -216,7 +216,7 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
-  - ExpoLinearGradient (56.0.0-canary-20260305-5163746):
+  - ExpoLinearGradient (55.0.14):
     - ExpoModulesCore
   - ExpoLinking (56.0.0-canary-20260305-5163746):
     - ExpoModulesCore
@@ -292,6 +292,31 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - MrLecture (0.1.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - SherpaOnnx
+    - Yoga
   - NitroCookies (1.1.0):
     - hermes-engine
     - NitroModules
@@ -339,12 +364,62 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - NitroVibenet (0.0.1):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - nodejs-mobile-react-native (18.20.4):
     - React-Core
   - op-sqlite (15.2.11):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - OpenSSL-Universal (3.6.2000)
+  - QuickCrypto (1.1.5):
+    - hermes-engine
+    - NitroModules
+    - OpenSSL-Universal (~> 3.6.2000)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
     - React-Core
     - React-Core-prebuilt
     - React-debug
@@ -2575,6 +2650,30 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - ReactNativeDependencies (0.84.1)
+  - ReactNativePtp (0.1.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNCAsyncStorage (2.2.0):
     - hermes-engine
     - RCTRequired
@@ -2619,7 +2718,51 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNCMaskedView (0.3.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNCPicker (2.11.4):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - RNExternalDisplay (0.6.6):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3034,6 +3177,7 @@ PODS:
     - SDWebImage/Core (~> 5.17)
   - Sentry/HybridSDK (8.58.0)
   - shaquillehinds-ffmpeg-kit-ios (6.0.2)
+  - SherpaOnnx (1.13.2)
   - SSZipArchive (2.4.3)
   - SwiftAudioEx (1.1.0):
     - SwiftProtobuf (~> 1.27)
@@ -3079,10 +3223,13 @@ DEPENDENCIES:
   - ffmpeg-kit-react-native (from `../node_modules/ffmpeg-kit-react-native`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - ImageColors (from `../node_modules/react-native-image-colors/ios`)
+  - MrLecture (from `../node_modules/react-native-mr-lecture`)
   - NitroCookies (from `../node_modules/react-native-nitro-cookies`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
+  - NitroVibenet (from `../node_modules/react-native-vibenet`)
   - nodejs-mobile-react-native (from `../node_modules/nodejs-mobile-react-native`)
   - "op-sqlite (from `../node_modules/@op-engineering/op-sqlite`)"
+  - QuickCrypto (from `../node_modules/react-native-quick-crypto`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTSwiftUI (from `../node_modules/react-native/ReactApple/RCTSwiftUI`)
@@ -3174,9 +3321,12 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "ReactNativeAutoPlay (from `../node_modules/@iternio/react-native-auto-play`)"
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - ReactNativePtp (from `../node_modules/react-native-ptp`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
+  - "RNCMaskedView (from `../node_modules/@react-native-masked-view/masked-view`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
+  - RNExternalDisplay (from `../node_modules/react-native-external-display`)
   - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNImageCropPicker (from `../node_modules/react-native-image-crop-picker`)
@@ -3189,6 +3339,7 @@ DEPENDENCIES:
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - shaquillehinds-ffmpeg-kit-ios (from `https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec`)
+  - SherpaOnnx (from `./SherpaOnnx`)
   - SwiftAudioEx (from `../../../RNTPvE/SwiftAudioEx/`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
   - ZipArchive
@@ -3201,6 +3352,7 @@ SPEC REPOS:
     - libavif
     - libdav1d
     - libwebp
+    - OpenSSL-Universal
     - SDWebImage
     - SDWebImageAVIFCoder
     - SDWebImageSVGCoder
@@ -3285,14 +3437,20 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.9
   ImageColors:
     :path: "../node_modules/react-native-image-colors/ios"
+  MrLecture:
+    :path: "../node_modules/react-native-mr-lecture"
   NitroCookies:
     :path: "../node_modules/react-native-nitro-cookies"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
+  NitroVibenet:
+    :path: "../node_modules/react-native-vibenet"
   nodejs-mobile-react-native:
     :path: "../node_modules/nodejs-mobile-react-native"
   op-sqlite:
     :path: "../node_modules/@op-engineering/op-sqlite"
+  QuickCrypto:
+    :path: "../node_modules/react-native-quick-crypto"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -3473,12 +3631,18 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@iternio/react-native-auto-play"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  ReactNativePtp:
+    :path: "../node_modules/react-native-ptp"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCClipboard:
     :path: "../node_modules/@react-native-clipboard/clipboard"
+  RNCMaskedView:
+    :path: "../node_modules/@react-native-masked-view/masked-view"
   RNCPicker:
     :path: "../node_modules/@react-native-picker/picker"
+  RNExternalDisplay:
+    :path: "../node_modules/react-native-external-display"
   RNFS:
     :path: "../node_modules/react-native-fs"
   RNGestureHandler:
@@ -3503,6 +3667,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-worklets"
   shaquillehinds-ffmpeg-kit-ios:
     :podspec: https://raw.githubusercontent.com/shaquillehinds/ffmpeg/master/shaquillehinds-ffmpeg-kit-ios.podspec
+  SherpaOnnx:
+    :path: "./SherpaOnnx"
   SwiftAudioEx:
     :path: "../../../RNTPvE/SwiftAudioEx/"
   Yoga:
@@ -3523,7 +3689,7 @@ SPEC CHECKSUMS:
   ExpoAsset: a458a60cb9dc5b856d9358e1a276f97a79c80a23
   ExpoAudio: ac8bf555e3d5a0e81493e1f8364fa21ba2210755
   ExpoBattery: 3b403715d83666d6fdee8bc2455b1498e901d982
-  ExpoBlur: 37aaaf32ed03245d5367844044a95afbf689ae6c
+  ExpoBlur: 7a86e84e7728108fa6908d7103fa527705a3dbbf
   ExpoDocumentPicker: 53e40079098cd2e0bed9a1ab2e166de1cf1b1d95
   ExpoDomWebView: 4501c7405be4a46ee6e75bff049b84b86b096640
   ExpoFileSystem: a3576d9f0dc2ee9f77b02c8fb51ae9339e3153a5
@@ -3534,7 +3700,7 @@ SPEC CHECKSUMS:
   ExpoImageManipulator: a8c3cd03311dc669682bfe0688323fd6dd52a674
   ExpoImagePicker: ce50d0bf7d27d1a822b08a84bea9bfc0b3924557
   ExpoKeepAwake: 83323bf6f9a16a8c30d25fd7fdd0940e961b41d1
-  ExpoLinearGradient: 6140b4eac11f481f53e9c3c9a7a2c01316f6ab26
+  ExpoLinearGradient: dcbc1ca46ebfeb9d7646f49595057d161dae208e
   ExpoLinking: 89439528a29d61314f4b9f723009833d8aa2acb4
   ExpoLogBox: 09f25fc554088cb91f4c5054353936c504d590c0
   ExpoModulesCore: 457c77d0e1643cfcce53ecb63c295e75e6c64b75
@@ -3551,10 +3717,14 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  MrLecture: 295b41442f011d3860caa380ad2d38389b321cc6
   NitroCookies: 2f49d1935f61cdbc7b62c8de092e1ac3e11566d1
   NitroModules: f45159491c5a0e7161685a301b1c6c11440b3ab1
+  NitroVibenet: e714fcead5fc864f42dc4426bf65d6914227b407
   nodejs-mobile-react-native: 9efed1aafb3f02ec02240d539e24ec72fde97c21
   op-sqlite: 76a46b48c90f0d318495bb55beb1d1d0f472f69e
+  OpenSSL-Universal: ecee7b138fa75a74ecf00d7ffd248fb584739b9e
+  QuickCrypto: 367b7951ce48d15f5f1e4b5230dd9078547d80d8
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
   RCTSwiftUI: afc0a0a635860da1040a0b894bfd529da06d7810
@@ -3645,9 +3815,12 @@ SPEC CHECKSUMS:
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
   ReactNativeAutoPlay: b16368da1e90c48399aabc300f604e27b655f2d3
   ReactNativeDependencies: 37432bff08e1c9ed3c485152e2f2ed2cef67cd33
+  ReactNativePtp: 964d3cfcc9c5ff0ae66801fe9751d6886996c418
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCClipboard: 88d7eeb555d1183915f0885bdbc5c97eb6f7f3ba
+  RNCMaskedView: d2578d41c59b936db122b2798ba37e4722d21035
   RNCPicker: c8a3584b74133464ee926224463fcc54dfdaebca
+  RNExternalDisplay: 5cd7dfe3702ea5c81441c11dafe59273749a7622
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   RNGestureHandler: b633cb9b819ffb23661496af13bd6943d66f093c
   RNImageCropPicker: 7e6bd58550bcb942bfa48847247dbf62eda20c89
@@ -3665,6 +3838,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Sentry: d587a8fe91ca13503ecd69a1905f3e8a0fcf61be
   shaquillehinds-ffmpeg-kit-ios: ccc776103cae371e03b8eb62ecbab16bf18cec75
+  SherpaOnnx: 5f14123a1d274825eb8639ad9e0c66803e60071c
   SSZipArchive: fe6a26b2a54d5a0890f2567b5cc6de5caa600aef
   SwiftAudioEx: 838afc83d33482a8a0539b9dce098176f6d643a8
   SwiftProtobuf: 9e106a71456f4d3f6a3b0c8fd87ef0be085efc38
@@ -3672,6 +3846,6 @@ SPEC CHECKSUMS:
   Yoga: c0b3f2c7e8d3e327e450223a2414ca3fa296b9a2
   ZipArchive: e25a4373192673e3229ac8d6e9f64a3e5713c966
 
-PODFILE CHECKSUM: b21fe759adea9bc985e865dbacbcc6790e4c3532
+PODFILE CHECKSUM: 18765425a55eb1bf62d74f0260a481dadc5f85d6
 
 COCOAPODS: 1.16.2

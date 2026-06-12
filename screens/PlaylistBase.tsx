@@ -120,26 +120,8 @@ export default function PlaylistBase(props: PlaylistProps) {
 	const menuconfig_external_playlist: MenuConfig = {
 		menuTitle: "",
 		menuItems: [
-			{
-				actionKey: "playlist-actions-save-to-playlist",
-				actionTitle: "Save Playlist",
-				icon: {
-					type: "IMAGE_SYSTEM",
-					imageValue: {
-						systemName: "list.bullet"
-					}
-				}
-			},
-			{
-				actionKey: "playlist-actions-add-tracks-to-library",
-				actionTitle: "Add Tracks To Library",
-				icon: {
-					type: "IMAGE_SYSTEM",
-					imageValue: {
-						systemName: "books.vertical"
-					}
-				}
-			}
+			{ actionKey: "playlist-actions-save-to-playlist", actionTitle: "Save Playlist", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "list.bullet" } } },
+			{ actionKey: "playlist-actions-add-tracks-to-library", actionTitle: "Add Tracks To Library", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "books.vertical" } } }
 		]
 	};
 
@@ -291,12 +273,16 @@ export default function PlaylistBase(props: PlaylistProps) {
 		await Promise.all(promised_playlist_tracks);
 		router.back();
 	}
-	async function play_order(play_tracks: Track[]) {
+	async function play_order(play_tracks: Track[], from_index?: number) {
 		const prev_always_shuffle = Prefs.prefs.always_shuffle.current_value;
 		Prefs.prefs.always_shuffle.current_value = false;
-		const cloned_tracks = [...play_tracks].slice(GLOBALS.global_var.past_track_index);
-		GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
-		Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
+		const start_index = from_index ?? GLOBALS.global_var.past_track_index;
+		const cloned_tracks = [...play_tracks].slice(start_index);
+		try {
+			GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title, true);
+		} finally {
+			Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
+		}
 	}
 	function play_shuffle(play_tracks: Track[]) {
 		const cloned_tracks = Illusive.shuffle_tracks("SHUFFLE", [...play_tracks]);
@@ -324,27 +310,10 @@ export default function PlaylistBase(props: PlaylistProps) {
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
-			<FourTrackArtwork
-				background={true}
-				thumbnail_uri={playlist_data?.thumbnail_uri}
-				four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks}
-				size={artwork_size}
-				base_view_style={{ top: artwork_top_offset }}
-			/>
-			<BlurView
-				intensity={50}
-				tint={dark ? "prominent" : "extraLight"}
-				style={{ width: width, height: 800, bottom: 150 - (props.type === "WRITE_PLAYLIST" ? 80 : 0), justifyContent: "center", alignItems: "center", position: "absolute" }}>
+			<FourTrackArtwork background={true} thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={artwork_size} base_view_style={{ top: artwork_top_offset }} />
+			<BlurView intensity={50} tint={dark ? "prominent" : "extraLight"} style={{ width: width, height: 800, bottom: 150 - (props.type === "WRITE_PLAYLIST" ? 80 : 0), justifyContent: "center", alignItems: "center", position: "absolute" }}>
 				<FourTrackArtwork thumbnail_uri={playlist_data?.thumbnail_uri} four_track={!writing_from_library ? tracks : GLOBALS.global_var.sql_tracks} size={75} base_view_style={{ top: 260 }} />
-				<LinearGradient
-					colors={["transparent", "rgba(0,0,0,0.2)", colors.background]}
-					style={{
-						position: "absolute",
-						bottom: 0,
-						height: 100,
-						width: "100%"
-					}}
-				/>
+				<LinearGradient colors={["transparent", "rgba(0,0,0,0.2)", colors.background]} style={{ position: "absolute", bottom: 0, height: 100, width: "100%" }} />
 			</BlurView>
 			<View style={{ alignItems: "center", width: "75%", top: 60, height: 40, zIndex: 2 }}>
 				<View style={{ right: 10, zIndex: 3 }}>
@@ -356,7 +325,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					) : null}
 					<NavLink
 						text={empty_join_dot([playlist_data?.creator?.map((item) => item.name).join(", ") ?? "Sudo", new Date(playlist_data?.date ?? 0)?.getFullYear()])}
-						uri={playlist_data?.creator?.[0].uri ?? ""}
+						uri={playlist_data?.creator?.[0]?.uri ?? ""}
 						type="artist"
 						text_style={{ color: colors.text, fontSize: 14, marginBottom: 20, top: 10 }}
 					/>
@@ -380,7 +349,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					{props.type !== "WRITE_PLAYLIST" ? (
 						<IoniconsTouchableOpacity
 							on_press={() => {
-								play_order(tracks);
+								play_order(track_query_filter(tracks, search_query_state), 0);
 							}}
 							style={styles.playlist_button}
 							icon_name="play-sharp"
@@ -428,7 +397,8 @@ export default function PlaylistBase(props: PlaylistProps) {
 				<ShufflePlayButton
 					text={force_order ? "Continue Listening" : is_empty(search_query) ? undefined : "Shuffle Searched"}
 					on_press={() => {
-						force_order ? play_order(tracks) : play_shuffle(track_query_filter(tracks, search_query_state));
+						if (force_order) play_order(tracks);
+						else play_shuffle(track_query_filter(tracks, search_query_state));
 					}}
 					top={-50}
 				/>
@@ -471,7 +441,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 										GLOBALS.global_var.bottom_alert("Downloaded all available lyrics", "INFO");
 										break;
 									case "playlist-actions-shortcut":
-										if (Platform.OS === 'ios') {
+										if (Platform.OS === "ios") {
 											presentShortcut(getShortcut(), (data) => data);
 										}
 										break;
@@ -527,50 +497,10 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			// backgroundColor: "blue",
 			backgroundColor: colors.background
 		},
-		header: {
-			top: 60,
-			flexDirection: "row",
-			justifyContent: "space-between",
-			marginHorizontal: 10,
-			zIndex: 1
-		},
-		playlist_list_header: {
-			top: 0,
-			alignItems: "center",
-			zIndex: -1
-		},
-		info_text: {
-			color: colors.text,
-			fontSize: 20,
-			fontWeight: "bold"
-		},
-		playlist_buttons_container: {
-			flex: 1,
-			flexDirection: "row",
-			top: 28,
-			marginBottom: 100,
-			justifyContent: "center",
-			alignItems: "center",
-			right: 10
-		},
-		playlist_button: {
-			borderRadius: 20,
-			backgroundColor: colors.primary_dark,
-			marginHorizontal: 10,
-			width: 40,
-			height: 40,
-			justifyContent: "center",
-			alignItems: "center"
-		},
-		search_input: {
-			backgroundColor: colors.primary_dark,
-			color: colors.text,
-			width: "75%",
-			position: "absolute",
-			top: -40,
-			left: 50,
-			padding: 10,
-			fontSize: 15,
-			borderRadius: 10
-		}
+		header: { top: 60, flexDirection: "row", justifyContent: "space-between", marginHorizontal: 10, zIndex: 1 },
+		playlist_list_header: { top: 0, alignItems: "center", zIndex: -1 },
+		info_text: { color: colors.text, fontSize: 20, fontWeight: "bold" },
+		playlist_buttons_container: { flex: 1, flexDirection: "row", top: 28, marginBottom: 100, justifyContent: "center", alignItems: "center", right: 10 },
+		playlist_button: { borderRadius: 20, backgroundColor: colors.primary_dark, marginHorizontal: 10, width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+		search_input: { backgroundColor: colors.primary_dark, color: colors.text, width: "75%", position: "absolute", top: -40, left: 50, padding: 10, fontSize: 15, borderRadius: 10 }
 	});
