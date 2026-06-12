@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-	View, Text, StyleSheet, TouchableOpacity, FlatList,
-	ActivityIndicator, ScrollView
-} from "react-native";
-import { Prefs } from "@illusive/prefs";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, ScrollView } from "react-native";
+import type { Prefs } from "@illusive/prefs";
 import { GLOBALS } from "@illusive/globals";
 import { Illusive } from "@illusive/illusive";
 import { loggedin_services } from "@illusive/sampler";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
+import { SQLGlobal } from "@illusive/sql/sql_global";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import type { CompactPlaylist, IllusiveURI, MusicServiceType } from "@illusive/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,18 +15,30 @@ import useDimensions from "@hooks/useDimensions";
 
 function playlist_uri_to_url(service: MusicServiceType, uri: IllusiveURI): string {
 	const id = uri.split(":").slice(1).join(":");
+	// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
 	switch (service) {
-		case "YouTube Music":  return `https://music.youtube.com/playlist?list=${id}`;
-		case "YouTube":        return `https://www.youtube.com/playlist?list=${id}`;
-		case "Spotify":        return `https://open.spotify.com/playlist/${id}`;
-		case "SoundCloud":     return decodeURIComponent(id);
-		case "Amazon Music":   return `https://music.amazon.com/playlists/${id}`;
-		case "Apple Music":    return `https://music.apple.com/library/playlist/${id}`;
-		case "Deezer":         return `https://www.deezer.com/playlist/${id}`;
-		case "Tidal":          return `https://tidal.com/browse/playlist/${id}`;
-		case "Audiomack":      return `https://audiomack.com/playlist/${id}`;
-		case "BandLab":        return id;
-		default:               return id;
+		case "YouTube Music":
+			return `https://music.youtube.com/playlist?list=${id}`;
+		case "YouTube":
+			return `https://www.youtube.com/playlist?list=${id}`;
+		case "Spotify":
+			return `https://open.spotify.com/playlist/${id}`;
+		case "SoundCloud":
+			return decodeURIComponent(id);
+		case "Amazon Music":
+			return `https://music.amazon.com/playlists/${id}`;
+		case "Apple Music":
+			return `https://music.apple.com/library/playlist/${id}`;
+		case "Deezer":
+			return `https://www.deezer.com/playlist/${id}`;
+		case "Tidal":
+			return `https://tidal.com/browse/playlist/${id}`;
+		case "Audiomack":
+			return `https://audiomack.com/playlist/${id}`;
+		case "BandLab":
+			return id;
+		default:
+			return id;
 	}
 }
 
@@ -37,6 +47,7 @@ function playlist_artwork(pl: CompactPlaylist): string | undefined {
 }
 
 function playlist_key(pl: CompactPlaylist): string {
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion
 	return String(pl.title.uri ?? pl.title.name);
 }
 
@@ -56,7 +67,7 @@ export default function ExtraServiceImporterScreen() {
 
 	useEffect(() => {
 		const logged_in = loggedin_services();
-		const with_playlists = logged_in.filter(service => {
+		const with_playlists = logged_in.filter((service) => {
 			const ms = Illusive.music_service.get(service);
 			return ms?.get_user_playlists !== undefined;
 		});
@@ -84,7 +95,7 @@ export default function ExtraServiceImporterScreen() {
 	}
 
 	function toggle_playlist(key: string) {
-		set_selected_keys(prev => {
+		set_selected_keys((prev) => {
 			const next = new Set(prev);
 			if (next.has(key)) next.delete(key);
 			else next.add(key);
@@ -96,7 +107,7 @@ export default function ExtraServiceImporterScreen() {
 		if (!selected_service || selected_keys.size === 0 || importing) return;
 
 		const ms = Illusive.music_service.get(selected_service)!;
-		const to_import = playlists.filter(pl => selected_keys.has(playlist_key(pl)));
+		const to_import = playlists.filter((pl) => selected_keys.has(playlist_key(pl)));
 
 		set_importing(true);
 		set_import_progress({ done: 0, total: to_import.length });
@@ -122,10 +133,14 @@ export default function ExtraServiceImporterScreen() {
 				const playlist_uuid = await SQLPlaylists.create_playlist(pl.title.name);
 				const playlist_tracks: { uuid: string; track_uid: string }[] = [];
 
+				let inserted_any = false;
 				for (const track of playlist_result.tracks) {
-					await SQLTracks.insert_track(track);
+					if (await SQLTracks.insert_track(track, false)) inserted_any = true;
 					playlist_tracks.push({ uuid: playlist_uuid, track_uid: track.uid });
 				}
+				// Notify global-track listeners ONCE per imported playlist —
+				// per-row notifies clone the entire in-memory library per track.
+				if (inserted_any) SQLGlobal.notify_global_tracks_updated();
 
 				await SQLPlaylists.insert_all_tracks_playlist(playlist_tracks);
 				success_count++;
@@ -138,12 +153,7 @@ export default function ExtraServiceImporterScreen() {
 		set_import_progress(null);
 		set_selected_keys(new Set());
 
-		GLOBALS.global_var.bottom_alert(
-			success_count === to_import.length
-				? `Imported ${success_count} playlist${success_count !== 1 ? "s" : ""}`
-				: `Imported ${success_count} of ${to_import.length} playlists`,
-			success_count > 0 ? "GOOD" : "WARN"
-		);
+		GLOBALS.global_var.bottom_alert(success_count === to_import.length ? `Imported ${success_count} playlist${success_count !== 1 ? "s" : ""}` : `Imported ${success_count} of ${to_import.length} playlists`, success_count > 0 ? "GOOD" : "WARN");
 	}
 
 	if (selected_service === null) {
@@ -154,32 +164,21 @@ export default function ExtraServiceImporterScreen() {
 						<Ionicons name="cloud-download-outline" size={28} color={colors.primary} />
 						<Text style={styles.section_title}>Choose a Service</Text>
 					</View>
-					<Text style={styles.section_subtitle}>
-						Import your playlists from any connected music service.
-					</Text>
+					<Text style={styles.section_subtitle}>Import your playlists from any connected music service.</Text>
 
 					{available_services.length === 0 ? (
 						<View style={styles.empty_state}>
 							<Ionicons name="link-outline" size={56} color={colors.subtext} />
 							<Text style={styles.empty_title}>No Services Connected</Text>
-							<Text style={styles.empty_subtitle}>
-								Log in to a music service in Settings to import your playlists.
-							</Text>
+							<Text style={styles.empty_subtitle}>Log in to a music service in Settings to import your playlists.</Text>
 						</View>
 					) : (
 						<View style={styles.service_list}>
-							{available_services.map(service => {
+							{available_services.map((service) => {
 								const ms = Illusive.music_service.get(service)!;
 								return (
-									<TouchableOpacity
-										key={service}
-										onPress={() => select_service(service)}
-										style={styles.service_row}>
-										<IImage
-											source={ms.app_icon}
-											width={40}
-											style={{ width: 40, height: 40, borderRadius: 10 }}
-										/>
+									<TouchableOpacity key={service} onPress={async () => select_service(service)} style={styles.service_row}>
+										<IImage source={ms.app_icon} width={40} style={{ width: 40, height: 40, borderRadius: 10 }} />
 										<Text style={styles.service_name}>{service}</Text>
 										<Ionicons name="chevron-forward" size={18} color={colors.subtext} />
 									</TouchableOpacity>
@@ -233,17 +232,10 @@ export default function ExtraServiceImporterScreen() {
 							const is_selected = selected_keys.has(key);
 							const artwork = playlist_artwork(item);
 							return (
-								<TouchableOpacity
-									onPress={() => toggle_playlist(key)}
-									style={[styles.playlist_card, { width: card_size }, is_selected && styles.playlist_card_selected]}
-									disabled={importing}>
+								<TouchableOpacity onPress={() => toggle_playlist(key)} style={[styles.playlist_card, { width: card_size }, is_selected && styles.playlist_card_selected]} disabled={importing}>
 									<View style={{ position: "relative" }}>
 										{artwork ? (
-											<IImage
-												source={artwork}
-												width={card_size}
-												style={{ width: card_size, height: card_size, borderRadius: 8 }}
-											/>
+											<IImage source={artwork} width={card_size} style={{ width: card_size, height: card_size, borderRadius: 8 }} />
 										) : (
 											<View style={[styles.artwork_placeholder, { width: card_size, height: card_size }]}>
 												<Ionicons name="musical-notes" size={36} color={colors.subtext} />
@@ -255,7 +247,9 @@ export default function ExtraServiceImporterScreen() {
 											</View>
 										)}
 									</View>
-									<Text style={styles.playlist_title} numberOfLines={2}>{item.title.name}</Text>
+									<Text style={styles.playlist_title} numberOfLines={2}>
+										{item.title.name}
+									</Text>
 								</TouchableOpacity>
 							);
 						}}
@@ -265,42 +259,17 @@ export default function ExtraServiceImporterScreen() {
 					<View style={styles.import_footer}>
 						{importing && import_progress ? (
 							<View style={styles.progress_bar_bg}>
-								<View
-									style={[
-										styles.progress_bar_fill,
-										{
-											backgroundColor: colors.primary,
-											width: `${Math.round((import_progress.done / import_progress.total) * 100)}%`
-										}
-									]}
-								/>
+								<View style={[styles.progress_bar_fill, { backgroundColor: colors.primary, width: `${Math.round((import_progress.done / import_progress.total) * 100)}%` }]} />
 							</View>
 						) : null}
-						<TouchableOpacity
-							onPress={import_selected}
-							disabled={selected_count === 0 || importing}
-							style={[
-								styles.import_btn,
-								{ backgroundColor: selected_count > 0 && !importing ? colors.primary : colors.shelf }
-							]}>
+						<TouchableOpacity onPress={import_selected} disabled={selected_count === 0 || importing} style={[styles.import_btn, { backgroundColor: selected_count > 0 && !importing ? colors.primary : colors.shelf }]}>
 							{importing ? (
 								<>
 									<ActivityIndicator size="small" color={colors.text} style={{ marginRight: 8 }} />
-									<Text style={[styles.import_btn_text, { color: colors.text }]}>
-										{import_progress
-											? `Importing ${import_progress.done}/${import_progress.total}…`
-											: "Importing…"}
-									</Text>
+									<Text style={[styles.import_btn_text, { color: colors.text }]}>{import_progress ? `Importing ${import_progress.done}/${import_progress.total}…` : "Importing…"}</Text>
 								</>
 							) : (
-								<Text style={[
-									styles.import_btn_text,
-									{ color: selected_count > 0 ? "#fff" : colors.subtext }
-								]}>
-									{selected_count > 0
-										? `Import ${selected_count} Playlist${selected_count !== 1 ? "s" : ""}`
-										: "Select Playlists"}
-								</Text>
+								<Text style={[styles.import_btn_text, { color: selected_count > 0 ? "#fff" : colors.subtext }]}>{selected_count > 0 ? `Import ${selected_count} Playlist${selected_count !== 1 ? "s" : ""}` : "Select Playlists"}</Text>
 							)}
 						</TouchableOpacity>
 					</View>
@@ -310,167 +279,30 @@ export default function ExtraServiceImporterScreen() {
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
-	section_header: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
-		paddingHorizontal: 16,
-		paddingTop: 20,
-		paddingBottom: 6
-	},
-	section_title: {
-		color: colors.text,
-		fontSize: 22,
-		fontWeight: "800"
-	},
-	section_subtitle: {
-		color: colors.subtext,
-		fontSize: 14,
-		paddingHorizontal: 16,
-		marginBottom: 12,
-		lineHeight: 20
-	},
-	service_list: {
-		marginHorizontal: 14,
-		backgroundColor: colors.shelf,
-		borderRadius: 14,
-		overflow: "hidden"
-	},
-	service_row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingHorizontal: 14,
-		paddingVertical: 14,
-		borderBottomWidth: 1,
-		borderBottomColor: colors.line
-	},
-	service_name: {
-		flex: 1,
-		color: colors.text,
-		fontSize: 16,
-		fontWeight: "600"
-	},
-	header_row: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderBottomWidth: 1,
-		borderBottomColor: colors.line
-	},
-	back_btn: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 2,
-		flex: 1
-	},
-	back_text: {
-		fontSize: 16,
-		fontWeight: "600"
-	},
-	header_service_pill: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		backgroundColor: colors.shelf,
-		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 20
-	},
-	header_service_name: {
-		color: colors.text,
-		fontSize: 13,
-		fontWeight: "600"
-	},
-	playlist_card: {
-		borderRadius: 10,
-		overflow: "hidden",
-		borderWidth: 2,
-		borderColor: "transparent"
-	},
-	playlist_card_selected: {
-		borderColor: colors.primary
-	},
-	artwork_placeholder: {
-		backgroundColor: colors.shelf,
-		borderRadius: 8,
-		justifyContent: "center",
-		alignItems: "center"
-	},
-	checkmark_overlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "#00000055",
-		justifyContent: "center",
-		alignItems: "center",
-		borderRadius: 8
-	},
-	playlist_title: {
-		color: colors.text,
-		fontSize: 12,
-		fontWeight: "600",
-		marginTop: 6,
-		marginHorizontal: 2,
-		marginBottom: 6,
-		lineHeight: 16
-	},
-	import_footer: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 14,
-		paddingBottom: 28,
-		backgroundColor: colors.background,
-		borderTopWidth: 1,
-		borderTopColor: colors.line
-	},
-	progress_bar_bg: {
-		height: 4,
-		backgroundColor: colors.shelf,
-		borderRadius: 2,
-		marginBottom: 10,
-		overflow: "hidden"
-	},
-	progress_bar_fill: {
-		height: 4,
-		borderRadius: 2
-	},
-	import_btn: {
-		borderRadius: 12,
-		paddingVertical: 14,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center"
-	},
-	import_btn_text: {
-		fontSize: 16,
-		fontWeight: "700"
-	},
-	empty_state: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 40,
-		marginTop: 60
-	},
-	empty_title: {
-		color: colors.text,
-		fontSize: 20,
-		fontWeight: "700",
-		marginTop: 16,
-		textAlign: "center"
-	},
-	empty_subtitle: {
-		color: colors.subtext,
-		fontSize: 14,
-		marginTop: 10,
-		textAlign: "center",
-		lineHeight: 20
-	}
-});
+const theme_styles = (colors: Prefs.Theme["colors"]) =>
+	StyleSheet.create({
+		section_header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 6 },
+		section_title: { color: colors.text, fontSize: 22, fontWeight: "800" },
+		section_subtitle: { color: colors.subtext, fontSize: 14, paddingHorizontal: 16, marginBottom: 12, lineHeight: 20 },
+		service_list: { marginHorizontal: 14, backgroundColor: colors.shelf, borderRadius: 14, overflow: "hidden" },
+		service_row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
+		service_name: { flex: 1, color: colors.text, fontSize: 16, fontWeight: "600" },
+		header_row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
+		back_btn: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1 },
+		back_text: { fontSize: 16, fontWeight: "600" },
+		header_service_pill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.shelf, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+		header_service_name: { color: colors.text, fontSize: 13, fontWeight: "600" },
+		playlist_card: { borderRadius: 10, overflow: "hidden", borderWidth: 2, borderColor: "transparent" },
+		playlist_card_selected: { borderColor: colors.primary },
+		artwork_placeholder: { backgroundColor: colors.shelf, borderRadius: 8, justifyContent: "center", alignItems: "center" },
+		checkmark_overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#00000055", justifyContent: "center", alignItems: "center", borderRadius: 8 },
+		playlist_title: { color: colors.text, fontSize: 12, fontWeight: "600", marginTop: 6, marginHorizontal: 2, marginBottom: 6, lineHeight: 16 },
+		import_footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 14, paddingBottom: 28, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.line },
+		progress_bar_bg: { height: 4, backgroundColor: colors.shelf, borderRadius: 2, marginBottom: 10, overflow: "hidden" },
+		progress_bar_fill: { height: 4, borderRadius: 2 },
+		import_btn: { borderRadius: 12, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center" },
+		import_btn_text: { fontSize: 16, fontWeight: "700" },
+		empty_state: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 40, marginTop: 60 },
+		empty_title: { color: colors.text, fontSize: 20, fontWeight: "700", marginTop: 16, textAlign: "center" },
+		empty_subtitle: { color: colors.subtext, fontSize: 14, marginTop: 10, textAlign: "center", lineHeight: 20 }
+	});
