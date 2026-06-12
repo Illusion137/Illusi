@@ -9,6 +9,7 @@ import { playback_service } from "@illusive/track_player_service";
 import BottomAlert from "@components/BottomAlert";
 import appConfig from "app.config";
 import TrackPlayer from "react-native-track-player";
+import { Image as ExpoImage } from "expo-image";
 import type { ConfigContext } from "expo/config";
 import { ThemeProvider } from "@react-navigation/native";
 import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
@@ -24,16 +25,16 @@ import { AudiobookDownloads } from "@illusive/audiobook_downloads";
 import { extract_epub_metadata_from_file } from "@utils/epub_extractor";
 import { load_illusi_icons } from "@utils/load_illusi_icons";
 import * as Sentry from "@sentry/react-native";
-import IImage from "@components/IImage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
-import nodejs from "nodejs-mobile-react-native";
 import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
-import { AppState, Platform, type AppStateStatus } from "react-native";
+import { AppState, Image, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
+import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from "@utils/perf_monitor";
+import nodejs from "nodejs-mobile-react-native";
 // TODO fix carplay in future; + make UI actually good; too buggy for prod right now, causing crashes
 // CarPlayService is iOS-only; will be gated below
 let CarPlayService: any;
@@ -46,6 +47,8 @@ const splash_screen_image = require("../assets/splash.png");
 
 TrackPlayer.registerPlaybackService(() => playback_service);
 
+ExpoImage.configureCache({ maxMemoryCost: 128 * 1024 * 1024, maxDiskSize: 512 * 1024 * 1024 });
+
 Sentry.init({
 	dsn: "https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616",
 
@@ -56,7 +59,47 @@ Sentry.init({
 	// Enable Logs
 	// enableLogs: true,
 	// enabled: true
-	enabled: !__DEV__
+	enabled: !__DEV__,
+
+	maxBreadcrumbs: 50,
+	normalizeDepth: 3,
+	beforeBreadcrumb(breadcrumb: Sentry.Breadcrumb): Sentry.Breadcrumb | null {
+		if (breadcrumb.data === undefined) return breadcrumb;
+		const MAX_DATA_CHARS = 4096;
+		const MAX_FIELD_CHARS = 512;
+
+		// Kill the recursion: never let a breadcrumb carry another breadcrumb.
+		const data: Record<string, unknown> = { ...breadcrumb.data };
+		delete data.crumb;
+
+		let serialized_length: number;
+		try {
+			serialized_length = JSON.stringify(data).length;
+		} catch {
+			// Circular/unserializable data would also choke the native layer.
+			return { ...breadcrumb, data: { dropped: "[unserializable breadcrumb data]" } };
+		}
+		if (serialized_length <= MAX_DATA_CHARS) return { ...breadcrumb, data };
+
+		// Oversized: keep primitives, truncate long strings, replace big objects.
+		const slim: Record<string, unknown> = {};
+		for (const [key, value] of Object.entries(data)) {
+			if (typeof value === "string") {
+				slim[key] = value.length > MAX_FIELD_CHARS ? `${value.slice(0, MAX_FIELD_CHARS)} [truncated ${value.length} chars]` : value;
+			} else if (value === null || typeof value === "number" || typeof value === "boolean") {
+				slim[key] = value;
+			} else {
+				let field_length = -1;
+				try {
+					field_length = JSON.stringify(value)?.length ?? -1;
+				} catch {
+					field_length = -1;
+				}
+				slim[key] = field_length >= 0 && field_length <= MAX_FIELD_CHARS ? value : `[truncated ${field_length >= 0 ? `${field_length} chars` : "unserializable object"}]`;
+			}
+		}
+		return { ...breadcrumb, data: slim };
+	}
 
 	// Configure Session Replay
 	// replaysSessionSampleRate: 0.1,
@@ -77,7 +120,7 @@ export default Sentry.wrap(function App() {
 	const [is_loading, set_is_loading] = useState(true);
 	const [bottom_alert, set_bottom_alert] = useState({ uuid: "", text: "", type: "GOOD" as BottomAlertType, more_info: "" as string | ResponseError });
 
-	async function play_tracks(start_track: Track, tracks: Track[], title: string) {
+	async function play_tracks(start_track: Track, tracks: Track[], title: string, force_order?: boolean) {
 		if (Prefs.get_pref("ignore_fat_finger_for_seconds") > 0) {
 			if (ignore_fat_fingers) return;
 			ignore_fat_fingers = true;
@@ -88,7 +131,7 @@ export default Sentry.wrap(function App() {
 				milliseconds_of({ seconds: Prefs.get_pref("ignore_fat_finger_for_seconds") })
 			);
 		}
-		tracks = await filter_play_tracks(start_track, tracks, title);
+		tracks = await filter_play_tracks(start_track, tracks, title, force_order);
 		if (tracks.length === 0) return;
 		// Music takes the shared player over from the audiobook side: drop the
 		// overlay and release ownership so the music setup can reset+reload.
@@ -102,6 +145,7 @@ export default Sentry.wrap(function App() {
 	}
 
 	useEffect(() => {
+		initialize_sentry_severity_handler();
 		// Initialize nodejs worker (mobile only)
 		if (Platform.OS !== "android" && Platform.OS !== "web") {
 			nodejs.start("main.js");
@@ -109,7 +153,9 @@ export default Sentry.wrap(function App() {
 				Sentry.addBreadcrumb({ message: "From node: " + msg });
 			});
 		}
-		initialize_sentry_severity_handler();
+		start_perf_monitor();
+		start_thermal_monitor();
+		start_heap_monitor();
 
 		const linking_handler = get_linking_handler();
 
@@ -156,10 +202,21 @@ export default Sentry.wrap(function App() {
 			if (next === "active") AudiobookDownloads.resume_all().catch((e) => e);
 			else if (next === "background" || next === "inactive") AudiobookDownloads.persist_for_background().catch((e) => e);
 		});
+		// Under iOS memory pressure, drop the decoded-image cache before the OS kills us.
+		// Disk cache is untouched, so visible artwork re-decodes near-instantly.
+		// Also report to Sentry — repeated warnings precede an OOM kill.
+		const memory_warning_subscription = AppState.addEventListener("memoryWarning", () => {
+			ExpoImage.clearMemoryCache().catch((e) => e);
+			report_memory_warning();
+		});
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
 			app_state_subscription.remove();
+			memory_warning_subscription.remove();
+			stop_perf_monitor();
+			stop_thermal_monitor();
+			stop_heap_monitor();
 			// Cleanup CarPlay (iOS only)
 			if (CarPlayService) {
 				CarPlayService.destroy();
@@ -178,6 +235,11 @@ export default Sentry.wrap(function App() {
 		SharedRouter.set_current_route_path(path);
 	}, [path]);
 
+	// Attach live context so a saturation report says where/what was happening.
+	useEffect(() => {
+		set_perf_context_provider(() => ({ route: path, is_playing, audiobook_open: audiobook_uuid !== null, queue_length: playing_tracks.length }));
+	}, [path, is_playing, audiobook_uuid, playing_tracks.length]);
+
 	function update_bottom_alert(text: string, type: BottomAlertType, more_info?: string | ResponseError) {
 		set_bottom_alert({ uuid: gen_uuid(), text, type, more_info: more_info ?? "" });
 	}
@@ -193,7 +255,7 @@ export default Sentry.wrap(function App() {
 	return (
 		<GestureHandlerRootView>
 			<ThemeProvider value={theme_value}>
-				{is_loading ? <IImage style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
+				{is_loading ? <Image style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				{audiobook_uuid !== null && <AudiobookSlidingPlayer key={audiobook_uuid} uuid={audiobook_uuid} on_dismiss={() => set_audiobook_uuid(null)} />}
 				{!is_loading ? <ExternalDisplayHost /> : null}

@@ -22,8 +22,8 @@ export default function TabLayout() {
 			<Tabs.Screen name="index" options={{ href: null }} />
 			<Tabs.Screen name="library" options={{ title: "My Library", tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="library-sharp" size={30} color={color} />, freezeOnBlur: true }} />
 			<Tabs.Screen name="playlists" options={{ title: "Playlists", tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="musical-notes" size={25} color={color} />, freezeOnBlur: true }} />
-			<Tabs.Screen name="audiobooks" options={{ title: "Audiobooks", tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="book" size={25} color={color} />, freezeOnBlur: true }} />
 			<Tabs.Screen name="explore" options={{ title: "Explore", tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="search" size={25} color={color} />, freezeOnBlur: true }} listeners={{ tabPress: run_explore_tab_press_callback }} />
+			<Tabs.Screen name="audiobooks" options={{ title: "Audiobooks", tabBarIcon: ({ color }: ScreenColor) => <Ionicons name="book" size={25} color={color} />, freezeOnBlur: true }} />
 			<Tabs.Screen name="extras" options={{ title: "Extras", tabBarIcon: ({ color }: ScreenColor) => <Entypo name="dots-three-horizontal" size={25} color={color} />, freezeOnBlur: true }} />
 		</Tabs>
 	);

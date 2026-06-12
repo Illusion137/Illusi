@@ -7,9 +7,6 @@ import * as FileSystem from "expo-file-system/legacy";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import usePTheme from "@hooks/usePTheme";
-import { ChangeTracker } from "@illusive/db/sync/change_tracker";
-import { useEffect, useState } from "react";
-import type { CompressedChange } from "@illusive/db/sync/types";
 import { sync_engine_instance } from "@illusive/startup";
 
 export default function ExtraDeveloperScreen() {
@@ -19,12 +16,6 @@ export default function ExtraDeveloperScreen() {
 	async function exportSQLData() {
 		await Sharing.shareAsync(FileSystem.documentDirectory + "SQLite");
 	}
-
-	const [changes, set_changes] = useState<CompressedChange[]>([]);
-
-	useEffect(() => {
-		ChangeTracker.get_pending_changes().then((c) => set_changes(c));
-	}, []);
 
 	return (
 		<ScrollView style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
@@ -70,11 +61,6 @@ export default function ExtraDeveloperScreen() {
 					<Text style={styles.button_text}>Export SQL Data</Text>
 				</TouchableOpacity>
 			</View>
-			{changes.map((change) => (
-				<View key={change.record_id}>
-					<Text style={{ color: colors.text }}>{JSON.stringify(change)}</Text>
-				</View>
-			))}
 			{/* <TextInput
 				style={{ height: "15%", width: "100%", backgroundColor: "#302060", color: "white", padding: 5 }}
 				placeholder="Enter SQL Statement..."
