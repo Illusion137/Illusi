@@ -2845,7 +2845,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-track-player (5.0.0-alpha0):
+  - react-native-track-player (6.0.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -4899,7 +4899,7 @@ SPEC CHECKSUMS:
   react-native-segmented-control: bf6e0032726727498e18dd437ae88afcdbc18e99
   react-native-skia: fc73e9bdc46ebb420a98c9c2be29fee80f565e79
   react-native-slider: 4faf1b2266c73f1afb7b30cc6ebb3df238a37c0b
-  react-native-track-player: edf3c9579cfedd9424f3b77f39e6cad470ab7da1
+  react-native-track-player: 84828f3013a6cb3769cd26b207a4f99d3e793404
   react-native-uitextview: c36e4597c488d85d0a3948d55b2247b566695195
   react-native-webview: 8407aaaf6b539b1e38b72fabb55d6885de03beaf
   react-native-zip-stream: e77be7b3824d84cbdf3afa4ac6f8dfd5654ae5ab
