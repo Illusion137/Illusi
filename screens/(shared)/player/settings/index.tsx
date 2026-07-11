@@ -7,10 +7,10 @@ import usePTheme from "@hooks/usePTheme";
 import { Prefs } from "@illusive/prefs";
 import { Slider } from "@miblanchard/react-native-slider";
 import { SharedRouter } from "@utils/shared_routes";
+import { useIsFocused } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
 import TrackPlayer from "react-native-track-player";
-import { useIsFocused } from "@react-navigation/native";
 
 const min_crossfade = 0;
 const max_crossfade = 10;

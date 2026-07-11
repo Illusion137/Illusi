@@ -1,5 +1,5 @@
-import { useIsFocused } from "@react-navigation/native";
-import React, { useRef, useState } from "react";
+import { useIsFocused } from "expo-router/react-navigation";
+import { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { upload_music_files } from "@illusive/document_picker";
 import type { Prefs } from "@illusive/prefs";

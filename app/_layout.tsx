@@ -11,7 +11,7 @@ import appConfig from "app.config";
 import TrackPlayer from "react-native-track-player";
 import { Image as ExpoImage } from "expo-image";
 import type { ConfigContext } from "expo/config";
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid, milliseconds_of } from "@common/utils/util";
@@ -30,7 +30,7 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
-import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
+import { breadcrumb as log_breadcrumb, initialize_sentry_severity_handler, set_breadcrumb_console_sink } from "@common/sentry_error_handler";
 import { AppState, Image, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from "@utils/perf_monitor";
@@ -145,6 +145,7 @@ export default Sentry.wrap(function App() {
 	}
 
 	useEffect(() => {
+		set_breadcrumb_console_sink(__DEV__);
 		initialize_sentry_severity_handler();
 		// Initialize nodejs worker (mobile only)
 		if (Platform.OS !== "android" && Platform.OS !== "web") {
@@ -162,8 +163,15 @@ export default Sentry.wrap(function App() {
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
 		(async () => {
-			await Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font });
-			await on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
+			const app_load_t0 = Date.now();
+			await Promise.all([
+				Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font }).then(() => {
+					log_breadcrumb("startup", "fonts loaded", { elapsed_ms: Date.now() - app_load_t0 });
+				}),
+				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert)
+			]);
+			set_is_loading(false);
+			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
 			mark_launch_success().catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
