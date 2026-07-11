@@ -1,0 +1,230 @@
+diff --git a/node_modules/react-native-shumil/ios/AVSEngine.swift b/node_modules/react-native-shumil/ios/AVSEngine.swift
+index 7a30675..29a6dcb 100644
+--- a/node_modules/react-native-shumil/ios/AVSEngine.swift
++++ b/node_modules/react-native-shumil/ios/AVSEngine.swift
+@@ -6,6 +6,12 @@ import AVFoundation
+ // Each job creates its own synthesizer instance to avoid delegate collision.
+ class AVSEngine {
+ 
++    // AVSpeechSynthesizer.delegate is weak — without a strong ref here the delegate
++    // (and the session it anchors) is deallocated when speak()'s closure exits,
++    // didFinish never fires, and the continuation (and the JS promise awaiting it)
++    // hangs forever. Held until the next speak() replaces it.
++    private var liveSpeakDelegate: LiveSpeakDelegate?
++
+     // MARK: - Public API
+ 
+     func getVoices() -> [VoiceInfo] {
+@@ -28,6 +34,7 @@ class AVSEngine {
+ 
+         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+             let delegate = LiveSpeakDelegate(continuation: continuation)
++            self.liveSpeakDelegate = delegate
+             session.synthesizer.delegate = delegate
+             delegate.session = session  // keeps both alive until didFinish fires
+             session.synthesizer.speak(utterance)
+diff --git a/node_modules/react-native-shumil/ios/KokoroEngine.swift b/node_modules/react-native-shumil/ios/KokoroEngine.swift
+index 3c2907c..ce161f0 100644
+--- a/node_modules/react-native-shumil/ios/KokoroEngine.swift
++++ b/node_modules/react-native-shumil/ios/KokoroEngine.swift
+@@ -1,13 +1,11 @@
+ import Foundation
+ import AVFoundation
+ 
+-// Kokoro TTS engine backed by sherpa-onnx with CoreML acceleration.
++// Kokoro TTS engine backed by sherpa-onnx (CPU provider — see note in load()).
+ //
+ // Setup required before use:
+ //   1. Call setKokoroModel(modelPath:voicesPath:tokensPath:) with paths to
+ //      the downloaded model files (see downloadModel in HybridMrLecture).
+-//   2. The provider is set to "coreml" automatically to use Apple Neural Engine.
+-//      Falls back to CPU if CoreML is unavailable on the device.
+ //
+ // Model files (download via MrLecture.downloadModel('kokoro', modelId, destDir)):
+ //   - <name>.onnx          — acoustic model
+@@ -40,6 +38,11 @@ class KokoroEngine {
+     private var tts: AnyObject?
+     private var modelMeta: KokoroModelMeta?
+     fileprivate var audioPlayer: AVAudioPlayer?
++    // AVAudioPlayer.delegate is weak — without a strong ref here the delegate is
++    // deallocated when speak()'s closure exits, didFinishPlaying never fires, and
++    // the continuation (and the JS promise awaiting it) hangs forever. Held until
++    // the next speak() replaces it.
++    fileprivate var playbackDelegate: KokoroPlaybackDelegate?
+     private let lock = NSLock()
+ 
+     // MARK: - Setup
+@@ -57,11 +60,15 @@ class KokoroEngine {
+             dataDir: resolvedDataDir,
+             lengthScale: 1.0
+         )
++        // CPU on purpose, matching PiperEngine: ONNX Runtime's CoreML EP handles the
++        // variable-length inputs of TTS badly (per-shape recompilation, op fallback),
++        // so "coreml" ran slower than plain CPU where it initialized at all — and on
++        // the Simulator it produced a null handle outright (caught by the guard below).
+         let modelConfig = sherpaOnnxOfflineTtsModelConfig(
+             kokoro: kokoroConfig,
+             numThreads: ProcessInfo.processInfo.processorCount,
+             debug: 0,
+-            provider: "coreml"
++            provider: "cpu"
+         )
+         var config = sherpaOnnxOfflineTtsConfig(
+             model: modelConfig,
+@@ -69,6 +76,18 @@ class KokoroEngine {
+             maxNumSentences: 1
+         )
+         let instance = SherpaOnnxOfflineTtsWrapper(config: &config)
++        // SherpaOnnxCreateOfflineTts returns a null handle on failure (e.g. missing
++        // espeak-ng-data, unsupported provider) without throwing — every method on
++        // the wrapper then dereferences that null pointer, crashing the whole app.
++        // Catch it here instead, while it's still a normal Swift error.
++        guard instance.tts != nil else {
++            throw NSError(
++                domain: "MrLecture",
++                code: -9,
++                userInfo: [NSLocalizedDescriptionKey:
++                    "Kokoro model failed to initialize. Check that model.onnx/voices.bin/tokens.txt/espeak-ng-data downloaded correctly."]
++            )
++        }
+         lock.withLock {
+             tts = instance
+             modelMeta = KokoroModelMeta(
+@@ -135,6 +154,7 @@ class KokoroEngine {
+                 let player = try AVAudioPlayer(contentsOf: tempURL)
+                 self.audioPlayer = player
+                 let delegate = KokoroPlaybackDelegate(continuation: continuation, engine: self)
++                self.playbackDelegate = delegate
+                 player.delegate = delegate
+                 player.play()
+             } catch {
+diff --git a/node_modules/react-native-shumil/ios/ModelDownloader.swift b/node_modules/react-native-shumil/ios/ModelDownloader.swift
+index 056938a..4e2fd68 100644
+--- a/node_modules/react-native-shumil/ios/ModelDownloader.swift
++++ b/node_modules/react-native-shumil/ios/ModelDownloader.swift
+@@ -33,6 +33,7 @@ struct ModelDownloader {
+         if !FileManager.default.fileExists(atPath: tokensDest.path) {
+             try await downloadFile(from: base + "tokens.txt", to: tokensDest)
+         }
++        ensureEspeakNgData(in: dir)
+ 
+         return onnxDest.path
+     }
+@@ -59,6 +60,7 @@ struct ModelDownloader {
+         if !FileManager.default.fileExists(atPath: tokensDest.path) {
+             try await downloadFile(from: base + "tokens.txt", to: tokensDest)
+         }
++        ensureEspeakNgData(in: dir)
+ 
+         return modelDest.path
+     }
+@@ -110,6 +112,41 @@ struct ModelDownloader {
+         return nil
+     }
+ 
++    // MARK: - espeak-ng-data
++
++    /// Downloaded Piper/Kokoro models need espeak-ng-data alongside them for
++    /// English phonemization — without it, SherpaOnnxCreateOfflineTts silently
++    /// returns a null handle (see the nil-guards in Piper/KokoroEngine.load()).
++    /// Rather than re-download ~18MB per model, reuse the copy already bundled
++    /// into the app via the SherpaOnnx pod's PiperModels resource bundle.
++    private static func ensureEspeakNgData(in destDir: URL) {
++        let dest = destDir.appendingPathComponent("espeak-ng-data")
++        if FileManager.default.fileExists(atPath: dest.path) { return }
++        guard let source = bundledEspeakNgDataDir() else { return }
++        try? FileManager.default.copyItem(atPath: source, toPath: dest.path)
++    }
++
++    private static func bundledEspeakNgDataDir() -> String? {
++        var bundles: [Bundle] = [Bundle.main]
++        if let url = Bundle.main.url(forResource: "PiperModels", withExtension: "bundle"),
++           let b = Bundle(url: url) {
++            bundles.insert(b, at: 0)
++        }
++        for bundle in bundles {
++            guard let root = bundle.resourceURL else { continue }
++            let candidate = root.appendingPathComponent("espeak-ng-data")
++            var isDir: ObjCBool = false
++            if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
++                return candidate.path
++            }
++            guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
++            for case let url as URL in walker where url.lastPathComponent == "espeak-ng-data" {
++                return url.path
++            }
++        }
++        return nil
++    }
++
+     // MARK: - Private helpers
+ 
+     private static func piperURLs(modelId: String) -> (base: String, onnxName: String) {
+diff --git a/node_modules/react-native-shumil/ios/PiperEngine.swift b/node_modules/react-native-shumil/ios/PiperEngine.swift
+index 9cb1718..e1d9460 100644
+--- a/node_modules/react-native-shumil/ios/PiperEngine.swift
++++ b/node_modules/react-native-shumil/ios/PiperEngine.swift
+@@ -21,6 +21,11 @@ class PiperEngine {
+     private var tts: AnyObject?     // SherpaOnnxOfflineTts — typed as AnyObject to compile without the dep
+     private var modelMeta: ModelMeta?
+     fileprivate var audioPlayer: AVAudioPlayer?
++    // AVAudioPlayer.delegate is weak — without a strong ref here the delegate is
++    // deallocated when speak()'s closure exits, didFinishPlaying never fires, and
++    // the continuation (and the JS promise awaiting it) hangs forever. Held until
++    // the next speak() replaces it.
++    fileprivate var playbackDelegate: PlaybackDelegate?
+     private let lock = NSLock()
+ 
+     // MARK: - Setup
+@@ -52,6 +57,18 @@ class PiperEngine {
+             maxNumSentences: 1
+         )
+         let instance = SherpaOnnxOfflineTtsWrapper(config: &config)
++        // SherpaOnnxCreateOfflineTts returns a null handle on failure (e.g. missing
++        // espeak-ng-data) without throwing — every method on the wrapper then
++        // dereferences that null pointer, crashing the whole app. Catch it here
++        // instead, while it's still a normal Swift error.
++        guard instance.tts != nil else {
++            throw NSError(
++                domain: "MrLecture",
++                code: -9,
++                userInfo: [NSLocalizedDescriptionKey:
++                    "Piper model failed to initialize. Check that the .onnx/tokens.txt/espeak-ng-data downloaded correctly."]
++            )
++        }
+         lock.withLock {
+             tts = instance
+             modelMeta = ModelMeta(
+@@ -69,10 +86,11 @@ class PiperEngine {
+         #endif
+     }
+ 
+-    // Auto-load the model bundled into the app by the SherpaOnnx pod's
+-    // `PiperModels` resource bundle, so callers never need a device path. The
+-    // model folder (onnx + tokens.txt + espeak-ng-data) is copied verbatim, so
+-    // we locate the .onnx and let `load` discover espeak-ng-data beside it.
++    // Compatibility path: if the host app bundles a Piper model (onnx + tokens.txt
++    // in the `PiperModels` resource bundle or main bundle), load it so callers never
++    // need a device path. Voice models normally aren't bundled anymore — they're
++    // downloaded on demand via downloadModel + setPiperModel — so finding nothing
++    // here is the expected case, reported as a catchable error, not a crash.
+     func autoLoadBundledModelIfNeeded() throws {
+         if lock.withLock({ modelMeta }) != nil { return }
+         guard let onnxPath = Self.bundledOnnxPath() else {
+@@ -80,7 +98,7 @@ class PiperEngine {
+                 domain: "MrLecture",
+                 code: -7,
+                 userInfo: [NSLocalizedDescriptionKey:
+-                    "No bundled Piper model found. Run scripts/fetch-piper.sh, then pod install."]
++                    "No Piper model loaded. Download a Piper voice first (models are fetched on demand, not bundled)."]
+             )
+         }
+         let tokensPath = (onnxPath as NSString).deletingLastPathComponent
+@@ -148,6 +166,7 @@ class PiperEngine {
+                 let player = try AVAudioPlayer(contentsOf: tempURL)
+                 self.audioPlayer = player
+                 let delegate = PlaybackDelegate(continuation: continuation, engine: self)
++                self.playbackDelegate = delegate
+                 player.delegate = delegate
+                 player.play()
+             } catch {

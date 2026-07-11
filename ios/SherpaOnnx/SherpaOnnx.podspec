@@ -5,8 +5,10 @@
 #   * exposes the C API (c-api.h) as a Clang module named `SherpaOnnx`, so the
 #     Swift wrapper baked into react-native-mr-lecture can `import SherpaOnnx`
 #     and `#if canImport(SherpaOnnx)` resolves true
-#   * ships the bundled Piper voice model as the `PiperModels` resource bundle,
-#     which PiperEngine auto-loads at runtime
+#   * ships espeak-ng-data as the `PiperModels` resource bundle. Voice models
+#     are NOT bundled — they download on demand in-app (ModelDownloader), which
+#     copies this espeak-ng-data beside each downloaded model since sherpa-onnx
+#     can't initialize a Piper/Kokoro model without it.
 #
 # The binaries (vendor/, model/, c-api.h) are gitignored and fetched by
 # scripts/fetch-piper.sh — run it before `pod install`.

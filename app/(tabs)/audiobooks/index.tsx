@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -12,6 +12,7 @@ import usePTheme from "@hooks/usePTheme";
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import RozNovelsGrid from "@components/audiobook/RozNovelsGrid";
 import RozNovelsList from "@components/audiobook/RozNovelsList";
+import { initialWindowMetrics } from "react-native-safe-area-context";
 
 type ViewMode = "grid" | "list";
 
@@ -41,7 +42,10 @@ export default function Audiobooks() {
 	const download_keys = useRef("");
 	useEffect(() => {
 		return AudiobookDownloads.subscribe(() => {
-			const keys = AudiobookDownloads.get_states().map((s) => `${s.uuid}:${s.status}`).sort().join(",");
+			const keys = AudiobookDownloads.get_states()
+				.map((s) => `${s.uuid}:${s.status}`)
+				.sort()
+				.join(",");
 			if (keys === download_keys.current) return;
 			download_keys.current = keys;
 			refresh();
@@ -75,13 +79,12 @@ export default function Audiobooks() {
 	return (
 		<View style={styles.top_container}>
 			<View style={styles.header}>
-				<Text style={styles.top_text}>Audiobooks</Text>
 				<View style={styles.search_container}>
-					<View style={{ width: "70%", bottom: 5, right: 10 }}>
+					<View style={{ width: "79%", bottom: 10, right: 0 }}>
 						<SearchBarV1 placeholder="Search Audiobooks" onChangeText={set_search} />
 					</View>
-					<IoniconsTouchableOpacity icon_name="cloud-upload" icon_size={23} icon_color={colors.inactive} style={{ bottom: 4 }} on_press={upload_music_files} />
-					<IoniconsTouchableOpacity icon_name="globe-outline" icon_size={23} icon_color={colors.inactive} style={{ bottom: 4 }} on_press={() => router.push("/audiobooks/elscione")} />
+					<IoniconsTouchableOpacity icon_name="cloud-upload" icon_size={23} icon_color={colors.inactive} style={{ bottom: 10, left: 10 }} on_press={upload_music_files} />
+					<IoniconsTouchableOpacity icon_name="globe-outline" icon_size={23} icon_color={colors.inactive} style={{ bottom: 10, left: 10 }} on_press={() => router.push("/audiobooks/elscione")} />
 				</View>
 			</View>
 			<View style={styles.toolbar}>
@@ -125,7 +128,7 @@ export default function Audiobooks() {
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
 		top_container: { backgroundColor: colors.background, flex: 1, justifyContent: "flex-start" },
-		header: { backgroundColor: colors.shelf, width: "100%", height: "18%", top: 0, justifyContent: "flex-end", alignItems: "center", zIndex: 2 },
+		header: { backgroundColor: colors.shelf, width: "100%", height: 38 + (initialWindowMetrics?.insets?.top ?? 50), top: 0, justifyContent: "flex-end", alignItems: "center", zIndex: 2 },
 		top_text: { bottom: 20, color: colors.text, fontSize: 18, fontWeight: "500" },
 		search_container: { justifyContent: "space-evenly", alignItems: "center", height: "24%", left: -5, width: "100%", flexDirection: "row" },
 		toolbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 8 },
