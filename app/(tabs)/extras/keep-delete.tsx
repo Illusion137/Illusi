@@ -17,6 +17,7 @@ import { illusive_track_to_track_player_track, setup_track_player } from "@illus
 import { router } from "expo-router";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
+import { SQLGlobal } from "@illusive/sql/sql_global";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, cancelAnimation, Extrapolation } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -225,7 +226,7 @@ export default function ExtraKeepDeleteScreen() {
 	async function undo_delete() {
 		if (!undo_track) return;
 		await SQLTracks.undelete_track(undo_track.uid);
-		GLOBALS.global_var.sql_tracks.push(undo_track);
+		SQLGlobal.add_global_track_item(undo_track);
 
 		const cur_index = current_index_ref.current;
 		const cur_tracks = tracks_ref.current;

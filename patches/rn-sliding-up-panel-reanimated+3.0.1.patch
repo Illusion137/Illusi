@@ -1,5 +1,5 @@
 diff --git a/node_modules/rn-sliding-up-panel-reanimated/SlidingUpPanel.js b/node_modules/rn-sliding-up-panel-reanimated/SlidingUpPanel.js
-index ddaf669..184c4ec 100644
+index ddaf669..948c5b5 100644
 --- a/node_modules/rn-sliding-up-panel-reanimated/SlidingUpPanel.js
 +++ b/node_modules/rn-sliding-up-panel-reanimated/SlidingUpPanel.js
 @@ -101,6 +101,7 @@ const SlidingUpPanel = forwardRef(function SlidingUpPanel(props, ref) {
@@ -36,7 +36,7 @@ index ddaf669..184c4ec 100644
        runOnJS(onDragStart)(position.value)
      })
      .onUpdate(e => {
-@@ -342,12 +353,29 @@ const SlidingUpPanel = forwardRef(function SlidingUpPanel(props, ref) {
+@@ -342,12 +353,35 @@ const SlidingUpPanel = forwardRef(function SlidingUpPanel(props, ref) {
        }
      })
      .onFinalize((_, success) => {
@@ -59,27 +59,33 @@ index ddaf669..184c4ec 100644
 +      position.value = withTiming(snapTarget, {duration: 300})
      })
  
-+  // A gesture (e.g. a child ScrollView's native scroll) that must fail before
-+  // the panel pan may activate. Lets callers keep the panel draggable everywhere
-+  // EXCEPT over that child: touches on the child go to its own gesture, touches
-+  // elsewhere never reach it (it fails immediately) so the pan works as normal.
++  // One or more gestures (e.g. a child ScrollView's native scroll, a nested
++  // drag-handle's pan) that must fail before the panel pan may activate. Lets
++  // callers keep the panel draggable everywhere EXCEPT over those children:
++  // touches on a child go to its own gesture, touches elsewhere never reach it
++  // (it fails immediately) so the pan works as normal. Accepts a gesture, a
++  // gesture ref (for gestures created in child components), or an array of
++  // either.
 +  if (blockingGesture) {
-+    panGesture.requireExternalGestureToFail(blockingGesture)
++    const blockers = Array.isArray(blockingGesture)
++      ? blockingGesture
++      : [blockingGesture]
++    panGesture.requireExternalGestureToFail(...blockers)
 +  }
 +
    // ─── render ───────────────────────────────────────────────────────────────
    const renderBackdrop = () => {
      if (!showBackdrop) return null
-@@ -427,6 +455,7 @@ SlidingUpPanel.propTypes = {
+@@ -427,6 +461,7 @@ SlidingUpPanel.propTypes = {
    onBottomReached: PropTypes.func,
    allowMomentum: PropTypes.bool,
    allowDragging: PropTypes.bool,
-+  blockingGesture: PropTypes.object,
++  blockingGesture: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
    showBackdrop: PropTypes.bool,
    backdropOpacity: PropTypes.number,
    friction: PropTypes.number,
 diff --git a/node_modules/rn-sliding-up-panel-reanimated/index.d.ts b/node_modules/rn-sliding-up-panel-reanimated/index.d.ts
-index 86ccd80..638ec77 100644
+index 86ccd80..ea47eb6 100644
 --- a/node_modules/rn-sliding-up-panel-reanimated/index.d.ts
 +++ b/node_modules/rn-sliding-up-panel-reanimated/index.d.ts
 @@ -1,6 +1,6 @@
@@ -90,16 +96,28 @@ index 86ccd80..638ec77 100644
  
  // Inline the two react-native style types we need so react-native doesn't
  // have to be installed as a devDependency of this library.
-@@ -29,6 +29,12 @@ export interface SlidingUpPanelProps {
+@@ -9,6 +9,9 @@ interface ViewStyle {
+   [key: string]: unknown
+ }
+ 
++/** A gesture or a gesture ref (`.withRef()`) usable as a blocking gesture. */
++type BlockingGesture = GestureType | React.RefObject<GestureType | undefined>
++
+ export interface SlidingUpPanelProps {
+   height?: number
+   /**
+@@ -29,6 +32,14 @@ export interface SlidingUpPanelProps {
    onBottomReached?: () => any
    allowMomentum?: boolean
    allowDragging?: boolean
 +  /**
-+   * A gesture (e.g. a child ScrollView's Gesture.Native()) that must fail
-+   * before the panel pan may activate. Keeps the panel draggable everywhere
-+   * except over that child.
++   * One or more gestures (e.g. a child ScrollView's Gesture.Native(), a nested
++   * drag-handle's pan) that must fail before the panel pan may activate. Keeps
++   * the panel draggable everywhere except over those children. Gesture refs
++   * (created with useRef and attached via `.withRef()`) are accepted for
++   * gestures defined in child components.
 +   */
-+  blockingGesture?: GestureType
++  blockingGesture?: BlockingGesture | BlockingGesture[]
    showBackdrop?: boolean
    backdropOpacity?: number
    friction?: number

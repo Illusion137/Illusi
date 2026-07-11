@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { GestureDetector, Gesture, type GestureType } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
 import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
@@ -265,6 +265,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const [queue_drag_disabled, set_queue_drag_disabled] = useState(false);
 	const outer_drag_enabled = !queue_drag_disabled;
 	const lyrics_scroll_gesture = useMemo(() => Gesture.Native(), []);
+	const queue_pan_ref = useRef<GestureType | undefined>(undefined);
+	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_pan_ref], [lyrics_scroll_gesture]);
 
 	// SyncPlay awareness: guests may have their controls locked by the host.
 	// When connected as a guest with control permission, button taps proxy
@@ -590,7 +592,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		<SlidingUpPanel
 			ref={bottom_sheet_ref}
 			allowDragging={outer_drag_enabled}
-			blockingGesture={lyrics_scroll_gesture}
+			blockingGesture={panel_blocking_gestures}
 			showBackdrop={true}
 			animatedValue={panel_animated}
 			height={panel_max_height}
@@ -793,7 +795,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
 					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "black" }, queue_dim_style]} />
 				</Animated.View>
-				<QueueHandle expanded_progress={queue_expanded_progress} />
+				<QueueHandle expanded_progress={queue_expanded_progress} pan_gesture_ref={queue_pan_ref} />
 			</>
 		</SlidingUpPanel>
 	);
