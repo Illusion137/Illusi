@@ -4,23 +4,32 @@
 # Usage:
 #   yarn ota:release
 #   yarn ota:release --message "fix: crash on startup"
+#   yarn ota:release --target 21.0.9   # push a JS-only fix to an already-shipped binary
 #
 # Prerequisites:
 #   • git must be able to push to OTA_REPO_URL without prompting
 #     (configure SSH keys, a credential helper, or embed a PAT token in the URL).
 #
 # What this does:
-#   1. Reads the app version from package.json.
+#   1. Reads the app version from package.json (or --target).
 #   2. Resolves the entry file exactly the way Xcode does.
 #   3. Runs expo export:embed via @expo/cli (same as the Xcode build phase).
-#   4. Shallow-clones the OTA repo's ios-ota branch into a temp directory.
+#   4. Shallow-clones the OTA repo's ios-ota-v<version> branch into a temp dir.
 #   5. Copies the bundle to output/main.jsbundle and pushes.
+#
+# IMPORTANT — version gating: each binary version pulls ONLY from its own
+# branch (ios-ota-v<CFBundleShortVersionString>, see utils/ota_update.ts).
+# A push lands on devices only if the branch version matches the binary
+# version users have installed. So:
+#   • For a JS-only hotfix, do NOT bump package.json — or pass
+#     --target <shipped version> explicitly.
+#   • Never push a bundle built against different native code to an old
+#     version's branch — that's what the version gating exists to prevent.
 
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
 OTA_REPO_URL="https://github.com/Illusion137/Illusi-ota.git"
-OTA_BRANCH="ios-ota"
 BUNDLE_DEST="output/main.jsbundle"   # must match bundlePath in ota_update.ts
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -32,13 +41,23 @@ ASSETS_OUT="$ROOT/ios/output"
 
 # ── Parse args ────────────────────────────────────────────────────────────────
 VERSION=$(node -p "require('$ROOT/package.json').version")
-COMMIT_MSG="OTA update v$VERSION"
+TARGET_VERSION=""
+COMMIT_MSG=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --message|-m) COMMIT_MSG="$2"; shift 2 ;;
+    --target|-t)  TARGET_VERSION="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
+
+if [[ -n "$TARGET_VERSION" && "$TARGET_VERSION" != "$VERSION" ]]; then
+  echo "⚠  Targeting binary v$TARGET_VERSION with a bundle built from source at v$VERSION."
+  echo "   Make sure no native modules changed between those versions."
+  VERSION="$TARGET_VERSION"
+fi
+OTA_BRANCH="ios-ota-v$VERSION"
+[[ -n "$COMMIT_MSG" ]] || COMMIT_MSG="OTA update v$VERSION"
 
 echo ""
 echo "┌─ Illusi OTA Release ────────────────────────────────────────────────────┐"

@@ -12,7 +12,6 @@ pushd ios/
 pod install --silent
 popd
 
-yarn ota:release
 export SENTRY_PROPERTIES=ios/sentry.properties
 xcodebuild -workspace ios/Illusi.xcworkspace \
            -scheme Illusi \
