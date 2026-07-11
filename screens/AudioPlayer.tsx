@@ -688,7 +688,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							)}
 						</View>
 						{/* ACTION BUTTONS */}
-						<View style={{ flexDirection: "row", gap: 8, paddingTop: 4, marginLeft: 10 }}>
+						<View style={{ flexDirection: "row", gap: 8, paddingTop: 4, top: 20, marginLeft: 10 }}>
 							<TouchableOpacity
 								onPress={async () => {
 									if (playing_track === undefined) return;

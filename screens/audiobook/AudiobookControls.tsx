@@ -201,7 +201,7 @@ function ChaptersModal(props: { visible: boolean; player: UseAudiobookPlayer; ti
 }
 
 const styles = StyleSheet.create({
-	root: { ...StyleSheet.absoluteFillObject, justifyContent: "space-between" },
+	root: { ...StyleSheet.absoluteFill, justifyContent: "space-between" },
 	top_bar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 54, paddingHorizontal: 18 },
 	icon_circle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#00000055", justifyContent: "center", alignItems: "center" },
 	speed_text: { color: "#ffffff", fontSize: 12, fontWeight: "700" },

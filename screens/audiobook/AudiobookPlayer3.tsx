@@ -33,25 +33,22 @@ export default function AudiobookPlayer3(props: { player: UseAudiobookPlayer }) 
 		if (player.roz === null) return;
 		const window_size = get_window_size({ horizontal_padding: H_PADDING * 2, vertical_padding: V_PADDING });
 		build_page_timeline(player.roz, window_size, TEXT_BOTTOM_MARGIN)
-			.then((t) => { if (!cancelled) set_timeline(t); })
+			.then((t) => {
+				if (!cancelled) set_timeline(t);
+			})
 			.catch(() => {});
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [player.roz]);
 
-	const page_index = useMemo(
-		() => (timeline ? page_index_at_time(timeline, player.global_time) : 0),
-		[timeline, player.global_time]
-	);
+	const page_index = useMemo(() => (timeline ? page_index_at_time(timeline, player.global_time) : 0), [timeline, player.global_time]);
 	const page = timeline?.pages[page_index];
 	const current_uuid = player.current_content?.content.uuid;
 
 	return (
 		<View style={StyleSheet.absoluteFill}>
-			{uri ? (
-				<Image key={uri} source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={24} />
-			) : (
-				<View style={[StyleSheet.absoluteFill, { backgroundColor: "#0c0c0f" }]} />
-			)}
+			{uri ? <Image key={uri} source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={24} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0c0c0f" }]} />}
 			<BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
 			<View style={[StyleSheet.absoluteFill, { backgroundColor: "#000000cc" }]} />
 			<LinearGradient colors={["rgba(0,0,0,0.6)", "transparent", "rgba(0,0,0,0.9)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
@@ -70,7 +67,9 @@ export default function AudiobookPlayer3(props: { player: UseAudiobookPlayer }) 
 
 			{timeline && timeline.pages.length > 0 ? (
 				<View style={styles.page_indicator} pointerEvents="none">
-					<Text style={styles.page_indicator_text}>{page_index + 1} / {timeline.pages.length}</Text>
+					<Text style={styles.page_indicator_text}>
+						{page_index + 1} / {timeline.pages.length}
+					</Text>
 				</View>
 			) : null}
 		</View>
@@ -90,7 +89,7 @@ function PageContent(props: { content: RozContent; tint: string; is_current: boo
 }
 
 const styles = StyleSheet.create({
-	page_area: { ...StyleSheet.absoluteFillObject, paddingHorizontal: H_PADDING, paddingTop: 110, paddingBottom: 250 },
+	page_area: { ...StyleSheet.absoluteFill, paddingHorizontal: H_PADDING, paddingTop: 110, paddingBottom: 250 },
 	page: { flex: 1 },
 	page_scroll: { paddingVertical: 6 },
 	text: { marginBottom: TEXT_BOTTOM_MARGIN, lineHeight: 22 },
@@ -98,5 +97,5 @@ const styles = StyleSheet.create({
 	page_image: { width: "100%", height: 320, marginBottom: TEXT_BOTTOM_MARGIN, borderRadius: 8 },
 	spacer: { height: 12 },
 	page_indicator: { position: "absolute", bottom: 224, left: 0, right: 0, alignItems: "center" },
-	page_indicator_text: { color: "#ffffff99", fontSize: 12, fontWeight: "600" },
+	page_indicator_text: { color: "#ffffff99", fontSize: 12, fontWeight: "600" }
 });

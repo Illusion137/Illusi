@@ -46,10 +46,11 @@
  */
 
 import hotUpdate from "react-native-ota-hot-update";
-import { Alert, Platform } from "react-native";
+import { Alert, NativeModules, Platform } from "react-native";
 import { mmkv } from "@native/mmkv/mmkv";
 import Constants from "expo-constants";
 import RNFS from "react-native-fs";
+import * as Sentry from "@sentry/react-native";
 
 /** GitHub repo that stores the OTA bundles. Must be public (or use a token in the URL). */
 const OTA_REPO_URL = "https://github.com/Illusion137/Illusi-ota.git";
@@ -119,6 +120,36 @@ async function wipe_git_dir(): Promise<void> {
 	}
 }
 
+/** Which JS bundle this process actually booted from. */
+function running_bundle(): "ota" | "embedded" | "metro" {
+	const source_code = NativeModules?.SourceCode;
+	const script_url: string = source_code?.getConstants?.()?.scriptURL ?? source_code?.scriptURL ?? "";
+	if (script_url.includes(`/${OTA_GIT_DIR}/`)) return "ota";
+	if (script_url.startsWith("http")) return "metro";
+	return "embedded";
+}
+
+/**
+ * Report the real OTA state to Sentry. The SDK's built-in "OTA Updates"
+ * (ota_updates) context only knows about expo-updates — which this app doesn't
+ * use — so it permanently shows is_enabled=false and can't be overridden (the
+ * ExpoContext integration re-stamps it on every event). This context is the
+ * one to read when triaging.
+ */
+async function set_sentry_ota_context(branch: string | null): Promise<void> {
+	try {
+		Sentry.setContext("ota_hot_update", {
+			is_enabled: branch !== null,
+			branch,
+			running_bundle: running_bundle(),
+			bundle_mtime: await bundle_mtime(),
+			quarantined: (await mmkv().get_number(QUARANTINE_MTIME_KEY)) !== undefined
+		});
+	} catch (_) {
+		// telemetry only — never let it break the update flow
+	}
+}
+
 // ─── Crash guard ─────────────────────────────────────────────────────────────
 
 /**
@@ -181,6 +212,7 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 	if (__DEV__ || Platform.OS !== "ios") return;
 
 	const branch = ota_branch();
+	set_sentry_ota_context(branch).catch((e) => e);
 	if (branch === null) {
 		console.warn("[OTA] Native binary version unavailable — skipping update check");
 		return;
