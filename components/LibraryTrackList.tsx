@@ -13,6 +13,8 @@ import React from "react";
 import { is_empty } from "@common/utils/util";
 import { extract_query_flags, TRACK_QUERY_FLAGS } from "@illusive/query_flags";
 import { GLOBALS } from "@illusive/globals";
+import { Constants } from "@illusive/constants";
+import { SQLPlaylists } from "@illusive/sql/sql_playlists";
 import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { useFocusEffect } from "expo-router";
@@ -35,6 +37,10 @@ function LibraryTrackList(
 	const styles = theme_styles(colors);
 
 	const [all_data, set_all_data] = useState({ char_data: [] as string[], track_mask: [] as Track[][], num_tracks: 0 });
+	// One membership query for the whole list instead of one per visible row;
+	// null until the first fetch so rows fall back to their own lookup.
+	const writing_to_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
+	const [saved_track_uids, set_saved_track_uids] = useState<Set<string> | null>(null);
 
 	const alphabet_scroll: AlphabetScroll = {
 		all_alphabet_fast_scroll_locations: [] as number[],
@@ -69,6 +75,7 @@ function LibraryTrackList(
 		const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
 		const section_map = track_section_map(tracks, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query));
 
+		if (writing_to_playlist) set_saved_track_uids(await SQLPlaylists.playlist_track_uid_set(props.write_playlist_uuid!));
 		set_all_data({ char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length });
 	}
 	function on_edit_mode_change(edit_mode: EditMode) {
@@ -87,16 +94,23 @@ function LibraryTrackList(
 		}
 	}
 
-	const render_track = (item: { item: Track }) => (
-		<TrackComponent
-			track_data={item.item}
-			track_callback={() => [...GLOBALS.global_var.sql_tracks]}
-			from={"My Library"}
-			edit_mode={props.edit_mode}
-			width_fn={() => BASE_WIDTH_FN(props.write_playlist_uuid)}
-			write_playlist_uuid={props.write_playlist_uuid}
-			// refresh_data={async () => await refresh_data(search_query)}
-		/>
+	// Stable callbacks so the memoized TrackComponent rows skip re-rendering when
+	// the list refreshes — inline closures gave every row new props each render.
+	const track_callback = useCallback(() => [...GLOBALS.global_var.sql_tracks], []);
+	const width_fn = useCallback(() => BASE_WIDTH_FN(props.write_playlist_uuid), [props.write_playlist_uuid]);
+	const render_track = useCallback(
+		(item: { item: Track }) => (
+			<TrackComponent
+				track_data={item.item}
+				track_callback={track_callback}
+				from={"My Library"}
+				edit_mode={props.edit_mode}
+				width_fn={width_fn}
+				write_playlist_uuid={props.write_playlist_uuid}
+				playlist_saved={writing_to_playlist && saved_track_uids !== null ? saved_track_uids.has(item.item.uid) : undefined}
+			/>
+		),
+		[track_callback, width_fn, props.edit_mode, props.write_playlist_uuid, writing_to_playlist, saved_track_uids]
 	);
 	const header_component = () => <ShufflePlayButton text={is_empty(search_query) ? undefined : "Shuffle Searched"} on_press={async () => play_shuffle(track_query_filter(GLOBALS.global_var.sql_tracks, search_query), "My Library")} top={20} />;
 
