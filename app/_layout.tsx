@@ -31,7 +31,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import { breadcrumb as log_breadcrumb, initialize_sentry_severity_handler, set_breadcrumb_console_sink } from "@common/sentry_error_handler";
-import { AppState, Image, Platform, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from "@utils/perf_monitor";
 import nodejs from "nodejs-mobile-react-native";
@@ -42,8 +42,6 @@ if (Platform.OS === "ios") {
 	const carplayModule = require("@illusive/carplay/carplay_service");
 	CarPlayService = carplayModule.CarPlayService;
 }
-
-const splash_screen_image = require("../assets/splash.png");
 
 TrackPlayer.registerPlaybackService(() => playback_service);
 
@@ -171,10 +169,13 @@ export default Sentry.wrap(function App() {
 				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
 			]);
 			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
-			mark_launch_success().catch((e) => e);
 			// Kick off the OTA check here — anything later in this block that
 			// throws synchronously (CarPlay init has a history of it) would
 			// silently skip the check otherwise.
+			// NOTE: mark_launch_success() is intentionally NOT called here. It runs
+			// on a delay below, once we've survived the crash-prone startup window —
+			// resetting the OTA crash counter this early (before the counter is even
+			// incremented) is what defeated crash-loop rollback.
 			check_and_apply_update().catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
@@ -223,11 +224,20 @@ export default Sentry.wrap(function App() {
 			ExpoImage.clearMemoryCache().catch((e) => e);
 			report_memory_warning();
 		});
+		// Treat the launch as healthy only once we've survived the crash-prone
+		// startup window (JS boot, first render, CarPlay init). Resetting the OTA
+		// crash counter here — rather than immediately after on_app_load — is what
+		// lets a genuine boot-crash loop accumulate to CRASH_THRESHOLD and roll
+		// back: a bundle that keeps crashing on launch never reaches this timer.
+		const launch_success_timer = setTimeout(() => {
+			mark_launch_success().catch((e) => e);
+		}, 10_000);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
 			app_state_subscription.remove();
 			memory_warning_subscription.remove();
+			clearTimeout(launch_success_timer);
 			stop_perf_monitor();
 			stop_thermal_monitor();
 			stop_heap_monitor();
@@ -269,20 +279,18 @@ export default Sentry.wrap(function App() {
 	return (
 		<GestureHandlerRootView>
 			<ThemeProvider value={theme_value}>
-				{is_loading ? <Image style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
+				{/* {is_loading ? <Image style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null} */}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				{audiobook_uuid !== null && <AudiobookSlidingPlayer key={audiobook_uuid} uuid={audiobook_uuid} on_dismiss={() => set_audiobook_uuid(null)} />}
 				{!is_loading ? <ExternalDisplayHost /> : null}
 				{!is_loading ? <SyncPlayIndicator /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
-				{!is_loading ? (
-					<SafeAreaProvider>
-						<Stack>
-							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-							<Stack.Screen name="+not-found" options={{ headerShown: false }} />
-						</Stack>
-					</SafeAreaProvider>
-				) : null}
+				<SafeAreaProvider>
+					<Stack>
+						<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+						<Stack.Screen name="+not-found" options={{ headerShown: false }} />
+					</Stack>
+				</SafeAreaProvider>
 			</ThemeProvider>
 		</GestureHandlerRootView>
 	);

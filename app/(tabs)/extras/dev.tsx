@@ -9,7 +9,7 @@ import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import usePTheme from "@hooks/usePTheme";
 import { sync_engine_instance } from "@illusive/startup";
-import { check_and_apply_update, clear_quarantine, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from "@utils/ota_update";
+import { check_and_apply_update, clear_quarantine, force_update_to_latest, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from "@utils/ota_update";
 
 function format_mtime(mtime: number | null): string {
 	return mtime === null ? "none" : new Date(mtime).toLocaleString();
@@ -84,6 +84,19 @@ function OTASection() {
 					check_and_apply_update()
 						.catch((e) => e)
 						.finally(() => setTimeout(refresh, 2000));
+				}}
+			/>
+			<ExtrasSectionButton
+				show_arrow={false}
+				text="Force update to latest bundle"
+				icon="flash-outline"
+				onPress={() => {
+					if_confirm("Force update to this version's latest bundle?", "Clears quarantine + crash counter, re-clones the branch tip, and restarts into it. No-op on dev builds.", async () => {
+						await force_update_to_latest().catch((e) => e);
+						// Only reached if the update didn't clone/restart (e.g. dev build,
+						// or no branch for this version yet).
+						setTimeout(refresh, 2000);
+					});
 				}}
 			/>
 			<ExtrasSectionButton

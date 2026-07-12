@@ -19,8 +19,14 @@
  *    the embedded bundle is used.
  *
  * Crash guard:
- *  - Each launch increments a counter in MMKV before applying any update.
- *  - Call mark_launch_success() once the app has fully booted — it resets it.
+ *  - The first update check in a process increments a counter in MMKV (once per
+ *    process — repeat checks, e.g. the dev screen, do not re-count).
+ *  - Call mark_launch_success() once the app has survived the crash-prone
+ *    startup window — it resets the counter. This must run *after* the
+ *    increment (on a delay, not right after on_app_load), or a bundle that
+ *    crashes on launch would keep resetting the counter and never roll back.
+ *  - Applying a bundle (clone/pull) resets the counter so each new bundle gets
+ *    a fresh CRASH_THRESHOLD boots to prove itself.
  *  - If the counter reaches CRASH_THRESHOLD (the updated bundle kept
  *    crashing), the app re-registers the *embedded* bundle and quarantines the
  *    bad OTA bundle by mtime: it will not be re-applied until a newer commit
@@ -70,6 +76,18 @@ const QUARANTINE_MTIME_KEY = "ota_quarantined_bundle_mtime";
 
 /** How many consecutive failed launches before we roll back. */
 const CRASH_THRESHOLD = 3;
+
+/**
+ * Whether this JS process has already been counted as a launch attempt.
+ * A single app process is a single launch, but check_and_apply_update can run
+ * multiple times within one process (the dev screen's manual "check now", a
+ * future foreground re-check, …). Counting each of those bumped the crash
+ * counter with no crash involved, and once it reached CRASH_THRESHOLD the guard
+ * rolled back to the embedded bundle and skipped the update outright — so a
+ * perfectly good bundle already on disk never applied. Gate the increment on
+ * this flag so only the first check per process counts.
+ */
+let launch_attempt_counted = false;
 
 /**
  * Version of the installed native binary. expo-constants embeds app.config
@@ -165,6 +183,10 @@ async function set_sentry_ota_context(branch: string | null): Promise<void> {
  * so it always failed and crash loops previously ran forever.)
  */
 async function check_crash_guard(): Promise<boolean> {
+	// Count a launch at most once per process — see launch_attempt_counted.
+	if (launch_attempt_counted) return false;
+	launch_attempt_counted = true;
+
 	const store = mmkv();
 	const count = ((await store.get_number(CRASH_COUNTER_KEY)) ?? 0) + 1;
 	await store.set_number(CRASH_COUNTER_KEY, count);
@@ -191,8 +213,11 @@ async function check_crash_guard(): Promise<boolean> {
 }
 
 /**
- * Call this once the app has fully booted successfully.
- * Resets the crash counter so a healthy launch doesn't trigger a future rollback.
+ * Call this once the app has survived the crash-prone startup window (see the
+ * delayed caller in app/_layout.tsx). Resets the crash counter so a healthy
+ * launch doesn't contribute to a future rollback. Must run *after*
+ * check_and_apply_update has incremented the counter for this process, or the
+ * guard can never accumulate across a crash loop.
  */
 export async function mark_launch_success(): Promise<void> {
 	if (__DEV__) return;
@@ -258,6 +283,10 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			console.warn("[OTA] Failed to register pulled bundle path");
 			return;
 		}
+		// A freshly applied bundle earns a fresh crash budget: reset the counter
+		// so CRASH_THRESHOLD is measured against *this* bundle's boots, not the
+		// launches of whatever bundle was running when we downloaded it.
+		await store.set_number(CRASH_COUNTER_KEY, 0);
 		// Surface the update via the app's toast system. In silent mode this is
 		// the only notice the user gets before the restart; in the alert path it
 		// complements the modal.
@@ -290,6 +319,8 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		// registered the bundle path itself on clone success.
 		onCloneSuccess: () => {
 			console.log("[OTA] Initial bundle cloned, restarting…");
+			// Fresh clone → fresh crash budget for the bundle we're about to boot.
+			mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
 			hotUpdate.resetApp();
 		},
 		onCloneFailed: (msg: string) => {
@@ -329,6 +360,28 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			console.log("[OTA] Done");
 		}
 	});
+}
+
+/**
+ * Force this version's latest OTA bundle to (re)apply, bypassing every
+ * short-circuit that normally suppresses an update:
+ *  - clears a crash-rollback quarantine,
+ *  - resets the crash counter (so the guard can't early-return),
+ *  - wipes the on-device clone so the next check clones the branch tip fresh
+ *    (the CLONE path always registers + restarts, sidestepping the pull's
+ *    "already up to date" mtime check).
+ *
+ * Then runs the update silently — on success the app re-clones the tip and
+ * restarts into it. No-op in dev builds (Metro serves the JS) and off-iOS,
+ * same as check_and_apply_update. Intended for the dev screen.
+ */
+export async function force_update_to_latest(): Promise<void> {
+	if (__DEV__ || Platform.OS !== "ios") return;
+	const store = mmkv();
+	await store.remove_key(QUARANTINE_MTIME_KEY);
+	await store.set_number(CRASH_COUNTER_KEY, 0);
+	await wipe_git_dir();
+	await check_and_apply_update(true);
 }
 
 /** Roll back to the embedded bundle and quarantine the current OTA bundle. */
