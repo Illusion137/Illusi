@@ -61,6 +61,10 @@ class TrackPlayerStub {
 		return;
 	}
 
+	async updateTrackUrl(trackIndex: number, track: Track) {
+		return;
+	}
+
 	async skipToPrevious() {
 		return;
 	}

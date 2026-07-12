@@ -47,6 +47,7 @@
 
 import hotUpdate from "react-native-ota-hot-update";
 import { Alert, NativeModules, Platform } from "react-native";
+import { GLOBALS } from "@illusive/globals";
 import { mmkv } from "@native/mmkv/mmkv";
 import Constants from "expo-constants";
 import RNFS from "react-native-fs";
@@ -257,6 +258,10 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			console.warn("[OTA] Failed to register pulled bundle path");
 			return;
 		}
+		// Surface the update via the app's toast system. In silent mode this is
+		// the only notice the user gets before the restart; in the alert path it
+		// complements the modal.
+		GLOBALS.global_var.bottom_alert?.("Update downloaded — restarting to apply", "GOOD");
 		if (silent) {
 			hotUpdate.resetApp();
 		} else {
@@ -336,4 +341,83 @@ export async function rollback_update(): Promise<boolean> {
 /** Version number of the currently active OTA bundle (0 = shipped bundle). */
 export async function current_bundle_version(): Promise<number> {
 	return hotUpdate.getCurrentVersion();
+}
+
+// ─── Diagnostics (dev screen) ────────────────────────────────────────────────
+
+export interface OTADiagnostics {
+	/** OTA is a no-op in dev builds — everything below is still readable. */
+	is_dev: boolean;
+	enabled: boolean;
+	binary_version: string | null;
+	expected_branch: string | null;
+	/** Branch of the on-device clone; null when nothing has been cloned yet. */
+	cloned_branch: string | null;
+	/** mtime (ms) of the pulled bundle on disk; null when never cloned. */
+	bundle_mtime: number | null;
+	running_bundle: "ota" | "embedded" | "metro";
+	quarantined_mtime: number | null;
+	crash_counter: number;
+	repo_url: string;
+}
+
+/** Snapshot of the full on-device OTA state (works in dev builds too). */
+export async function get_ota_diagnostics(): Promise<OTADiagnostics> {
+	const store = mmkv();
+	let cloned_branch: string | null = null;
+	try {
+		cloned_branch = (await hotUpdate.git.getBranchName()) ?? null;
+	} catch (_) {
+		cloned_branch = null;
+	}
+	return {
+		is_dev: __DEV__,
+		enabled: !__DEV__ && Platform.OS === "ios" && ota_branch() !== null,
+		binary_version: native_binary_version(),
+		expected_branch: ota_branch(),
+		cloned_branch,
+		bundle_mtime: await bundle_mtime(),
+		running_bundle: running_bundle(),
+		quarantined_mtime: (await store.get_number(QUARANTINE_MTIME_KEY)) ?? null,
+		crash_counter: (await store.get_number(CRASH_COUNTER_KEY)) ?? 0,
+		repo_url: OTA_REPO_URL
+	};
+}
+
+export interface OTARemoteBundle {
+	sha: string;
+	date: string;
+	message: string;
+}
+
+/**
+ * List the bundle commits available on this binary version's branch, newest
+ * first (GitHub API). Returns [] when the branch doesn't exist yet — i.e. no
+ * ota:release has been run for this version.
+ */
+export async function list_remote_bundles(): Promise<OTARemoteBundle[]> {
+	const branch = ota_branch();
+	if (branch === null) throw new Error("Native binary version unavailable");
+	const repo = /github\.com[/:]([^/]+)\/([^/.]+)/.exec(OTA_REPO_URL);
+	if (repo === null) throw new Error(`Not a GitHub repo URL: ${OTA_REPO_URL}`);
+	const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits?sha=${encodeURIComponent(branch)}&per_page=20`, { headers: { Accept: "application/vnd.github+json" } });
+	// 404/422 = repo or branch missing — expected before the first ota:release
+	if (response.status === 404 || response.status === 422) return [];
+	if (!response.ok) throw new Error(`GitHub API responded ${response.status}`);
+	const commits = (await response.json()) as { sha: string; commit: { message: string; committer?: { date?: string }; author?: { date?: string } } }[];
+	return commits.map((c) => ({
+		sha: c.sha,
+		date: c.commit.committer?.date ?? c.commit.author?.date ?? "",
+		message: c.commit.message.split("\n")[0]
+	}));
+}
+
+/** Lift a crash-rollback quarantine so the current remote bundle can apply again. */
+export async function clear_quarantine(): Promise<void> {
+	await mmkv().remove_key(QUARANTINE_MTIME_KEY);
+}
+
+/** Delete the on-device clone; the next check does a fresh clone. */
+export async function wipe_ota_clone(): Promise<void> {
+	await wipe_git_dir();
 }

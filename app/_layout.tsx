@@ -168,11 +168,14 @@ export default Sentry.wrap(function App() {
 				Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font }).then(() => {
 					log_breadcrumb("startup", "fonts loaded", { elapsed_ms: Date.now() - app_load_t0 });
 				}),
-				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert)
+				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
 			]);
-			set_is_loading(false);
 			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
 			mark_launch_success().catch((e) => e);
+			// Kick off the OTA check here — anything later in this block that
+			// throws synchronously (CarPlay init has a history of it) would
+			// silently skip the check otherwise.
+			check_and_apply_update().catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
 				try {
@@ -200,9 +203,12 @@ export default Sentry.wrap(function App() {
 			AudiobookDownloads.resume_all().catch((e) => e);
 			// Initialize CarPlay (iOS only)
 			if (CarPlayService) {
-				CarPlayService.init();
+				try {
+					CarPlayService.init();
+				} catch (e) {
+					log_breadcrumb("startup", "carplay init failed", { error: String(e) });
+				}
 			}
-			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
 		// Snapshot resume tokens for in-flight downloads when backgrounding, and
 		// restart them when we come back, so a download survives a suspend/kill.

@@ -8,6 +8,33 @@ import UIKit
 class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
+    /// Keeps the app alive briefly after backgrounding so an in-progress OTA
+    /// download (git clone/pull, driven from JS via `check_and_apply_update`)
+    /// can finish instead of being frozen mid-transfer and left as a partial
+    /// clone. The README places this on `AppDelegate.applicationDidEnterBackground`,
+    /// but this app is scene-based (CarPlay), so that AppDelegate callback never
+    /// fires — the scene lifecycle routes here instead. `beginBackgroundTask` is
+    /// still an application-wide API, so we request it from the shared app.
+    private var otaBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+
+    private func endOTABackgroundTask() {
+        guard otaBackgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(otaBackgroundTask)
+        otaBackgroundTask = .invalid
+    }
+
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        endOTABackgroundTask()
+        otaBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "OTAUpdate") { [weak self] in
+            // Expiration handler — iOS is out of patience; release the task.
+            self?.endOTABackgroundTask()
+        }
+    }
+
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        endOTABackgroundTask()
+    }
+
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         guard let context = URLContexts.first else { return }
 

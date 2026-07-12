@@ -68,8 +68,18 @@ echo "│  Commit  : $COMMIT_MSG"
 echo "└─────────────────────────────────────────────────────────────────────────┘"
 echo ""
 
-# ── Step 1: Resolve the entry file (same method as the Xcode build phase) ─────
+# ── Step 0: Sync the vendored lib-origin copy ────────────────────────────────
+# Metro resolves @illusive/@origin/etc to mobile/lib-origin — a filtered COPY of
+# ../lib-origin — so without this sync a standalone `yarn ota:release` would
+# silently bundle stale library code. (Being gitignored is irrelevant: Metro
+# reads the filesystem, not git.) Note: release.sh additionally refreshes
+# ../lib-origin's .env cookies via its prebuild.ts first; that step is
+# deliberately not repeated here.
 cd "$ROOT"
+echo "▶ Syncing lib-origin (yarn prebuild)…"
+yarn prebuild
+
+# ── Step 1: Resolve the entry file (same method as the Xcode build phase) ─────
 NODE_BINARY=$(command -v node)
 ENTRY_FILE="$("$NODE_BINARY" -e "require('expo/scripts/resolveAppEntry')" "$ROOT" ios absolute | tail -n 1)"
 echo "▶ Entry file: $ENTRY_FILE"

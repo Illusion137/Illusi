@@ -10288,7 +10288,7 @@ react-native-timer@^1.3.6:
 
 "react-native-track-player@github:Illusion137/RNTPvE":
   version "6.0.0"
-  resolved "https://codeload.github.com/Illusion137/RNTPvE/tar.gz/d81c04d442b1f54a74aed4ab86b0445c8ae00b49"
+  resolved "https://codeload.github.com/Illusion137/RNTPvE/tar.gz/6947f3b9c35ca5a055a84686400d17a7a5962b7b"
 
 "react-native-track-player@github:Illusion137/RNTPvE#aa69edd00afc37b13eac83b5a7c1d24ccf5f04aa":
   version "5.0.0-alpha0"

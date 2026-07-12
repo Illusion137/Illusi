@@ -387,6 +387,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			}
 			if (track !== "skip") {
 				await TrackPlayer.add(track);
+				// Added with its real url — mark resolved so the pending-url machinery
+				// in track_player_service doesn't re-fetch it on the first active change.
+				GLOBALS.global_var.playing_tracks[0].playback!.successful = true;
 			}
 		}
 		await TrackPlayer.play();
