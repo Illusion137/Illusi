@@ -78,6 +78,31 @@ const QUARANTINE_MTIME_KEY = "ota_quarantined_bundle_mtime";
 const CRASH_THRESHOLD = 3;
 
 /**
+ * MMKV key holding 1 while a launch is booting and hasn't yet proven itself
+ * healthy (reached first paint). The crash guard reads it on the NEXT launch: if
+ * it's still 1, the previous launch never finished booting = a real boot crash.
+ * mark_launch_success clears it to 0; an intentional resetApp (apply/rollback)
+ * also clears it so the deliberate restart isn't mis-counted as a crash.
+ */
+const BOOT_PENDING_KEY = "ota_boot_pending";
+
+/**
+ * When true, OTA outcomes are surfaced via the app's toast so they're visible
+ * in a release build (where console logs aren't). Kept off for the silent
+ * startup check so normal users never see OTA chatter; force_update_to_latest
+ * turns it on so the dev-screen button reports exactly what happened.
+ */
+let verbose_ota_alerts = false;
+function ota_alert(text: string, type: "GOOD" | "WARN" | "ERROR" | "INFO", info?: string): void {
+	if (!verbose_ota_alerts) return;
+	try {
+		GLOBALS.global_var.bottom_alert?.(text, type, info);
+	} catch (_) {
+		// toast is best-effort — never let it break the update flow
+	}
+}
+
+/**
  * Whether this JS process has already been counted as a launch attempt.
  * A single app process is a single launch, but check_and_apply_update can run
  * multiple times within one process (the dev screen's manual "check now", a
@@ -188,9 +213,28 @@ async function check_crash_guard(): Promise<boolean> {
 	launch_attempt_counted = true;
 
 	const store = mmkv();
+
+	// A launch only counts against the crash streak if the PREVIOUS launch set
+	// the boot-in-progress flag and never cleared it — i.e. it crashed before
+	// reaching a healthy first paint. This is the fix for OTA-always-embedded:
+	// the old scheme incremented on every launch and reset only after a 10s
+	// timer, so a launch that was closed (or OS-killed) before 10s — which is
+	// most of them — kept climbing the counter and rolled a perfectly good
+	// bundle back to embedded. A short-but-healthy session reaches first paint,
+	// clears the flag, and never contributes to a rollback.
+	const prev_boot_incomplete = ((await store.get_number(BOOT_PENDING_KEY)) ?? 0) === 1;
+	await store.set_number(BOOT_PENDING_KEY, 1);
+
+	if (!prev_boot_incomplete) {
+		// Previous launch booted cleanly (or this is a first run) — no crash streak.
+		await store.set_number(CRASH_COUNTER_KEY, 0);
+		console.log("[OTA] Previous launch booted cleanly");
+		return false;
+	}
+
 	const count = ((await store.get_number(CRASH_COUNTER_KEY)) ?? 0) + 1;
 	await store.set_number(CRASH_COUNTER_KEY, count);
-	console.log(`[OTA] Launch attempt #${count}`);
+	console.warn(`[OTA] Previous launch didn't finish booting — crash streak #${count}`);
 
 	if (count < CRASH_THRESHOLD) return false;
 
@@ -200,6 +244,9 @@ async function check_crash_guard(): Promise<boolean> {
 	const bad_mtime = await bundle_mtime();
 	if (bad_mtime !== null) await store.set_number(QUARANTINE_MTIME_KEY, bad_mtime);
 
+	// This restart into the embedded bundle is intentional — don't let the fresh
+	// boot mis-read a leftover pending flag as another crash.
+	await store.set_number(BOOT_PENDING_KEY, 0);
 	const ok = await hotUpdate.setupExactBundlePath(embedded_bundle_path());
 	if (ok) {
 		hotUpdate.resetApp();
@@ -213,6 +260,19 @@ async function check_crash_guard(): Promise<boolean> {
 }
 
 /**
+ * Clear the boot-in-progress flag right before an intentional resetApp (applying
+ * or cloning a bundle). Without this, the deliberate restart would look like a
+ * launch that never finished booting and would be counted as a crash.
+ */
+async function mark_clean_restart(): Promise<void> {
+	try {
+		await mmkv().set_number(BOOT_PENDING_KEY, 0);
+	} catch (_) {
+		// best-effort — a failed write just means the next boot re-evaluates
+	}
+}
+
+/**
  * Call this once the app has survived the crash-prone startup window (see the
  * delayed caller in app/_layout.tsx). Resets the crash counter so a healthy
  * launch doesn't contribute to a future rollback. Must run *after*
@@ -221,8 +281,13 @@ async function check_crash_guard(): Promise<boolean> {
  */
 export async function mark_launch_success(): Promise<void> {
 	if (__DEV__) return;
-	await mmkv().set_number(CRASH_COUNTER_KEY, 0);
-	console.log("[OTA] Launch success — crash counter reset");
+	const store = mmkv();
+	// Clearing the pending flag is what actually tells the next launch "the last
+	// boot was healthy." Resetting the counter too keeps a stale streak from a
+	// prior crash-loop from lingering.
+	await store.set_number(BOOT_PENDING_KEY, 0);
+	await store.set_number(CRASH_COUNTER_KEY, 0);
+	console.log("[OTA] Launch success — boot marked complete");
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -281,12 +346,16 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		const registered = await hotUpdate.setupExactBundlePath(device_bundle_path());
 		if (!registered) {
 			console.warn("[OTA] Failed to register pulled bundle path");
+			ota_alert("OTA: failed to register pulled bundle", "ERROR");
 			return;
 		}
 		// A freshly applied bundle earns a fresh crash budget: reset the counter
 		// so CRASH_THRESHOLD is measured against *this* bundle's boots, not the
-		// launches of whatever bundle was running when we downloaded it.
+		// launches of whatever bundle was running when we downloaded it. Clearing
+		// the pending flag keeps this deliberate restart from being counted as a
+		// crash on the next boot.
 		await store.set_number(CRASH_COUNTER_KEY, 0);
+		await mark_clean_restart();
 		// Surface the update via the app's toast system. In silent mode this is
 		// the only notice the user gets before the restart; in the alert path it
 		// complements the modal.
@@ -317,10 +386,14 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		// First-ever install (clone): always restart silently — the user hasn't
 		// seen any UI yet, so there's nothing to interrupt. The library already
 		// registered the bundle path itself on clone success.
-		onCloneSuccess: () => {
+		onCloneSuccess: async () => {
 			console.log("[OTA] Initial bundle cloned, restarting…");
+			ota_alert("OTA: cloned latest bundle — restarting", "GOOD");
 			// Fresh clone → fresh crash budget for the bundle we're about to boot.
-			mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
+			// Await the writes: resetApp kills the process, and an unflushed MMKV
+			// write would leave a stale pending flag / counter behind.
+			await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
+			await mark_clean_restart();
 			hotUpdate.resetApp();
 		},
 		onCloneFailed: (msg: string) => {
@@ -328,6 +401,7 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			// whatever the failed clone left behind — a partial .git dir would make
 			// the next check take the pull path and wedge OTA permanently.
 			console.warn("[OTA] Clone failed:", msg);
+			ota_alert("OTA clone failed", "WARN", msg);
 			wipe_git_dir().catch((e) => e);
 		},
 
@@ -346,13 +420,18 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			const updated = mtime_after !== null && (mtime_before === null || mtime_after > mtime_before);
 			if (updated) {
 				console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
-				apply_pulled_bundle().catch((e) => console.warn("[OTA] Apply failed:", e));
+				apply_pulled_bundle().catch((e) => {
+					console.warn("[OTA] Apply failed:", e);
+					ota_alert("OTA apply failed", "ERROR", String(e));
+				});
 				return;
 			}
 			if (msg === "No updated") {
 				console.log("[OTA] Already up to date");
+				ota_alert("OTA: already up to date", "INFO");
 			} else {
 				console.warn("[OTA] Pull failed:", msg);
+				ota_alert("OTA pull failed", "WARN", msg);
 			}
 		},
 
@@ -376,12 +455,26 @@ export async function check_and_apply_update(silent = false): Promise<void> {
  * same as check_and_apply_update. Intended for the dev screen.
  */
 export async function force_update_to_latest(): Promise<void> {
-	if (__DEV__ || Platform.OS !== "ios") return;
+	if (__DEV__ || Platform.OS !== "ios") {
+		// Make the no-op visible instead of the button appearing to do nothing.
+		GLOBALS.global_var.bottom_alert?.(__DEV__ ? "OTA is disabled in dev builds (Metro serves JS)" : "OTA only runs on iOS", "INFO");
+		return;
+	}
 	const store = mmkv();
 	await store.remove_key(QUARANTINE_MTIME_KEY);
 	await store.set_number(CRASH_COUNTER_KEY, 0);
+	await store.set_number(BOOT_PENDING_KEY, 0);
 	await wipe_git_dir();
-	await check_and_apply_update(true);
+	// Surface every outcome (clone/apply/up-to-date/failure) via toast so a
+	// release build shows why nothing happened. On a successful clone the app
+	// resetApps and never returns here; on any failure we turn chatter back off.
+	verbose_ota_alerts = true;
+	GLOBALS.global_var.bottom_alert?.("OTA: forcing update — cloning latest bundle…", "INFO");
+	try {
+		await check_and_apply_update(true);
+	} finally {
+		verbose_ota_alerts = false;
+	}
 }
 
 /** Roll back to the embedded bundle and quarantine the current OTA bundle. */

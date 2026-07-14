@@ -313,6 +313,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 				edit_mode={edit_mode_state}
 				width_fn={width_fn}
 				write_playlist_uuid={write_playlist_uuid}
+				play_order={props.type === "URI"}
 			/>
 		),
 		[playlist_data?.uuid, playlist_data?.title, track_callback, width_fn, display_plays, edit_mode_state, write_playlist_uuid]
@@ -345,9 +346,10 @@ export default function PlaylistBase(props: PlaylistProps) {
 				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 20, fontWeight: "bold" }}>
 					{playlist_data?.title}
 				</Text>
-				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 20 }}>
+				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 10 }}>
 					{playlist_data?.description}
 				</Text>
+				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 7 }}></Text>
 				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 12, top: -8 }}>
 					{empty_join_dot([`${tracks.length}${continuation ? "+" : ""} tracks`, tracks_duration_string(tracks)])}
 				</Text>

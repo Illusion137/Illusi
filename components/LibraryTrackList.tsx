@@ -19,6 +19,7 @@ import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { useFocusEffect } from "expo-router";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
+import { timeline_span_sync } from "@common/perf_timeline";
 
 let search_query = "";
 function LibraryTrackList(
@@ -72,8 +73,10 @@ function LibraryTrackList(
 	async function refresh_data(query?: string) {
 		search_query = query ?? search_query ?? "";
 
-		const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
-		const section_map = track_section_map(tracks, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query));
+		const { tracks, section_map } = timeline_span_sync("library.refresh_data", () => {
+			const filtered = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
+			return { tracks: filtered, section_map: track_section_map(filtered, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query)) };
+		});
 
 		if (writing_to_playlist) set_saved_track_uids(await SQLPlaylists.playlist_track_uid_set(props.write_playlist_uuid!));
 		set_all_data({ char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length });

@@ -31,6 +31,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
 import { breadcrumb as log_breadcrumb, initialize_sentry_severity_handler, set_breadcrumb_console_sink } from "@common/sentry_error_handler";
+import { start_stall_sampler, timeline_mark, timeline_span, timeline_span_sync } from "@common/perf_timeline";
 import { AppState, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from "@utils/perf_monitor";
@@ -145,12 +146,28 @@ export default Sentry.wrap(function App() {
 	useEffect(() => {
 		set_breadcrumb_console_sink(__DEV__);
 		initialize_sentry_severity_handler();
-		// Initialize nodejs worker (mobile only)
+		start_stall_sampler();
+		// Initialize nodejs worker (mobile only). nodejs-mobile boots a full
+		// Node runtime — ~seconds of JS-thread work that, run synchronously at
+		// mount, stalls the library's first paint. Nothing on the first-paint
+		// path needs node, so defer the boot until after the UI has painted.
+		let nodejs_start_timer: ReturnType<typeof setTimeout> | undefined;
 		if (Platform.OS !== "android" && Platform.OS !== "web") {
-			nodejs.start("main.js");
-			nodejs.channel.addListener("message", (msg) => {
-				Sentry.addBreadcrumb({ message: "From node: " + msg });
-			});
+			nodejs_start_timer = setTimeout(() => {
+				// Time the Node runtime boot: from nodejs.start() until the worker
+				// sends its first message (the "Node was initialized" handshake).
+				const node_boot_t0 = Date.now();
+				let node_boot_logged = false;
+				timeline_span_sync("nodejs.start (sync part)", () => nodejs.start("main.js"));
+				nodejs.channel.addListener("message", (msg) => {
+					if (!node_boot_logged) {
+						node_boot_logged = true;
+						timeline_mark("nodejs runtime booted", { boot_ms: Date.now() - node_boot_t0 });
+						log_breadcrumb("startup", "nodejs runtime booted", { boot_ms: Date.now() - node_boot_t0 });
+					}
+					Sentry.addBreadcrumb({ message: "From node: " + msg + "@" + new Date().getTime() });
+				});
+			}, 2500);
 		}
 		start_perf_monitor();
 		start_thermal_monitor();
@@ -169,14 +186,15 @@ export default Sentry.wrap(function App() {
 				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
 			]);
 			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
+			timeline_mark("app load complete", { total_ms: Date.now() - app_load_t0 });
 			// Kick off the OTA check here — anything later in this block that
 			// throws synchronously (CarPlay init has a history of it) would
 			// silently skip the check otherwise.
 			// NOTE: mark_launch_success() is intentionally NOT called here. It runs
-			// on a delay below, once we've survived the crash-prone startup window —
-			// resetting the OTA crash counter this early (before the counter is even
-			// incremented) is what defeated crash-loop rollback.
-			check_and_apply_update().catch((e) => e);
+			// from the is_loading effect below, once the library has painted and the
+			// deferred warm-up has settled — clearing the OTA boot-pending flag this
+			// early (before first paint) would let a boot-crash loop mask itself.
+			timeline_span("ota.check_and_apply_update", async () => check_and_apply_update()).catch((e) => e);
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
 				try {
@@ -224,20 +242,12 @@ export default Sentry.wrap(function App() {
 			ExpoImage.clearMemoryCache().catch((e) => e);
 			report_memory_warning();
 		});
-		// Treat the launch as healthy only once we've survived the crash-prone
-		// startup window (JS boot, first render, CarPlay init). Resetting the OTA
-		// crash counter here — rather than immediately after on_app_load — is what
-		// lets a genuine boot-crash loop accumulate to CRASH_THRESHOLD and roll
-		// back: a bundle that keeps crashing on launch never reaches this timer.
-		const launch_success_timer = setTimeout(() => {
-			mark_launch_success().catch((e) => e);
-		}, 10_000);
 		return () => {
 			subscription.remove();
 			linking_handler.remove();
 			app_state_subscription.remove();
 			memory_warning_subscription.remove();
-			clearTimeout(launch_success_timer);
+			if (nodejs_start_timer) clearTimeout(nodejs_start_timer);
 			stop_perf_monitor();
 			stop_thermal_monitor();
 			stop_heap_monitor();
@@ -247,6 +257,21 @@ export default Sentry.wrap(function App() {
 			}
 		};
 	}, []);
+	// Mark the OTA launch healthy only once the library has actually painted
+	// (is_loading → false) AND we've survived a few seconds past the deferred
+	// native/nodejs warm-up (which fire ~2.5s after mount and could still crash).
+	// Reaching here means the JS bundle booted, ran startup, and rendered — a
+	// genuine boot-crash loop never gets this far, so it still accumulates to
+	// CRASH_THRESHOLD and rolls back. Unlike the old fixed 10s-from-mount timer,
+	// this doesn't punish a normal short session, which was rolling good bundles
+	// back to embedded.
+	useEffect(() => {
+		if (is_loading) return;
+		const healthy_timer = setTimeout(() => {
+			mark_launch_success().catch((e) => e);
+		}, 4000);
+		return () => clearTimeout(healthy_timer);
+	}, [is_loading]);
 	useEffect(() => {
 		if (is_playing !== "LOADING") return;
 		set_is_playing("ON");

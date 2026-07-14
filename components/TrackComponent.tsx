@@ -32,6 +32,7 @@ function TrackComponent(props: {
 	// Batched membership computed by the parent list (one query for the whole list);
 	// when provided the per-row existence query is skipped.
 	playlist_saved?: boolean;
+	play_order?: boolean;
 }) {
 	const [track_data, set_track_data] = useState(props.track_data);
 
@@ -126,7 +127,9 @@ function TrackComponent(props: {
 			const clone: Track = JSON.parse(JSON.stringify(props.track_data));
 			const track: Track = { ...clone, meta: { ...clone.meta!, begdur: clone.duration * 0.2 } };
 			GLOBALS.global_var.play_tracks(track, [track], "Write Playlist");
-		} else if (props.from !== undefined && props.track_callback !== undefined) play(props.track_data, props.from, props.track_callback);
+		} else if (props.from !== undefined && props.track_callback !== undefined) {
+			play(props.track_data, props.from, props.track_callback, props.play_order);
+		}
 	}
 
 	return (
