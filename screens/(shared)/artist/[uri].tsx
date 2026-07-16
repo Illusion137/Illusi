@@ -16,6 +16,7 @@ import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "@components
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
 import useTrackStore from "@hooks/useTrackStore";
+import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
 import type { ResponseError } from "@common/types";
 import { router, useLocalSearchParams } from "expo-router";
 import { remove_topic } from "@common/utils/clean_util";
@@ -94,6 +95,11 @@ export default function Artist() {
 		}
 		GLOBALS.global_var.artist_cache.add(uri, { artist_data: artist });
 	}
+
+	function refresh_data() {
+		set_artist_data((prev) => (prev.tracks.length > 0 ? { ...prev, tracks: SQLTracks.add_playback_saved_data_to_tracks(prev.tracks) } : prev));
+	}
+	useGlobalTracksRefresh(refresh_data);
 
 	async function on_watch_unwatch() {
 		const cached = GLOBALS.global_var.artist_cache.get(uri);

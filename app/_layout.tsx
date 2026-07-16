@@ -20,6 +20,7 @@ import AudiobookSlidingPlayer from "@screens/audiobook/AudiobookSlidingPlayer";
 import ExternalDisplayHost from "@components/external_display/ExternalDisplayHost";
 import SyncPlayIndicator from "@components/SyncPlayIndicator";
 import AudiobookGenerationIndicator from "@components/AudiobookGenerationIndicator";
+import OTAUpdateIndicator from "@components/OTAUpdateIndicator";
 import { GLOBALS } from "@illusive/globals";
 import { AudiobookPlayer } from "@illusive/audiobook_player_service";
 import { AudiobookDownloads } from "@illusive/audiobook_downloads";
@@ -48,7 +49,7 @@ TrackPlayer.registerPlaybackService(() => playback_service);
 
 ExpoImage.configureCache({ maxMemoryCost: 128 * 1024 * 1024, maxDiskSize: 512 * 1024 * 1024 });
 
-const OTA_ENABLED = false;
+const OTA_ENABLED = true;
 Sentry.init({
 	dsn: "https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616",
 
@@ -173,7 +174,7 @@ export default Sentry.wrap(function App() {
 			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
 			if (OTA_ENABLED) {
 				ota_check_timer = setTimeout(() => {
-					async () => check_and_apply_update().catch((e) => e);
+					check_and_apply_update().catch((e) => e);
 				}, 5000);
 			}
 			GLOBALS.global_var.kill_audioplayer = () => {
@@ -278,6 +279,7 @@ export default Sentry.wrap(function App() {
 				{!is_loading ? <ExternalDisplayHost /> : null}
 				{!is_loading ? <SyncPlayIndicator /> : null}
 				{!is_loading ? <AudiobookGenerationIndicator /> : null}
+				{!is_loading ? <OTAUpdateIndicator /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
 				<SafeAreaProvider>
 					<Stack>

@@ -373,7 +373,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			GLOBALS.global_var.playing_tracks = tracks.slice();
 			for (let i = 0; i < tracks.length; i++) {
 				if (GLOBALS.global_var.playing_tracks[i].playback === undefined) {
-					SQLTracks.add_playback_saved_data_to_track(GLOBALS.global_var.playing_tracks[i]);
+					GLOBALS.global_var.playing_tracks[i] = SQLTracks.add_playback_saved_data_to_track(GLOBALS.global_var.playing_tracks[i]);
 				}
 				GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
 				GLOBALS.global_var.playing_tracks[i].playback!.added = false;

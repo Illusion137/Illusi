@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/only-throw-error */
 /**
  * OTA hot-update via GitHub (react-native-ota-hot-update, git mode).
  *
@@ -8,9 +9,14 @@
  *    installed binary (the old single shared "ios-ota" branch could).
  *  - On first launch the app shallow-clones its version branch into the
  *    device's document directory, registers the bundle path, and restarts.
- *  - On every subsequent launch it does a `git pull`; when the bundle file
- *    changes, the bundle path is re-registered and the app restarts (or shows
- *    an alert when silent=false).
+ *  - On every subsequent launch it compares the remote branch tip (GitHub API)
+ *    against the local clone. When a new bundle exists it asks the user first
+ *    (silent=false) — declining stores the rejected commit sha in the
+ *    recent_rejected_ota_update pref so that bundle is never offered again.
+ *    On consent it does a `git pull` (progress surfaced via
+ *    set_ota_download_listener, see components/OTAUpdateIndicator); when the
+ *    bundle file changes, the bundle path is re-registered and the app
+ *    restarts.
  *  - After a binary update the native side ignores the old bundle
  *    (VERSION_NAME check in OtaHotUpdate.getBundle) and the branch name no
  *    longer matches the clone, so the stale clone is wiped and the new
@@ -54,6 +60,7 @@
 import hotUpdate from "react-native-ota-hot-update";
 import { Alert, NativeModules, Platform } from "react-native";
 import { GLOBALS } from "@illusive/globals";
+import { Prefs } from "@illusive/prefs";
 import { mmkv } from "@native/mmkv/mmkv";
 import Constants from "expo-constants";
 import RNFS from "react-native-fs";
@@ -162,6 +169,92 @@ async function wipe_git_dir(): Promise<void> {
 	} catch (_) {
 		// didn't exist
 	}
+}
+
+/**
+ * Latest commit sha on this binary version's remote branch, or null when the
+ * branch doesn't exist yet (no ota:release for this version) or the check
+ * failed (offline, rate-limited, …) — null means "nothing to offer".
+ */
+async function latest_remote_commit(branch: string): Promise<string | null> {
+	try {
+		const repo = /github\.com[/:]([^/]+)\/([^/.]+)/.exec(OTA_REPO_URL);
+		if (repo === null) return null;
+		const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits/${encodeURIComponent(branch)}`, { headers: { Accept: "application/vnd.github+json" } });
+		if (!response.ok) return null;
+		const commit = (await response.json()) as { sha?: string };
+		return typeof commit.sha === "string" && commit.sha.length > 0 ? commit.sha : null;
+	} catch (_) {
+		return null;
+	}
+}
+
+/**
+ * Commit sha the on-device clone currently sits on, read straight from the
+ * .git refs (isomorphic-git writes loose refs on clone and updates them on
+ * pull). null = never cloned (or refs unreadable) — treated as "update
+ * available" so at worst we re-prompt, never silently skip a real update.
+ */
+async function local_bundle_commit(branch: string): Promise<string | null> {
+	const git_dir = `${git_dir_path()}/.git`;
+	for (const ref of [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`]) {
+		try {
+			const sha = (await RNFS.readFile(`${git_dir}/${ref}`, "utf8")).trim();
+			if (/^[0-9a-f]{40}$/.test(sha)) return sha;
+		} catch (_) {
+			// ref file missing — try the next candidate
+		}
+	}
+	try {
+		const packed = await RNFS.readFile(`${git_dir}/packed-refs`, "utf8");
+		for (const line of packed.split("\n")) {
+			const match = /^([0-9a-f]{40}) (.+)$/.exec(line.trim());
+			if (match !== null && (match[2] === `refs/heads/${branch}` || match[2] === `refs/remotes/origin/${branch}`)) return match[1];
+		}
+	} catch (_) {
+		// no packed-refs either — never cloned
+	}
+	return null;
+}
+
+// ─── Download progress (see components/OTAUpdateIndicator) ──────────────────
+
+export interface OTADownloadState {
+	active: boolean;
+	/** Short sha of the bundle being downloaded; null when unknown (force path). */
+	bundle_id: string | null;
+	received: number;
+	total: number;
+}
+
+let ota_download_listener: ((state: OTADownloadState) => void) | null = null;
+
+/** Register the UI listener that renders download progress (root layout). */
+export function set_ota_download_listener(listener: ((state: OTADownloadState) => void) | null): void {
+	ota_download_listener = listener;
+}
+
+function notify_download(state: OTADownloadState): void {
+	try {
+		ota_download_listener?.(state);
+	} catch (_) {
+		// UI is best-effort — never let it break the update flow
+	}
+}
+
+/** "New Update Available" prompt shown before anything is downloaded. */
+async function ask_install(bundle_id: string): Promise<boolean> {
+	return new Promise((resolve) => {
+		Alert.alert(
+			"New Update Available",
+			`Would you like to install OTA bundle ${bundle_id}?`,
+			[
+				{ text: "No", style: "cancel", onPress: () => resolve(false) },
+				{ text: "Yes", onPress: () => resolve(true) }
+			],
+			{ cancelable: false }
+		);
+	});
 }
 
 /** Which JS bundle this process actually booted from. */
@@ -296,8 +389,13 @@ export async function mark_launch_success(): Promise<void> {
  * Check the OTA repo for updates and apply them if available.
  * Requires MMKV to already be loaded (call after on_app_load).
  *
- * @param silent  true  → restart automatically without asking the user.
- *                false → show an "Update ready — restart now?" alert (default).
+ * @param silent  true  → skip the pre-download prompt and restart automatically.
+ *                false → ask "New Update Available" BEFORE downloading (default).
+ *                        Declining saves the bundle's commit sha to the
+ *                        recent_rejected_ota_update pref, so that specific
+ *                        bundle is never offered again; a newer push prompts
+ *                        anew. Consenting downloads with a progress overlay
+ *                        and restarts on success.
  */
 export async function check_and_apply_update(silent = false): Promise<void> {
 	if (__DEV__ || Platform.OS !== "ios") return;
@@ -319,6 +417,37 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 	if (cloned_branch !== null && cloned_branch !== branch) {
 		console.log(`[OTA] Clone tracks '${cloned_branch}' but binary needs '${branch}' — recloning`);
 		await wipe_git_dir();
+	}
+
+	// Ask BEFORE downloading: the git clone/pull can freeze the JS thread, so
+	// the user opts in (and gets the progress overlay) instead of hitting a
+	// mystery hang. The remote branch tip is the bundle's identity — it's what
+	// the rejected-bundle pref stores and what the alert displays.
+	let prompted_bundle_id: string | null = null;
+	if (!silent) {
+		const remote_sha = await latest_remote_commit(branch);
+		if (remote_sha === null) {
+			console.log(`[OTA] No remote bundle for '${branch}' (or check failed) — skipping`);
+			ota_alert("OTA: no remote bundle for this version", "INFO");
+			return;
+		}
+		const local_sha = await local_bundle_commit(branch);
+		if (local_sha === remote_sha) {
+			console.log("[OTA] Already up to date (local clone matches remote tip)");
+			ota_alert("OTA: already up to date", "INFO");
+			return;
+		}
+		if (Prefs.get_pref("recent_rejected_ota_update") === remote_sha) {
+			console.log(`[OTA] Bundle ${remote_sha.slice(0, 7)} was previously declined — not asking again`);
+			return;
+		}
+		prompted_bundle_id = remote_sha.slice(0, 7);
+		const install = await ask_install(prompted_bundle_id);
+		if (!install) {
+			console.log(`[OTA] User declined bundle ${prompted_bundle_id}`);
+			await Prefs.save_pref("recent_rejected_ota_update", remote_sha);
+			return;
+		}
 	}
 
 	// Snapshot the bundle mtime before the pull attempt (see header NOTE on
@@ -356,89 +485,95 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		// crash on the next boot.
 		await store.set_number(CRASH_COUNTER_KEY, 0);
 		await mark_clean_restart();
-		// Surface the update via the app's toast system. In silent mode this is
-		// the only notice the user gets before the restart; in the alert path it
-		// complements the modal.
+		// The user already approved this install in the pre-download prompt (or
+		// the caller asked for silent), so restart immediately — no second
+		// confirmation. The toast is the last thing they see before the restart.
 		GLOBALS.global_var.bottom_alert?.("Update downloaded — restarting to apply", "GOOD");
-		if (silent) {
-			hotUpdate.resetApp();
-		} else {
-			Alert.alert("Update ready", "A new version has been downloaded. Restart now?", [
-				{ text: "Later", style: "cancel" },
-				{ text: "Restart", onPress: async () => hotUpdate.resetApp() }
-			]);
-		}
+		hotUpdate.resetApp();
 	}
 
-	await hotUpdate.git.checkForGitUpdate({
-		url: OTA_REPO_URL,
-		branch,
-		bundlePath: OTA_BUNDLE_PATH,
-		restartAfterInstall: false, // we handle restart ourselves so we can show UI
+	// Put the progress overlay up, then yield a beat so it actually paints
+	// before the git work starts hogging the JS thread.
+	notify_download({ active: true, bundle_id: prompted_bundle_id, received: 0, total: 0 });
+	await new Promise((resolve) => setTimeout(resolve, 100));
 
-		onProgress: (received: number, total: number) => {
-			if (total > 0) {
-				const pct = ((received / total) * 100).toFixed(0);
-				console.log(`[OTA] ${pct}%`);
+	try {
+		await hotUpdate.git.checkForGitUpdate({
+			url: OTA_REPO_URL,
+			branch,
+			bundlePath: OTA_BUNDLE_PATH,
+			restartAfterInstall: false, // we handle restart ourselves so we can show UI
+
+			onProgress: (received: number, total: number) => {
+				notify_download({ active: true, bundle_id: prompted_bundle_id, received, total });
+				if (total > 0) {
+					const pct = ((received / total) * 100).toFixed(0);
+					console.log(`[OTA] ${pct}%`);
+				}
+			},
+
+			// First-ever install (clone): the user already consented via the
+			// pre-download prompt (or the caller asked for silent), so restart
+			// right away. The library already registered the bundle path itself
+			// on clone success.
+			onCloneSuccess: async () => {
+				console.log("[OTA] Initial bundle cloned, restarting…");
+				ota_alert("OTA: cloned latest bundle — restarting", "GOOD");
+				// Fresh clone → fresh crash budget for the bundle we're about to boot.
+				// Await the writes: resetApp kills the process, and an unflushed MMKV
+				// write would leave a stale pending flag / counter behind.
+				await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
+				await mark_clean_restart();
+				hotUpdate.resetApp();
+			},
+			onCloneFailed: (msg: string) => {
+				// Expected until the first ota:release for this binary version. Wipe
+				// whatever the failed clone left behind — a partial .git dir would make
+				// the next check take the pull path and wedge OTA permanently.
+				console.warn("[OTA] Clone failed:", msg);
+				ota_alert("OTA clone failed", "WARN", msg);
+				wipe_git_dir().catch((e) => e);
+			},
+
+			// Subsequent update (pull).
+			// onPullSuccess fires only if onProgress reported bytes (unlikely in RN).
+			onPullSuccess: () => {
+				console.log("[OTA] Bundle updated via pull (progress detected)");
+				apply_pulled_bundle().catch((e) => console.warn("[OTA] Apply failed:", e));
+			},
+
+			// The library fires onPullFailed("No updated") whenever onProgress never
+			// fired — which is always in RN. Check mtime to distinguish a real "no
+			// changes" from a successful pull that went undetected.
+			onPullFailed: async (msg: string) => {
+				const mtime_after = await bundle_mtime();
+				const updated = mtime_after !== null && (mtime_before === null || mtime_after > mtime_before);
+				if (updated) {
+					console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
+					apply_pulled_bundle().catch((e) => {
+						console.warn("[OTA] Apply failed:", e);
+						ota_alert("OTA apply failed", "ERROR", String(e));
+					});
+					return;
+				}
+				if (msg === "No updated") {
+					console.log("[OTA] Already up to date");
+					ota_alert("OTA: already up to date", "INFO");
+				} else {
+					console.warn("[OTA] Pull failed:", msg);
+					ota_alert("OTA pull failed", "WARN", msg);
+				}
+			},
+
+			onFinishProgress: () => {
+				console.log("[OTA] Done");
 			}
-		},
-
-		// First-ever install (clone): always restart silently — the user hasn't
-		// seen any UI yet, so there's nothing to interrupt. The library already
-		// registered the bundle path itself on clone success.
-		onCloneSuccess: async () => {
-			console.log("[OTA] Initial bundle cloned, restarting…");
-			ota_alert("OTA: cloned latest bundle — restarting", "GOOD");
-			// Fresh clone → fresh crash budget for the bundle we're about to boot.
-			// Await the writes: resetApp kills the process, and an unflushed MMKV
-			// write would leave a stale pending flag / counter behind.
-			await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
-			await mark_clean_restart();
-			hotUpdate.resetApp();
-		},
-		onCloneFailed: (msg: string) => {
-			// Expected until the first ota:release for this binary version. Wipe
-			// whatever the failed clone left behind — a partial .git dir would make
-			// the next check take the pull path and wedge OTA permanently.
-			console.warn("[OTA] Clone failed:", msg);
-			ota_alert("OTA clone failed", "WARN", msg);
-			wipe_git_dir().catch((e) => e);
-		},
-
-		// Subsequent update (pull): respect the silent flag.
-		// onPullSuccess fires only if onProgress reported bytes (unlikely in RN).
-		onPullSuccess: () => {
-			console.log("[OTA] Bundle updated via pull (progress detected)");
-			apply_pulled_bundle().catch((e) => console.warn("[OTA] Apply failed:", e));
-		},
-
-		// The library fires onPullFailed("No updated") whenever onProgress never
-		// fired — which is always in RN. Check mtime to distinguish a real "no
-		// changes" from a successful pull that went undetected.
-		onPullFailed: async (msg: string) => {
-			const mtime_after = await bundle_mtime();
-			const updated = mtime_after !== null && (mtime_before === null || mtime_after > mtime_before);
-			if (updated) {
-				console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
-				apply_pulled_bundle().catch((e) => {
-					console.warn("[OTA] Apply failed:", e);
-					ota_alert("OTA apply failed", "ERROR", String(e));
-				});
-				return;
-			}
-			if (msg === "No updated") {
-				console.log("[OTA] Already up to date");
-				ota_alert("OTA: already up to date", "INFO");
-			} else {
-				console.warn("[OTA] Pull failed:", msg);
-				ota_alert("OTA pull failed", "WARN", msg);
-			}
-		},
-
-		onFinishProgress: () => {
-			console.log("[OTA] Done");
-		}
-	});
+		});
+	} finally {
+		// Dismiss the overlay on every non-restart outcome (up to date, clone
+		// failed, apply failed, throw). Restart paths kill the process anyway.
+		notify_download({ active: false, bundle_id: prompted_bundle_id, received: 0, total: 0 });
+	}
 }
 
 /**
