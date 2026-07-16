@@ -12,6 +12,7 @@ import hexToRgba from "hex-to-rgba";
 
 export interface IImageProps {
 	source: Artwork | undefined | null;
+	recycling_key?: string;
 	tint?: { color: string; opacity: number };
 	blur?: BlurViewProps;
 	fade?: { percent: DimensionValue; color?: string; middle_opacity?: number; end_opacity?: number };
@@ -84,7 +85,7 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 		update_source();
 	}, [source_key]);
 
-	const recycling_key = typeof source === "string" ? source : undefined;
+	const recycling_key = props.recycling_key ?? (typeof source === "string" ? source : undefined);
 	const content_fit = to_content_fit(props.resizeMode ?? flat_style.resizeMode);
 
 	const base_image = (
