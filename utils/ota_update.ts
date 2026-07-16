@@ -2,45 +2,65 @@
  * OTA hot-update via GitHub (react-native-ota-hot-update, git mode).
  *
  * How it works:
- *  - On first launch the app shallow-clones OTA_REPO_URL (branch: "ios-ota") into the
+ *  - Bundles live in OTA_REPO_URL on a branch **per native binary version**
+ *    ("ios-ota-v21.0.9", …). A bundle is only ever pulled by binaries whose
+ *    native code it was built against, so a JS push can never crash an older
+ *    installed binary (the old single shared "ios-ota" branch could).
+ *  - On first launch the app shallow-clones its version branch into the
  *    device's document directory, registers the bundle path, and restarts.
- *  - On every subsequent launch it does a `git pull`; if there are new commits it restarts
- *    (or shows an alert when silent=false).
+ *  - On every subsequent launch it does a `git pull`; when the bundle file
+ *    changes, the bundle path is re-registered and the app restarts (or shows
+ *    an alert when silent=false).
+ *  - After a binary update the native side ignores the old bundle
+ *    (VERSION_NAME check in OtaHotUpdate.getBundle) and the branch name no
+ *    longer matches the clone, so the stale clone is wiped and the new
+ *    version's branch is cloned fresh. Until that branch exists (first
+ *    `yarn ota:release` after a store release) the clone fails harmlessly and
+ *    the embedded bundle is used.
  *
  * Crash guard:
- *  - Each launch increments a counter in MMKV before applying any update.
- *  - Call mark_launch_success() once the app has fully booted — it resets the counter.
- *  - If the counter reaches CRASH_THRESHOLD without being reset (i.e. the updated bundle
- *    kept crashing), the previous bundle is restored and the counter is cleared.
- *
- * Setup:
- *  1. Create a GitHub repo (e.g. "Illusion137/Illusi-ota").
- *  2. Set OTA_REPO_URL below.
- *  3. Call check_and_apply_update() inside on_app_load (after MMKV is ready).
- *  4. Call mark_launch_success() after the app has fully booted.
+ *  - The first update check in a process increments a counter in MMKV (once per
+ *    process — repeat checks, e.g. the dev screen, do not re-count).
+ *  - Call mark_launch_success() once the app has survived the crash-prone
+ *    startup window — it resets the counter. This must run *after* the
+ *    increment (on a delay, not right after on_app_load), or a bundle that
+ *    crashes on launch would keep resetting the counter and never roll back.
+ *  - Applying a bundle (clone/pull) resets the counter so each new bundle gets
+ *    a fresh CRASH_THRESHOLD boots to prove itself.
+ *  - If the counter reaches CRASH_THRESHOLD (the updated bundle kept
+ *    crashing), the app re-registers the *embedded* bundle and quarantines the
+ *    bad OTA bundle by mtime: it will not be re-applied until a newer commit
+ *    is pulled.
  *
  * Publish a new OTA bundle:
- *   yarn ota:release          — builds + pushes to the ios-ota branch
+ *   yarn ota:release          — builds + pushes to ios-ota-v<package.json version>
+ *   The package.json version MUST match the binary version users have
+ *   installed, or nobody will receive the update.
  *
- * NOTE: OTA only applies in release builds. Debug/dev-client always uses Metro.
+ * NOTE: OTA only applies in iOS release builds. Debug/dev-client always uses
+ * Metro.
  *
- * NOTE on pull detection: isomorphic-git/http/web uses ReadableStream for progress
- * reporting, which React Native's fetch() does not support. This means onProgress
- * never fires during a pull, so the library's internal `count > 0` success check
- * always returns false — calling onPullFailed("No updated") even on a real update.
- * We work around this by comparing the bundle file's mtime before and after the pull.
+ * NOTE on pull detection: isomorphic-git/http/web uses ReadableStream for
+ * progress reporting, which React Native's fetch() does not support. onProgress
+ * therefore never fires during a pull, so the library's internal `count > 0`
+ * success check always returns false — calling onPullFailed("No updated") even
+ * on a real update. We detect real updates by comparing the bundle file's
+ * mtime before and after the pull, and — critically — we re-register the
+ * bundle path with the native side ourselves: the library only registers it on
+ * the initial clone, so without this every pulled update was silently ignored
+ * whenever the native PATH had been cleared (binary update, crash rollback).
  */
 
 import hotUpdate from "react-native-ota-hot-update";
-import { Alert } from "react-native";
+import { Alert, NativeModules, Platform } from "react-native";
+import { GLOBALS } from "@illusive/globals";
 import { mmkv } from "@native/mmkv/mmkv";
+import Constants from "expo-constants";
 import RNFS from "react-native-fs";
+import * as Sentry from "@sentry/react-native";
 
 /** GitHub repo that stores the OTA bundles. Must be public (or use a token in the URL). */
 const OTA_REPO_URL = "https://github.com/Illusion137/Illusi-ota.git";
-
-/** Branch in OTA_REPO_URL that holds the iOS bundle. */
-const OTA_BRANCH = "ios-ota";
 
 /** Path inside the cloned repo where main.jsbundle lives. */
 const OTA_BUNDLE_PATH = "output/main.jsbundle";
@@ -51,12 +71,78 @@ const OTA_GIT_DIR = "git_hot_update";
 /** MMKV key for the consecutive crash/bad-launch counter. */
 const CRASH_COUNTER_KEY = "ota_crash_counter";
 
+/** MMKV key holding the mtime of a bundle that crash-looped and was rolled back. */
+const QUARANTINE_MTIME_KEY = "ota_quarantined_bundle_mtime";
+
 /** How many consecutive failed launches before we roll back. */
 const CRASH_THRESHOLD = 3;
 
+/**
+ * MMKV key holding 1 while a launch is booting and hasn't yet proven itself
+ * healthy (reached first paint). The crash guard reads it on the NEXT launch: if
+ * it's still 1, the previous launch never finished booting = a real boot crash.
+ * mark_launch_success clears it to 0; an intentional resetApp (apply/rollback)
+ * also clears it so the deliberate restart isn't mis-counted as a crash.
+ */
+const BOOT_PENDING_KEY = "ota_boot_pending";
+
+/**
+ * When true, OTA outcomes are surfaced via the app's toast so they're visible
+ * in a release build (where console logs aren't). Kept off for the silent
+ * startup check so normal users never see OTA chatter; force_update_to_latest
+ * turns it on so the dev-screen button reports exactly what happened.
+ */
+let verbose_ota_alerts = false;
+function ota_alert(text: string, type: "GOOD" | "WARN" | "ERROR" | "INFO", info?: string): void {
+	if (!verbose_ota_alerts) return;
+	try {
+		GLOBALS.global_var.bottom_alert?.(text, type, info);
+	} catch (_) {
+		// toast is best-effort — never let it break the update flow
+	}
+}
+
+/**
+ * Whether this JS process has already been counted as a launch attempt.
+ * A single app process is a single launch, but check_and_apply_update can run
+ * multiple times within one process (the dev screen's manual "check now", a
+ * future foreground re-check, …). Counting each of those bumped the crash
+ * counter with no crash involved, and once it reached CRASH_THRESHOLD the guard
+ * rolled back to the embedded bundle and skipped the update outright — so a
+ * perfectly good bundle already on disk never applied. Gate the increment on
+ * this flag so only the first check per process counts.
+ */
+let launch_attempt_counted = false;
+
+/**
+ * Version of the installed native binary. expo-constants embeds app.config
+ * into the native bundle at build time (EXConstants.bundle), so this stays
+ * correct even when the running JS came from an OTA bundle built at a
+ * different version — exactly the property the branch gating needs.
+ */
+function native_binary_version(): string | null {
+	return Constants.expoConfig?.version ?? null;
+}
+
+/** Branch in OTA_REPO_URL holding the bundle for this binary version. */
+function ota_branch(): string | null {
+	const version = native_binary_version();
+	return version === null ? null : `ios-ota-v${version}`;
+}
+
+/** Full path to the cloned OTA repo on device. */
+function git_dir_path(): string {
+	return `${RNFS.DocumentDirectoryPath}/${OTA_GIT_DIR}`;
+}
+
 /** Full path to the bundle file on device. */
 function device_bundle_path(): string {
-	return `${RNFS.DocumentDirectoryPath}/${OTA_GIT_DIR}/${OTA_BUNDLE_PATH}`;
+	return `${git_dir_path()}/${OTA_BUNDLE_PATH}`;
+}
+
+/** Path of the bundle shipped inside the app binary (rollback target). */
+function embedded_bundle_path(): string {
+	return `${RNFS.MainBundlePath}/main.jsbundle`;
 }
 
 /** Returns the mtime (ms) of the bundle file, or null if it doesn't exist. */
@@ -69,41 +155,139 @@ async function bundle_mtime(): Promise<number | null> {
 	}
 }
 
+/** Delete the cloned OTA repo (forces a fresh clone on the next check). */
+async function wipe_git_dir(): Promise<void> {
+	try {
+		await RNFS.unlink(git_dir_path());
+	} catch (_) {
+		// didn't exist
+	}
+}
+
+/** Which JS bundle this process actually booted from. */
+function running_bundle(): "ota" | "embedded" | "metro" {
+	const source_code = NativeModules?.SourceCode;
+	const script_url: string = source_code?.getConstants?.()?.scriptURL ?? source_code?.scriptURL ?? "";
+	if (script_url.includes(`/${OTA_GIT_DIR}/`)) return "ota";
+	if (script_url.startsWith("http")) return "metro";
+	return "embedded";
+}
+
+/**
+ * Report the real OTA state to Sentry. The SDK's built-in "OTA Updates"
+ * (ota_updates) context only knows about expo-updates — which this app doesn't
+ * use — so it permanently shows is_enabled=false and can't be overridden (the
+ * ExpoContext integration re-stamps it on every event). This context is the
+ * one to read when triaging.
+ */
+async function set_sentry_ota_context(branch: string | null): Promise<void> {
+	try {
+		Sentry.setContext("ota_hot_update", {
+			is_enabled: branch !== null,
+			branch,
+			running_bundle: running_bundle(),
+			bundle_mtime: await bundle_mtime(),
+			quarantined: (await mmkv().get_number(QUARANTINE_MTIME_KEY)) !== undefined
+		});
+	} catch (_) {
+		// telemetry only — never let it break the update flow
+	}
+}
+
 // ─── Crash guard ─────────────────────────────────────────────────────────────
 
 /**
  * Increment the launch counter and roll back if we've exceeded the crash threshold.
  * Returns true if a rollback was triggered (caller should skip the normal update flow).
+ *
+ * Rollback = point the native loader back at the embedded bundle and remember
+ * the bad bundle's mtime. The cloned repo is left intact so a future pull with
+ * a fix (mtime > quarantined mtime) recovers automatically; the unchanged bad
+ * bundle is never re-applied. (The library's rollbackToPreviousBundle only
+ * works for versioned zip updates — in git mode there is no bundle history,
+ * so it always failed and crash loops previously ran forever.)
  */
 async function check_crash_guard(): Promise<boolean> {
-	const store = mmkv();
-	const count = ((await store.get_number(CRASH_COUNTER_KEY)) ?? 0) + 1;
-	await store.set_number(CRASH_COUNTER_KEY, count);
-	console.log(`[OTA] Launch attempt #${count}`);
+	// Count a launch at most once per process — see launch_attempt_counted.
+	if (launch_attempt_counted) return false;
+	launch_attempt_counted = true;
 
-	if (count >= CRASH_THRESHOLD) {
-		console.warn(`[OTA] ${count} consecutive bad launches — rolling back`);
+	const store = mmkv();
+
+	// A launch only counts against the crash streak if the PREVIOUS launch set
+	// the boot-in-progress flag and never cleared it — i.e. it crashed before
+	// reaching a healthy first paint. This is the fix for OTA-always-embedded:
+	// the old scheme incremented on every launch and reset only after a 10s
+	// timer, so a launch that was closed (or OS-killed) before 10s — which is
+	// most of them — kept climbing the counter and rolled a perfectly good
+	// bundle back to embedded. A short-but-healthy session reaches first paint,
+	// clears the flag, and never contributes to a rollback.
+	const prev_boot_incomplete = ((await store.get_number(BOOT_PENDING_KEY)) ?? 0) === 1;
+	await store.set_number(BOOT_PENDING_KEY, 1);
+
+	if (!prev_boot_incomplete) {
+		// Previous launch booted cleanly (or this is a first run) — no crash streak.
 		await store.set_number(CRASH_COUNTER_KEY, 0);
-		const ok = await hotUpdate.rollbackToPreviousBundle();
-		if (ok) {
-			hotUpdate.resetApp();
-		} else {
-			console.error("[OTA] Rollback failed — no previous bundle available");
-		}
-		return true;
+		console.log("[OTA] Previous launch booted cleanly");
+		return false;
 	}
 
-	return false;
+	const count = ((await store.get_number(CRASH_COUNTER_KEY)) ?? 0) + 1;
+	await store.set_number(CRASH_COUNTER_KEY, count);
+	console.warn(`[OTA] Previous launch didn't finish booting — crash streak #${count}`);
+
+	if (count < CRASH_THRESHOLD) return false;
+
+	console.warn(`[OTA] ${count} consecutive bad launches — rolling back to embedded bundle`);
+	await store.set_number(CRASH_COUNTER_KEY, 0);
+
+	const bad_mtime = await bundle_mtime();
+	if (bad_mtime !== null) await store.set_number(QUARANTINE_MTIME_KEY, bad_mtime);
+
+	// This restart into the embedded bundle is intentional — don't let the fresh
+	// boot mis-read a leftover pending flag as another crash.
+	await store.set_number(BOOT_PENDING_KEY, 0);
+	const ok = await hotUpdate.setupExactBundlePath(embedded_bundle_path());
+	if (ok) {
+		hotUpdate.resetApp();
+	} else {
+		// Embedded bundle not found where expected — last resort: delete the OTA
+		// bundle files and clear the native path entirely.
+		console.error("[OTA] Could not register embedded bundle — removing OTA bundle instead");
+		hotUpdate.removeUpdate(true);
+	}
+	return true;
 }
 
 /**
- * Call this once the app has fully booted successfully.
- * Resets the crash counter so a healthy launch doesn't trigger a future rollback.
+ * Clear the boot-in-progress flag right before an intentional resetApp (applying
+ * or cloning a bundle). Without this, the deliberate restart would look like a
+ * launch that never finished booting and would be counted as a crash.
+ */
+async function mark_clean_restart(): Promise<void> {
+	try {
+		await mmkv().set_number(BOOT_PENDING_KEY, 0);
+	} catch (_) {
+		// best-effort — a failed write just means the next boot re-evaluates
+	}
+}
+
+/**
+ * Call this once the app has survived the crash-prone startup window (see the
+ * delayed caller in app/_layout.tsx). Resets the crash counter so a healthy
+ * launch doesn't contribute to a future rollback. Must run *after*
+ * check_and_apply_update has incremented the counter for this process, or the
+ * guard can never accumulate across a crash loop.
  */
 export async function mark_launch_success(): Promise<void> {
 	if (__DEV__) return;
-	await mmkv().set_number(CRASH_COUNTER_KEY, 0);
-	console.log("[OTA] Launch success — crash counter reset");
+	const store = mmkv();
+	// Clearing the pending flag is what actually tells the next launch "the last
+	// boot was healthy." Resetting the counter too keeps a stale streak from a
+	// prior crash-loop from lingering.
+	await store.set_number(BOOT_PENDING_KEY, 0);
+	await store.set_number(CRASH_COUNTER_KEY, 0);
+	console.log("[OTA] Launch success — boot marked complete");
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -116,18 +300,66 @@ export async function mark_launch_success(): Promise<void> {
  *                false → show an "Update ready — restart now?" alert (default).
  */
 export async function check_and_apply_update(silent = false): Promise<void> {
-	if (__DEV__) return;
+	if (__DEV__ || Platform.OS !== "ios") return;
+
+	const branch = ota_branch();
+	set_sentry_ota_context(branch).catch((e) => e);
+	if (branch === null) {
+		console.warn("[OTA] Native binary version unavailable — skipping update check");
+		return;
+	}
 
 	const rolled_back = await check_crash_guard();
 	if (rolled_back) return;
 
-	// Snapshot the bundle mtime before the pull attempt.
-	// isomorphic-git/http/web doesn't support RN streaming so onProgress never
-	// fires, making the library report every pull as "No updated". We detect
-	// real updates by comparing mtime before vs after.
+	// A clone from a previous binary version (or the legacy shared "ios-ota"
+	// branch) tracks the wrong branch — pull would never see this version's
+	// updates. Wipe it and clone the right branch fresh.
+	const cloned_branch: string | null = await hotUpdate.git.getBranchName();
+	if (cloned_branch !== null && cloned_branch !== branch) {
+		console.log(`[OTA] Clone tracks '${cloned_branch}' but binary needs '${branch}' — recloning`);
+		await wipe_git_dir();
+	}
+
+	// Snapshot the bundle mtime before the pull attempt (see header NOTE on
+	// why update detection is mtime-based).
 	const mtime_before = await bundle_mtime();
 
-	function handle_pull_update() {
+	// Register the pulled bundle with the native loader and restart. The
+	// library does this only on the initial clone; after a pull the native
+	// PATH may be stale or cleared (binary update, crash rollback), so we must
+	// re-register it explicitly or the update never takes effect.
+	async function apply_pulled_bundle() {
+		const store = mmkv();
+		const mtime_after = await bundle_mtime();
+		if (mtime_after === null) return;
+
+		const quarantined_mtime = await store.get_number(QUARANTINE_MTIME_KEY);
+		if (quarantined_mtime !== undefined) {
+			if (mtime_after <= quarantined_mtime) {
+				console.log("[OTA] Bundle is quarantined after a crash rollback — waiting for a newer push");
+				return;
+			}
+			await store.remove_key(QUARANTINE_MTIME_KEY);
+		}
+
+		const registered = await hotUpdate.setupExactBundlePath(device_bundle_path());
+		if (!registered) {
+			console.warn("[OTA] Failed to register pulled bundle path");
+			ota_alert("OTA: failed to register pulled bundle", "ERROR");
+			return;
+		}
+		// A freshly applied bundle earns a fresh crash budget: reset the counter
+		// so CRASH_THRESHOLD is measured against *this* bundle's boots, not the
+		// launches of whatever bundle was running when we downloaded it. Clearing
+		// the pending flag keeps this deliberate restart from being counted as a
+		// crash on the next boot.
+		await store.set_number(CRASH_COUNTER_KEY, 0);
+		await mark_clean_restart();
+		// Surface the update via the app's toast system. In silent mode this is
+		// the only notice the user gets before the restart; in the alert path it
+		// complements the modal.
+		GLOBALS.global_var.bottom_alert?.("Update downloaded — restarting to apply", "GOOD");
 		if (silent) {
 			hotUpdate.resetApp();
 		} else {
@@ -140,7 +372,7 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 
 	await hotUpdate.git.checkForGitUpdate({
 		url: OTA_REPO_URL,
-		branch: OTA_BRANCH,
+		branch,
 		bundlePath: OTA_BUNDLE_PATH,
 		restartAfterInstall: false, // we handle restart ourselves so we can show UI
 
@@ -152,20 +384,32 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		},
 
 		// First-ever install (clone): always restart silently — the user hasn't
-		// seen any UI yet, so there's nothing to interrupt.
-		onCloneSuccess: () => {
+		// seen any UI yet, so there's nothing to interrupt. The library already
+		// registered the bundle path itself on clone success.
+		onCloneSuccess: async () => {
 			console.log("[OTA] Initial bundle cloned, restarting…");
+			ota_alert("OTA: cloned latest bundle — restarting", "GOOD");
+			// Fresh clone → fresh crash budget for the bundle we're about to boot.
+			// Await the writes: resetApp kills the process, and an unflushed MMKV
+			// write would leave a stale pending flag / counter behind.
+			await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
+			await mark_clean_restart();
 			hotUpdate.resetApp();
 		},
 		onCloneFailed: (msg: string) => {
+			// Expected until the first ota:release for this binary version. Wipe
+			// whatever the failed clone left behind — a partial .git dir would make
+			// the next check take the pull path and wedge OTA permanently.
 			console.warn("[OTA] Clone failed:", msg);
+			ota_alert("OTA clone failed", "WARN", msg);
+			wipe_git_dir().catch((e) => e);
 		},
 
 		// Subsequent update (pull): respect the silent flag.
 		// onPullSuccess fires only if onProgress reported bytes (unlikely in RN).
 		onPullSuccess: () => {
 			console.log("[OTA] Bundle updated via pull (progress detected)");
-			handle_pull_update();
+			apply_pulled_bundle().catch((e) => console.warn("[OTA] Apply failed:", e));
 		},
 
 		// The library fires onPullFailed("No updated") whenever onProgress never
@@ -173,15 +417,21 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		// changes" from a successful pull that went undetected.
 		onPullFailed: async (msg: string) => {
 			const mtime_after = await bundle_mtime();
-			if (mtime_before !== null && mtime_after !== null && mtime_after > mtime_before) {
+			const updated = mtime_after !== null && (mtime_before === null || mtime_after > mtime_before);
+			if (updated) {
 				console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
-				handle_pull_update();
+				apply_pulled_bundle().catch((e) => {
+					console.warn("[OTA] Apply failed:", e);
+					ota_alert("OTA apply failed", "ERROR", String(e));
+				});
 				return;
 			}
 			if (msg === "No updated") {
 				console.log("[OTA] Already up to date");
+				ota_alert("OTA: already up to date", "INFO");
 			} else {
 				console.warn("[OTA] Pull failed:", msg);
+				ota_alert("OTA pull failed", "WARN", msg);
 			}
 		},
 
@@ -191,12 +441,129 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 	});
 }
 
-/** Roll back to the previously installed bundle and restart. */
+/**
+ * Force this version's latest OTA bundle to (re)apply, bypassing every
+ * short-circuit that normally suppresses an update:
+ *  - clears a crash-rollback quarantine,
+ *  - resets the crash counter (so the guard can't early-return),
+ *  - wipes the on-device clone so the next check clones the branch tip fresh
+ *    (the CLONE path always registers + restarts, sidestepping the pull's
+ *    "already up to date" mtime check).
+ *
+ * Then runs the update silently — on success the app re-clones the tip and
+ * restarts into it. No-op in dev builds (Metro serves the JS) and off-iOS,
+ * same as check_and_apply_update. Intended for the dev screen.
+ */
+export async function force_update_to_latest(): Promise<void> {
+	if (__DEV__ || Platform.OS !== "ios") {
+		// Make the no-op visible instead of the button appearing to do nothing.
+		GLOBALS.global_var.bottom_alert?.(__DEV__ ? "OTA is disabled in dev builds (Metro serves JS)" : "OTA only runs on iOS", "INFO");
+		return;
+	}
+	const store = mmkv();
+	await store.remove_key(QUARANTINE_MTIME_KEY);
+	await store.set_number(CRASH_COUNTER_KEY, 0);
+	await store.set_number(BOOT_PENDING_KEY, 0);
+	await wipe_git_dir();
+	// Surface every outcome (clone/apply/up-to-date/failure) via toast so a
+	// release build shows why nothing happened. On a successful clone the app
+	// resetApps and never returns here; on any failure we turn chatter back off.
+	verbose_ota_alerts = true;
+	GLOBALS.global_var.bottom_alert?.("OTA: forcing update — cloning latest bundle…", "INFO");
+	try {
+		await check_and_apply_update(true);
+	} finally {
+		verbose_ota_alerts = false;
+	}
+}
+
+/** Roll back to the embedded bundle and quarantine the current OTA bundle. */
 export async function rollback_update(): Promise<boolean> {
-	return hotUpdate.rollbackToPreviousBundle();
+	const bad_mtime = await bundle_mtime();
+	if (bad_mtime !== null) await mmkv().set_number(QUARANTINE_MTIME_KEY, bad_mtime);
+	return hotUpdate.setupExactBundlePath(embedded_bundle_path());
 }
 
 /** Version number of the currently active OTA bundle (0 = shipped bundle). */
 export async function current_bundle_version(): Promise<number> {
 	return hotUpdate.getCurrentVersion();
+}
+
+// ─── Diagnostics (dev screen) ────────────────────────────────────────────────
+
+export interface OTADiagnostics {
+	/** OTA is a no-op in dev builds — everything below is still readable. */
+	is_dev: boolean;
+	enabled: boolean;
+	binary_version: string | null;
+	expected_branch: string | null;
+	/** Branch of the on-device clone; null when nothing has been cloned yet. */
+	cloned_branch: string | null;
+	/** mtime (ms) of the pulled bundle on disk; null when never cloned. */
+	bundle_mtime: number | null;
+	running_bundle: "ota" | "embedded" | "metro";
+	quarantined_mtime: number | null;
+	crash_counter: number;
+	repo_url: string;
+}
+
+/** Snapshot of the full on-device OTA state (works in dev builds too). */
+export async function get_ota_diagnostics(): Promise<OTADiagnostics> {
+	const store = mmkv();
+	let cloned_branch: string | null = null;
+	try {
+		cloned_branch = (await hotUpdate.git.getBranchName()) ?? null;
+	} catch (_) {
+		cloned_branch = null;
+	}
+	return {
+		is_dev: __DEV__,
+		enabled: !__DEV__ && Platform.OS === "ios" && ota_branch() !== null,
+		binary_version: native_binary_version(),
+		expected_branch: ota_branch(),
+		cloned_branch,
+		bundle_mtime: await bundle_mtime(),
+		running_bundle: running_bundle(),
+		quarantined_mtime: (await store.get_number(QUARANTINE_MTIME_KEY)) ?? null,
+		crash_counter: (await store.get_number(CRASH_COUNTER_KEY)) ?? 0,
+		repo_url: OTA_REPO_URL
+	};
+}
+
+export interface OTARemoteBundle {
+	sha: string;
+	date: string;
+	message: string;
+}
+
+/**
+ * List the bundle commits available on this binary version's branch, newest
+ * first (GitHub API). Returns [] when the branch doesn't exist yet — i.e. no
+ * ota:release has been run for this version.
+ */
+export async function list_remote_bundles(): Promise<OTARemoteBundle[]> {
+	const branch = ota_branch();
+	if (branch === null) throw new Error("Native binary version unavailable");
+	const repo = /github\.com[/:]([^/]+)\/([^/.]+)/.exec(OTA_REPO_URL);
+	if (repo === null) throw new Error(`Not a GitHub repo URL: ${OTA_REPO_URL}`);
+	const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits?sha=${encodeURIComponent(branch)}&per_page=20`, { headers: { Accept: "application/vnd.github+json" } });
+	// 404/422 = repo or branch missing — expected before the first ota:release
+	if (response.status === 404 || response.status === 422) return [];
+	if (!response.ok) throw new Error(`GitHub API responded ${response.status}`);
+	const commits = (await response.json()) as { sha: string; commit: { message: string; committer?: { date?: string }; author?: { date?: string } } }[];
+	return commits.map((c) => ({
+		sha: c.sha,
+		date: c.commit.committer?.date ?? c.commit.author?.date ?? "",
+		message: c.commit.message.split("\n")[0]
+	}));
+}
+
+/** Lift a crash-rollback quarantine so the current remote bundle can apply again. */
+export async function clear_quarantine(): Promise<void> {
+	await mmkv().remove_key(QUARANTINE_MTIME_KEY);
+}
+
+/** Delete the on-device clone; the next check does a fresh clone. */
+export async function wipe_ota_clone(): Promise<void> {
+	await wipe_git_dir();
 }

@@ -1,0 +1,1360 @@
+diff --git a/node_modules/react-native-shumil/README.md b/node_modules/react-native-shumil/README.md
+index 5c1760b..ba97f76 100644
+--- a/node_modules/react-native-shumil/README.md
++++ b/node_modules/react-native-shumil/README.md
+@@ -46,7 +46,10 @@ const jobs: ExportJob[] = paragraphs.map((text, i) => ({
+   text,
+   outputPath: `/tmp/chunk_${i}.caf`,
+ }))
+-await MrLecture.exportBatch(jobs, 'avs', { concurrency: 6 })
++await MrLecture.exportBatch(jobs, 'avs', {
++  concurrency: 4,
++  onJobComplete: (outputPath) => console.log('finished', outputPath),
++})
+ ```
+ 
+ ### Options
+@@ -55,7 +58,8 @@ await MrLecture.exportBatch(jobs, 'avs', { concurrency: 6 })
+ |---|---|---|---|
+ | `voiceId` | `string` | system default | Voice identifier from `getVoices()` |
+ | `rate` | `number` | `1.0` | Speed multiplier (0.5 – 2.0) |
+-| `concurrency` | `number` | `min(8, cpuCount)` | Max parallel synthesis workers (`exportBatch` only) |
++| `concurrency` | `number` | engine-specific | Max parallel synthesis workers (`exportBatch` only). Defaults: avs `min(4, cpuCount)`; piper/kokoro `cpuCount / 2` (2 ONNX intra-op threads per worker) |
++| `onJobComplete` | `(outputPath: string) => void` | — | Per-job progress callback, fired as each file finishes (completion order; `exportBatch` only) |
+ 
+ ### VoiceInfo
+ 
+diff --git a/node_modules/react-native-shumil/android/src/main/java/com/mrlecture/HybridMrLecture.kt b/node_modules/react-native-shumil/android/src/main/java/com/mrlecture/HybridMrLecture.kt
+index d0a3a73..394abd4 100755
+--- a/node_modules/react-native-shumil/android/src/main/java/com/mrlecture/HybridMrLecture.kt
++++ b/node_modules/react-native-shumil/android/src/main/java/com/mrlecture/HybridMrLecture.kt
+@@ -14,6 +14,18 @@ class HybridMrLecture : HybridMrLectureSpec() {
+         throw UnsupportedOperationException("mr-lecture: Android not implemented")
+     }
+ 
++    override fun setKokoroModel(modelPath: String, voicesPath: String, tokensPath: String) {
++        throw UnsupportedOperationException("mr-lecture: Android not implemented")
++    }
++
++    override fun downloadModel(engine: String, modelId: String, destDir: String): Promise<String> {
++        throw UnsupportedOperationException("mr-lecture: Android not implemented")
++    }
++
++    override fun sampleVoice(engine: Engine, text: String, options: SpeakOptions): Promise<Unit> {
++        throw UnsupportedOperationException("mr-lecture: Android not implemented")
++    }
++
+     override fun getVoices(engine: Engine): Promise<Array<VoiceInfo>> {
+         throw UnsupportedOperationException("mr-lecture: Android not implemented")
+     }
+diff --git a/node_modules/react-native-shumil/ios/AVSEngine.swift b/node_modules/react-native-shumil/ios/AVSEngine.swift
+index 7a30675..a570e7c 100644
+--- a/node_modules/react-native-shumil/ios/AVSEngine.swift
++++ b/node_modules/react-native-shumil/ios/AVSEngine.swift
+@@ -6,6 +6,12 @@ import AVFoundation
+ // Each job creates its own synthesizer instance to avoid delegate collision.
+ class AVSEngine {
+ 
++    // AVSpeechSynthesizer.delegate is weak — without a strong ref here the delegate
++    // (and the session it anchors) is deallocated when speak()'s closure exits,
++    // didFinish never fires, and the continuation (and the JS promise awaiting it)
++    // hangs forever. Held until the next speak() replaces it.
++    private var liveSpeakDelegate: LiveSpeakDelegate?
++
+     // MARK: - Public API
+ 
+     func getVoices() -> [VoiceInfo] {
+@@ -28,6 +34,7 @@ class AVSEngine {
+ 
+         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+             let delegate = LiveSpeakDelegate(continuation: continuation)
++            self.liveSpeakDelegate = delegate
+             session.synthesizer.delegate = delegate
+             delegate.session = session  // keeps both alive until didFinish fires
+             session.synthesizer.speak(utterance)
+@@ -35,9 +42,10 @@ class AVSEngine {
+     }
+ 
+     func exportBatch(jobs: [ExportJob], options: ExportOptions) async throws {
+-        // Keep this low: many concurrent AVSpeechSynthesizer instances overwhelm the
+-        // iOS speech daemon, which then drops jobs (they never call back) and can freeze
+-        // the UI. The per-job watchdog in exportOne recovers any that still stall.
++        // Keep this capped at 4: the iOS speech daemon (unlike the macOS one the
++        // perf harness measured) wedges outright under core-count-many concurrent
++        // write() sessions — no job ever receives a single buffer. 4 is the widest
++        // batch that is proven stable on device.
+         let maxConcurrency = Int(options.concurrency ?? Double(min(4, ProcessInfo.processInfo.processorCount)))
+         let semaphore = AsyncSemaphore(value: maxConcurrency)
+ 
+@@ -45,13 +53,20 @@ class AVSEngine {
+             for job in jobs {
+                 group.addTask {
+                     await semaphore.wait()
++                    // A thrown job cancels the group; skip (and unblock) the queued
++                    // remainder instead of synthesizing it all before failing.
++                    if Task.isCancelled {
++                        await semaphore.signal()
++                        throw CancellationError()
++                    }
+                     do {
+-                        try await self.exportOne(
++                        try await self.exportOneWithRetry(
+                             text: job.text,
+                             outputPath: job.outputPath,
+                             voiceId: options.voiceId,
+                             rate: options.rate
+                         )
++                        options.onJobComplete?(job.outputPath)
+                         await semaphore.signal()
+                     } catch {
+                         await semaphore.signal()
+@@ -65,6 +80,20 @@ class AVSEngine {
+ 
+     // MARK: - Private
+ 
++    // Under burst load the speech daemon occasionally drops a queued write() job —
++    // it never delivers any buffer and the watchdog eventually times it out. That
++    // used to fail the job (and with batched calls, the whole batch). A single
++    // retry on a fresh synthesizer virtually always succeeds because the burst has
++    // drained by then.
++    private func exportOneWithRetry(text: String, outputPath: String, voiceId: String?, rate: Double?) async throws {
++        do {
++            try await exportOne(text: text, outputPath: outputPath, voiceId: voiceId, rate: rate)
++        } catch let error as NSError where error.domain == "MrLecture" && error.code == -2 {
++            try? FileManager.default.removeItem(atPath: outputPath.hasPrefix("file://") ? (URL(string: outputPath)?.path ?? outputPath) : outputPath)
++            try await exportOne(text: text, outputPath: outputPath, voiceId: voiceId, rate: rate)
++        }
++    }
++
+     private func exportOne(text: String, outputPath: String, voiceId: String?, rate: Double?) async throws {
+         let session = SynthesisSession()
+         let utterance = makeUtterance(text: text, voiceId: voiceId, rate: rate)
+@@ -80,16 +109,29 @@ class AVSEngine {
+             // Watchdog: on real devices the synthesizer occasionally never delivers its
+             // completion (empty) buffer, which would otherwise hang the whole batch forever.
+             // Fail this single job after a generous deadline so the rest can finish.
+-            DispatchQueue.global().asyncAfter(deadline: .now() + 90.0) { [session] in
+-                guard session.claimResume() else { return }
+-                session.synthesizer.stopSpeaking(at: .immediate)
++            // `session` is captured weakly: exportOne's suspended frame keeps it alive while
++            // the job is in flight, and once the job completes the session (synthesizer +
++            // open AVAudioFile) is freed immediately instead of being pinned for the full
++            // 90s — with 100+ jobs a strong capture kept dozens of zombie synthesizers
++            // alive at once, which is exactly the daemon pressure that makes it drop jobs.
++            DispatchQueue.global().asyncAfter(deadline: .now() + 90.0) { [weak session] in
++                guard let session, session.claimResume() else { return }
++                // Resume BEFORE stopSpeaking: stop talks to the same daemon XPC
++                // connection as the wedged write(), so it can block this thread
++                // indefinitely — resuming first guarantees the job fails over to the
++                // retry instead of hanging the whole batch with it.
+                 continuation.resume(throwing: NSError(
+                     domain: "MrLecture",
+                     code: -2,
+                     userInfo: [NSLocalizedDescriptionKey: "TTS export timed out"]
+                 ))
++                session.synthesizer.stopSpeaking(at: .immediate)
+             }
+ 
++            // write() is called directly from this async context — the device-proven
++            // shape. (A GCD hop was tried as a Mac-harness deadlock guard, but with
++            // the concurrency cap of 4 the cooperative pool always has slack for the
++            // watchdog, and the hop was in the mix when devices produced zero output.)
+             session.synthesizer.write(utterance) { [session] buffer in
+                 guard let pcmBuffer = buffer as? AVAudioPCMBuffer else { return }
+ 
+@@ -98,9 +140,10 @@ class AVSEngine {
+                     guard session.claimResume() else { return }
+                     let err = session.writeError
+                     // Release the AVAudioFile now so its header is finalized/flushed before the
+-                    // batch's ffmpeg step reads it. The 90s watchdog block retains `session`, so
+-                    // without this the file stays open (unfinalized) until the watchdog fires —
+-                    // ffmpeg then reports "corrupt packet / estimating duration from bitrate".
++                    // caller (onJobComplete / the batch's ffmpeg step) reads it — the synthesizer
++                    // may keep this closure (and thus `session`) alive a little longer, and an
++                    // open AVAudioFile means an unfinalized header ("corrupt packet / estimating
++                    // duration from bitrate" in ffmpeg).
+                     session.audioFile = nil
+                     if let err = err {
+                         continuation.resume(throwing: err)
+diff --git a/node_modules/react-native-shumil/ios/KokoroEngine.swift b/node_modules/react-native-shumil/ios/KokoroEngine.swift
+index 3c2907c..1d92e49 100644
+--- a/node_modules/react-native-shumil/ios/KokoroEngine.swift
++++ b/node_modules/react-native-shumil/ios/KokoroEngine.swift
+@@ -1,13 +1,11 @@
+ import Foundation
+ import AVFoundation
+ 
+-// Kokoro TTS engine backed by sherpa-onnx with CoreML acceleration.
++// Kokoro TTS engine backed by sherpa-onnx (CPU provider — see note in load()).
+ //
+ // Setup required before use:
+ //   1. Call setKokoroModel(modelPath:voicesPath:tokensPath:) with paths to
+ //      the downloaded model files (see downloadModel in HybridMrLecture).
+-//   2. The provider is set to "coreml" automatically to use Apple Neural Engine.
+-//      Falls back to CPU if CoreML is unavailable on the device.
+ //
+ // Model files (download via MrLecture.downloadModel('kokoro', modelId, destDir)):
+ //   - <name>.onnx          — acoustic model
+@@ -38,8 +36,19 @@ private let kokoroKnownVoices: [(sid: Int, name: String, language: String)] = [
+ 
+ class KokoroEngine {
+     private var tts: AnyObject?
++    // NOTE: an experimental second CoreML-EP synthesis lane lived here (dual-lane
++    // work stealing in exportBatch). Removed for iOS: the EP rejects kokoro's
++    // dynamic shapes so the lane never activated, but its background init loaded
++    // the 82M-param model a SECOND time — and on a real device that CoreML compile
++    // attempt (plus the doubled model memory in an app already near the jetsam
++    // limit) crashed the app outright. Don't re-add without on-device proof.
+     private var modelMeta: KokoroModelMeta?
+     fileprivate var audioPlayer: AVAudioPlayer?
++    // AVAudioPlayer.delegate is weak — without a strong ref here the delegate is
++    // deallocated when speak()'s closure exits, didFinishPlaying never fires, and
++    // the continuation (and the JS promise awaiting it) hangs forever. Held until
++    // the next speak() replaces it.
++    fileprivate var playbackDelegate: KokoroPlaybackDelegate?
+     private let lock = NSLock()
+ 
+     // MARK: - Setup
+@@ -57,11 +66,17 @@ class KokoroEngine {
+             dataDir: resolvedDataDir,
+             lengthScale: 1.0
+         )
++        // CPU on purpose, matching PiperEngine: ONNX Runtime's CoreML EP handles the
++        // variable-length inputs of TTS badly (per-shape recompilation, op fallback),
++        // so "coreml" ran slower than plain CPU where it initialized at all — and on
++        // the Simulator it produced a null handle outright (caught by the guard below).
++        // Few intra-op threads on purpose — exportBatch runs several generate()
++        // calls in parallel instead (see SherpaTuning).
+         let modelConfig = sherpaOnnxOfflineTtsModelConfig(
+             kokoro: kokoroConfig,
+-            numThreads: ProcessInfo.processInfo.processorCount,
++            numThreads: SherpaTuning.kokoroThreadsPerGenerate,
+             debug: 0,
+-            provider: "coreml"
++            provider: "cpu"
+         )
+         var config = sherpaOnnxOfflineTtsConfig(
+             model: modelConfig,
+@@ -69,6 +84,18 @@ class KokoroEngine {
+             maxNumSentences: 1
+         )
+         let instance = SherpaOnnxOfflineTtsWrapper(config: &config)
++        // SherpaOnnxCreateOfflineTts returns a null handle on failure (e.g. missing
++        // espeak-ng-data, unsupported provider) without throwing — every method on
++        // the wrapper then dereferences that null pointer, crashing the whole app.
++        // Catch it here instead, while it's still a normal Swift error.
++        guard instance.tts != nil else {
++            throw NSError(
++                domain: "MrLecture",
++                code: -9,
++                userInfo: [NSLocalizedDescriptionKey:
++                    "Kokoro model failed to initialize. Check that model.onnx/voices.bin/tokens.txt/espeak-ng-data downloaded correctly."]
++            )
++        }
+         lock.withLock {
+             tts = instance
+             modelMeta = KokoroModelMeta(
+@@ -135,6 +162,7 @@ class KokoroEngine {
+                 let player = try AVAudioPlayer(contentsOf: tempURL)
+                 self.audioPlayer = player
+                 let delegate = KokoroPlaybackDelegate(continuation: continuation, engine: self)
++                self.playbackDelegate = delegate
+                 player.delegate = delegate
+                 player.play()
+             } catch {
+@@ -144,18 +172,24 @@ class KokoroEngine {
+     }
+ 
+     func exportBatch(jobs: [ExportJob], options: ExportOptions) async throws {
+-        let concurrency = Int(options.concurrency ?? Double(ProcessInfo.processInfo.processorCount))
+-        let semaphore = AsyncSemaphore(value: concurrency)
++        // Cursor-fed worker pool at the tuned width (2 intra-op threads x cores/2
++        // workers — see SherpaTuning). Workers drain the batch in order; a thrown
++        // job stops the stealing instead of synthesizing the remainder first.
++        let cpuWidth = max(1, Int(options.concurrency ?? Double(SherpaTuning.kokoroBatchConcurrency)))
++        let cursor = KokoroJobCursor(limit: jobs.count)
+ 
+         try await withThrowingTaskGroup(of: Void.self) { group in
+-            for job in jobs {
+-                group.addTask {
+-                    await semaphore.wait()
+-                    let result = Result { try self.generate(text: job.text, voiceId: options.voiceId, rate: options.rate, to: job.outputPath) }
+-                    await semaphore.signal()
+-                    try result.get()
++            let runWorker: @Sendable () async throws -> Void = {
++                while let index = await cursor.take() {
++                    if Task.isCancelled { throw CancellationError() }
++                    let job = jobs[index]
++                    try self.generate(text: job.text, voiceId: options.voiceId, rate: options.rate, to: job.outputPath)
++                    options.onJobComplete?(job.outputPath)
+                 }
+             }
++            for _ in 0..<min(cpuWidth, jobs.count) {
++                group.addTask { try await runWorker() }
++            }
+             try await group.waitForAll()
+         }
+     }
+@@ -217,6 +251,23 @@ private struct KokoroModelMeta {
+     let modelPath: String
+ }
+ 
++// MARK: - Work-stealing cursor feeding the exportBatch worker pool
++
++private actor KokoroJobCursor {
++    private var index = 0
++    private let limit: Int
++
++    init(limit: Int) {
++        self.limit = limit
++    }
++
++    func take() -> Int? {
++        guard index < limit else { return nil }
++        defer { index += 1 }
++        return index
++    }
++}
++
+ // MARK: - Playback delegate
+ 
+ private final class KokoroPlaybackDelegate: NSObject, AVAudioPlayerDelegate {
+diff --git a/node_modules/react-native-shumil/ios/ModelDownloader.swift b/node_modules/react-native-shumil/ios/ModelDownloader.swift
+index 056938a..4e2fd68 100644
+--- a/node_modules/react-native-shumil/ios/ModelDownloader.swift
++++ b/node_modules/react-native-shumil/ios/ModelDownloader.swift
+@@ -33,6 +33,7 @@ struct ModelDownloader {
+         if !FileManager.default.fileExists(atPath: tokensDest.path) {
+             try await downloadFile(from: base + "tokens.txt", to: tokensDest)
+         }
++        ensureEspeakNgData(in: dir)
+ 
+         return onnxDest.path
+     }
+@@ -59,6 +60,7 @@ struct ModelDownloader {
+         if !FileManager.default.fileExists(atPath: tokensDest.path) {
+             try await downloadFile(from: base + "tokens.txt", to: tokensDest)
+         }
++        ensureEspeakNgData(in: dir)
+ 
+         return modelDest.path
+     }
+@@ -110,6 +112,41 @@ struct ModelDownloader {
+         return nil
+     }
+ 
++    // MARK: - espeak-ng-data
++
++    /// Downloaded Piper/Kokoro models need espeak-ng-data alongside them for
++    /// English phonemization — without it, SherpaOnnxCreateOfflineTts silently
++    /// returns a null handle (see the nil-guards in Piper/KokoroEngine.load()).
++    /// Rather than re-download ~18MB per model, reuse the copy already bundled
++    /// into the app via the SherpaOnnx pod's PiperModels resource bundle.
++    private static func ensureEspeakNgData(in destDir: URL) {
++        let dest = destDir.appendingPathComponent("espeak-ng-data")
++        if FileManager.default.fileExists(atPath: dest.path) { return }
++        guard let source = bundledEspeakNgDataDir() else { return }
++        try? FileManager.default.copyItem(atPath: source, toPath: dest.path)
++    }
++
++    private static func bundledEspeakNgDataDir() -> String? {
++        var bundles: [Bundle] = [Bundle.main]
++        if let url = Bundle.main.url(forResource: "PiperModels", withExtension: "bundle"),
++           let b = Bundle(url: url) {
++            bundles.insert(b, at: 0)
++        }
++        for bundle in bundles {
++            guard let root = bundle.resourceURL else { continue }
++            let candidate = root.appendingPathComponent("espeak-ng-data")
++            var isDir: ObjCBool = false
++            if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
++                return candidate.path
++            }
++            guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
++            for case let url as URL in walker where url.lastPathComponent == "espeak-ng-data" {
++                return url.path
++            }
++        }
++        return nil
++    }
++
+     // MARK: - Private helpers
+ 
+     private static func piperURLs(modelId: String) -> (base: String, onnxName: String) {
+diff --git a/node_modules/react-native-shumil/ios/PiperEngine.swift b/node_modules/react-native-shumil/ios/PiperEngine.swift
+index 9cb1718..858f17d 100644
+--- a/node_modules/react-native-shumil/ios/PiperEngine.swift
++++ b/node_modules/react-native-shumil/ios/PiperEngine.swift
+@@ -21,6 +21,11 @@ class PiperEngine {
+     private var tts: AnyObject?     // SherpaOnnxOfflineTts — typed as AnyObject to compile without the dep
+     private var modelMeta: ModelMeta?
+     fileprivate var audioPlayer: AVAudioPlayer?
++    // AVAudioPlayer.delegate is weak — without a strong ref here the delegate is
++    // deallocated when speak()'s closure exits, didFinishPlaying never fires, and
++    // the continuation (and the JS promise awaiting it) hangs forever. Held until
++    // the next speak() replaces it.
++    fileprivate var playbackDelegate: PlaybackDelegate?
+     private let lock = NSLock()
+ 
+     // MARK: - Setup
+@@ -40,9 +45,11 @@ class PiperEngine {
+             noiseScaleW: 0.8,
+             lengthScale: 1.0
+         )
++        // Single intra-op thread on purpose — exportBatch runs one generate()
++        // stream per core instead (see SherpaTuning).
+         let modelConfig = sherpaOnnxOfflineTtsModelConfig(
+             vits: vitsConfig,
+-            numThreads: ProcessInfo.processInfo.processorCount,
++            numThreads: SherpaTuning.piperThreadsPerGenerate,
+             debug: 0,
+             provider: "cpu"
+         )
+@@ -52,6 +59,18 @@ class PiperEngine {
+             maxNumSentences: 1
+         )
+         let instance = SherpaOnnxOfflineTtsWrapper(config: &config)
++        // SherpaOnnxCreateOfflineTts returns a null handle on failure (e.g. missing
++        // espeak-ng-data) without throwing — every method on the wrapper then
++        // dereferences that null pointer, crashing the whole app. Catch it here
++        // instead, while it's still a normal Swift error.
++        guard instance.tts != nil else {
++            throw NSError(
++                domain: "MrLecture",
++                code: -9,
++                userInfo: [NSLocalizedDescriptionKey:
++                    "Piper model failed to initialize. Check that the .onnx/tokens.txt/espeak-ng-data downloaded correctly."]
++            )
++        }
+         lock.withLock {
+             tts = instance
+             modelMeta = ModelMeta(
+@@ -69,10 +88,11 @@ class PiperEngine {
+         #endif
+     }
+ 
+-    // Auto-load the model bundled into the app by the SherpaOnnx pod's
+-    // `PiperModels` resource bundle, so callers never need a device path. The
+-    // model folder (onnx + tokens.txt + espeak-ng-data) is copied verbatim, so
+-    // we locate the .onnx and let `load` discover espeak-ng-data beside it.
++    // Compatibility path: if the host app bundles a Piper model (onnx + tokens.txt
++    // in the `PiperModels` resource bundle or main bundle), load it so callers never
++    // need a device path. Voice models normally aren't bundled anymore — they're
++    // downloaded on demand via downloadModel + setPiperModel — so finding nothing
++    // here is the expected case, reported as a catchable error, not a crash.
+     func autoLoadBundledModelIfNeeded() throws {
+         if lock.withLock({ modelMeta }) != nil { return }
+         guard let onnxPath = Self.bundledOnnxPath() else {
+@@ -80,7 +100,7 @@ class PiperEngine {
+                 domain: "MrLecture",
+                 code: -7,
+                 userInfo: [NSLocalizedDescriptionKey:
+-                    "No bundled Piper model found. Run scripts/fetch-piper.sh, then pod install."]
++                    "No Piper model loaded. Download a Piper voice first (models are fetched on demand, not bundled)."]
+             )
+         }
+         let tokensPath = (onnxPath as NSString).deletingLastPathComponent
+@@ -148,6 +168,7 @@ class PiperEngine {
+                 let player = try AVAudioPlayer(contentsOf: tempURL)
+                 self.audioPlayer = player
+                 let delegate = PlaybackDelegate(continuation: continuation, engine: self)
++                self.playbackDelegate = delegate
+                 player.delegate = delegate
+                 player.play()
+             } catch {
+@@ -158,16 +179,23 @@ class PiperEngine {
+ 
+     func exportBatch(jobs: [ExportJob], options: ExportOptions) async throws {
+         try autoLoadBundledModelIfNeeded()
+-        let concurrency = Int(options.concurrency ?? Double(ProcessInfo.processInfo.processorCount))
++        let concurrency = Int(options.concurrency ?? Double(SherpaTuning.piperBatchConcurrency))
+         let semaphore = AsyncSemaphore(value: concurrency)
+ 
+         try await withThrowingTaskGroup(of: Void.self) { group in
+             for job in jobs {
+                 group.addTask {
+                     await semaphore.wait()
++                    // A thrown job cancels the group; skip (and unblock) the queued
++                    // remainder instead of synthesizing it all before failing.
++                    if Task.isCancelled {
++                        await semaphore.signal()
++                        throw CancellationError()
++                    }
+                     let result = Result { try self.generate(text: job.text, voiceId: options.voiceId, rate: options.rate, to: job.outputPath) }
+                     await semaphore.signal()
+                     try result.get()
++                    options.onJobComplete?(job.outputPath)
+                 }
+             }
+             try await group.waitForAll()
+diff --git a/node_modules/react-native-shumil/ios/SherpaTuning.swift b/node_modules/react-native-shumil/ios/SherpaTuning.swift
+new file mode 100644
+index 0000000..4c9be7a
+--- /dev/null
++++ b/node_modules/react-native-shumil/ios/SherpaTuning.swift
+@@ -0,0 +1,34 @@
++import Foundation
++
++// Threading plans for the sherpa-onnx engines (Piper, Kokoro).
++//
++// A batch of paragraphs is CPU-bound ONNX inference. Two knobs compete for the
++// same cores:
++//   - intra-op threads per generate() call (onnxruntime numThreads)
++//   - parallel generate() calls (exportBatch concurrency)
++//
++// Independent paragraphs scale near-linearly while intra-op scaling is
++// sublinear, so the plans lean on streams — but the optimum differs by model
++// size (measured on an M3 with real book paragraphs, sherpa-onnx 1.13.x):
++//
++//   Piper (VITS ~20M params): matmuls are too small to split — intra-op
++//   threading is pure overhead. 1 thread x cores-many streams won at 56.8x
++//   realtime vs 49.4x for 2 threads x 4 streams and 36.4x for 4x2.
++//
++//   Kokoro (~82M params): big enough that 2 intra-op threads still pay for
++//   themselves, and it saturates memory bandwidth before core count — extra
++//   streams past cores/2 made it WORSE (2x4 = 3.6x realtime vs 1x8 = 3.3x).
++enum SherpaTuning {
++    // Piper: single-threaded inference, one stream per core.
++    static let piperThreadsPerGenerate = 1
++    static var piperBatchConcurrency: Int {
++        max(1, ProcessInfo.processInfo.processorCount)
++    }
++
++    // Kokoro: 2 intra-op threads, cores/2 streams — measured optimum; raising
++    // streams past this oversubscribes memory bandwidth and regresses.
++    static let kokoroThreadsPerGenerate = 2
++    static var kokoroBatchConcurrency: Int {
++        max(1, ProcessInfo.processInfo.processorCount / kokoroThreadsPerGenerate)
++    }
++}
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/MrLectureOnLoad.cpp b/node_modules/react-native-shumil/nitrogen/generated/android/MrLectureOnLoad.cpp
+index 2ae0297..056c57a 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/android/MrLectureOnLoad.cpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/MrLectureOnLoad.cpp
+@@ -16,6 +16,7 @@
+ #include <NitroModules/HybridObjectRegistry.hpp>
+ 
+ #include "JHybridMrLectureSpec.hpp"
++#include "JFunc_void_std__string.hpp"
+ #include <NitroModules/DefaultConstructableObject.hpp>
+ 
+ namespace margelo::nitro::mrlecture {
+@@ -41,6 +42,7 @@ void registerAllNatives() {
+ 
+   // Register native JNI methods
+   margelo::nitro::mrlecture::JHybridMrLectureSpec::CxxPart::registerNatives();
++  margelo::nitro::mrlecture::JFunc_void_std__string_cxx::registerNatives();
+ 
+   // Register Nitro Hybrid Objects
+   HybridObjectRegistry::registerHybridObjectConstructor(
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JEngine.hpp b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JEngine.hpp
+index 4905c42..b7800cd 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JEngine.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JEngine.hpp
+@@ -48,6 +48,9 @@ namespace margelo::nitro::mrlecture {
+         case Engine::PIPER:
+           static const auto fieldPIPER = clazz->getStaticField<JEngine>("PIPER");
+           return clazz->getStaticFieldValue(fieldPIPER);
++        case Engine::KOKORO:
++          static const auto fieldKOKORO = clazz->getStaticField<JEngine>("KOKORO");
++          return clazz->getStaticFieldValue(fieldKOKORO);
+         default:
+           std::string stringValue = std::to_string(static_cast<int>(value));
+           throw std::invalid_argument("Invalid enum value (" + stringValue + "!");
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JExportOptions.hpp b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JExportOptions.hpp
+index 4ece2f9..111c0e6 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JExportOptions.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JExportOptions.hpp
+@@ -10,6 +10,9 @@
+ #include <fbjni/fbjni.h>
+ #include "ExportOptions.hpp"
+ 
++#include "JFunc_void_std__string.hpp"
++#include <NitroModules/JNICallable.hpp>
++#include <functional>
+ #include <optional>
+ #include <string>
+ 
+@@ -38,10 +41,21 @@ namespace margelo::nitro::mrlecture {
+       jni::local_ref<jni::JDouble> rate = this->getFieldValue(fieldRate);
+       static const auto fieldConcurrency = clazz->getField<jni::JDouble>("concurrency");
+       jni::local_ref<jni::JDouble> concurrency = this->getFieldValue(fieldConcurrency);
++      static const auto fieldOnJobComplete = clazz->getField<JFunc_void_std__string::javaobject>("onJobComplete");
++      jni::local_ref<JFunc_void_std__string::javaobject> onJobComplete = this->getFieldValue(fieldOnJobComplete);
+       return ExportOptions(
+         voiceId != nullptr ? std::make_optional(voiceId->toStdString()) : std::nullopt,
+         rate != nullptr ? std::make_optional(rate->value()) : std::nullopt,
+-        concurrency != nullptr ? std::make_optional(concurrency->value()) : std::nullopt
++        concurrency != nullptr ? std::make_optional(concurrency->value()) : std::nullopt,
++        onJobComplete != nullptr ? std::make_optional([&]() -> std::function<void(const std::string& /* outputPath */)> {
++          if (onJobComplete->isInstanceOf(JFunc_void_std__string_cxx::javaClassStatic())) [[likely]] {
++            auto downcast = jni::static_ref_cast<JFunc_void_std__string_cxx::javaobject>(onJobComplete);
++            return downcast->cthis()->getFunction();
++          } else {
++            auto onJobCompleteRef = jni::make_global(onJobComplete);
++            return JNICallable<JFunc_void_std__string, void(std::string)>(std::move(onJobCompleteRef));
++          }
++        }()) : std::nullopt
+       );
+     }
+ 
+@@ -51,14 +65,15 @@ namespace margelo::nitro::mrlecture {
+      */
+     [[maybe_unused]]
+     static jni::local_ref<JExportOptions::javaobject> fromCpp(const ExportOptions& value) {
+-      using JSignature = JExportOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>);
++      using JSignature = JExportOptions(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<JFunc_void_std__string::javaobject>);
+       static const auto clazz = javaClassStatic();
+       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
+       return create(
+         clazz,
+         value.voiceId.has_value() ? jni::make_jstring(value.voiceId.value()) : nullptr,
+         value.rate.has_value() ? jni::JDouble::valueOf(value.rate.value()) : nullptr,
+-        value.concurrency.has_value() ? jni::JDouble::valueOf(value.concurrency.value()) : nullptr
++        value.concurrency.has_value() ? jni::JDouble::valueOf(value.concurrency.value()) : nullptr,
++        value.onJobComplete.has_value() ? JFunc_void_std__string_cxx::fromCpp(value.onJobComplete.value()) : nullptr
+       );
+     }
+   };
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JFunc_void_std__string.hpp b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JFunc_void_std__string.hpp
+new file mode 100644
+index 0000000..29163be
+--- /dev/null
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JFunc_void_std__string.hpp
+@@ -0,0 +1,76 @@
++///
++/// JFunc_void_std__string.hpp
++/// This file was generated by nitrogen. DO NOT MODIFY THIS FILE.
++/// https://github.com/mrousavy/nitro
++/// Copyright © Marc Rousavy @ Margelo
++///
++
++#pragma once
++
++#include <fbjni/fbjni.h>
++#include <functional>
++
++#include <string>
++#include <functional>
++#include <NitroModules/JNICallable.hpp>
++
++namespace margelo::nitro::mrlecture {
++
++  using namespace facebook;
++
++  /**
++   * Represents the Java/Kotlin callback `(outputPath: String) -> Unit`.
++   * This can be passed around between C++ and Java/Kotlin.
++   */
++  struct JFunc_void_std__string: public jni::JavaClass<JFunc_void_std__string> {
++  public:
++    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/mrlecture/Func_void_std__string;";
++
++  public:
++    /**
++     * Invokes the function this `JFunc_void_std__string` instance holds through JNI.
++     */
++    void invoke(const std::string& outputPath) const {
++      static const auto method = javaClassStatic()->getMethod<void(jni::alias_ref<jni::JString> /* outputPath */)>("invoke");
++      method(self(), jni::make_jstring(outputPath));
++    }
++  };
++
++  /**
++   * An implementation of Func_void_std__string that is backed by a C++ implementation (using `std::function<...>`)
++   */
++  class JFunc_void_std__string_cxx final: public jni::HybridClass<JFunc_void_std__string_cxx, JFunc_void_std__string> {
++  public:
++    static jni::local_ref<JFunc_void_std__string::javaobject> fromCpp(const std::function<void(const std::string& /* outputPath */)>& func) {
++      return JFunc_void_std__string_cxx::newObjectCxxArgs(func);
++    }
++
++  public:
++    /**
++     * Invokes the C++ `std::function<...>` this `JFunc_void_std__string_cxx` instance holds.
++     */
++    void invoke_cxx(jni::alias_ref<jni::JString> outputPath) {
++      _func(outputPath->toStdString());
++    }
++
++  public:
++    [[nodiscard]]
++    inline const std::function<void(const std::string& /* outputPath */)>& getFunction() const {
++      return _func;
++    }
++
++  public:
++    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/mrlecture/Func_void_std__string_cxx;";
++    static void registerNatives() {
++      registerHybrid({makeNativeMethod("invoke_cxx", JFunc_void_std__string_cxx::invoke_cxx)});
++    }
++
++  private:
++    explicit JFunc_void_std__string_cxx(const std::function<void(const std::string& /* outputPath */)>& func): _func(func) { }
++
++  private:
++    friend HybridBase;
++    std::function<void(const std::string& /* outputPath */)> _func;
++  };
++
++} // namespace margelo::nitro::mrlecture
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JHybridMrLectureSpec.cpp b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JHybridMrLectureSpec.cpp
+index de617b6..e6bae8b 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/android/c++/JHybridMrLectureSpec.cpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/c++/JHybridMrLectureSpec.cpp
+@@ -18,15 +18,15 @@ namespace margelo::nitro::mrlecture { struct ExportJob; }
+ // Forward declaration of `ExportOptions` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct ExportOptions; }
+ 
+-#include "VoiceInfo.hpp"
+-#include <vector>
++#include <string>
+ #include <NitroModules/Promise.hpp>
+ #include <NitroModules/JPromise.hpp>
++#include <NitroModules/JUnit.hpp>
++#include "VoiceInfo.hpp"
++#include <vector>
+ #include "JVoiceInfo.hpp"
+-#include <string>
+ #include "Engine.hpp"
+ #include "JEngine.hpp"
+-#include <NitroModules/JUnit.hpp>
+ #include "SpeakOptions.hpp"
+ #include "JSpeakOptions.hpp"
+ #include <optional>
+@@ -34,6 +34,9 @@ namespace margelo::nitro::mrlecture { struct ExportOptions; }
+ #include "JExportJob.hpp"
+ #include "ExportOptions.hpp"
+ #include "JExportOptions.hpp"
++#include <functional>
++#include "JFunc_void_std__string.hpp"
++#include <NitroModules/JNICallable.hpp>
+ 
+ namespace margelo::nitro::mrlecture {
+ 
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/ExportOptions.kt b/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/ExportOptions.kt
+index efa4f4d..a48789a 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/ExportOptions.kt
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/ExportOptions.kt
+@@ -26,9 +26,16 @@ data class ExportOptions(
+   val rate: Double?,
+   @DoNotStrip
+   @Keep
+-  val concurrency: Double?
++  val concurrency: Double?,
++  @DoNotStrip
++  @Keep
++  val onJobComplete: Func_void_std__string?
+ ) {
+-  /* primary constructor */
++  /**
++   * Create a new instance of ExportOptions from Kotlin
++   */
++  constructor(voiceId: String?, rate: Double?, concurrency: Double?, onJobComplete: ((outputPath: String) -> Unit)?):
++         this(voiceId, rate, concurrency, onJobComplete?.let { Func_void_std__string_java(it) })
+ 
+   override fun equals(other: Any?): Boolean {
+     if (this === other) return true
+@@ -36,13 +43,15 @@ data class ExportOptions(
+     return Objects.deepEquals(this.voiceId, other.voiceId)
+       && Objects.deepEquals(this.rate, other.rate)
+       && Objects.deepEquals(this.concurrency, other.concurrency)
++      && Objects.deepEquals(this.onJobComplete, other.onJobComplete)
+   }
+ 
+   override fun hashCode(): Int {
+     return arrayOf(
+       voiceId,
+       rate,
+-      concurrency
++      concurrency,
++      onJobComplete
+     ).contentDeepHashCode()
+   }
+ 
+@@ -54,8 +63,8 @@ data class ExportOptions(
+     @Keep
+     @Suppress("unused")
+     @JvmStatic
+-    private fun fromCpp(voiceId: String?, rate: Double?, concurrency: Double?): ExportOptions {
+-      return ExportOptions(voiceId, rate, concurrency)
++    private fun fromCpp(voiceId: String?, rate: Double?, concurrency: Double?, onJobComplete: Func_void_std__string?): ExportOptions {
++      return ExportOptions(voiceId, rate, concurrency, onJobComplete)
+     }
+   }
+ }
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/Func_void_std__string.kt b/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/Func_void_std__string.kt
+new file mode 100644
+index 0000000..c963f5b
+--- /dev/null
++++ b/node_modules/react-native-shumil/nitrogen/generated/android/kotlin/com/margelo/nitro/mrlecture/Func_void_std__string.kt
+@@ -0,0 +1,80 @@
++///
++/// Func_void_std__string.kt
++/// This file was generated by nitrogen. DO NOT MODIFY THIS FILE.
++/// https://github.com/mrousavy/nitro
++/// Copyright © Marc Rousavy @ Margelo
++///
++
++package com.margelo.nitro.mrlecture
++
++import androidx.annotation.Keep
++import com.facebook.jni.HybridData
++import com.facebook.proguard.annotations.DoNotStrip
++import dalvik.annotation.optimization.FastNative
++
++
++/**
++ * Represents the JavaScript callback `(outputPath: string) => void`.
++ * This can be either implemented in C++ (in which case it might be a callback coming from JS),
++ * or in Kotlin/Java (in which case it is a native callback).
++ */
++@DoNotStrip
++@Keep
++@Suppress("ClassName", "RedundantUnitReturnType")
++fun interface Func_void_std__string: (String) -> Unit {
++  /**
++   * Call the given JS callback.
++   * @throws Throwable if the JS function itself throws an error, or if the JS function/runtime has already been deleted.
++   */
++  @DoNotStrip
++  @Keep
++  override fun invoke(outputPath: String): Unit
++}
++
++/**
++ * Represents the JavaScript callback `(outputPath: string) => void`.
++ * This is implemented in C++, via a `std::function<...>`.
++ * The callback might be coming from JS.
++ */
++@DoNotStrip
++@Keep
++@Suppress(
++  "KotlinJniMissingFunction", "unused",
++  "RedundantSuppression", "RedundantUnitReturnType", "FunctionName",
++  "ConvertSecondaryConstructorToPrimary", "ClassName", "LocalVariableName",
++)
++class Func_void_std__string_cxx: Func_void_std__string {
++  @DoNotStrip
++  @Keep
++  private val mHybridData: HybridData
++
++  @DoNotStrip
++  @Keep
++  private constructor(hybridData: HybridData) {
++    mHybridData = hybridData
++  }
++
++  @DoNotStrip
++  @Keep
++  override fun invoke(outputPath: String): Unit
++    = invoke_cxx(outputPath)
++
++  @FastNative
++  private external fun invoke_cxx(outputPath: String): Unit
++}
++
++/**
++ * Represents the JavaScript callback `(outputPath: string) => void`.
++ * This is implemented in Java/Kotlin, via a `(String) -> Unit`.
++ * The callback is always coming from native.
++ */
++@DoNotStrip
++@Keep
++@Suppress("ClassName", "RedundantUnitReturnType", "unused")
++class Func_void_std__string_java(private val function: (String) -> Unit): Func_void_std__string {
++  @DoNotStrip
++  @Keep
++  override fun invoke(outputPath: String): Unit {
++    return this.function(outputPath)
++  }
++}
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.cpp b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.cpp
+index 624b960..439b0e4 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.cpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.cpp
+@@ -14,10 +14,10 @@
+ 
+ namespace margelo::nitro::mrlecture::bridge::swift {
+ 
+-  // pragma MARK: std::function<void(const std::vector<VoiceInfo>& /* result */)>
+-  Func_void_std__vector_VoiceInfo_ create_Func_void_std__vector_VoiceInfo_(void* NON_NULL swiftClosureWrapper) noexcept {
+-    auto swiftClosure = MrLecture::Func_void_std__vector_VoiceInfo_::fromUnsafe(swiftClosureWrapper);
+-    return [swiftClosure = std::move(swiftClosure)](const std::vector<VoiceInfo>& result) mutable -> void {
++  // pragma MARK: std::function<void(const std::string& /* result */)>
++  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
++    auto swiftClosure = MrLecture::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
++    return [swiftClosure = std::move(swiftClosure)](const std::string& result) mutable -> void {
+       swiftClosure.call(result);
+     };
+   }
+@@ -38,6 +38,14 @@ namespace margelo::nitro::mrlecture::bridge::swift {
+     };
+   }
+   
++  // pragma MARK: std::function<void(const std::vector<VoiceInfo>& /* result */)>
++  Func_void_std__vector_VoiceInfo_ create_Func_void_std__vector_VoiceInfo_(void* NON_NULL swiftClosureWrapper) noexcept {
++    auto swiftClosure = MrLecture::Func_void_std__vector_VoiceInfo_::fromUnsafe(swiftClosureWrapper);
++    return [swiftClosure = std::move(swiftClosure)](const std::vector<VoiceInfo>& result) mutable -> void {
++      swiftClosure.call(result);
++    };
++  }
++  
+   // pragma MARK: std::shared_ptr<HybridMrLectureSpec>
+   std::shared_ptr<HybridMrLectureSpec> create_std__shared_ptr_HybridMrLectureSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+     MrLecture::HybridMrLectureSpec_cxx swiftPart = MrLecture::HybridMrLectureSpec_cxx::fromUnsafe(swiftUnsafePointer);
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.hpp b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.hpp
+index d54cbd7..68454df 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Bridge.hpp
+@@ -42,49 +42,38 @@ namespace MrLecture { class HybridMrLectureSpec_cxx; }
+  */
+ namespace margelo::nitro::mrlecture::bridge::swift {
+ 
+-  // pragma MARK: std::vector<VoiceInfo>
+-  /**
+-   * Specialized version of `std::vector<VoiceInfo>`.
+-   */
+-  using std__vector_VoiceInfo_ = std::vector<VoiceInfo>;
+-  inline std::vector<VoiceInfo> create_std__vector_VoiceInfo_(size_t size) noexcept {
+-    std::vector<VoiceInfo> vector;
+-    vector.reserve(size);
+-    return vector;
+-  }
+-  
+-  // pragma MARK: std::shared_ptr<Promise<std::vector<VoiceInfo>>>
++  // pragma MARK: std::shared_ptr<Promise<std::string>>
+   /**
+-   * Specialized version of `std::shared_ptr<Promise<std::vector<VoiceInfo>>>`.
++   * Specialized version of `std::shared_ptr<Promise<std::string>>`.
+    */
+-  using std__shared_ptr_Promise_std__vector_VoiceInfo___ = std::shared_ptr<Promise<std::vector<VoiceInfo>>>;
+-  inline std::shared_ptr<Promise<std::vector<VoiceInfo>>> create_std__shared_ptr_Promise_std__vector_VoiceInfo___() noexcept {
+-    return Promise<std::vector<VoiceInfo>>::create();
++  using std__shared_ptr_Promise_std__string__ = std::shared_ptr<Promise<std::string>>;
++  inline std::shared_ptr<Promise<std::string>> create_std__shared_ptr_Promise_std__string__() noexcept {
++    return Promise<std::string>::create();
+   }
+-  inline PromiseHolder<std::vector<VoiceInfo>> wrap_std__shared_ptr_Promise_std__vector_VoiceInfo___(std::shared_ptr<Promise<std::vector<VoiceInfo>>> promise) noexcept {
+-    return PromiseHolder<std::vector<VoiceInfo>>(std::move(promise));
++  inline PromiseHolder<std::string> wrap_std__shared_ptr_Promise_std__string__(std::shared_ptr<Promise<std::string>> promise) noexcept {
++    return PromiseHolder<std::string>(std::move(promise));
+   }
+   
+-  // pragma MARK: std::function<void(const std::vector<VoiceInfo>& /* result */)>
++  // pragma MARK: std::function<void(const std::string& /* result */)>
+   /**
+-   * Specialized version of `std::function<void(const std::vector<VoiceInfo>&)>`.
++   * Specialized version of `std::function<void(const std::string&)>`.
+    */
+-  using Func_void_std__vector_VoiceInfo_ = std::function<void(const std::vector<VoiceInfo>& /* result */)>;
++  using Func_void_std__string = std::function<void(const std::string& /* result */)>;
+   /**
+-   * Wrapper class for a `std::function<void(const std::vector<VoiceInfo>& / * result * /)>`, this can be used from Swift.
++   * Wrapper class for a `std::function<void(const std::string& / * result * /)>`, this can be used from Swift.
+    */
+-  class Func_void_std__vector_VoiceInfo__Wrapper final {
++  class Func_void_std__string_Wrapper final {
+   public:
+-    explicit Func_void_std__vector_VoiceInfo__Wrapper(std::function<void(const std::vector<VoiceInfo>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<VoiceInfo>& /* result */)>>(std::move(func))) {}
+-    inline void call(std::vector<VoiceInfo> result) const noexcept {
++    explicit Func_void_std__string_Wrapper(std::function<void(const std::string& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* result */)>>(std::move(func))) {}
++    inline void call(std::string result) const noexcept {
+       _function->operator()(result);
+     }
+   private:
+-    std::unique_ptr<std::function<void(const std::vector<VoiceInfo>& /* result */)>> _function;
++    std::unique_ptr<std::function<void(const std::string& /* result */)>> _function;
+   } SWIFT_NONCOPYABLE;
+-  Func_void_std__vector_VoiceInfo_ create_Func_void_std__vector_VoiceInfo_(void* NON_NULL swiftClosureWrapper) noexcept;
+-  inline Func_void_std__vector_VoiceInfo__Wrapper wrap_Func_void_std__vector_VoiceInfo_(Func_void_std__vector_VoiceInfo_ value) noexcept {
+-    return Func_void_std__vector_VoiceInfo__Wrapper(std::move(value));
++  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
++  inline Func_void_std__string_Wrapper wrap_Func_void_std__string(Func_void_std__string value) noexcept {
++    return Func_void_std__string_Wrapper(std::move(value));
+   }
+   
+   // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
+@@ -173,6 +162,51 @@ namespace margelo::nitro::mrlecture::bridge::swift {
+     return optional.value();
+   }
+   
++  // pragma MARK: std::vector<VoiceInfo>
++  /**
++   * Specialized version of `std::vector<VoiceInfo>`.
++   */
++  using std__vector_VoiceInfo_ = std::vector<VoiceInfo>;
++  inline std::vector<VoiceInfo> create_std__vector_VoiceInfo_(size_t size) noexcept {
++    std::vector<VoiceInfo> vector;
++    vector.reserve(size);
++    return vector;
++  }
++  
++  // pragma MARK: std::shared_ptr<Promise<std::vector<VoiceInfo>>>
++  /**
++   * Specialized version of `std::shared_ptr<Promise<std::vector<VoiceInfo>>>`.
++   */
++  using std__shared_ptr_Promise_std__vector_VoiceInfo___ = std::shared_ptr<Promise<std::vector<VoiceInfo>>>;
++  inline std::shared_ptr<Promise<std::vector<VoiceInfo>>> create_std__shared_ptr_Promise_std__vector_VoiceInfo___() noexcept {
++    return Promise<std::vector<VoiceInfo>>::create();
++  }
++  inline PromiseHolder<std::vector<VoiceInfo>> wrap_std__shared_ptr_Promise_std__vector_VoiceInfo___(std::shared_ptr<Promise<std::vector<VoiceInfo>>> promise) noexcept {
++    return PromiseHolder<std::vector<VoiceInfo>>(std::move(promise));
++  }
++  
++  // pragma MARK: std::function<void(const std::vector<VoiceInfo>& /* result */)>
++  /**
++   * Specialized version of `std::function<void(const std::vector<VoiceInfo>&)>`.
++   */
++  using Func_void_std__vector_VoiceInfo_ = std::function<void(const std::vector<VoiceInfo>& /* result */)>;
++  /**
++   * Wrapper class for a `std::function<void(const std::vector<VoiceInfo>& / * result * /)>`, this can be used from Swift.
++   */
++  class Func_void_std__vector_VoiceInfo__Wrapper final {
++  public:
++    explicit Func_void_std__vector_VoiceInfo__Wrapper(std::function<void(const std::vector<VoiceInfo>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<VoiceInfo>& /* result */)>>(std::move(func))) {}
++    inline void call(std::vector<VoiceInfo> result) const noexcept {
++      _function->operator()(result);
++    }
++  private:
++    std::unique_ptr<std::function<void(const std::vector<VoiceInfo>& /* result */)>> _function;
++  } SWIFT_NONCOPYABLE;
++  Func_void_std__vector_VoiceInfo_ create_Func_void_std__vector_VoiceInfo_(void* NON_NULL swiftClosureWrapper) noexcept;
++  inline Func_void_std__vector_VoiceInfo__Wrapper wrap_Func_void_std__vector_VoiceInfo_(Func_void_std__vector_VoiceInfo_ value) noexcept {
++    return Func_void_std__vector_VoiceInfo__Wrapper(std::move(value));
++  }
++  
+   // pragma MARK: std::vector<ExportJob>
+   /**
+    * Specialized version of `std::vector<ExportJob>`.
+@@ -184,6 +218,21 @@ namespace margelo::nitro::mrlecture::bridge::swift {
+     return vector;
+   }
+   
++  // pragma MARK: std::optional<std::function<void(const std::string& /* outputPath */)>>
++  /**
++   * Specialized version of `std::optional<std::function<void(const std::string& / * outputPath * /)>>`.
++   */
++  using std__optional_std__function_void_const_std__string_____outputPath______ = std::optional<std::function<void(const std::string& /* outputPath */)>>;
++  inline std::optional<std::function<void(const std::string& /* outputPath */)>> create_std__optional_std__function_void_const_std__string_____outputPath______(const std::function<void(const std::string& /* outputPath */)>& value) noexcept {
++    return std::optional<std::function<void(const std::string& /* outputPath */)>>(value);
++  }
++  inline bool has_value_std__optional_std__function_void_const_std__string_____outputPath______(const std::optional<std::function<void(const std::string& /* outputPath */)>>& optional) noexcept {
++    return optional.has_value();
++  }
++  inline std::function<void(const std::string& /* outputPath */)> get_std__optional_std__function_void_const_std__string_____outputPath______(const std::optional<std::function<void(const std::string& /* outputPath */)>>& optional) noexcept {
++    return optional.value();
++  }
++  
+   // pragma MARK: std::shared_ptr<HybridMrLectureSpec>
+   /**
+    * Specialized version of `std::shared_ptr<HybridMrLectureSpec>`.
+@@ -205,13 +254,13 @@ namespace margelo::nitro::mrlecture::bridge::swift {
+     return Result<void>::withError(error);
+   }
+   
+-  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>
+-  using Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ = Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>;
+-  inline Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ create_Result_std__shared_ptr_Promise_std__vector_VoiceInfo____(const std::shared_ptr<Promise<std::vector<VoiceInfo>>>& value) noexcept {
+-    return Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>::withValue(value);
++  // pragma MARK: Result<std::shared_ptr<Promise<std::string>>>
++  using Result_std__shared_ptr_Promise_std__string___ = Result<std::shared_ptr<Promise<std::string>>>;
++  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::shared_ptr<Promise<std::string>>& value) noexcept {
++    return Result<std::shared_ptr<Promise<std::string>>>::withValue(value);
+   }
+-  inline Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ create_Result_std__shared_ptr_Promise_std__vector_VoiceInfo____(const std::exception_ptr& error) noexcept {
+-    return Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>::withError(error);
++  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::exception_ptr& error) noexcept {
++    return Result<std::shared_ptr<Promise<std::string>>>::withError(error);
+   }
+   
+   // pragma MARK: Result<std::shared_ptr<Promise<void>>>
+@@ -223,22 +272,13 @@ namespace margelo::nitro::mrlecture::bridge::swift {
+     return Result<std::shared_ptr<Promise<void>>>::withError(error);
+   }
+ 
+-  // pragma MARK: std::shared_ptr<Promise<std::string>>
+-  using std__shared_ptr_Promise_std__string__ = std::shared_ptr<Promise<std::string>>;
+-  inline std::shared_ptr<Promise<std::string>> create_std__shared_ptr_Promise_std__string__() noexcept {
+-    return Promise<std::string>::create();
+-  }
+-  inline PromiseHolder<std::string> wrap_std__shared_ptr_Promise_std__string__(std::shared_ptr<Promise<std::string>> promise) noexcept {
+-    return PromiseHolder<std::string>(std::move(promise));
+-  }
+-
+-  // pragma MARK: Result<std::shared_ptr<Promise<std::string>>>
+-  using Result_std__shared_ptr_Promise_std__string___ = Result<std::shared_ptr<Promise<std::string>>>;
+-  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::shared_ptr<Promise<std::string>>& value) noexcept {
+-    return Result<std::shared_ptr<Promise<std::string>>>::withValue(value);
++  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>
++  using Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ = Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>;
++  inline Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ create_Result_std__shared_ptr_Promise_std__vector_VoiceInfo____(const std::shared_ptr<Promise<std::vector<VoiceInfo>>>& value) noexcept {
++    return Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>::withValue(value);
+   }
+-  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::exception_ptr& error) noexcept {
+-    return Result<std::shared_ptr<Promise<std::string>>>::withError(error);
++  inline Result_std__shared_ptr_Promise_std__vector_VoiceInfo____ create_Result_std__shared_ptr_Promise_std__vector_VoiceInfo____(const std::exception_ptr& error) noexcept {
++    return Result<std::shared_ptr<Promise<std::vector<VoiceInfo>>>>::withError(error);
+   }
+ 
+ } // namespace margelo::nitro::mrlecture::bridge::swift
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Umbrella.hpp b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Umbrella.hpp
+index 7833589..95e9a05 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Umbrella.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/MrLecture-Swift-Cxx-Umbrella.hpp
+@@ -31,6 +31,7 @@ namespace margelo::nitro::mrlecture { struct VoiceInfo; }
+ #include <NitroModules/Promise.hpp>
+ #include <NitroModules/Result.hpp>
+ #include <exception>
++#include <functional>
+ #include <memory>
+ #include <optional>
+ #include <string>
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/c++/HybridMrLectureSpecSwift.hpp b/node_modules/react-native-shumil/nitrogen/generated/ios/c++/HybridMrLectureSpecSwift.hpp
+index 6ff1bdd..d1a463d 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/ios/c++/HybridMrLectureSpecSwift.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/c++/HybridMrLectureSpecSwift.hpp
+@@ -12,26 +12,27 @@
+ // Forward declaration of `HybridMrLectureSpec_cxx` to properly resolve imports.
+ namespace MrLecture { class HybridMrLectureSpec_cxx; }
+ 
+-// Forward declaration of `VoiceInfo` to properly resolve imports.
+-namespace margelo::nitro::mrlecture { struct VoiceInfo; }
+ // Forward declaration of `Engine` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { enum class Engine; }
+ // Forward declaration of `SpeakOptions` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct SpeakOptions; }
++// Forward declaration of `VoiceInfo` to properly resolve imports.
++namespace margelo::nitro::mrlecture { struct VoiceInfo; }
+ // Forward declaration of `ExportJob` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct ExportJob; }
+ // Forward declaration of `ExportOptions` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct ExportOptions; }
+ 
+ #include <string>
+-#include "VoiceInfo.hpp"
+-#include <vector>
+ #include <NitroModules/Promise.hpp>
+ #include "Engine.hpp"
+ #include "SpeakOptions.hpp"
+ #include <optional>
++#include "VoiceInfo.hpp"
++#include <vector>
+ #include "ExportJob.hpp"
+ #include "ExportOptions.hpp"
++#include <functional>
+ 
+ #include "MrLecture-Swift-Cxx-Umbrella.hpp"
+ 
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/swift/ExportOptions.swift b/node_modules/react-native-shumil/nitrogen/generated/ios/swift/ExportOptions.swift
+index 3e0874c..cbef999 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/ios/swift/ExportOptions.swift
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/swift/ExportOptions.swift
+@@ -18,7 +18,7 @@ public extension ExportOptions {
+   /**
+    * Create a new instance of `ExportOptions`.
+    */
+-  init(voiceId: String?, rate: Double?, concurrency: Double?) {
++  init(voiceId: String?, rate: Double?, concurrency: Double?, onJobComplete: ((_ outputPath: String) -> Void)?) {
+     self.init({ () -> bridge.std__optional_std__string_ in
+       if let __unwrappedValue = voiceId {
+         return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+@@ -37,6 +37,15 @@ public extension ExportOptions {
+       } else {
+         return .init()
+       }
++    }(), { () -> bridge.std__optional_std__function_void_const_std__string_____outputPath______ in
++      if let __unwrappedValue = onJobComplete {
++        return bridge.create_std__optional_std__function_void_const_std__string_____outputPath______({ () -> bridge.Func_void_std__string in
++          let __closureWrapper = Func_void_std__string(__unwrappedValue)
++          return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
++        }())
++      } else {
++        return .init()
++      }
+     }())
+   }
+ 
+@@ -75,4 +84,21 @@ public extension ExportOptions {
+       }
+     }()
+   }
++  
++  @inline(__always)
++  var onJobComplete: ((_ outputPath: String) -> Void)? {
++    return { () -> ((_ outputPath: String) -> Void)? in
++      if bridge.has_value_std__optional_std__function_void_const_std__string_____outputPath______(self.__onJobComplete) {
++        let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____outputPath______(self.__onJobComplete)
++        return { () -> (String) -> Void in
++          let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
++          return { (__outputPath: String) -> Void in
++            __wrappedFunction.call(std.string(__outputPath))
++          }
++        }()
++      } else {
++        return nil
++      }
++    }()
++  }
+ }
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/ios/swift/Func_void_std__string.swift b/node_modules/react-native-shumil/nitrogen/generated/ios/swift/Func_void_std__string.swift
+new file mode 100644
+index 0000000..11f9103
+--- /dev/null
++++ b/node_modules/react-native-shumil/nitrogen/generated/ios/swift/Func_void_std__string.swift
+@@ -0,0 +1,46 @@
++///
++/// Func_void_std__string.swift
++/// This file was generated by nitrogen. DO NOT MODIFY THIS FILE.
++/// https://github.com/mrousavy/nitro
++/// Copyright © Marc Rousavy @ Margelo
++///
++
++import NitroModules
++
++/**
++ * Wraps a Swift `(_ value: String) -> Void` as a class.
++ * This class can be used from C++, e.g. to wrap the Swift closure as a `std::function`.
++ */
++public final class Func_void_std__string {
++  public typealias bridge = margelo.nitro.mrlecture.bridge.swift
++
++  private let closure: (_ value: String) -> Void
++
++  public init(_ closure: @escaping (_ value: String) -> Void) {
++    self.closure = closure
++  }
++
++  @inline(__always)
++  public func call(value: std.string) -> Void {
++    self.closure(String(value))
++  }
++
++  /**
++   * Casts this instance to a retained unsafe raw pointer.
++   * This acquires one additional strong reference on the object!
++   */
++  @inline(__always)
++  public func toUnsafe() -> UnsafeMutableRawPointer {
++    return Unmanaged.passRetained(self).toOpaque()
++  }
++
++  /**
++   * Casts an unsafe pointer to a `Func_void_std__string`.
++   * The pointer has to be a retained opaque `Unmanaged<Func_void_std__string>`.
++   * This removes one strong reference from the object!
++   */
++  @inline(__always)
++  public static func fromUnsafe(_ pointer: UnsafeMutableRawPointer) -> Func_void_std__string {
++    return Unmanaged<Func_void_std__string>.fromOpaque(pointer).takeRetainedValue()
++  }
++}
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/shared/c++/ExportOptions.hpp b/node_modules/react-native-shumil/nitrogen/generated/shared/c++/ExportOptions.hpp
+index d8cd7d5..6814217 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/shared/c++/ExportOptions.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/shared/c++/ExportOptions.hpp
+@@ -32,6 +32,7 @@
+ 
+ #include <string>
+ #include <optional>
++#include <functional>
+ 
+ namespace margelo::nitro::mrlecture {
+ 
+@@ -43,13 +44,14 @@ namespace margelo::nitro::mrlecture {
+     std::optional<std::string> voiceId     SWIFT_PRIVATE;
+     std::optional<double> rate     SWIFT_PRIVATE;
+     std::optional<double> concurrency     SWIFT_PRIVATE;
++    std::optional<std::function<void(const std::string& /* outputPath */)>> onJobComplete     SWIFT_PRIVATE;
+ 
+   public:
+     ExportOptions() = default;
+-    explicit ExportOptions(std::optional<std::string> voiceId, std::optional<double> rate, std::optional<double> concurrency): voiceId(voiceId), rate(rate), concurrency(concurrency) {}
++    explicit ExportOptions(std::optional<std::string> voiceId, std::optional<double> rate, std::optional<double> concurrency, std::optional<std::function<void(const std::string& /* outputPath */)>> onJobComplete): voiceId(voiceId), rate(rate), concurrency(concurrency), onJobComplete(onJobComplete) {}
+ 
+   public:
+-    friend bool operator==(const ExportOptions& lhs, const ExportOptions& rhs) = default;
++    // ExportOptions is not equatable because these properties are not equatable: onJobComplete
+   };
+ 
+ } // namespace margelo::nitro::mrlecture
+@@ -64,7 +66,8 @@ namespace margelo::nitro {
+       return margelo::nitro::mrlecture::ExportOptions(
+         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "voiceId"))),
+         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rate"))),
+-        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "concurrency")))
++        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "concurrency"))),
++        JSIConverter<std::optional<std::function<void(const std::string&)>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "onJobComplete")))
+       );
+     }
+     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::mrlecture::ExportOptions& arg) {
+@@ -72,6 +75,7 @@ namespace margelo::nitro {
+       obj.setProperty(runtime, PropNameIDCache::get(runtime, "voiceId"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.voiceId));
+       obj.setProperty(runtime, PropNameIDCache::get(runtime, "rate"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.rate));
+       obj.setProperty(runtime, PropNameIDCache::get(runtime, "concurrency"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.concurrency));
++      obj.setProperty(runtime, PropNameIDCache::get(runtime, "onJobComplete"), JSIConverter<std::optional<std::function<void(const std::string&)>>>::toJSI(runtime, arg.onJobComplete));
+       return obj;
+     }
+     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
+@@ -85,6 +89,7 @@ namespace margelo::nitro {
+       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "voiceId")))) return false;
+       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rate")))) return false;
+       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "concurrency")))) return false;
++      if (!JSIConverter<std::optional<std::function<void(const std::string&)>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "onJobComplete")))) return false;
+       return true;
+     }
+   };
+diff --git a/node_modules/react-native-shumil/nitrogen/generated/shared/c++/HybridMrLectureSpec.hpp b/node_modules/react-native-shumil/nitrogen/generated/shared/c++/HybridMrLectureSpec.hpp
+index 22c44a3..395ccd0 100644
+--- a/node_modules/react-native-shumil/nitrogen/generated/shared/c++/HybridMrLectureSpec.hpp
++++ b/node_modules/react-native-shumil/nitrogen/generated/shared/c++/HybridMrLectureSpec.hpp
+@@ -13,23 +13,23 @@
+ #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
+ #endif
+ 
+-// Forward declaration of `VoiceInfo` to properly resolve imports.
+-namespace margelo::nitro::mrlecture { struct VoiceInfo; }
+ // Forward declaration of `Engine` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { enum class Engine; }
+ // Forward declaration of `SpeakOptions` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct SpeakOptions; }
++// Forward declaration of `VoiceInfo` to properly resolve imports.
++namespace margelo::nitro::mrlecture { struct VoiceInfo; }
+ // Forward declaration of `ExportJob` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct ExportJob; }
+ // Forward declaration of `ExportOptions` to properly resolve imports.
+ namespace margelo::nitro::mrlecture { struct ExportOptions; }
+ 
+ #include <string>
+-#include "VoiceInfo.hpp"
+-#include <vector>
+ #include <NitroModules/Promise.hpp>
+ #include "Engine.hpp"
+ #include "SpeakOptions.hpp"
++#include "VoiceInfo.hpp"
++#include <vector>
+ #include "ExportJob.hpp"
+ #include "ExportOptions.hpp"
+ 
+diff --git a/node_modules/react-native-shumil/src/specs/mr-lecture.nitro.ts b/node_modules/react-native-shumil/src/specs/mr-lecture.nitro.ts
+index 33256b7..cd0d4fa 100755
+--- a/node_modules/react-native-shumil/src/specs/mr-lecture.nitro.ts
++++ b/node_modules/react-native-shumil/src/specs/mr-lecture.nitro.ts
+@@ -23,7 +23,17 @@ export interface SpeakOptions {
+ export interface ExportOptions {
+   voiceId?: string
+   rate?: number
++  /**
++   * Max jobs synthesized in parallel. When omitted each engine picks its own
++   * optimum (AVS: 4 synthesizers; Piper/Kokoro: cores / ONNX threads-per-job).
++   */
+   concurrency?: number
++  /**
++   * Fires once per job as soon as its file is fully written (completion order,
++   * not job order). Lets callers stream per-segment progress from a single
++   * batched call instead of splitting the batch into one native call per job.
++   */
++  onJobComplete?: (outputPath: string) => void
+ }
+ 
+ export interface MrLecture extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {

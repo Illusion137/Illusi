@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigation } from "expo-router";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions } from "expo-router/react-navigation";
 import { View } from "react-native";
 
 export default function NotFound() {

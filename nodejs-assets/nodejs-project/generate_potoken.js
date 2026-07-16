@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/only-throw-error */
 import { BG, buildURL, GOOG_API_KEY, USER_AGENT } from "bgutils-js";
 import { JSDOM } from "jsdom";
 import nodeFetch from "node-fetch";
@@ -23,31 +24,15 @@ async function setupGlobals() {
 		addEventListener: dom.window.addEventListener.bind(dom.window),
 		removeEventListener: dom.window.removeEventListener.bind(dom.window),
 		dispatchEvent: dom.window.dispatchEvent.bind(dom.window),
-		screen: {
-			width: 1920,
-			height: 1080,
-			availWidth: 1920,
-			availHeight: 1050,
-			colorDepth: 24,
-			pixelDepth: 24
-		},
-		performance: {
-			now: () => Date.now(),
-			timeOrigin: Date.now()
-		}
+		screen: { width: 1920, height: 1080, availWidth: 1920, availHeight: 1050, colorDepth: 24, pixelDepth: 24 },
+		performance: { now: () => Date.now(), timeOrigin: Date.now() }
 	});
 
 	if (!Reflect.has(globalThis, "navigator")) {
-		Object.defineProperty(globalThis, "navigator", {
-			value: dom.window.navigator
-		});
+		Object.defineProperty(globalThis, "navigator", { value: dom.window.navigator });
 	}
 
-	Object.defineProperty(dom.window.HTMLCanvasElement.prototype, "getContext", {
-		value: () => null,
-		writable: true,
-		configurable: true
-	});
+	Object.defineProperty(dom.window.HTMLCanvasElement.prototype, "getContext", { value: () => null, writable: true, configurable: true });
 
 	globalThis.TextEncoder = TextEncoder;
 	globalThis.TextDecoder = TextDecoder;
@@ -79,25 +64,18 @@ async function setupGlobals() {
 
 let attestation_challenge_cache;
 
-export async function generateContentBoundPoToken(content_binding, context) {
+let global_minter;
+async function create_minter(content_binding, context) {
+	if (global_minter !== undefined) return global_minter;
+
 	await setupGlobals();
 
 	let challengeData;
 	if (attestation_challenge_cache === undefined) {
 		const challengeResponse = await nodeFetch("https://www.youtube.com/youtubei/v1/att/get?prettyPrint=false&alt=json", {
 			method: "POST",
-			headers: {
-				Accept: "*/*",
-				"Content-Type": "application/json",
-				"X-Goog-Visitor-Id": context.client.visitorData ?? "",
-				"X-Youtube-Client-Version": context.client.clientVersion,
-				"X-Youtube-Client-Name": "1",
-				"User-Agent": USER_AGENT
-			},
-			body: JSON.stringify({
-				engagementType: "ENGAGEMENT_TYPE_UNBOUND",
-				context
-			})
+			headers: { Accept: "*/*", "Content-Type": "application/json", "X-Goog-Visitor-Id": context.client.visitorData ?? "", "X-Youtube-Client-Version": context.client.clientVersion, "X-Youtube-Client-Name": "1", "User-Agent": USER_AGENT },
+			body: JSON.stringify({ engagementType: "ENGAGEMENT_TYPE_UNBOUND", context })
 		});
 
 		if (!challengeResponse.ok) {
@@ -125,26 +103,16 @@ export async function generateContentBoundPoToken(content_binding, context) {
 		throw new Error("Could not load VM: empty interpreter JS");
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-implied-eval
 	new Function(interpreterJavascript)();
 
-	const botGuard = await BG.BotGuardClient.create({
-		program: challengeData.bgChallenge.program,
-		globalName: challengeData.bgChallenge.globalName,
-		globalObj: globalThis
-	});
+	const botGuard = await BG.BotGuardClient.create({ program: challengeData.bgChallenge.program, globalName: challengeData.bgChallenge.globalName, globalObj: globalThis });
 
 	const webPoSignalOutput = [];
 	const botGuardResponse = await botGuard.snapshot({ webPoSignalOutput }, 10_000);
 
 	const integrityTokenResponse = await nodeFetch(buildURL("GenerateIT", true), {
 		method: "POST",
-		headers: {
-			"content-type": "application/json+protobuf",
-			"x-goog-api-key": GOOG_API_KEY,
-			"x-user-agent": "grpc-web-javascript/0.1",
-			"user-agent": USER_AGENT
-		},
+		headers: { "content-type": "application/json+protobuf", "x-goog-api-key": GOOG_API_KEY, "x-user-agent": "grpc-web-javascript/0.1", "user-agent": USER_AGENT },
 		body: JSON.stringify([REQUEST_KEY, botGuardResponse])
 	});
 
@@ -156,5 +124,24 @@ export async function generateContentBoundPoToken(content_binding, context) {
 
 	const minter = await BG.WebPoMinter.create({ integrityToken: integrityTokenData[0] }, webPoSignalOutput);
 
+	global_minter = minter;
+	return minter;
+}
+
+let minter_status = undefined;
+export async function fetch_minter(content_binding, context) {
+	if (minter_status?.[0] === "recieved") return minter_status[1];
+	if (minter_status?.[0] === "sent") {
+		const recieved = await minter_status[1];
+		minter_status = ["recieved", recieved];
+		return recieved;
+	}
+	const sent_minter = create_minter(content_binding, context);
+	minter_status = ["sent", sent_minter];
+	return await sent_minter;
+}
+
+export async function generateContentBoundPoToken(content_binding, context) {
+	const minter = await fetch_minter(content_binding, context);
 	return await minter.mintAsWebsafeString(content_binding);
 }

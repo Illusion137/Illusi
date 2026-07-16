@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
+import { selection_store } from "@illusive/stores/selection_store";
+import useSelectionStore from "@hooks/useSelectionStore";
 import FourTrackArtwork from "./FourTrackArtwork";
 import type { Playlist, Track } from "@illusive/types";
 import type { Prefs } from "@illusive/prefs";
@@ -12,22 +14,22 @@ import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";
 import { GLOBALS } from "@illusive/globals";
-import { duration_to_string, track_durations } from "@illusive/illusive_utils";
 import { empty_join_dot } from "../lib-origin/common/utils/util";
-import { sum } from "../lib-origin/Illusive/src/illusive_utils";
 
-export default function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: boolean; track: Track }; compact?: boolean }) {
+function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: boolean; track: Track; already_in?: boolean }; compact?: boolean }) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
 	const [pinned, set_pinned] = useState(props.playlist_data.pinned);
 	const [is_public, set_is_public] = useState(props.playlist_data.public);
-	const [disabled, set_disabled] = useState(false);
+	const [disabled, set_disabled] = useState(props.select?.already_in ?? false);
 	const [visual_data, set_visual_data] = useState<Playlist["visual_data"]>();
 
 	const select_mode = props.select?.mode ?? false;
 	const compact = props.compact ?? false;
-	const [selected, set_selected] = useState(GLOBALS.global_var.selected_playlists_uuids.has(props.playlist_data.uuid));
+	// Subscribed through the store so the checkmark flips synchronously on toggle
+	// and only this row re-renders.
+	const selected = useSelectionStore(state => state.selected_playlists_uuids.has(props.playlist_data.uuid));
 	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
 
 	useEffect(() => {
@@ -45,27 +47,22 @@ export default function PlaylistComponent(props: { playlist_data: Playlist; sele
 		})();
 	}, [props.playlist_data]);
 
-	async function is_disabled(): Promise<boolean> {
-		if (props.select === undefined) return false;
-		return await SQLPlaylists.track_exists_in_playlist({ uuid: props.playlist_data.uuid, track_uid: props.select.track.uid });
-	}
-
 	useEffect(() => {
 		async function init() {
 			if (props.select === undefined || disabled) return;
-			set_disabled(await is_disabled());
+			// Membership is normally batched by the parent; the per-row query is only
+			// a fallback for callers that don't pass already_in.
+			if (props.select.already_in !== undefined) {
+				set_disabled(props.select.already_in);
+				return;
+			}
+			set_disabled(await SQLPlaylists.track_exists_in_playlist({ uuid: props.playlist_data.uuid, track_uid: props.select.track.uid }));
 		}
 		init();
 	}, [props.select]);
 
 	function toggle_state() {
-		const _selected = !selected;
-		set_selected(_selected);
-		if (_selected) {
-			GLOBALS.global_var.selected_playlists_uuids.add(props.playlist_data.uuid);
-		} else {
-			GLOBALS.global_var.selected_playlists_uuids.delete(props.playlist_data.uuid);
-		}
+		selection_store.getState().toggle_selected_playlist(props.playlist_data.uuid);
 	}
 
 	async function on_press() {
@@ -179,4 +176,5 @@ export default function PlaylistComponent(props: { playlist_data: Playlist; sele
 		</ContextMenuView>
 	);
 }
+export default memo(PlaylistComponent);
 const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({ button: { width: "100%", alignItems: "center", backgroundColor: colors.track, flexDirection: "row" }, notfound: { width: 70, height: 70, borderRadius: 5, left: 15 } });

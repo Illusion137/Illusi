@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Platform } from "react-native";
 import useDimensions from "@hooks/useDimensions";
 import TrackComponent from "@components/TrackComponent";
 import BigList from "react-native-big-list";
-import { useIsFocused } from "@react-navigation/native";
 import { Prefs } from "@illusive/prefs";
 import { GLOBALS } from "@illusive/globals";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
@@ -33,7 +32,7 @@ import { TRACK_QUERY_FLAGS } from "@illusive/query_flags";
 import { batch_download_track_lyrics, download_track_list } from "@illusive/downloader";
 import { debounce } from "lodash";
 import usePTheme from "@hooks/usePTheme";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useIsFocused } from "expo-router";
 import { BASE_WIDTH_FN } from "@components/TrackComponentBase";
 import { PlaylistPage } from "@illusive/playlist_page";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
@@ -296,17 +295,28 @@ export default function PlaylistBase(props: PlaylistProps) {
 
 	const write_playlist_uuid = props.type === "URI" ? Constants.library_write_playlist : props.type === "WRITE_PLAYLIST" ? props.write_playlist_uuid : undefined;
 
-	const render_track = (item: { item: Track }) => (
-		<TrackComponent
-			playlist_uuid={playlist_data?.uuid}
-			track_callback={() => [...tracks]}
-			track_data={item.item}
-			from={playlist_data?.title}
-			display_plays={props.type === "DEFAULT_PLAYLIST" && props.default_playlist_title === "Most Played"}
-			edit_mode={edit_mode_state}
-			width_fn={() => BASE_WIDTH_FN(write_playlist_uuid)}
-			write_playlist_uuid={write_playlist_uuid}
-		/>
+	// Stable callbacks so the memoized TrackComponent rows skip re-rendering when the
+	// screen refreshes — inline closures gave every row new props each render.
+	const tracks_state_ref = useRef<Track[]>(tracks);
+	tracks_state_ref.current = tracks;
+	const track_callback = useCallback(() => [...tracks_state_ref.current], []);
+	const width_fn = useCallback(() => BASE_WIDTH_FN(write_playlist_uuid), [write_playlist_uuid]);
+	const display_plays = props.type === "DEFAULT_PLAYLIST" && props.default_playlist_title === "Most Played";
+	const render_track = useCallback(
+		(item: { item: Track }) => (
+			<TrackComponent
+				playlist_uuid={playlist_data?.uuid}
+				track_callback={track_callback}
+				track_data={item.item}
+				from={playlist_data?.title}
+				display_plays={display_plays}
+				edit_mode={edit_mode_state}
+				width_fn={width_fn}
+				write_playlist_uuid={write_playlist_uuid}
+				play_order={props.type === "URI"}
+			/>
+		),
+		[playlist_data?.uuid, playlist_data?.title, track_callback, width_fn, display_plays, edit_mode_state, write_playlist_uuid]
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>
@@ -336,9 +346,10 @@ export default function PlaylistBase(props: PlaylistProps) {
 				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 20, fontWeight: "bold" }}>
 					{playlist_data?.title}
 				</Text>
-				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 20 }}>
+				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 10 }}>
 					{playlist_data?.description}
 				</Text>
+				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 7 }}></Text>
 				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 12, top: -8 }}>
 					{empty_join_dot([`${tracks.length}${continuation ? "+" : ""} tracks`, tracks_duration_string(tracks)])}
 				</Text>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View, type LayoutRectangle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -36,7 +37,9 @@ export default function RozNovelsList(props: RozNovelsListProps) {
 	const [drag_state, set_drag_state] = useState<{ source_key: string; target: DragTarget | null } | null>(null);
 
 	function measure_viewport() {
-		container_ref.current?.measureInWindow((x, y) => { viewport_origin.current = { x, y }; });
+		container_ref.current?.measureInWindow((x, y) => {
+			viewport_origin.current = { x, y };
+		});
 	}
 
 	function window_top(rect: LayoutRectangle): number {
@@ -52,7 +55,7 @@ export default function RozNovelsList(props: RozNovelsListProps) {
 			const band_top = top + rect.height * 0.3;
 			const band_bottom = top + rect.height * 0.7;
 			if (abs_y >= band_top && abs_y <= band_bottom) {
-				const entry = entries.find(e => e.key === key);
+				const entry = entries.find((e) => e.key === key);
 				if (entry === undefined) return null;
 				return { type: entry.type, entry_key: key };
 			}
@@ -61,7 +64,7 @@ export default function RozNovelsList(props: RozNovelsListProps) {
 	}
 
 	function compute_reorder(source_key: string, abs_y: number): string[] | null {
-		const source_entry = entries.find(e => e.key === source_key);
+		const source_entry = entries.find((e) => e.key === source_key);
 		if (source_entry === undefined) return null;
 		let insert_at = 0;
 		for (const entry of entries) {
@@ -70,16 +73,16 @@ export default function RozNovelsList(props: RozNovelsListProps) {
 			if (rect === undefined) continue;
 			if (abs_y > window_top(rect) + rect.height / 2) insert_at++;
 		}
-		const without = entries.filter(e => e.key !== source_key);
+		const without = entries.filter((e) => e.key !== source_key);
 		const reordered = [...without.slice(0, insert_at), source_entry, ...without.slice(insert_at)];
 		return entries_to_ordered_uuids(reordered);
 	}
 
 	function on_drop(source_key: string, target: DragTarget | null) {
-		const source_entry = entries.find(e => e.key === source_key);
+		const source_entry = entries.find((e) => e.key === source_key);
 		if (source_entry === undefined) return;
 		if (target !== null && source_entry.type === "novel") {
-			const target_entry = entries.find(e => e.key === target.entry_key);
+			const target_entry = entries.find((e) => e.key === target.entry_key);
 			if (target_entry !== undefined) {
 				Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 				if (target_entry.type === "novel") props.on_group_novels?.(source_entry.novel, target_entry.novel);
@@ -96,36 +99,38 @@ export default function RozNovelsList(props: RozNovelsListProps) {
 
 	return (
 		<View ref={container_ref} onLayout={measure_viewport} style={styles.viewport}>
-		<ScrollView
-			onScroll={(e) => { scroll_y.current = e.nativeEvent.contentOffset.y; }}
-			scrollEventThrottle={16}
-			contentContainerStyle={styles.list_container}>
-			{entries.map(entry => (
-				<DraggableRow
-					key={entry.key}
-					entry={entry}
-					on_layout_change={(rect) => layouts.current.set(entry.key, rect)}
-					on_drag_start={(key) => set_drag_state({ source_key: key, target: null })}
-					on_drag_update={(key, _abs_x, abs_y) => {
-						last_abs_y.current = abs_y;
-						const target = find_group_target(abs_y, key);
-						set_drag_state((prev) => (prev?.source_key === key && prev?.target?.entry_key === target?.entry_key ? prev : { source_key: key, target }));
-					}}
-					on_drag_end={(key) => {
-						on_drop(key, drag_state?.target ?? null);
-						set_drag_state(null);
-					}}
-					drop_target_active={drag_state?.target?.entry_key === entry.key}
-					dim={drag_state !== null && drag_state.source_key === entry.key}
-					{...props}
-				/>
-			))}
-			{entries.length === 0 ? (
-				<View style={styles.empty_wrap}>
-					<Text style={[styles.empty_text, { color: colors.subtext }]}>No audiobooks yet</Text>
-				</View>
-			) : null}
-		</ScrollView>
+			<ScrollView
+				onScroll={(e) => {
+					scroll_y.current = e.nativeEvent.contentOffset.y;
+				}}
+				scrollEventThrottle={16}
+				contentContainerStyle={styles.list_container}>
+				{entries.map((entry) => (
+					<DraggableRow
+						key={entry.key}
+						entry={entry}
+						on_layout_change={(rect) => layouts.current.set(entry.key, rect)}
+						on_drag_start={(key) => set_drag_state({ source_key: key, target: null })}
+						on_drag_update={(key, _abs_x, abs_y) => {
+							last_abs_y.current = abs_y;
+							const target = find_group_target(abs_y, key);
+							set_drag_state((prev) => (prev?.source_key === key && prev?.target?.entry_key === target?.entry_key ? prev : { source_key: key, target }));
+						}}
+						on_drag_end={(key) => {
+							on_drop(key, drag_state?.target ?? null);
+							set_drag_state(null);
+						}}
+						drop_target_active={drag_state?.target?.entry_key === entry.key}
+						dim={drag_state !== null && drag_state.source_key === entry.key}
+						{...props}
+					/>
+				))}
+				{entries.length === 0 ? (
+					<View style={styles.empty_wrap}>
+						<Text style={[styles.empty_text, { color: colors.subtext }]}>No audiobooks yet</Text>
+					</View>
+				) : null}
+			</ScrollView>
 		</View>
 	);
 }
@@ -164,11 +169,7 @@ function DraggableRow(props: DraggableRowProps) {
 			z_index.value = 0;
 		});
 
-	const animated_style = useAnimatedStyle(() => ({
-		transform: [{ translateY: translation_y.value }, { scale: scale.value }],
-		zIndex: z_index.value,
-		elevation: z_index.value
-	}));
+	const animated_style = useAnimatedStyle(() => ({ transform: [{ translateY: translation_y.value }, { scale: scale.value }], zIndex: z_index.value, elevation: z_index.value }));
 
 	return (
 		<GestureDetector gesture={pan}>
@@ -188,18 +189,4 @@ function haptic_light() {
 }
 
 const theme_styles = (_colors: Prefs.Theme["colors"]) =>
-	StyleSheet.create({
-		viewport: { flex: 1 },
-		list_container: {
-			paddingTop: 4,
-			paddingBottom: 64
-		},
-		empty_wrap: {
-			width: "100%",
-			alignItems: "center",
-			paddingTop: 60
-		},
-		empty_text: {
-			fontSize: 14
-		}
-	});
+	StyleSheet.create({ viewport: { flex: 1 }, list_container: { paddingTop: 4, paddingBottom: 64 }, empty_wrap: { width: "100%", alignItems: "center", paddingTop: 60 }, empty_text: { fontSize: 14 } });

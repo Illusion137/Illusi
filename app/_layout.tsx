@@ -11,7 +11,7 @@ import appConfig from "app.config";
 import TrackPlayer from "react-native-track-player";
 import { Image as ExpoImage } from "expo-image";
 import type { ConfigContext } from "expo/config";
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { get_shortcut_subscription, on_app_load } from "@illusive/startup";
 import { reinterpret_cast } from "@common/cast";
 import { gen_uuid, milliseconds_of } from "@common/utils/util";
@@ -19,6 +19,7 @@ import AudioPlayer from "@screens/AudioPlayer";
 import AudiobookSlidingPlayer from "@screens/audiobook/AudiobookSlidingPlayer";
 import ExternalDisplayHost from "@components/external_display/ExternalDisplayHost";
 import SyncPlayIndicator from "@components/SyncPlayIndicator";
+import AudiobookGenerationIndicator from "@components/AudiobookGenerationIndicator";
 import { GLOBALS } from "@illusive/globals";
 import { AudiobookPlayer } from "@illusive/audiobook_player_service";
 import { AudiobookDownloads } from "@illusive/audiobook_downloads";
@@ -30,8 +31,8 @@ import { SharedRouter } from "@utils/shared_routes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { ResponseError } from "@common/types";
 import { get_linking_handler } from "@utils/linking";
-import { initialize_sentry_severity_handler } from "@common/sentry_error_handler";
-import { AppState, Image, Platform, type AppStateStatus } from "react-native";
+import { breadcrumb as log_breadcrumb, initialize_sentry_severity_handler, set_breadcrumb_console_sink } from "@common/sentry_error_handler";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 import { check_and_apply_update, mark_launch_success } from "@utils/ota_update";
 import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from "@utils/perf_monitor";
 import nodejs from "nodejs-mobile-react-native";
@@ -43,12 +44,11 @@ if (Platform.OS === "ios") {
 	CarPlayService = carplayModule.CarPlayService;
 }
 
-const splash_screen_image = require("../assets/splash.png");
-
 TrackPlayer.registerPlaybackService(() => playback_service);
 
 ExpoImage.configureCache({ maxMemoryCost: 128 * 1024 * 1024, maxDiskSize: 512 * 1024 * 1024 });
 
+const OTA_ENABLED = false;
 Sentry.init({
 	dsn: "https://9c6195e4f85113499be07c6bc8402993@o4510064302227456.ingest.us.sentry.io/4510064306159616",
 
@@ -145,12 +145,13 @@ export default Sentry.wrap(function App() {
 	}
 
 	useEffect(() => {
+		set_breadcrumb_console_sink(__DEV__);
 		initialize_sentry_severity_handler();
-		// Initialize nodejs worker (mobile only)
+		let ota_check_timer: ReturnType<typeof setTimeout> | undefined;
 		if (Platform.OS !== "android" && Platform.OS !== "web") {
 			nodejs.start("main.js");
 			nodejs.channel.addListener("message", (msg) => {
-				Sentry.addBreadcrumb({ message: "From node: " + msg });
+				Sentry.addBreadcrumb({ message: "From node: " + msg + "@" + new Date().getTime() });
 			});
 		}
 		start_perf_monitor();
@@ -162,9 +163,19 @@ export default Sentry.wrap(function App() {
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons();
 		(async () => {
-			await Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font });
-			await on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_is_loading, set_theme, update_bottom_alert);
-			mark_launch_success().catch((e) => e);
+			const app_load_t0 = Date.now();
+			await Promise.all([
+				Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font }).then(() => {
+					log_breadcrumb("startup", "fonts loaded", { elapsed_ms: Date.now() - app_load_t0 });
+				}),
+				on_app_load(appConfig(reinterpret_cast<ConfigContext["config"]>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
+			]);
+			log_breadcrumb("startup", "app load complete", { total_ms: Date.now() - app_load_t0 });
+			if (OTA_ENABLED) {
+				ota_check_timer = setTimeout(() => {
+					async () => check_and_apply_update().catch((e) => e);
+				}, 5000);
+			}
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
 				try {
@@ -192,19 +203,17 @@ export default Sentry.wrap(function App() {
 			AudiobookDownloads.resume_all().catch((e) => e);
 			// Initialize CarPlay (iOS only)
 			if (CarPlayService) {
-				CarPlayService.init();
+				try {
+					CarPlayService.init();
+				} catch (e) {
+					log_breadcrumb("startup", "carplay init failed", { error: String(e) });
+				}
 			}
-			check_and_apply_update().catch((e) => e);
 		})().catch((e) => e);
-		// Snapshot resume tokens for in-flight downloads when backgrounding, and
-		// restart them when we come back, so a download survives a suspend/kill.
 		const app_state_subscription = AppState.addEventListener("change", (next: AppStateStatus) => {
 			if (next === "active") AudiobookDownloads.resume_all().catch((e) => e);
 			else if (next === "background" || next === "inactive") AudiobookDownloads.persist_for_background().catch((e) => e);
 		});
-		// Under iOS memory pressure, drop the decoded-image cache before the OS kills us.
-		// Disk cache is untouched, so visible artwork re-decodes near-instantly.
-		// Also report to Sentry — repeated warnings precede an OOM kill.
 		const memory_warning_subscription = AppState.addEventListener("memoryWarning", () => {
 			ExpoImage.clearMemoryCache().catch((e) => e);
 			report_memory_warning();
@@ -214,6 +223,7 @@ export default Sentry.wrap(function App() {
 			linking_handler.remove();
 			app_state_subscription.remove();
 			memory_warning_subscription.remove();
+			if (ota_check_timer) clearTimeout(ota_check_timer);
 			stop_perf_monitor();
 			stop_thermal_monitor();
 			stop_heap_monitor();
@@ -223,6 +233,13 @@ export default Sentry.wrap(function App() {
 			}
 		};
 	}, []);
+	useEffect(() => {
+		if (is_loading) return;
+		const healthy_timer = setTimeout(() => {
+			mark_launch_success().catch((e) => e);
+		}, 4000);
+		return () => clearTimeout(healthy_timer);
+	}, [is_loading]);
 	useEffect(() => {
 		if (is_playing !== "LOADING") return;
 		set_is_playing("ON");
@@ -255,20 +272,19 @@ export default Sentry.wrap(function App() {
 	return (
 		<GestureHandlerRootView>
 			<ThemeProvider value={theme_value}>
-				{is_loading ? <Image style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null}
+				{/* {is_loading ? <Image style={{ flex: 1, backgroundColor: "black", width: "100%", height: "100%" }} source={splash_screen_image} /> : null} */}
 				{is_playing == "ON" && <AudioPlayer tracks={playing_tracks} playing_from={playing_from} />}
 				{audiobook_uuid !== null && <AudiobookSlidingPlayer key={audiobook_uuid} uuid={audiobook_uuid} on_dismiss={() => set_audiobook_uuid(null)} />}
 				{!is_loading ? <ExternalDisplayHost /> : null}
 				{!is_loading ? <SyncPlayIndicator /> : null}
+				{!is_loading ? <AudiobookGenerationIndicator /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
-				{!is_loading ? (
-					<SafeAreaProvider>
-						<Stack>
-							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-							<Stack.Screen name="+not-found" options={{ headerShown: false }} />
-						</Stack>
-					</SafeAreaProvider>
-				) : null}
+				<SafeAreaProvider>
+					<Stack>
+						<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+						<Stack.Screen name="+not-found" options={{ headerShown: false }} />
+					</Stack>
+				</SafeAreaProvider>
 			</ThemeProvider>
 		</GestureHandlerRootView>
 	);

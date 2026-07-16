@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from "@expo/vector-icons";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { GestureDetector, Gesture, type GestureType } from "react-native-gesture-handler";
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
 import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
@@ -168,23 +168,25 @@ const MiniProgressBar = memo(function MiniProgressBar({ seek_progress, primary_c
 	);
 });
 
-const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork }: { best_artwork: IllusiveType.Artwork | undefined | null }) {
+const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork, track_uid }: { best_artwork: IllusiveType.Artwork | undefined | null; track_uid: string }) {
+	// Keyed on the track (not the source) so the low->high quality artwork swap
+	// doesn't blank the backdrop while the high-quality image loads.
 	return (
 		<>
 			<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
-				<IImage source={best_artwork} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 			</View>
 			<View style={{ position: "absolute", top: art_top_y + screen_w, left: 0, right: 0, bottom: 0, overflow: "hidden" }}>
-				<IImage source={best_artwork} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 			</View>
-			<IImage source={best_artwork} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+			<IImage source={best_artwork} recycling_key={track_uid} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
 			{/* Top fade-out blur: blurred duplicates of the mirrored-top strip + the first
 			    60px of the center art, positioned to line up exactly with the sharp layers. */}
 			<MaskedView
 				style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
 				maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
-				<IImage source={best_artwork} blurRadius={18} style={{ position: "absolute", bottom: 60, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
-				<IImage source={best_artwork} blurRadius={18} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={18} style={{ position: "absolute", bottom: 60, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={18} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
 				<View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.25)" }]} />
 			</MaskedView>
 			{/* Bottom fade-in blur: blurred duplicates of the center art's lower 270px + the
@@ -192,8 +194,8 @@ const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork }: { best_art
 			<MaskedView
 				style={{ position: "absolute", top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
 				maskElement={<LinearGradient colors={["transparent", "transparent", "black", "black"]} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
-				<IImage source={best_artwork} blurRadius={45} style={{ position: "absolute", top: 270 - screen_w, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
-				<IImage source={best_artwork} blurRadius={45} style={{ position: "absolute", top: 270, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={45} style={{ position: "absolute", top: 270 - screen_w, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={45} style={{ position: "absolute", top: 270, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 				<View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.35)" }]} />
 			</MaskedView>
 			<LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.25)", "transparent"]} locations={[0, 0.55, 1]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 25 }} />
@@ -265,6 +267,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const [queue_drag_disabled, set_queue_drag_disabled] = useState(false);
 	const outer_drag_enabled = !queue_drag_disabled;
 	const lyrics_scroll_gesture = useMemo(() => Gesture.Native(), []);
+	const queue_pan_ref = useRef<GestureType | undefined>(undefined);
+	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_pan_ref], [lyrics_scroll_gesture]);
 
 	// SyncPlay awareness: guests may have their controls locked by the host.
 	// When connected as a guest with control permission, button taps proxy
@@ -385,6 +389,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			}
 			if (track !== "skip") {
 				await TrackPlayer.add(track);
+				// Added with its real url — mark resolved so the pending-url machinery
+				// in track_player_service doesn't re-fetch it on the first active change.
+				GLOBALS.global_var.playing_tracks[0].playback!.successful = true;
 			}
 		}
 		await TrackPlayer.play();
@@ -590,7 +597,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		<SlidingUpPanel
 			ref={bottom_sheet_ref}
 			allowDragging={outer_drag_enabled}
-			blockingGesture={lyrics_scroll_gesture}
+			blockingGesture={panel_blocking_gestures}
 			showBackdrop={true}
 			animatedValue={panel_animated}
 			height={panel_max_height}
@@ -602,7 +609,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			<>
 				{panel_state_visible ? (
 					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
-						<PlayerBackdrop best_artwork={best_artwork} />
+						<PlayerBackdrop best_artwork={best_artwork} track_uid={playing_track.uid} />
 						<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, lyrics_dim_style, { backgroundColor: "rgba(0,0,0,0.6)" }]} />
 					</Animated.View>
 				) : null}
@@ -686,7 +693,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							)}
 						</View>
 						{/* ACTION BUTTONS */}
-						<View style={{ flexDirection: "row", gap: 8, paddingTop: 4, marginLeft: 10 }}>
+						<View style={{ flexDirection: "row", gap: 8, paddingTop: 4, top: 20, marginLeft: 10 }}>
 							<TouchableOpacity
 								onPress={async () => {
 									if (playing_track === undefined) return;
@@ -793,7 +800,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
 					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "black" }, queue_dim_style]} />
 				</Animated.View>
-				<QueueHandle expanded_progress={queue_expanded_progress} />
+				<QueueHandle expanded_progress={queue_expanded_progress} pan_gesture_ref={queue_pan_ref} />
 			</>
 		</SlidingUpPanel>
 	);

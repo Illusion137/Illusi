@@ -1,5 +1,5 @@
 import type { IllusiveURI, MusicServiceArtist, Track } from "@illusive/types";
-import { ScrollView, View, Text, TouchableOpacity, TextInput } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import AlbumList from "@components/AlbumList";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import LatestRelease from "@components/LatestRelease";
@@ -15,6 +15,7 @@ import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import IImage from "@components/IImage";
 import usePTheme from "@hooks/usePTheme";
+import useTrackStore from "@hooks/useTrackStore";
 import type { ResponseError } from "@common/types";
 import { router, useLocalSearchParams } from "expo-router";
 import { remove_topic } from "@common/utils/clean_util";
@@ -44,9 +45,20 @@ export default function Artist() {
 	});
 	const [watched, set_watched] = useState<boolean | undefined>(undefined);
 	const [search_query, set_search_query] = useState<string>("");
+	const [is_loading, set_is_loading] = useState(true);
 
 	useEffect(() => {
-		initial_data();
+		initial_data().finally(() => set_is_loading(false));
+		// On a cold start the artists memo is populated in the background — backfill
+		// the header once it's ready instead of showing an empty name forever.
+		SQLArtists.artists_memo_ready.then(() => {
+			set_artist_data(prev => {
+				if (!is_empty(prev.name)) return prev;
+				const memo_artist = SQLArtists.artists_memo[uri];
+				if (memo_artist === undefined) return prev;
+				return { ...prev, name: memo_artist.name, profile_artwork_url: is_empty(prev.profile_artwork_url) ? memo_artist.artwork_url : prev.profile_artwork_url };
+			});
+		}).catch(() => undefined);
 	}, []);
 
 	function close() {
@@ -103,7 +115,8 @@ export default function Artist() {
 		GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, artist_data.name);
 	}
 
-	const shared_tracks: Track[] = useMemo(() => tracks_with_artist(GLOBALS.global_var.sql_tracks, artist_data.name).map((track) => ({ ...track, downloading_data: { ...track.downloading_data!, saved: true } })), [artist_data.name]);
+	const library_tracks = useTrackStore((state) => state.tracks);
+	const shared_tracks: Track[] = useMemo(() => tracks_with_artist(library_tracks, artist_data.name).map((track) => ({ ...track, downloading_data: { ...track.downloading_data!, saved: true } })), [library_tracks, artist_data.name]);
 
 	const popular_tracks = useMemo(
 		() =>
@@ -113,24 +126,27 @@ export default function Artist() {
 		[uri, artist_data.tracks]
 	);
 
-	const background_image_url_possibilities = [
-		artist_data.profile_artwork_url,
-		artist_data.background_artwork_url,
-		artist_data.albums?.[0]?.artwork_url,
-		artist_data.singles_eps?.[0]?.artwork_url,
-		best_thumbnail(artist_data.albums?.[0]?.artwork_thumbnails)?.url,
-		best_thumbnail(artist_data.singles_eps?.[0]?.artwork_thumbnails)?.url,
-		artist_data.tracks?.[0]?.artwork_url
-	];
-
-	const background_image_url = background_image_url_possibilities.find((url) => !is_empty(url));
+	// Memoized so the IImage source stays referentially stable across re-renders
+	// (an unstable source restarts the fallback chain and refetches).
+	const background_image_url = useMemo(() => {
+		const background_image_url_possibilities = [
+			artist_data.profile_artwork_url,
+			artist_data.background_artwork_url,
+			artist_data.albums?.[0]?.artwork_url,
+			artist_data.singles_eps?.[0]?.artwork_url,
+			best_thumbnail(artist_data.albums?.[0]?.artwork_thumbnails)?.url,
+			best_thumbnail(artist_data.singles_eps?.[0]?.artwork_thumbnails)?.url,
+			artist_data.tracks?.[0]?.artwork_url
+		];
+		return background_image_url_possibilities.find((url) => !is_empty(url));
+	}, [artist_data]);
 
 	const query_normalized = search_query.trim().toLowerCase();
 	const has_query = query_normalized.length > 0;
-	const match = (s: string | undefined) => (s ?? "").toLowerCase().includes(query_normalized);
 
 	const filtered = useMemo(() => {
 		if (!has_query) return null;
+		const match = (s: string | undefined) => (s ?? "").toLowerCase().includes(query_normalized);
 		return {
 			tracks: artist_data.tracks.filter((t) => match(t.title) || match(t.album?.name)),
 			albums: artist_data.albums.filter((a) => match(a.title?.name)),
@@ -140,7 +156,7 @@ export default function Artist() {
 			similar_artists: artist_data.similar_artists.filter((a) => match(a.name?.name)),
 			shared_tracks: shared_tracks.filter((t) => match(t.title) || match(t.album?.name))
 		};
-	}, [query_normalized, artist_data, shared_tracks]);
+	}, [query_normalized, has_query, artist_data, shared_tracks]);
 
 	return (
 		<>
@@ -229,6 +245,14 @@ export default function Artist() {
 								<Text style={{ color: colors.subtext, fontSize: 14 }}>No matches for "{search_query}"</Text>
 							</View>
 						) : null}
+						<View style={{ paddingVertical: 30 }} />
+					</>
+				) : is_loading && artist_data.tracks.length === 0 ? (
+					<>
+						<View style={{ alignItems: "center", paddingVertical: 30 }}>
+							<ActivityIndicator size="small" color={colors.primary} />
+						</View>
+						{shared_tracks.length > 0 ? <TrackHorizontalScrolls title="From Your Library" height={5} tracks={shared_tracks} /> : null}
 						<View style={{ paddingVertical: 30 }} />
 					</>
 				) : (

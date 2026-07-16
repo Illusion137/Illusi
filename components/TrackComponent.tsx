@@ -29,14 +29,19 @@ function TrackComponent(props: {
 	width_fn?: () => DimensionValue | undefined;
 	replace_album_with?: keyof Track;
 	base_background?: boolean;
+	// Batched membership computed by the parent list (one query for the whole list);
+	// when provided the per-row existence query is skipped.
+	playlist_saved?: boolean;
+	play_order?: boolean;
 }) {
 	const [track_data, set_track_data] = useState(props.track_data);
 
 	const [is_downloading, set_is_downloading] = useState(GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
 	const [playlist_saved, set_playlist_saved] = useState(
-		((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
-			((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+		props.playlist_saved ??
+			(((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
+				((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist))
 	);
 	const [downloading_progress, set_downloading_progress] = useState(0);
 
@@ -86,6 +91,7 @@ function TrackComponent(props: {
 
 	useEffect(() => {
 		(async () => {
+			if (props.playlist_saved !== undefined) return;
 			if (props.write_playlist_uuid && props.write_playlist_uuid !== Constants.library_write_playlist) {
 				const temp_track_data = track_data;
 				const new_track_data = { ...temp_track_data, downloading_data: { saved: true, progress: 0, playlist_saved: await SQLPlaylists.track_exists_in_playlist({ uuid: props.write_playlist_uuid, track_uid: temp_track_data.uid }) } };
@@ -103,14 +109,27 @@ function TrackComponent(props: {
 
 	useEffect(() => {
 		set_track_data(props.track_data);
+		// Recycled/refreshed rows must resync the saved flag too — new track_data with
+		// a stale playlist_saved left icons showing another row's state.
+		if (props.playlist_saved === undefined) {
+			set_playlist_saved(
+				((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
+					((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+			);
+		}
 	}, [props.track_data]);
+	useEffect(() => {
+		if (props.playlist_saved !== undefined) set_playlist_saved(props.playlist_saved);
+	}, [props.playlist_saved]);
 
 	async function on_press() {
 		if (notdisabled_from_write_playlist) {
 			const clone: Track = JSON.parse(JSON.stringify(props.track_data));
 			const track: Track = { ...clone, meta: { ...clone.meta!, begdur: clone.duration * 0.2 } };
 			GLOBALS.global_var.play_tracks(track, [track], "Write Playlist");
-		} else if (props.from !== undefined && props.track_callback !== undefined) play(props.track_data, props.from, props.track_callback);
+		} else if (props.from !== undefined && props.track_callback !== undefined) {
+			play(props.track_data, props.from, props.track_callback, props.play_order);
+		}
 	}
 
 	return (
@@ -184,4 +203,6 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 		centered: { justifyContent: "center" }
 	});
 
-export default TrackComponent;
+// Memoized — track rows keep their object identity in the store when unchanged,
+// so list re-renders skip untouched rows.
+export default React.memo(TrackComponent);

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
 import { FontAwesome6 } from "@expo/vector-icons";
@@ -20,14 +20,14 @@ const PANEL_H = Math.min(Dimensions.get("screen").height * 0.72, 640);
 const SNAP_SPRING = { damping: 34, stiffness: 350, overshootClamping: true };
 const SWIPE_ACTION_W = 75;
 
-const QueueRow = memo(function QueueRow({ item, index, on_remove }: { item: Track; index: number; on_remove: (item: Track, index: number) => void }) {
+const QueueRow = memo(function QueueRow({ item, on_remove }: { item: Track; on_remove: (item: Track) => void }) {
 	const render_right_actions = useCallback(
 		() => (
-			<TouchableOpacity onPress={() => on_remove(item, index)} style={{ backgroundColor: "#8B000040", width: SWIPE_ACTION_W, justifyContent: "center", alignItems: "center" }}>
+			<TouchableOpacity onPress={() => on_remove(item)} style={{ backgroundColor: "#8B000040", width: SWIPE_ACTION_W, justifyContent: "center", alignItems: "center" }}>
 				<FontAwesome6 name="delete-left" color="white" size={22} />
 			</TouchableOpacity>
 		),
-		[item, index, on_remove]
+		[item, on_remove]
 	);
 	return (
 		<ReanimatedSwipeable renderRightActions={render_right_actions} rightThreshold={40} overshootRight={false} friction={2} dragOffsetFromRightEdge={10}>
@@ -36,7 +36,7 @@ const QueueRow = memo(function QueueRow({ item, index, on_remove }: { item: Trac
 	);
 });
 
-const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function QueueHandle({ expanded_progress }) {
+const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_ref: React.RefObject<GestureType | undefined> }>(function QueueHandle({ expanded_progress, pan_gesture_ref }) {
 	const { colors } = usePTheme();
 	const [queue, set_queue] = useState<Track[]>([]);
 
@@ -45,12 +45,15 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 	// True while a drag is mid-flight and hasn't been resolved to a rest state yet.
 	const needs_snap = useSharedValue(false);
 
+	// Mount the list on the first open and keep it mounted: repeatedly
+	// mounting/unmounting a FlashList on the first frame of every drag caused a
+	// visible hitch right as the panel started moving.
 	const [list_mounted, set_list_mounted] = useState(false);
 	useAnimatedReaction(
 		() => panel_h.value > HANDLE_H + 1,
 		(open, was) => {
 			// eslint-disable-next-line @typescript-eslint/no-deprecated
-			if (open !== was && was !== null) runOnJS(set_list_mounted)(open);
+			if (open && !was && was !== null) runOnJS(set_list_mounted)(true);
 		}
 	);
 
@@ -85,7 +88,12 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 		[panel_h, expanded_progress]
 	);
 
+	// withRef exposes this pan to AudioPlayer, which registers it as a blocking
+	// gesture on the outer SlidingUpPanel: the player pan can't activate until
+	// this one fails, so a drag that starts on the queue handle can never win
+	// the activation race and yank the whole player around.
 	const pan = Gesture.Pan()
+		.withRef(pan_gesture_ref)
 		.activeOffsetY([-12, 12])
 		.failOffsetX([-10, 10])
 		.onStart(() => {
@@ -119,16 +127,23 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 
 	const handle_gesture = Gesture.Exclusive(pan, tap);
 
-	const container_style = useAnimatedStyle(() => ({ height: panel_h.value }));
+	// Fixed height + translateY instead of animating `height`: a height change
+	// forces a full layout pass (and a FlashList relayout) on every frame of the
+	// drag, which is what made opening/closing stutter. A transform is
+	// composited on the UI thread without any layout work.
+	const container_style = useAnimatedStyle(() => ({ transform: [{ translateY: PANEL_H - panel_h.value }] }));
 
 	const next_track = useMemo(() => queue[1] ?? null, [queue]);
 	const up_next_data = useMemo(() => queue.slice(1, 50), [queue]);
 	const now_playing = useMemo(() => queue[0] ?? null, [queue]);
 	const has_up_next = up_next_data.length > 0;
 
-	const remove_track = useCallback(async (item: Track, index: number) => {
+	const remove_track = useCallback(async (item: Track) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
-		await delete_track_from_player_queue(item, index);
+		// delete_track_from_player_queue expects the active track index, not the row index
+		const active_index = await TrackPlayer.getActiveTrackIndex();
+		if (active_index === undefined) return;
+		await delete_track_from_player_queue(item, active_index);
 		update_queue();
 	}, []);
 
@@ -143,12 +158,12 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number> }>(function Qu
 		[colors.text, now_playing, has_up_next]
 	);
 
-	const render_item = useCallback(({ item, index }: { item: Track; index: number }) => <QueueRow item={item} index={index} on_remove={remove_track} />, [remove_track]);
+	const render_item = useCallback(({ item }: { item: Track }) => <QueueRow item={item} on_remove={remove_track} />, [remove_track]);
 
 	const key_extractor = useCallback((item: Track, i: number) => item.uid + i, []);
 
 	return (
-		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + "40", overflow: "hidden", zIndex: 30 }, container_style]}>
+		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, height: PANEL_H, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + "40", overflow: "hidden", zIndex: 30 }, container_style]}>
 			{/* Drag handle + collapsed next-up preview */}
 			<GestureDetector gesture={handle_gesture}>
 				<View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>

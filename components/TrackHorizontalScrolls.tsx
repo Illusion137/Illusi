@@ -3,14 +3,14 @@ import type { Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
 import { Constants } from "@illusive/constants";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
-import { chunkify, gen_uuid } from "@common/utils/util";
+import { chunkify } from "@common/utils/util";
 import { FlashList } from "@shopify/flash-list";
 import { get_common_styles } from "@utils/common_styles";
 import usePTheme from "@hooks/usePTheme";
 import { AntDesignTouchableOpacity } from "./TouchableIconOpacity";
 import { SharedRouter } from "@utils/shared_routes";
 import useDimensions from "@hooks/useDimensions";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export default function TrackHorizontalScrolls(props: {
     title: string;
@@ -22,32 +22,30 @@ export default function TrackHorizontalScrolls(props: {
     const common_styles = get_common_styles(colors);
     const { width } = useDimensions();
     const track_width = useMemo(() => width * .95, [width]);
-    const split_tracks: Track[][] = chunkify(props.tracks, props.height);
-    
-    const RenderTrackComponent = (item: {item: Track}) =>
-    (
-        <View key={item.item.uid} style={{width: track_width}}>
-            <TrackComponent key={item.item.uid} 
-                track_data={item.item}
-                width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)} 
-                write_playlist_uuid={Constants.library_write_playlist} 
-                from={"Illusi"} 
-                track_callback={() => props.tracks}
-                base_background={true}
-                replace_album_with={props.replace_album_with}/>
-        </View>
-    );
+    const split_tracks: Track[][] = useMemo(() => chunkify(props.tracks, props.height), [props.tracks, props.height]);
 
-    const RenderTrackColumnComponent = (item: {item: Track[]}) =>
+    const render_track_column = useCallback((item: {item: Track[]}) =>
     (
-        <View key={item.item?.[0]?.uid ?? gen_uuid()}>
+        <View>
             {
                 item.item.map(track => (
-                    <RenderTrackComponent key={track.uid} item={track}/>
+                    <View key={track.uid} style={{width: track_width}}>
+                        <TrackComponent
+                            track_data={track}
+                            width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)}
+                            write_playlist_uuid={Constants.library_write_playlist}
+                            from={"Illusi"}
+                            track_callback={() => props.tracks}
+                            base_background={true}
+                            replace_album_with={props.replace_album_with}/>
+                    </View>
                 ))
             }
         </View>
-    );
+    ), [track_width, props.tracks, props.replace_album_with]);
+    // Stable keys — the old gen_uuid() fallback minted a new key every render,
+    // forcing FlashList to remount columns.
+    const key_extractor = useCallback((item: Track[], index: number) => item[0]?.uid ?? `col-${index}`, []);
 
     function full_screen(){
         SharedRouter.goto_shared_track_list(props.title, props.tracks);
@@ -63,7 +61,8 @@ export default function TrackHorizontalScrolls(props: {
             </View>
             <View style={common_styles.line_long}/>
             <FlashList data={split_tracks}
-                renderItem={RenderTrackColumnComponent}
+                renderItem={render_track_column}
+                keyExtractor={key_extractor}
                 horizontal={true}
                 decelerationRate={0}
                 snapToInterval={track_width}

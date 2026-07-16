@@ -13,11 +13,7 @@ export default function AudiobookPlayer1(props: { player: UseAudiobookPlayer }) 
 	const source = cover && cover.length > 0 ? { uri: cover } : undefined;
 	return (
 		<View style={StyleSheet.absoluteFill}>
-			{source ? (
-				<Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={Platform.OS === "android" ? 28 : 0} />
-			) : (
-				<View style={[StyleSheet.absoluteFill, { backgroundColor: "#15161a" }]} />
-			)}
+			{source ? <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={Platform.OS === "android" ? 28 : 0} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: "#15161a" }]} />}
 			<BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
 			<View style={[StyleSheet.absoluteFill, { backgroundColor: "#00000055" }]} />
 			<View style={styles.center}>
@@ -36,9 +32,9 @@ export default function AudiobookPlayer1(props: { player: UseAudiobookPlayer }) 
 }
 
 const styles = StyleSheet.create({
-	center: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", paddingBottom: 120 },
+	center: { ...StyleSheet.absoluteFill, justifyContent: "center", alignItems: "center", paddingBottom: 120 },
 	cover: { width: cover_w, height: cover_w * 1.45, borderRadius: 10, backgroundColor: "#222" },
 	placeholder: { justifyContent: "center", alignItems: "center" },
 	top_fade: { position: "absolute", top: 0, left: 0, right: 0, height: 140 },
-	bottom_fade: { position: "absolute", bottom: 0, left: 0, right: 0, height: 360 },
+	bottom_fade: { position: "absolute", bottom: 0, left: 0, right: 0, height: 360 }
 });

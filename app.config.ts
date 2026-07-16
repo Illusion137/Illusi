@@ -6,7 +6,7 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 	...config,
 	name: IS_DEV ? "Illusi (Dev)" : "Illusi",
 	slug: "Illusi",
-	version: "21.0.9",
+	version: "21.1.8",
 	// "orientation": "portrait",
 	// "icon": "./assets/icon.png",
 	// "userInterfaceStyle": "dark",
@@ -51,6 +51,8 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 		"expo-audio",
 		"expo-sharing",
 		"expo-asset",
+		"expo-image",
+		"react-native-ota-hot-update",
 		["expo-build-properties", { buildReactNativeFromSource: true, useHermesV1: true }]
 	],
 	experiments: { reactCompiler: true, typedRoutes: true }

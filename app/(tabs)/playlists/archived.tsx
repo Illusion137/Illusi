@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { sort_playlists } from "@illusive/playlist_utils";
 import { playlist_query_filter } from "@illusive/illusive_utils";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router/react-navigation";
 
 function EmptyArchivedPlaylistsComponent() {
 	const { colors } = usePTheme();

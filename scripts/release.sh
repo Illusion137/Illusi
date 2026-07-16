@@ -1,6 +1,6 @@
 set -e
 pushd ../lib-origin/
-ts-node -T scripts/prebuild.ts
+# ts-node -T scripts/prebuild.ts
 popd
 
 yarn add github:Illusion137/RNTPvE
@@ -12,7 +12,6 @@ pushd ios/
 pod install --silent
 popd
 
-yarn ota:release
 export SENTRY_PROPERTIES=ios/sentry.properties
 xcodebuild -workspace ios/Illusi.xcworkspace \
            -scheme Illusi \
