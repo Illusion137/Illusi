@@ -1,6 +1,6 @@
 set -e
 pushd ../lib-origin/
-ts-node -T scripts/prebuild.ts
+# ts-node -T scripts/prebuild.ts
 popd
 
 yarn add github:Illusion137/RNTPvE

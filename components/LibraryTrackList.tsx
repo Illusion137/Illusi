@@ -19,19 +19,10 @@ import usePTheme from "@hooks/usePTheme";
 import { BASE_WIDTH_FN } from "./TrackComponentBase";
 import { useFocusEffect } from "expo-router";
 import useGlobalTracksRefresh from "@hooks/useGlobalTracksRefresh";
-import { timeline_span_sync } from "@common/perf_timeline";
 
 let search_query = "";
 function LibraryTrackList(
-	props: {
-		edit_mode: EditMode;
-		write_playlist_uuid?: string;
-		header_height?: number;
-		header_item?: () => React.JSX.Element;
-		adjusted_alphabet_scroll?: number;
-		is_focused: boolean;
-		refresh_query_on_focus?: boolean;
-	},
+	props: { edit_mode: EditMode; write_playlist_uuid?: string; header_height?: number; header_item?: () => React.JSX.Element; adjusted_alphabet_scroll?: number; is_focused: boolean; refresh_query_on_focus?: boolean },
 	ref: any
 ) {
 	const { colors } = usePTheme();
@@ -43,18 +34,12 @@ function LibraryTrackList(
 	const writing_to_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
 	const [saved_track_uids, set_saved_track_uids] = useState<Set<string> | null>(null);
 
-	const alphabet_scroll: AlphabetScroll = {
-		all_alphabet_fast_scroll_locations: [] as number[],
-		current_position: 0,
-		top_scroll: 0
-	};
+	const alphabet_scroll: AlphabetScroll = { all_alphabet_fast_scroll_locations: [] as number[], current_position: 0, top_scroll: 0 };
 
 	const scroll_bar_animated = useRef(new Animated.Value(93)).current;
 	const biglist_ref = useRef<BigList>(null);
 
-	useImperativeHandle(ref, () => ({
-		refresh_data
-	}));
+	useImperativeHandle(ref, () => ({ refresh_data }));
 
 	useGlobalTracksRefresh(async () => refresh_data(search_query));
 	useFocusEffect(
@@ -73,27 +58,17 @@ function LibraryTrackList(
 	async function refresh_data(query?: string) {
 		search_query = query ?? search_query ?? "";
 
-		const { tracks, section_map } = timeline_span_sync("library.refresh_data", () => {
-			const filtered = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
-			return { tracks: filtered, section_map: track_section_map(filtered, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query)) };
-		});
+		const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
+		const section_map = track_section_map(tracks, !is_empty(extract_query_flags(query!, TRACK_QUERY_FLAGS).new_query));
 
 		if (writing_to_playlist) set_saved_track_uids(await SQLPlaylists.playlist_track_uid_set(props.write_playlist_uuid!));
 		set_all_data({ char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length });
 	}
 	function on_edit_mode_change(edit_mode: EditMode) {
 		if (edit_mode === "NONE") {
-			Animated.timing(scroll_bar_animated, {
-				useNativeDriver: false,
-				toValue: 93,
-				duration: 300
-			}).start();
+			Animated.timing(scroll_bar_animated, { useNativeDriver: false, toValue: 93, duration: 300 }).start();
 		} else {
-			Animated.timing(scroll_bar_animated, {
-				useNativeDriver: false,
-				toValue: 100,
-				duration: 300
-			}).start();
+			Animated.timing(scroll_bar_animated, { useNativeDriver: false, toValue: 100, duration: 300 }).start();
 		}
 	}
 
@@ -149,10 +124,7 @@ function LibraryTrackList(
 				style={{
 					backgroundColor: colors.background,
 					position: "absolute",
-					left: scroll_bar_animated.interpolate({
-						inputRange: [0, 100],
-						outputRange: ["0%", "100%"]
-					}),
+					left: scroll_bar_animated.interpolate({ inputRange: [0, 100], outputRange: ["0%", "100%"] }),
 					top: 380 - 7 * all_data.char_data.length,
 					justifyContent: "center",
 					alignItems: "center",
@@ -178,25 +150,9 @@ export default forwardRef(LibraryTrackList);
 
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		top_container: {
-			backgroundColor: colors.background,
-			flex: 1,
-			justifyContent: "flex-start"
-		},
-		header: {
-			backgroundColor: colors.shelf,
-			width: "100%",
-			height: "18%",
-			top: 0,
-			justifyContent: "flex-end",
-			alignItems: "center"
-		},
-		top_text: {
-			bottom: 20,
-			color: colors.text,
-			fontSize: 18,
-			fontWeight: "500"
-		},
+		top_container: { backgroundColor: colors.background, flex: 1, justifyContent: "flex-start" },
+		header: { backgroundColor: colors.shelf, width: "100%", height: "18%", top: 0, justifyContent: "flex-end", alignItems: "center" },
+		top_text: { bottom: 20, color: colors.text, fontSize: 18, fontWeight: "500" },
 		search_input: {
 			backgroundColor: colors.searchInput,
 			color: colors.text,
@@ -207,34 +163,8 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			borderTopRightRadius: 10, // Top Right Corner
 			borderBottomRightRadius: 10 // Bottom Right Corner
 		},
-		search_container: {
-			justifyContent: "center",
-			height: "24%",
-			left: -5,
-			width: "100%",
-			flexDirection: "row"
-		},
-		icon: {
-			overflow: "hidden",
-			backgroundColor: colors.searchInput,
-			paddingTop: 5,
-			paddingLeft: 5,
-			paddingRight: 5,
-			bottom: 10,
-			left: 10,
-			borderRadius: 10,
-			zIndex: 1
-		},
-		section_header: {
-			width: "100%",
-			height: 30,
-			backgroundColor: colors.background,
-			justifyContent: "center"
-		},
-		section_text: {
-			color: colors.text,
-			fontSize: 18,
-			fontWeight: "bold",
-			marginHorizontal: 10
-		}
+		search_container: { justifyContent: "center", height: "24%", left: -5, width: "100%", flexDirection: "row" },
+		icon: { overflow: "hidden", backgroundColor: colors.searchInput, paddingTop: 5, paddingLeft: 5, paddingRight: 5, bottom: 10, left: 10, borderRadius: 10, zIndex: 1 },
+		section_header: { width: "100%", height: 30, backgroundColor: colors.background, justifyContent: "center" },
+		section_text: { color: colors.text, fontSize: 18, fontWeight: "bold", marginHorizontal: 10 }
 	});

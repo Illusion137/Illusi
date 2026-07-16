@@ -11,7 +11,6 @@ import usePTheme from "@hooks/usePTheme";
 import { sync_engine_instance } from "@illusive/startup";
 import { mmkv } from "@native/mmkv/mmkv";
 import { check_and_apply_update, clear_quarantine, force_update_to_latest, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from "@utils/ota_update";
-import { get_timeline, timeline_report, type TimelineEntry } from "@common/perf_timeline";
 
 function format_mtime(mtime: number | null): string {
 	return mtime === null ? "none" : new Date(mtime).toLocaleString();
@@ -137,45 +136,6 @@ function OTASection() {
 	);
 }
 
-function StartupTimelineSection() {
-	const { colors } = usePTheme();
-	const [entries, set_entries] = useState<TimelineEntry[]>(get_timeline());
-
-	return (
-		<View>
-			<Text style={{ color: colors.text, fontSize: 15, fontWeight: "700", paddingHorizontal: 14, paddingTop: 16, paddingBottom: 6 }}>Startup Timeline (post-paint)</Text>
-			{entries.length === 0 ? (
-				<Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>No entries recorded.</Text>
-			) : (
-				<View style={{ backgroundColor: colors.track + "80", paddingVertical: 6 }}>
-					{entries.map((entry, index) => (
-						<View key={index} style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 2 }}>
-							<Text style={{ color: entry.name === "stall" ? "#CC5555" : colors.text, fontSize: 12, flexShrink: 1 }} numberOfLines={1}>
-								{entry.name}
-								{entry.data !== undefined ? ` ${JSON.stringify(entry.data)}` : ""}
-							</Text>
-							<Text style={{ color: colors.subtext, fontSize: 12, marginLeft: 8 }}>
-								@{(entry.at_ms / 1000).toFixed(2)}s{entry.dur_ms !== undefined ? ` · ${entry.dur_ms}ms` : ""}
-							</Text>
-						</View>
-					))}
-				</View>
-			)}
-			<ExtrasSectionButton show_arrow={false} text="Refresh timeline" icon="refresh-outline" onPress={() => set_entries(get_timeline())} />
-			<ExtrasSectionButton
-				show_arrow={false}
-				text="Share timeline"
-				icon="share-outline"
-				onPress={async () => {
-					const path = FileSystem.cacheDirectory + "startup_timeline.txt";
-					await FileSystem.writeAsStringAsync(path, timeline_report());
-					await Sharing.shareAsync(path);
-				}}
-			/>
-		</View>
-	);
-}
-
 function MMKVSection() {
 	const { colors } = usePTheme();
 	const [keys, set_keys] = useState<string[] | null>(null);
@@ -211,7 +171,7 @@ function MMKVSection() {
 			) : (
 				<View style={{ backgroundColor: colors.track + "80", paddingVertical: 6 }}>
 					{keys.map((key) => (
-						<TouchableOpacity key={key} onPress={() => show_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
+						<TouchableOpacity key={key} onPress={async () => show_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
 							<Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
 								{key}
 							</Text>
@@ -272,7 +232,6 @@ export default function ExtraDeveloperScreen() {
 				}}
 			/>
 			<OTASection />
-			<StartupTimelineSection />
 			<MMKVSection />
 			<View style={{ flexDirection: "row", height: 100 }}>
 				<TouchableOpacity style={styles.button} onPress={exportSQLData}>

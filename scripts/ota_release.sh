@@ -15,7 +15,8 @@
 #   2. Resolves the entry file exactly the way Xcode does.
 #   3. Runs expo export:embed via @expo/cli (same as the Xcode build phase).
 #   4. Shallow-clones the OTA repo's ios-ota-v<version> branch into a temp dir.
-#   5. Copies the bundle to output/main.jsbundle and pushes.
+#   5. Copies the bundle to output/main.jsbundle, the image assets to
+#      output/assets/ (required — see Step 4 below), and pushes.
 #
 # IMPORTANT — version gating: each binary version pulls ONLY from its own
 # branch (ios-ota-v<CFBundleShortVersionString>, see utils/ota_update.ts).
@@ -129,16 +130,27 @@ else
   fi
 fi
 
-# ── Step 4: Copy bundle and push ──────────────────────────────────────────────
+# ── Step 4: Copy bundle + assets and push ─────────────────────────────────────
+# Local `require()`'d images (e.g. context-menu icons) resolve at runtime to a
+# file:// URL built as `dirname(scriptURL) + "assets/<relative path>"` (see
+# react-native's AssetSourceResolver.scaledAssetURLNearBundle). For a bundle
+# booted from the git-cloned dir, that's `<git_dir>/output/assets/...` — the
+# exact same layout export:embed writes locally via --assets-dest ("$ASSETS_OUT").
+# Without shipping that folder too, the image file doesn't exist at the path the
+# JS bundle expects; RN's own CodePush-style fallback (RCTImageFromLocalBundleAssetURL)
+# then throws NSInvalidArgumentException instead of failing gracefully, crashing
+# the app the moment a context menu with a REQUIRE'd icon is opened.
 echo ""
-echo "▶ Copying bundle into OTA repo…"
+echo "▶ Copying bundle + assets into OTA repo…"
 mkdir -p "$TMP_DIR/$(dirname "$BUNDLE_DEST")"
 cp "$BUNDLE_OUT" "$TMP_DIR/$BUNDLE_DEST"
+rm -rf "$TMP_DIR/output/assets"
+cp -R "$ASSETS_OUT/assets" "$TMP_DIR/output/assets"
 
 cd "$TMP_DIR"
 git config user.name  "OTA Release Bot"
 git config user.email "ota-bot@illusi.dev"
-git add "$BUNDLE_DEST"
+git add "$BUNDLE_DEST" output/assets
 
 if git diff --cached --quiet; then
   echo "⚠  Bundle unchanged — nothing new to push."
