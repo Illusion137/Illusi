@@ -19,6 +19,7 @@ import AudioPlayer from "@screens/AudioPlayer";
 import AudiobookSlidingPlayer from "@screens/audiobook/AudiobookSlidingPlayer";
 import ExternalDisplayHost from "@components/external_display/ExternalDisplayHost";
 import SyncPlayIndicator from "@components/SyncPlayIndicator";
+import AudiobookGenerationIndicator from "@components/AudiobookGenerationIndicator";
 import { GLOBALS } from "@illusive/globals";
 import { AudiobookPlayer } from "@illusive/audiobook_player_service";
 import { AudiobookDownloads } from "@illusive/audiobook_downloads";
@@ -276,6 +277,7 @@ export default Sentry.wrap(function App() {
 				{audiobook_uuid !== null && <AudiobookSlidingPlayer key={audiobook_uuid} uuid={audiobook_uuid} on_dismiss={() => set_audiobook_uuid(null)} />}
 				{!is_loading ? <ExternalDisplayHost /> : null}
 				{!is_loading ? <SyncPlayIndicator /> : null}
+				{!is_loading ? <AudiobookGenerationIndicator /> : null}
 				<BottomAlert type={bottom_alert.type} text={bottom_alert.text} uuid={bottom_alert.uuid} more_info={bottom_alert.more_info} />
 				<SafeAreaProvider>
 					<Stack>

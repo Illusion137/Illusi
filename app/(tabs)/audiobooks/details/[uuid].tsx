@@ -15,7 +15,10 @@ import { voice_synth } from "@native/voice_synth/voice_synth";
 import type { VoiceBank } from "@native/voice_synth/voice_synth.base";
 import usePTheme from "@hooks/usePTheme";
 import useAudiobookDownload, { download_label, download_percent } from "@hooks/useAudiobookDownload";
+import useAudiobookGeneration from "@hooks/useAudiobookGeneration";
+import { AudiobookGeneration } from "@illusive/audiobook_generation";
 import IImage from "@components/IImage";
+import { chapter_frac as gen_chapter_frac } from "@components/AudiobookGenerationIndicator";
 import { format_progress_text, novel_progress_percent } from "@components/audiobook/types";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import { alert_error } from "@illusive/illusi/src/alert";
@@ -24,15 +27,6 @@ import { GLOBALS } from "@illusive/globals";
 
 const TTS_ENGINES: AudiobookTTSEngine[] = ["avs", "kokoro", "piper"];
 const VOICE_PREVIEW_TEXT = "This is a quick preview of how this voice sounds.";
-
-interface GenState {
-	active: boolean;
-	current: number;
-	total: number;
-	// Progress within the chapter currently being generated.
-	chapter_done: number;
-	chapter_total: number;
-}
 
 function format_date(iso: string): string {
 	if (!iso) return "—";
@@ -51,11 +45,13 @@ export default function AudiobookDetailsScreen() {
 	const [novel, set_novel] = useState<AudiobookTableItem | null>(null);
 	const [roz, set_roz] = useState<Roz | null>(null);
 	const [loading, set_loading] = useState(true);
-	const [gen, set_gen] = useState<GenState | null>(null);
 	const [reextracting, set_reextracting] = useState(false);
 	const [info_open, set_info_open] = useState(false);
 
 	const download = useAudiobookDownload(uuid);
+	// Generation state lives outside this screen (audiobook_generation.ts) so it
+	// survives navigating away and back — reading it here just subscribes.
+	const gen = useAudiobookGeneration(uuid);
 
 	const [voice_open, set_voice_open] = useState(false);
 	const [voices, set_voices] = useState<VoiceBank[]>([]);
@@ -89,6 +85,13 @@ export default function AudiobookDetailsScreen() {
 	useEffect(() => {
 		refresh();
 	}, [download_status, refresh]);
+
+	// Same idea for generation: it keeps running after this screen unmounts, so
+	// pick up the freshly-written audio/roz once it disappears (finishes/fails).
+	const gen_active = gen !== undefined;
+	useEffect(() => {
+		refresh();
+	}, [gen_active, refresh]);
 
 	const load_voices = useCallback(async (next_engine: AudiobookTTSEngine) => {
 		set_voices_loading(true);
@@ -159,37 +162,18 @@ export default function AudiobookDetailsScreen() {
 		}
 	}
 
+	// Kicks off generation via the global generation service and returns
+	// immediately — it keeps running (and reporting progress) even if this
+	// screen unmounts; see audiobook_generation.ts and useAudiobookGeneration.
 	async function run_generation() {
-		if (novel === null || downloading_voice_id !== null || previewing_voice_id !== null) return;
+		if (novel === null || roz === null || downloading_voice_id !== null || previewing_voice_id !== null) return;
 		// A downloaded piper/kokoro voice can be on disk but not loaded into the
 		// native engine (e.g. after a cold start) — models aren't bundled, so the
 		// engine starts empty. Load/download the selected voice's model first.
 		const selected_voice = voices.find((v) => v.id === voice_id);
 		if (selected_voice !== undefined && !(await ensure_voice_ready(selected_voice))) return;
 		set_voice_open(false);
-		// Each chapter's segment count (roz content entries) is the denominator for its bar.
-		const chapter_content_total = (i: number) => roz?.chapters?.[i]?.contents?.length ?? 0;
-		const bump = () => set_gen((g) => (g ? { ...g, chapter_done: g.chapter_total > 0 ? Math.min(g.chapter_done + 1, g.chapter_total) : g.chapter_done + 1 } : g));
-		const finish_chapter = () => set_gen((g) => (g ? { ...g, chapter_done: g.chapter_total } : g));
-		const result =
-			gen_chapter === null
-				? await (async () => {
-						set_gen({ active: true, current: 0, total: novel.chapter_count, chapter_done: 0, chapter_total: chapter_content_total(0) });
-						return Audiobooks.generate_full_audio(
-							novel.uuid,
-							{ engine, voice_id },
-							{ on_chapter_start: (i, total) => set_gen({ active: true, current: i, total, chapter_done: 0, chapter_total: chapter_content_total(i) }), on_content_export: bump, on_content_skip: bump, on_chapter_finish: finish_chapter }
-						);
-					})()
-				: await (async () => {
-						set_gen({ active: true, current: gen_chapter, total: novel.chapter_count, chapter_done: 0, chapter_total: chapter_content_total(gen_chapter) });
-						return Audiobooks.generate_chapter_audio(novel.uuid, gen_chapter, { engine, voice_id }, { on_content_export: bump, on_content_skip: bump, on_chapter_finish: finish_chapter });
-					})();
-		set_gen(null);
-		await refresh();
-		if ("error" in result) {
-			if_confirm("Generation failed", result.error.message, () => {});
-		}
+		AudiobookGeneration.start(novel, roz, gen_chapter, { engine, voice_id });
 	}
 
 	function on_play() {
@@ -247,7 +231,7 @@ export default function AudiobookDetailsScreen() {
 	const has_audio = audio_count > 0;
 	const roz_ready = roz !== null && roz_chapters.length > 0;
 	const fully_generated = roz_ready && audio_count === roz_chapters.length;
-	const generating = gen !== null;
+	const generating = gen !== undefined;
 	const has_hq_voice = voices.some((v) => v.quality === "enhanced" || v.quality === "premium");
 	const selected_voice_ready = voice_id.length > 0 && voices.find((v) => v.id === voice_id)?.installed !== false;
 
@@ -373,7 +357,7 @@ export default function AudiobookDetailsScreen() {
 							Generating chapter {gen.current + 1} of {gen.total}
 						</Text>
 						<View style={[styles.gen_banner_track, { backgroundColor: colors.line }]}>
-							<View style={[styles.gen_banner_fill, { width: `${gen.total > 0 ? ((gen.current + (gen.chapter_total > 0 ? gen.chapter_done / gen.chapter_total : 0)) / gen.total) * 100 : 0}%`, backgroundColor: colors.primary }]} />
+							<View style={[styles.gen_banner_fill, { width: `${gen.total > 0 ? ((gen.current + gen_chapter_frac(gen)) / gen.total) * 100 : 0}%`, backgroundColor: colors.primary }]} />
 						</View>
 					</View>
 				</View>
@@ -406,8 +390,8 @@ export default function AudiobookDetailsScreen() {
 							const chapter_title = roz_chapters[i]?.chapter.title?.trim() || `Chapter ${i + 1}`;
 							const can_generate = roz_ready && !generating && i < roz_chapters.length;
 							const filled_index = is_completed || is_current;
-							const is_generating_this = gen !== null && gen.active && gen.current === i;
-							const chapter_frac = is_generating_this && gen.chapter_total > 0 ? gen.chapter_done / gen.chapter_total : 0;
+							const is_generating_this = gen?.current === i;
+							const chapter_frac = is_generating_this ? gen_chapter_frac(gen) : 0;
 							const tappable = has_chapter_audio || can_generate;
 							return (
 								<TouchableOpacity
@@ -431,7 +415,9 @@ export default function AudiobookDetailsScreen() {
 										</Text>
 										<Text style={[styles.chapter_sub, { color: is_generating_this ? colors.primary : colors.deeptext }]} numberOfLines={1}>
 											{is_generating_this
-												? `Generating… ${gen.chapter_done}/${gen.chapter_total || "?"}${gen.chapter_total > 0 ? ` (${Math.round(chapter_frac * 100)}%)` : ""}`
+												? gen.encode_progress !== null
+													? `Encoding… ${Math.round(gen.encode_progress * 100)}%`
+													: `Generating… ${gen.chapter_done}/${gen.chapter_total || "?"}${gen.chapter_total > 0 ? ` (${Math.round((gen.chapter_done / gen.chapter_total) * 100)}%)` : ""}`
 												: is_current && novel.last_chapter_timestamp_ms > 0
 													? `${duration_to_string(Math.floor(novel.last_chapter_timestamp_ms / 1000))} in`
 													: has_chapter_audio
