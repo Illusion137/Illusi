@@ -1,0 +1,59 @@
+diff --git a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
+index b1a8a6e..1fa4546 100644
+--- a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
++++ b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
+@@ -207,10 +207,7 @@ RCT_EXPORT_METHOD(donateShortcut:(NSDictionary *)options)
+     __block NSUserActivity *activity = [RCTConvert NSUserActivity:options];
+     
+     dispatch_async(dispatch_get_main_queue(), ^{
+-        [UIApplication sharedApplication]
+-            .keyWindow
+-            .rootViewController
+-            .userActivity = activity;
++        [self rnss_keyWindow].rootViewController.userActivity = activity;
+     });
+     [activity becomeCurrent];
+ }
+@@ -285,7 +282,7 @@ RCT_EXPORT_METHOD(presentShortcut:(NSDictionary *)options
+                     self->_presenterViewController = presenterViewController;
+                 }
+                 self->_presenterViewController.modalPresentationStyle = UIModalPresentationFormSheet;
+-                UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
++                UIViewController *rootViewController = [self rnss_keyWindow].rootViewController;
+                 [rootViewController presentViewController:self->_presenterViewController
+                                                  animated:true
+                                                completion:nil];
+@@ -351,6 +348,33 @@ RCT_EXPORT_METHOD(getShortcuts:(RCTPromiseResolveBlock)resolve
+ 
+ #pragma mark Helpers
+ 
++/// The app is scene-based (required for CarPlay/external-display coexistence), where
++/// `UIApplication.sharedApplication.keyWindow` is deprecated and unreliable: with
++/// multiple connected `UIWindowScene`s (phone, external display) plus non-window
++/// `CPTemplateApplicationScene`s (CarPlay), it can return nil or the wrong window,
++/// silently breaking `donateShortcut`/`presentShortcut` (messages to a nil
++/// rootViewController are no-ops, so nothing visibly happens). Look up the key
++/// window by walking the foreground-active window scenes instead.
++- (UIWindow * _Nullable)rnss_keyWindow
++{
++    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
++        if (![scene isKindOfClass:[UIWindowScene class]]) {
++            continue;
++        }
++        UIWindowScene *windowScene = (UIWindowScene *)scene;
++        if (windowScene.activationState != UISceneActivationStateForegroundActive &&
++            windowScene.activationState != UISceneActivationStateForegroundInactive) {
++            continue;
++        }
++        for (UIWindow *window in windowScene.windows) {
++            if (window.isKeyWindow) {
++                return window;
++            }
++        }
++    }
++    return nil;
++}
++
+ API_AVAILABLE(ios(12.0))
+ typedef void (^FetchRecordedVoiceShortcutsCompletionBlock)(NSArray<INVoiceShortcut *>  * _Nullable voiceShortcuts, NSError  * _Nullable error);
+ - (void)fetchRecordedVoiceShortcutsWithCompletion:(FetchRecordedVoiceShortcutsCompletionBlock)completion
