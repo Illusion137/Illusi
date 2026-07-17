@@ -90,6 +90,7 @@ export default function IllusiExplore() {
 			) : null}
 			<View style={{ height: 10 }} />
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
+			{illusi_public_playlists.length > 0 ? <AlbumList title="Illusi Public Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
 			{forgotten_favorites.length > 0 ? (
 				<>
 					<AlbumList title="Forgotten Favorites" second_line_type="ARTIST" else_type="SINGLE" albums={forgotten_favorites} />
@@ -101,7 +102,6 @@ export default function IllusiExplore() {
 				</>
 			) : null}
 			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
-			{illusi_public_playlists.length > 0 ? <AlbumList title="Illusi Public Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
 			<AlbumList title="Illusi Made Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={[ExploreLocalData.christmas_playlist]} />
 			<View style={{ height: 100 }} />
 		</ScrollView>

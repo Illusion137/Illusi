@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View, TextInput } from "react-native";
 import type { Prefs } from "@illusive/prefs";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,26 +44,8 @@ export default function Explore() {
 						/>
 					</View>
 					<IllusiExplore />
-					<LinearGradient
-						colors={[colors.background, fade_top_top, "transparent"]}
-						style={{
-							position: "absolute",
-							top: 0,
-							height: "20%",
-							width: "100%",
-							pointerEvents: "none"
-						}}
-					/>
-					<LinearGradient
-						colors={[colors.background, fade_top_bottom, "transparent"]}
-						style={{
-							position: "absolute",
-							top: 0,
-							height: "10%",
-							width: "100%",
-							pointerEvents: "none"
-						}}
-					/>
+					<LinearGradient colors={[colors.background, fade_top_top, "transparent"]} style={{ position: "absolute", top: 0, height: "20%", width: "100%", pointerEvents: "none" }} />
+					<LinearGradient colors={[colors.background, fade_top_bottom, "transparent"]} style={{ position: "absolute", top: 0, height: "10%", width: "100%", pointerEvents: "none" }} />
 				</>
 			)}
 		</>
@@ -71,38 +53,10 @@ export default function Explore() {
 }
 const theme_styles = (colors: Prefs.Theme["colors"]) =>
 	StyleSheet.create({
-		topContainer: {
-			flex: 1,
-			backgroundColor: colors.background,
-			pointerEvents: "box-none"
-		},
-		line_long: {
-			width: "100%",
-			height: 0.8,
-			opacity: 0.1,
-			backgroundColor: colors.text
-		},
-		wrapper: {
-			alignItems: "center",
-			zIndex: 100
-		},
-		searchinput: {
-			color: "#F0F0F0",
-			backgroundColor: colors.searchInput,
-			padding: 15,
-			top: 70,
-			borderRadius: 30,
-			width: "90%"
-		},
-		headerText: {
-			color: colors.text,
-			fontSize: 24,
-			fontWeight: "bold"
-		},
-		genres: {
-			backgroundColor: colors.subtext,
-			width: "100%",
-			height: 50,
-			justifyContent: "center"
-		}
+		topContainer: { flex: 1, backgroundColor: colors.background, pointerEvents: "box-none" },
+		line_long: { width: "100%", height: 0.8, opacity: 0.1, backgroundColor: colors.text },
+		wrapper: { alignItems: "center", zIndex: 100 },
+		searchinput: { color: "#F0F0F0", backgroundColor: colors.searchInput, padding: 15, top: 70, borderRadius: 30, width: "90%" },
+		headerText: { color: colors.text, fontSize: 24, fontWeight: "bold" },
+		genres: { backgroundColor: colors.subtext, width: "100%", height: 50, justifyContent: "center" }
 	});
