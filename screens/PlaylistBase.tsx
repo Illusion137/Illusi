@@ -7,6 +7,7 @@ import { Prefs } from "@illusive/prefs";
 import { GLOBALS } from "@illusive/globals";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
+import { PlaylistArtwork } from "@illusive/db/sync/playlist_artwork";
 import type { EditMode, NamedUUID, Track } from "@illusive/types";
 import type * as Types from "@illusive/types";
 import { BlurView } from "expo-blur";
@@ -262,6 +263,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 	async function save_to_playlist(new_playlist_title: string) {
 		await add_tracks_to_library();
 		const playlist_uuid = await SQLPlaylists.create_playlist(new_playlist_title);
+		await PlaylistArtwork.adopt_artwork_from_url(playlist_uuid, playlist_data?.thumbnail_uri);
 		const promised_playlist_tracks: Types.Promises = [];
 		for (const track of tracks_ref) {
 			const track_uid = await SQLTracks.track_from_service_id(track);

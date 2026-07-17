@@ -7,8 +7,9 @@ import { BlurView, type BlurViewProps } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import { StyleSheet, View, type DimensionValue, type ImageProps, type ViewStyle } from "react-native";
-import { Image, type ImageContentFit, type ImageStyle as ExpoImageStyle } from "expo-image";
+import { Image, type ImageContentFit, type ImageProps as ExpoImageProps, type ImageStyle as ExpoImageStyle } from "expo-image";
 import hexToRgba from "hex-to-rgba";
+import { Illusi } from "@origin/illusi/illusi";
 
 export interface IImageProps {
 	source: Artwork | undefined | null;
@@ -17,6 +18,7 @@ export interface IImageProps {
 	blur?: BlurViewProps;
 	fade?: { percent: DimensionValue; color?: string; middle_opacity?: number; end_opacity?: number };
 	useview?: boolean;
+	cache_policy?: ExpoImageProps["cachePolicy"];
 }
 
 // expo-image uses contentFit; the codebase passes RN's resizeMode (as a prop or
@@ -88,12 +90,15 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 	const recycling_key = props.recycling_key ?? (typeof source === "string" ? source : undefined);
 	const content_fit = to_content_fit(props.resizeMode ?? flat_style.resizeMode);
 
+	const immutable_artwork = typeof source === "string" && Illusi.is_artwork_public_url(source);
+	const cache_policy = immutable_artwork ? "memory-disk" : (props.cache_policy ?? "memory-disk");
+
 	const base_image = (
 		<Image
 			source={reinterpret_cast<string | number | { uri: string }>(resolved_artwork(source))}
 			style={reinterpret_cast<ExpoImageStyle>(props.style)}
 			contentFit={content_fit}
-			cachePolicy="memory-disk"
+			cachePolicy={cache_policy}
 			recyclingKey={recycling_key}
 			transition={0}
 			blurRadius={props.blurRadius}
