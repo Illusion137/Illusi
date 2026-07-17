@@ -1,6 +1,6 @@
 {
   "name": "illusi",
-  "version": "21.1.9",
+  "version": "22.0.0",
   "main": "index",
   "scripts": {
     "start": "expo start --dev-client",
