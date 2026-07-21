@@ -1,0 +1,73 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmitOnError": true,
+    "noEmit": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "types": [],
+    "baseUrl": "./",
+    "paths": {
+      "@hooks/*": [
+        "./hooks/*"
+      ],
+      "@utils/*": [
+        "./utils/*"
+      ],
+      "@components/*": [
+        "./components/*"
+      ],
+      "@screens/*": [
+        "./screens/*"
+      ],
+      "@native/*": [
+        "./lib-origin/roze/native/*"
+      ],
+      "@lib/*": [
+        "./lib-origin/roze/lib/*"
+      ],
+      "@origin/*": [
+        "./lib-origin/origin/src/*"
+      ],
+      "@illusive/*": [
+        "./lib-origin/Illusive/src/*"
+      ],
+      "@roze/*": [
+        "./lib-origin/roze/src/*"
+      ],
+      "@common/*": [
+        "./lib-origin/common/*"
+      ],
+      "@sample/*": [
+        "./lib-origin/sample/*"
+      ],
+      "react-native-ios-context-menu": [
+        "./node_modules/react-native-ios-context-menu/src/index.tsx"
+      ],
+      "react-native-ios-utilities": ["./node_modules/react-native-ios-utilities/src/index.ts"]
+    },
+  },
+  "include": [
+    "app/**/*.tsx",
+    "hooks/**/*.tsx",
+    "screens/**/*.tsx",
+    "components/**/*.tsx",
+    "utils/**/*.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nodejs-assets/nodejs-project/main.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib-origin",
+  ]
+}
