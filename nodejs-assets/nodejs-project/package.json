@@ -11,7 +11,7 @@
     "author": "janeasystems",
     "license": "",
     "dependencies": {
-        "bgutils-js": "^3.2.0",
+        "bgutils-js": "^4.0.3",
         "jsdom": "26.1.0",
         "node-fetch": "^3.3.2"
     },

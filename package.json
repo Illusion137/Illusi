@@ -1,6 +1,6 @@
 {
   "name": "illusi",
-  "version": "22.0.0",
+  "version": "22.0.1",
   "main": "index",
   "scripts": {
     "start": "expo start --dev-client",
@@ -92,7 +92,7 @@
     "babel-plugin-react-compiler": "^19.0.0-beta-af1b7da-20250417",
     "babel-preset-expo": "~57.0.0",
     "base-64": "^1.0.0",
-    "bgutils-js": "^3.2.0",
+    "bgutils-js": "^4.0.3",
     "canvas": "^3.0.0",
     "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.45.1",
@@ -246,8 +246,5 @@
     "libsql": false,
     "iosSqlite": false,
     "performanceMode": false
-  },
-  "resolutions": {
-    "react-native-track-player": "github:Illusion137/RNTPvE#aa69edd00afc37b13eac83b5a7c1d24ccf5f04aa"
   }
 }

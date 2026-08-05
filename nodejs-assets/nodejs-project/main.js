@@ -38,10 +38,9 @@ process.on("unhandledRejection", (reason) => {
 
 rn_bridge.channel.on("potoken", async (message) => {
 	try {
-		const { content_binding, context } = JSON.parse(message);
+		const { content_binding } = JSON.parse(message);
 		if (!content_binding) throw new Error("No content_binding provided");
-		if (!context) throw new Error("No context provided");
-		const po_token = await generateContentBoundPoToken(content_binding, context);
+		const po_token = await generateContentBoundPoToken(content_binding);
 		rn_bridge.channel.post("potoken", JSON.stringify({ poToken: po_token, identifier: content_binding }));
 	} catch (e) {
 		console.error("[potoken error]", e.message, e.stack);

@@ -1,22 +1,32 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
-import { BG, buildURL, GOOG_API_KEY, USER_AGENT } from "bgutils-js";
+/* eslint-disable @typescript-eslint/no-implied-eval */
+import { BotGuardClient } from "bgutils-js/botguard";
+import { buildURL, parseLooseJSON, getHeaders, USER_AGENT } from "bgutils-js/utils";
+import { WebPoMinter } from "bgutils-js/webpo";
 import { JSDOM } from "jsdom";
 import nodeFetch from "node-fetch";
 
 const REQUEST_KEY = "O43z0dpjhgX20SCx4KAo";
 
-async function setupGlobals() {
+function setupBotguardEnvironment(pageHtml) {
 	if (typeof globalThis.document !== "undefined") return;
 
-	const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
-		url: "https://www.youtube.com",
-		referrer: "https://www.youtube.com/",
-		contentType: "text/html",
-		storageQuota: 10000000,
-		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-	});
+	const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", { url: "https://www.youtube.com", referrer: "https://www.youtube.com/", contentType: "text/html", storageQuota: 10000000, userAgent: USER_AGENT });
+
+	const ytcfgMatch = /ytcfg\.set\(({.+?})\);/s.exec(pageHtml);
+	if (!ytcfgMatch) {
+		throw new Error("Could not find ytcfg in page HTML");
+	}
+	let ytcfg;
+	try {
+		ytcfg = JSON.parse(ytcfgMatch[1]);
+	} catch (e) {
+		throw new Error(`Could not parse ytcfg: ${e.message}`);
+	}
+	// Needed because of EVENT_ID
+	dom.window.yt = { config_: ytcfg };
 
 	Object.assign(globalThis, {
+		yt: dom.window.yt,
 		window: dom.window,
 		document: dom.window.document,
 		location: dom.window.location,
@@ -62,35 +72,40 @@ async function setupGlobals() {
 	}
 }
 
-let attestation_challenge_cache;
-
 let global_minter;
-async function create_minter(content_binding, context) {
+async function create_minter() {
 	if (global_minter !== undefined) return global_minter;
 
-	await setupGlobals();
+	const pageResponse = await nodeFetch("https://www.youtube.com", { headers: { accept: "*/*", "accept-language": "en-US,en;q=0.7", "user-agent": USER_AGENT } });
+	if (!pageResponse.ok) {
+		throw new Error(`YouTube page request failed: ${pageResponse.status}`);
+	}
+	const pageHtml = await pageResponse.text();
 
-	let challengeData;
-	if (attestation_challenge_cache === undefined) {
-		const challengeResponse = await nodeFetch("https://www.youtube.com/youtubei/v1/att/get?prettyPrint=false&alt=json", {
-			method: "POST",
-			headers: { Accept: "*/*", "Content-Type": "application/json", "X-Goog-Visitor-Id": context.client.visitorData ?? "", "X-Youtube-Client-Version": context.client.clientVersion, "X-Youtube-Client-Name": "1", "User-Agent": USER_AGENT },
-			body: JSON.stringify({ engagementType: "ENGAGEMENT_TYPE_UNBOUND", context })
-		});
+	setupBotguardEnvironment(pageHtml);
 
-		if (!challengeResponse.ok) {
-			throw new Error(`BotGuard challenge request failed: ${challengeResponse.status}`);
-		}
+	const initialAttestationMatch = /window\.ytAtN\(\s*({[\s\S]*?})\s*\)/.exec(pageHtml);
+	if (!initialAttestationMatch) {
+		throw new Error("Could not find challenge in page HTML");
+	}
 
-		challengeData = await challengeResponse.json();
+	let initialAttestationData;
+	try {
+		initialAttestationData = parseLooseJSON(initialAttestationMatch[1]);
+	} catch (e) {
+		throw new Error(`Failed to parse initial attestation data: ${e.message}`);
+	}
+	const challengeData = initialAttestationData.R;
 
-		if (!challengeData.bgChallenge) {
-			throw new Error("Failed to get BotGuard challenge");
-		}
-		attestation_challenge_cache = challengeData;
-	} else challengeData = attestation_challenge_cache;
+	if (!challengeData?.bgChallenge) {
+		throw new Error("Could not get BotGuard challenge");
+	}
 
 	let interpreterUrl = challengeData.bgChallenge.interpreterUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue;
+
+	if (!interpreterUrl) {
+		throw new Error("Could not get interpreter URL from BotGuard challenge");
+	}
 
 	if (interpreterUrl.startsWith("//")) {
 		interpreterUrl = `https:${interpreterUrl}`;
@@ -105,43 +120,41 @@ async function create_minter(content_binding, context) {
 
 	new Function(interpreterJavascript)();
 
-	const botGuard = await BG.BotGuardClient.create({ program: challengeData.bgChallenge.program, globalName: challengeData.bgChallenge.globalName, globalObj: globalThis });
+	const botGuard = await BotGuardClient.create({ program: challengeData.bgChallenge.program, globalName: challengeData.bgChallenge.globalName, globalObject: globalThis });
 
 	const webPoSignalOutput = [];
 	const botGuardResponse = await botGuard.snapshot({ webPoSignalOutput }, 10_000);
 
-	const integrityTokenResponse = await nodeFetch(buildURL("GenerateIT", true), {
-		method: "POST",
-		headers: { "content-type": "application/json+protobuf", "x-goog-api-key": GOOG_API_KEY, "x-user-agent": "grpc-web-javascript/0.1", "user-agent": USER_AGENT },
-		body: JSON.stringify([REQUEST_KEY, botGuardResponse])
-	});
+	const integrityTokenResponse = await nodeFetch(buildURL("GenerateIT", true), { method: "POST", headers: getHeaders(), body: JSON.stringify([REQUEST_KEY, botGuardResponse]) });
 
-	const integrityTokenData = await integrityTokenResponse.json();
+	const integrityTokenJson = await integrityTokenResponse.json();
 
-	if (typeof integrityTokenData[0] !== "string") {
+	if (typeof integrityTokenJson[0] !== "string") {
 		throw new Error("Could not get integrity token");
 	}
 
-	const minter = await BG.WebPoMinter.create({ integrityToken: integrityTokenData[0] }, webPoSignalOutput);
+	const [integrityToken, estimatedTtlSecs, mintRefreshThreshold, websafeFallbackToken] = integrityTokenJson;
+
+	const minter = await WebPoMinter.create({ integrityToken, estimatedTtlSecs, mintRefreshThreshold, websafeFallbackToken }, webPoSignalOutput);
 
 	global_minter = minter;
 	return minter;
 }
 
 let minter_status = undefined;
-export async function fetch_minter(content_binding, context) {
+export async function fetch_minter() {
 	if (minter_status?.[0] === "recieved") return minter_status[1];
 	if (minter_status?.[0] === "sent") {
 		const recieved = await minter_status[1];
 		minter_status = ["recieved", recieved];
 		return recieved;
 	}
-	const sent_minter = create_minter(content_binding, context);
+	const sent_minter = create_minter();
 	minter_status = ["sent", sent_minter];
 	return await sent_minter;
 }
 
-export async function generateContentBoundPoToken(content_binding, context) {
-	const minter = await fetch_minter(content_binding, context);
+export async function generateContentBoundPoToken(content_binding) {
+	const minter = await fetch_minter();
 	return await minter.mintAsWebsafeString(content_binding);
 }
