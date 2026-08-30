@@ -169,8 +169,6 @@ const MiniProgressBar = memo(function MiniProgressBar({ seek_progress, primary_c
 });
 
 const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork, track_uid }: { best_artwork: IllusiveType.Artwork | undefined | null; track_uid: string }) {
-	// Keyed on the track (not the source) so the low->high quality artwork swap
-	// doesn't blank the backdrop while the high-quality image loads.
 	return (
 		<>
 			<View style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y, overflow: "hidden" }}>
@@ -180,8 +178,6 @@ const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork, track_uid }:
 				<IImage source={best_artwork} recycling_key={track_uid} style={{ position: "absolute", top: 0, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 			</View>
 			<IImage source={best_artwork} recycling_key={track_uid} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
-			{/* Top fade-out blur: blurred duplicates of the mirrored-top strip + the first
-			    60px of the center art, positioned to line up exactly with the sharp layers. */}
 			<MaskedView
 				style={{ position: "absolute", top: 0, left: 0, right: 0, height: art_top_y + 60 }}
 				maskElement={<LinearGradient colors={["black", "black", "transparent"]} locations={[0, 0.65, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
@@ -189,8 +185,6 @@ const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork, track_uid }:
 				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={18} style={{ position: "absolute", top: art_top_y, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
 				<View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.25)" }]} />
 			</MaskedView>
-			{/* Bottom fade-in blur: blurred duplicates of the center art's lower 270px + the
-			    mirrored-bottom strip (container starts at art_top_y + screen_w - 270). */}
 			<MaskedView
 				style={{ position: "absolute", top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
 				maskElement={<LinearGradient colors={["transparent", "transparent", "black", "black"]} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}>
@@ -230,8 +224,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 
 	const [panel_state_visible, set_panel_state_visible] = useState(false);
 
-	// Drive panel_state_visible from the UI thread whenever the position crosses
-	// the transition threshold, then dispatch to the JS thread via runOnJS.
 	useAnimatedReaction(
 		() => panel_animated.value > panel_min_height + 1,
 		(isVisible, wasVisible) => {
@@ -270,20 +262,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const queue_pan_ref = useRef<GestureType | undefined>(undefined);
 	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_pan_ref], [lyrics_scroll_gesture]);
 
-	// SyncPlay awareness: guests may have their controls locked by the host.
-	// When connected as a guest with control permission, button taps proxy
-	// through P2P to the host instead of acting on the local TrackPlayer.
 	const [p2p_status, set_p2p_status] = useState<P2PStatus>(P2P.get_status());
 	useEffect(() => P2P.subscribe_status(set_p2p_status), []);
 	const is_guest = p2p_status.role === "guest" && p2p_status.connected;
-	// Permanent lock from the host's permission toggle
 	const guest_permission_locked = is_guest && !p2p_status.guest_can_control;
-	// Transient lock during a coordinated track change (prepare/play_at cycle)
-	// so guests can't spam play/seek/skip against a loading player.
 	const guest_loading_locked = is_guest && p2p_status.loading;
 	const guest_locked = guest_permission_locked || guest_loading_locked;
-	// Controls are routed through P2P only when guest has permission AND
-	// isn't in a loading window.
 	const guest_controls_routed = is_guest && p2p_status.guest_can_control && !p2p_status.loading;
 
 	useAnimatedReaction(
@@ -551,10 +535,10 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		set_lyrics_overlay_visible(true);
 	}
 
-	const [best_artwork, set_best_artwork] = useState<IllusiveType.Artwork | undefined | null>(props.tracks[0]?.playback?.artwork);
+	const [best_artwork, set_best_artwork] = useState<IllusiveType.Artwork | undefined | null>(() => (props.tracks[0] ? (props.tracks[0].playback?.artwork ?? Illusive.get_track_artwork(SQLfs.document_directory(""), props.tracks[0])) : undefined));
 	useEffect(() => {
 		let cancelled = false;
-		set_best_artwork(playing_track.playback?.artwork ?? undefined);
+		set_best_artwork(playing_track.playback?.artwork ?? Illusive.get_track_artwork(SQLfs.document_directory(""), playing_track));
 		Illusive.get_best_track_artwork(SQLfs.document_directory(""), playing_track)
 			.then((artwork) => {
 				if (!cancelled) set_best_artwork(artwork);

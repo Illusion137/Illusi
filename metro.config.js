@@ -10,13 +10,12 @@ config = {
 		...config.resolver,
 		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/, /\/nodejs-assets\/.*/],
 		sourceExts: [...config.resolver.sourceExts, "sql"],
-		// Force react-native-carplay to resolve via its compiled lib/index.js instead of
-		// src/index.ts (the "react-native" field). The TS source has a circular dependency:
-		// src/index.ts → Template.ts → CarPlay.ts → GridTemplate.ts → Template.ts
-		// The compiled lib/ files have no such cycle (type-only imports were erased by tsc).
 		resolveRequest: (context, moduleName, platform) => {
 			if (moduleName === "react-native-carplay") {
 				return { filePath: require.resolve("react-native-carplay/lib/index.js"), type: "sourceFile" };
+			}
+			if (moduleName === "zlib") {
+				return { filePath: path.resolve(__dirname, "stubs/zlib.ts"), type: "sourceFile" };
 			}
 			// Node.js-only packages that cannot run in Hermes — stub for all RN platforms
 			const nodeOnlyStubs = { sharp: "stubs/sharp.ts" };
