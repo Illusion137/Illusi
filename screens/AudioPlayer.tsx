@@ -512,15 +512,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				level: "info",
 				data: { index: event.index, title: active_track?.title?.slice(0, 60), has_lyrics: !is_empty(active_track?.lyrics_uri), queue_remaining: GLOBALS.global_var.playing_tracks.length - event.index }
 			});
-			Sentry.setContext("playback", {
-				track_title: active_track?.title?.slice(0, 80),
-				track_uid: active_track?.uid,
-				track_index: event.index,
-				queue_length: GLOBALS.global_var.playing_tracks.length,
-				has_synced_lyrics: !is_empty(active_track?.synced_lyrics_uri),
-				has_lyrics: !is_empty(active_track?.lyrics_uri),
-				has_local_media: !is_empty(active_track?.media_uri)
-			});
 		}
 	});
 

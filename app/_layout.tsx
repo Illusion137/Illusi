@@ -57,6 +57,8 @@ Sentry.init({
 	// For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
 	sendDefaultPii: true,
 
+	attachStacktrace: true,
+
 	// Enable Logs
 	// enableLogs: true,
 	// enabled: true
@@ -134,10 +136,6 @@ export default Sentry.wrap(function App() {
 		}
 		tracks = await filter_play_tracks(start_track, tracks, title, force_order);
 		if (tracks.length === 0) return;
-		// Music takes the shared player over from the audiobook side: drop the
-		// overlay and release ownership so the music setup can reset+reload.
-		// Both calls are idempotent, so no need to read audiobook_uuid (stale in
-		// this mount-time closure).
 		set_audiobook_uuid(null);
 		AudiobookPlayer.mark_inactive();
 		set_playing_tracks(tracks);
