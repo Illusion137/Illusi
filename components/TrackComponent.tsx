@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, type DimensionValue } from "react-native";
 import type { Prefs } from "@illusive/prefs";
 import type { EditMode, Track } from "@illusive/types";
-import { play } from "@illusive/illusi/src/play";
+import { play } from "@illusive/play";
 import { delete_track, insert_into_write_playlist, download_track } from "@illusive/illusi/src/components/track";
 import { Constants } from "@illusive/constants";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";

@@ -11,7 +11,7 @@ import { round_decimal_place } from "@common/utils/util";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import ModalHeader from "@components/ModalHeader";
 import IImage from "@components/IImage";
-import TrackPlayer from "react-native-track-player";
+import EverythingPlayer from "react-native-everything-player";
 import { trackplayer_has_been_setup } from "@illusive/track_player_service";
 
 export const unstable_settings = {
@@ -35,7 +35,7 @@ export default function TrimTrackModal() {
 
 	useEffect(() => {
 		try {
-			if (trackplayer_has_been_setup) TrackPlayer.pause();
+			if (trackplayer_has_been_setup) EverythingPlayer.pause();
 		} catch (e) {}
 	}, []);
 

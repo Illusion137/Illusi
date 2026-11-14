@@ -5,7 +5,6 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
-    "osx": "react-native run-macos",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "ts:check": "tsc -p tsconfig.json",
@@ -38,7 +37,7 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
-          "react-native-track-player",
+          "react-native-everything-player",
           "@simform_solutions/react-native-audio-waveform",
           "react-native-siri-shortcut",
           "react-native-ota-hot-update",
@@ -85,7 +84,6 @@
     "@shopify/flash-list": "2.0.2",
     "@shopify/react-native-skia": "^2.5.5",
     "@simform_solutions/react-native-audio-waveform": "^2.1.5",
-    "@supabase/supabase-js": "^2.100.0",
     "array-hyper-unique": "^2.1.8",
     "axios": "1.13.2",
     "babel-plugin-inline-import": "^3.0.0",
@@ -121,7 +119,7 @@
     "expo-sharing": "~57.0.3",
     "ffmpeg-kit-react-native": "^6.0.2",
     "fuzzysort": "^3.1.0",
-    "googlevideo": "^4.0.4",
+    "googlevideo": "https://github.com/LuanRT/googlevideo#de3efde38264f40baf0013f7cbc0498d8ad55aa9",
     "hex-to-rgba": "^2.0.1",
     "isomorphic-git": "^1.27.0",
     "jpeg-js": "^0.4.4",
@@ -150,6 +148,7 @@
     "react-native-dropdown-select-list": "^2.0.4",
     "react-native-easing-gradient": "^1.1.1",
     "react-native-element-dropdown": "^2.10.0",
+    "react-native-everything-player": "https://github.com/Illusion137/everything-player#bf2144563157fce96e808d27830a25b192a49c32",
     "react-native-external-display": "^0.6.6",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.32.0",
@@ -160,12 +159,11 @@
     "react-native-ios-context-menu": "^3.2.1",
     "react-native-ios-kit": "^0.0.22",
     "react-native-ios-utilities": "^5.2.0",
-    "react-native-macos": "^0.81.0-0",
     "react-native-markdown-display": "^7.0.2",
     "react-native-mmkv": "3.3.3",
     "react-native-multi-slider": "^0.3.6",
     "react-native-nitro-cookies": "^1.1.0",
-    "react-native-nitro-modules": "^0.35.3",
+    "react-native-nitro-modules": "^0.37.1",
     "react-native-ota-hot-update": "^2.4.0",
     "react-native-path": "^0.0.5",
     "react-native-permissions": "^5.4.4",
@@ -187,7 +185,6 @@
     "react-native-text-size": "^4.0.0-rc.1",
     "react-native-text-ticker": "1.15.0",
     "react-native-timer": "^1.3.6",
-    "react-native-track-player": "github:Illusion137/RNTPvE",
     "react-native-trimmer": "^1.1.1",
     "react-native-uitextview": "^2.1.1",
     "react-native-url-polyfill": "^2.0.0",
@@ -212,7 +209,7 @@
     "uuid": "13.0.0",
     "vm-browserify": "^1.1.2",
     "web-streams-polyfill": "^4.2.0",
-    "youtubei.js": "^17.0.1",
+    "youtubei.js": "https://github.com/Illusion137/YouTube.js#3971c07ce24b804a7a21713ff1537400de8ba31e",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

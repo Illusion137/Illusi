@@ -3,7 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import type { CompactPlaylist } from "@illusive/types";
 import type { Track } from "@illusive/types";
 import { get_album_artwork, track_exists } from "@illusive/illusive_utils";
-import { play, play_track_next, push_track_to_playing_queue } from "@illusive/illusi/src/play";
+import { play, play_track_next, push_track_to_playing_queue } from "@illusive/play";
 import { ContextMenuView } from "@components/ContextMenu";
 import { useEffect, useState } from "react";
 import { GLOBALS } from "@illusive/globals";

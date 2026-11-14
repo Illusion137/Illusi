@@ -1,7 +1,7 @@
 import { View, Text, TouchableHighlight, StyleSheet } from "react-native";
 import type { Track } from "@illusive/types";
 import type { Prefs } from "@illusive/prefs";
-import { sprinkle_into_queue } from "@illusive/illusi/src/play";
+import { sprinkle_into_queue } from "@illusive/play";
 import { useState, useMemo } from "react";
 import FourTrackArtwork from "./FourTrackArtwork";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";

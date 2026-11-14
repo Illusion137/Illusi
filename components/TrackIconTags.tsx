@@ -5,6 +5,7 @@ import type { Prefs } from "@illusive/prefs";
 import type { Track } from "@illusive/types";
 import { service_icon_map } from "@utils/service_icon_map";
 import { StyleSheet } from "react-native";
+import { has_synced_lyrics } from "@utils/track_lyrics";
 
 export interface TrackIconTagsProps {
 	track_data: Track;
@@ -25,7 +26,7 @@ export default function TrackIconTags(props: TrackIconTagsProps) {
 			{!is_empty(props.track_data.media_uri) ? <FontAwesome5 name="file-audio" solid size={props.size} color={colors.primary} style={[styles.icon_thin, glow_style]} /> : null}
 			{!is_empty(props.track_data.thumbnail_uri) ? <Ionicons name="image" size={props.size} color={colors.primary} style={[styles.icon_thin, glow_style]} /> : null}
 			{!is_empty(props.track_data.lyrics_uri) ? (
-				!is_empty(props.track_data.synced_lyrics_uri) ? (
+				has_synced_lyrics(props.track_data) ? (
 					<MaterialIcons name="lyrics" size={props.size} color={colors.primary} style={[styles.icon_thin, glow_style]} />
 				) : (
 					<MaterialIcons name="closed-caption" size={props.size} color={colors.primary} style={[styles.icon_thin, glow_style]} />

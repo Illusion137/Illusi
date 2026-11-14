@@ -2,14 +2,13 @@ import ModalHeader from "@components/ModalHeader";
 import TrackComponentBase from "@components/TrackComponentBase";
 import { Ionicons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
-import { GLOBALS } from "@illusive/globals";
-import { delete_track_from_player_queue } from "@illusive/track_player_service";
+import { active_track_index, player_queue_tracks, remove_from_player_queue } from "@utils/player_queue";
 import type { Track } from "@illusive/types";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SwipeListView } from "react-native-swipe-list-view";
-import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
+import { Event, useTrackPlayerEvents } from "react-native-everything-player";
 
 export default function AudioPlayerQueue() {
 	const { colors } = usePTheme();
@@ -29,19 +28,17 @@ export default function AudioPlayerQueue() {
 		/>
 	);
 
-	async function updated_queue_items() {
-		const current_track_index = await TrackPlayer.getActiveTrackIndex();
+	function updated_queue_items() {
+		const current_track_index = active_track_index();
 		if (current_track_index === undefined) return;
-		const track_player_queue = GLOBALS.global_var.playing_tracks.slice(current_track_index);
-		set_queue_data(track_player_queue);
+		set_queue_data(player_queue_tracks().slice(current_track_index));
 	}
 
 	async function remove_track_from_queue(item: Track) {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
-		// delete_track_from_player_queue expects the active track index, not the row index
-		const active_index = await TrackPlayer.getActiveTrackIndex();
+		const active_index = active_track_index();
 		if (active_index === undefined) return;
-		await delete_track_from_player_queue(item, active_index);
+		await remove_from_player_queue(item, active_index);
 		updated_queue_items();
 	}
 
@@ -49,11 +46,8 @@ export default function AudioPlayerQueue() {
 		updated_queue_items();
 	}, []);
 
-	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async (event) => {
-		if (event.type === Event.PlaybackActiveTrackChanged) {
-			if (event.index === undefined) return;
-			await updated_queue_items();
-		}
+	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
+		if (event.index !== undefined) updated_queue_items();
 	});
 
 	return (

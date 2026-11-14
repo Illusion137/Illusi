@@ -7,7 +7,12 @@ import type { MusicServiceType } from "@illusive/types";
 import { create_uri } from "@illusive/illusive_utils";
 
 async function link_incoming_track(etrack: string) {
-    const track = SQLTracks.add_playback_saved_data_to_track(decode_track(etrack));
+    const decoded = decode_track(etrack);
+    if ("error" in decoded) {
+        GLOBALS.global_var.bottom_alert("Failed to open shared track", "WARN", decoded);
+        return;
+    }
+    const track = SQLTracks.add_playback_saved_data_to_track(decoded);
     GLOBALS.global_var.play_tracks(track, [track], "Shared Track");
 }
 
@@ -45,6 +50,10 @@ const service_hostname_map: Record<MusicServiceType, string> = {
     "Apple Music": "music.apple.com",
     SoundCloud: "soundcloud.com",
     BandLab: "bandlab.com",
+    Audiomack: "audiomack.com",
+    Deezer: "deezer.com",
+    Tidal: "tidal.com",
+    Pandora: "pandora.com",
     API: "$$NO_USE$$"
 } as const;
 const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => Promise<void>> = {
@@ -57,6 +66,10 @@ const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => 
     "Apple Music": async (_) => { },
     SoundCloud: async (_) => { },
     BandLab: async (_) => { },
+    Audiomack: async (_) => { },
+    Deezer: async (_) => { },
+    Tidal: async (_) => { },
+    Pandora: async (_) => { },
     API: async (_) => { }
 };
 

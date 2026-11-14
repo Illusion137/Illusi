@@ -39,6 +39,22 @@ export const service_icon_map: Record<MusicServiceType, {color: string, name: ke
         color: "#ff5500",
         name: "soundcloud"
     },
+    Audiomack: {
+        color: "#ffa200",
+        name: "music-note"
+    },
+    Deezer: {
+        color: "#a238ff",
+        name: "music-note"
+    },
+    Tidal: {
+        color: "#ffffff",
+        name: "music-note"
+    },
+    Pandora: {
+        color: "#3668ff",
+        name: "music-note"
+    },
     API: {
         color: Prefs.prefs.primary_color.default_value,
         name: "link"

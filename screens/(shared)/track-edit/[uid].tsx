@@ -6,7 +6,7 @@ import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import usePTheme from "@hooks/usePTheme";
 import useTrackColors from "@hooks/useTrackColors";
-import { ExampleObj } from "@illusive/example_objs";
+import { ExampleObj } from "@utils/example_objs";
 import { GLOBALS } from "@illusive/globals";
 import { Illusive } from "@illusive/illusive";
 import { type ArtworkNamedUUID, duration_to_string, get_unique_album_names_with_uris, get_unique_artists } from "@illusive/illusive_utils";
@@ -25,6 +25,7 @@ import { ffmpeg } from "@native/ffmpeg/ffmpeg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { ContextMenuButton } from "@components/ContextMenu";
+import { read_plain_lyrics, track_lyrics_plain } from "@utils/track_lyrics";
 
 type SetArtistsState = (args: (prev: NamedUUID[]) => NamedUUID[]) => any;
 
@@ -205,8 +206,8 @@ export default function EditTrackModal() {
 
 	useEffect(() => {
 		if (track_ref.current?.lyrics_uri) {
-			SQLTracks.read_track_lyrics(track_ref.current).then((content) => {
-				if (typeof content === "string") set_lyrics_content(content);
+			read_plain_lyrics(track_ref.current).then((content) => {
+				if (content !== undefined) set_lyrics_content(content);
 			});
 		}
 	}, []);
@@ -287,12 +288,13 @@ export default function EditTrackModal() {
 		if (!track_ref.current) return;
 		set_download_lyrics_state("LOADING");
 		const result = await GLOBALS.global_var.download_track_lyrics(track_ref.current);
-		const success = typeof result === "string";
+		const success = typeof result === "string" || !("error" in result);
 		set_download_lyrics_state(success ? "COMPLETE" : "NONE");
 		GLOBALS.global_var.bottom_alert?.(success ? "Downloaded lyrics" : "Failed to download lyrics", success ? "GOOD" : "WARN");
-		if (success && track_ref.current?.lyrics_uri) {
-			const content = await SQLTracks.read_track_lyrics(track_ref.current);
-			if (typeof content === "string") set_lyrics_content(content);
+		if (typeof result === "object" && !("error" in result)) set_lyrics_content(track_lyrics_plain(result));
+		else if (result === "EXISTS" && track_ref.current?.lyrics_uri) {
+			const content = await read_plain_lyrics(track_ref.current);
+			if (content !== undefined) set_lyrics_content(content);
 		}
 	}
 

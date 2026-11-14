@@ -6,8 +6,6 @@
  * - index.tsx (this file): fallback for other platforms using CustomPopover
  *
  * Platform-specific variants:
- * - index.macos.tsx: explicitly uses CustomPopover
- * - index.windows.tsx: explicitly uses CustomPopover
  * - index.android.tsx: explicitly uses CustomPopover
  */
 

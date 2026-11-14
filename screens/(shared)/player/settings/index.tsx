@@ -10,7 +10,7 @@ import { SharedRouter } from "@utils/shared_routes";
 import { useIsFocused } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
-import TrackPlayer from "react-native-track-player";
+import EverythingPlayer from "react-native-everything-player";
 
 const min_crossfade = 0;
 const max_crossfade = 10;
@@ -37,15 +37,17 @@ export default function AudioPlayerSettings() {
 
 	useEffect(() => {
 		set_equalizer_preset(Prefs.get_pref("equalizer_preset"));
-		TrackPlayer.getRate().then((new_rate) => set_rate(new_rate));
+		try {
+			set_rate(EverythingPlayer.getRate());
+		} catch {}
 	}, [is_focused]);
 
 	async function update_rate(new_rate: number) {
-		await TrackPlayer.setRate(new_rate);
+		EverythingPlayer.setRate(new_rate);
 		set_rate(new_rate);
 	}
 	async function update_crossfade_seconds(new_crossfade_seconds: number) {
-		await TrackPlayer.setCrossFade(new_crossfade_seconds);
+		EverythingPlayer.setCrossFade(new_crossfade_seconds);
 		set_crossfade_seconds(new_crossfade_seconds);
 		Prefs.save_pref("crossfade", new_crossfade_seconds);
 	}

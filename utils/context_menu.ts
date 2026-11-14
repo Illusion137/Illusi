@@ -6,11 +6,10 @@ import { Image } from "react-native";
 import { is_empty } from "@common/utils/util";
 import { Prefs } from "@illusive/prefs";
 import type { EditMode, Track } from "@illusive/types";
-import type { AudiobookTableItem } from "@illusive/db/schema";
-import { reinterpret_cast } from "../lib-origin/common/cast";
+import { reinterpret_cast } from "@common/cast";
 import { GLOBALS } from "@illusive/globals";
 import { Constants } from "@illusive/constants";
-import { RepeatMode } from "react-native-track-player";
+import { RepeatMode } from "react-native-everything-player";
 
 // TODO add support for discord without play mode
 type Icon = ImageResolvedAssetSource | string;
@@ -156,50 +155,6 @@ export namespace TrackContextMenu {
 	//         },
 	//     }
 	// };
-}
-
-export namespace AudiobookContextMenu {
-	const audiobook_menu_item = (key: ContextResolver.AudiobookContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: string): MenuElementConfig =>
-		base_menu_item<ContextResolver.AudiobookContextKeys>(key, title, attributes, icon);
-
-	export const audiobook_all_functions = (novel: AudiobookTableItem): MenuElementConfig[] => {
-		const percent = novel.total_duration_ms > 0 ? novel.total_listened_ms / novel.total_duration_ms : 0;
-		const finished = percent >= 0.999;
-		const started = percent > 0 && !finished;
-		const in_series = (novel.series_name?.trim() ?? "").length > 0;
-		return [
-			audiobook_menu_item("audiobook-resume", started ? "Resume" : "Play", undefined, "play.fill"),
-			audiobook_menu_item("audiobook-restart", "Start Over", () => (started || finished ? undefined : ["hidden"]), "arrow.counterclockwise"),
-			audiobook_menu_item("audiobook-view-details", "View Details", undefined, "info.circle"),
-			audiobook_menu_item("audiobook-mark-finished", finished ? "Mark Unfinished" : "Mark Finished", undefined, "checkmark.circle"),
-			audiobook_menu_item("audiobook-remove-from-series", "Remove From Series", () => (in_series ? undefined : ["hidden"]), "rectangle.stack.badge.minus"),
-			audiobook_menu_item("audiobook-delete", "Delete", () => ["destructive"], "trash")
-		];
-	};
-
-	export const audiobook_component_context_menu = (novel: AudiobookTableItem): MenuConfig => ({
-		menuTitle: novel.title || "Untitled",
-		menuSubtitle: novel.author || undefined,
-		menuItems: audiobook_all_functions(novel)
-	});
-}
-
-export namespace SeriesContextMenu {
-	const series_menu_item = (key: ContextResolver.SeriesContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: string): MenuElementConfig =>
-		base_menu_item<ContextResolver.SeriesContextKeys>(key, title, attributes, icon);
-
-	export const series_all_functions = (novels: AudiobookTableItem[], expanded?: boolean): MenuElementConfig[] => [
-		series_menu_item("series-open", "Open Series", undefined, "rectangle.stack"),
-		series_menu_item("series-resume", "Resume", () => (novels.some((n) => n.total_listened_ms > 0) ? undefined : ["hidden"]), "play.fill"),
-		series_menu_item("series-toggle-expand", expanded ? "Collapse" : "Expand", () => (expanded === undefined ? ["hidden"] : undefined), expanded ? "chevron.up" : "chevron.down"),
-		series_menu_item("series-ungroup", "Ungroup Series", () => ["destructive"], "rectangle.stack.badge.minus")
-	];
-
-	export const series_component_context_menu = (series_name: string, novels: AudiobookTableItem[], expanded?: boolean): MenuConfig => ({
-		menuTitle: series_name,
-		menuSubtitle: `${novels.length} books`,
-		menuItems: series_all_functions(novels, expanded)
-	});
 }
 
 export namespace PlaybackContextMenu {

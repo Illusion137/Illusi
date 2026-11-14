@@ -8,7 +8,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import ExtrasSectionButton from "@components/ExtrasSectionButton";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
 import usePTheme from "@hooks/usePTheme";
-import { sync_engine_instance } from "@illusive/startup";
+import { SyncEngine } from "@illusive/db/sync/sync_engine";
 import { mmkv } from "@native/mmkv/mmkv";
 import { check_and_apply_update, clear_quarantine, force_update_to_latest, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from "@utils/ota_update";
 
@@ -204,11 +204,10 @@ export default function ExtraDeveloperScreen() {
 			/>
 			<ExtrasSectionButton
 				show_arrow={true}
-				text="Mark Data Synced"
+				text="Sync Now"
 				icon="hammer-outline"
 				onPress={async () => {
-					sync_engine_instance?.mark_all_tables_synced_now();
-					Prefs.save_pref("last_synced", new Date());
+					await SyncEngine.sync_now();
 				}}
 			/>
 			<ExtrasSectionButton

@@ -1,4 +1,3 @@
-import { is_empty } from "@common/utils/util";
 import usePTheme from "@hooks/usePTheme";
 import useNeighborLyricsPreload from "@hooks/useNeighborLyricsPreload";
 import { useSyncedLineTracker } from "@hooks/useSyncedLineTracker";
@@ -11,7 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, View, type LayoutChangeEvent, type TextStyle } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import TrackPlayer from "react-native-track-player";
+import EverythingPlayer from "react-native-everything-player";
+import { has_synced_lyrics } from "@utils/track_lyrics";
 
 interface ExternalSyncedLyricsProps {
 	track: Track | undefined;
@@ -83,9 +83,9 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 			const synced = with_intro_marker(lyrics);
 			let position = 0;
 			try {
-				position = (await TrackPlayer.getProgress()).position;
+				position = EverythingPlayer.getProgress().position;
 			} catch {
-				// TrackPlayer not ready — start from the top.
+				// EverythingPlayer not ready — start from the top.
 			}
 			if (token !== load_token_ref.current) return;
 			line_y_positions.current = [];
@@ -99,13 +99,13 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 	}
 
 	useEffect(() => {
-		if (track && !is_empty(track.synced_lyrics_uri)) {
+		if (track && has_synced_lyrics(track)) {
 			load(track);
 		} else {
 			load_token_ref.current++;
 			tracker.clear();
 		}
-	}, [track?.uid, track?.synced_lyrics_uri]);
+	}, [track?.uid, track?.lyrics_uri, track?.sync_status]);
 
 	// Fallback in case onLayout doesn't fire (matching line dimensions across tracks).
 	useEffect(() => {

@@ -5,7 +5,6 @@ let config = getSentryExpoConfig(__dirname);
 
 config = {
 	...config,
-	platforms: ["ios", "android", "macos", "windows"],
 	resolver: {
 		...config.resolver,
 		blockList: [...config.resolver.blockList, /(\/lib-origin\/roze\/native\/.+?\/.+?\.node\.ts)$/, /\/nodejs-assets\/.*/],
@@ -21,17 +20,6 @@ config = {
 			const nodeOnlyStubs = { sharp: "stubs/sharp.ts" };
 			if (nodeOnlyStubs[moduleName]) {
 				return { filePath: path.resolve(__dirname, nodeOnlyStubs[moduleName]), type: "sourceFile" };
-			}
-			// Resolve iOS-only modules to stubs on desktop platforms
-			const desktopStubs = {
-				"react-native-track-player": "stubs/react-native-track-player.ts",
-				"react-native-siri-shortcut": "stubs/react-native-siri-shortcut.ts",
-				"nodejs-mobile-react-native": "stubs/nodejs-mobile-react-native.ts",
-				"react-native-airplay-button": "stubs/react-native-airplay-button.ts",
-				"@simform_solutions/react-native-audio-waveform": "stubs/react-native-audio-waveform.ts"
-			};
-			if ((platform === "macos" || platform === "windows") && desktopStubs[moduleName]) {
-				return { filePath: require.resolve(desktopStubs[moduleName]), type: "sourceFile" };
 			}
 			return context.resolveRequest(context, moduleName, platform);
 		}

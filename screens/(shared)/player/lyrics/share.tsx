@@ -2,7 +2,6 @@ import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
 import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
-import { GLOBALS } from "@illusive/globals";
 import { artist_string } from "@illusive/illusive_utils";
 import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
@@ -13,9 +12,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Sharing from "expo-sharing";
 import { useEffect, useMemo, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
+import { Event, useTrackPlayerEvents } from "react-native-everything-player";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { router } from "expo-router";
+import { fs } from "@native/fs/fs";
+import { Lyrics } from "@illusive/lyrics";
+import { active_track } from "@utils/player_queue";
+import { read_plain_lyrics } from "@utils/track_lyrics";
 
 export default function PlayerShareLyrics() {
 	const { colors } = usePTheme();
@@ -29,13 +32,9 @@ export default function PlayerShareLyrics() {
 	const styles = theme_styles(colors);
 
 	async function load_track() {
-		const index = (await TrackPlayer.getActiveTrackIndex()) ?? 0;
-		const resolved = GLOBALS.global_var.playing_tracks[index] ?? null;
+		const resolved = active_track() ?? null;
 		set_track(resolved);
-		if (resolved) {
-			const content = await SQLTracks.read_track_lyrics(resolved);
-			set_lyrics(typeof content === "string" ? content : null);
-		}
+		if (resolved) set_lyrics((await read_plain_lyrics(resolved)) ?? null);
 	}
 
 	useEffect(() => {
@@ -80,7 +79,12 @@ export default function PlayerShareLyrics() {
 
 	async function handle_share_file() {
 		if (!track?.lyrics_uri) return;
-		const path = SQLfs.lyrics_directory(track.lyrics_uri);
+		let path = SQLfs.lyrics_directory(track.lyrics_uri);
+		const stored = await SQLTracks.read_track_lyrics(track);
+		if (stored !== undefined && stored.sync_status !== "NONE") {
+			path = await fs().temp_directory(`${track.uid}.lrc`);
+			await SQLfs.create_file(path, Lyrics.to_lrc(stored.lyrics));
+		}
 		if (await Sharing.isAvailableAsync()) {
 			await Sharing.shareAsync(path);
 		}

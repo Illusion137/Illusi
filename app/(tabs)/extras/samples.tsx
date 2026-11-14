@@ -13,7 +13,8 @@ import { Easing } from "react-native";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { get_youtube_music_track_mix, get_soundcloud_track_mix } from "@illusive/get_track_mix";
 import { illusive_track_to_track_player_track, setup_track_player } from "@illusive/track_player_service";
-import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
+import { clear_player_queue } from "@utils/player_queue";
+import EverythingPlayer, { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
 import type { Track } from "@illusive/types";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -59,8 +60,7 @@ function ServiceChip(props: { track: Track }) {
 	const { colors } = usePTheme();
 	let label = "Unknown";
 	let chip_color = colors.subtext;
-	if (!is_empty(props.track.youtubemusic_id)) { label = "YouTube Music"; chip_color = "#FF0000"; }
-	else if (!is_empty(props.track.youtube_id)) { label = "YouTube"; chip_color = "#FF0000"; }
+	if (!is_empty(props.track.youtube_id)) { label = "YouTube"; chip_color = "#FF0000"; }
 	else if (!is_empty(props.track.soundcloud_id)) { label = "SoundCloud"; chip_color = "#ff5500"; }
 	else if (!is_empty(props.track.spotify_id)) { label = "Spotify"; chip_color = "#1db954"; }
 
@@ -133,11 +133,11 @@ export default function ExtraSamplesScreen() {
 		load_recommendations();
 	}, []);
 
-	// Kill TrackPlayer on exit
+	// Kill EverythingPlayer on exit
 	useEffect(() => {
 		return () => {
-			TrackPlayer.pause().catch(() => {});
-			TrackPlayer.reset().catch(() => {});
+			EverythingPlayer.pause();
+			EverythingPlayer.reset();
 		};
 	}, []);
 
@@ -151,7 +151,7 @@ export default function ExtraSamplesScreen() {
 		set_current_index(0);
 
 		const seeded_tracks = GLOBALS.global_var.sql_tracks.filter(
-			t => !is_empty(t.youtubemusic_id) || !is_empty(t.soundcloud_id)
+			t => !is_empty(t.youtube_id) || !is_empty(t.soundcloud_id)
 		);
 		if (seeded_tracks.length === 0) {
 			set_loading(false);
@@ -162,8 +162,8 @@ export default function ExtraSamplesScreen() {
 
 		let mix_tracks: Track[] = [];
 		try {
-			if (!is_empty(seed.youtubemusic_id)) {
-				const result = await get_youtube_music_track_mix(seed.youtubemusic_id!);
+			if (!is_empty(seed.youtube_id)) {
+				const result = await get_youtube_music_track_mix(seed.youtube_id!);
 				if ("tracks" in result) mix_tracks = result.tracks;
 			} else if (!is_empty(seed.soundcloud_id)) {
 				const result = await get_soundcloud_track_mix(String(seed.soundcloud_id!));
@@ -173,13 +173,11 @@ export default function ExtraSamplesScreen() {
 
 		// Build owned-ID sets for all services
 		const owned_youtube_ids = new Set(GLOBALS.global_var.sql_tracks.map(t => t.youtube_id).filter(Boolean) as string[]);
-		const owned_ytm_ids = new Set(GLOBALS.global_var.sql_tracks.map(t => t.youtubemusic_id).filter(Boolean) as string[]);
 		const owned_sc_ids = new Set(GLOBALS.global_var.sql_tracks.map(t => t.soundcloud_id).filter(v => v !== undefined) as number[]);
 		const owned_sp_ids = new Set(GLOBALS.global_var.sql_tracks.map(t => t.spotify_id).filter(Boolean) as string[]);
 
 		const filtered = mix_tracks.filter(t => {
 			if (!is_empty(t.youtube_id) && owned_youtube_ids.has(t.youtube_id!)) return false;
-			if (!is_empty(t.youtubemusic_id) && owned_ytm_ids.has(t.youtubemusic_id!)) return false;
 			if (t.soundcloud_id !== undefined && owned_sc_ids.has(t.soundcloud_id)) return false;
 			if (!is_empty(t.spotify_id) && owned_sp_ids.has(t.spotify_id!)) return false;
 			return true;
@@ -234,26 +232,27 @@ export default function ExtraSamplesScreen() {
 
 	async function toggle_preview(track: Track) {
 		if (is_previewing) {
-			await TrackPlayer.pause();
+			EverythingPlayer.pause();
 			set_is_previewing(false);
 			return;
 		}
 		set_is_previewing(true);
 		try {
 			await setup_track_player();
-			await TrackPlayer.reset();
+			EverythingPlayer.reset();
+			clear_player_queue();
 			const tp_track = await illusive_track_to_track_player_track(track);
 			if (tp_track === "skip") {
 				GLOBALS.global_var.bottom_alert("Couldn't preview track", "WARN");
 				set_is_previewing(false);
 				return;
 			}
-			await TrackPlayer.add(tp_track);
-			await TrackPlayer.play();
+			EverythingPlayer.add(tp_track);
+			EverythingPlayer.play();
 			// Seek to 30% for a representative snippet
 			if (track.duration > 60) {
 				setTimeout(async () => {
-					await TrackPlayer.seekTo(track.duration * 0.3).catch(() => {});
+					EverythingPlayer.seekTo(track.duration * 0.3);
 				}, 800);
 			}
 		} catch (_) {

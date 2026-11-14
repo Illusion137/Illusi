@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import type { Prefs } from '@illusive/prefs';
 import Markdown from 'react-native-markdown-display';
-import { CHANGELOG } from '../../../lib-origin/gen_changelog';
+import { CHANGELOG } from '@utils/gen_changelog';
 import usePTheme from '@hooks/usePTheme';
 
 export default function ExtraChanglogScreen() {

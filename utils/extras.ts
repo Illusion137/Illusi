@@ -31,11 +31,6 @@ export const extras_layout: () => ExtraLayout[] = () => [
     {
         buttons: [
             {
-                title: "SyncPlay",
-                href: "/extras/sync-play",
-                icon: "sync-circle-outline",
-            },
-            {
                 title: "Samples",
                 href: "/extras/samples",
                 icon: "color-wand-outline",

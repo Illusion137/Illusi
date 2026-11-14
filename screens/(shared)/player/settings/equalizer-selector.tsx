@@ -5,7 +5,7 @@ import { Prefs } from "@illusive/prefs";
 import MultiOption from "@screens/MultiOption";
 import { useState } from "react";
 import { View } from "react-native";
-import TrackPlayer from "react-native-track-player";
+import EverythingPlayer from "react-native-everything-player";
 
 const all_equalizer_presets = reinterpret_cast<Prefs.EqualizerPreset[]>(Object.keys(Prefs.equalizer_presets));
 export default function EqualizerSelector() {
@@ -15,7 +15,7 @@ export default function EqualizerSelector() {
 		if (!all_equalizer_presets.includes(preset)) return;
 		set_current_equalizer_preset(preset);
 		Prefs.save_pref("equalizer_preset", preset);
-		TrackPlayer.setEqualizer(Prefs.equalizer_presets[preset] as unknown as number[]);
+		EverythingPlayer.setEqualizer(Prefs.equalizer_presets[preset] as unknown as number[]);
 	}
 
 	return (

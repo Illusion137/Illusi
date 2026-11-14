@@ -13,7 +13,6 @@ export default function ExtrasLayout() {
 			<Stack.Screen name="external-services" options={{ title: "External Services", headerShown: true }} />
 			<Stack.Screen name="help" options={{ title: "Help", headerShown: true }} />
 			<Stack.Screen name="keep-delete" options={{ title: "Keep Delete", headerShown: true, gestureEnabled: false }} />
-			<Stack.Screen name="sync-play" options={{ title: "SyncPlay", headerShown: true }} />
 			<Stack.Screen name="samples" options={{ title: "Samples", headerShown: true, gestureEnabled: false }} />
 			<Stack.Screen name="service-importer" options={{ title: "Service Importer", headerShown: true }} />
 			<Stack.Screen name="lyrics-finder" options={{ title: "Lyrics Finder", headerShown: true }} />

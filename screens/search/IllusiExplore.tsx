@@ -9,13 +9,10 @@ import { get_unique_artists } from "@illusive/illusive_utils";
 import { Explore } from "@illusive/explore";
 import usePTheme from "@hooks/usePTheme";
 import { milliseconds_of } from "@common/utils/util";
-import { SQLNewReleases } from "@illusive/sql/sql_new_releases";
-import { shared_values } from "@utils/shared_values";
 import HeaderWith from "@components/HeaderWith";
 import { SQLArtists } from "@illusive/sql/sql_artists";
 import IllusiRewindComponent from "@components/IllusiRewindComponent";
 import { SharedRouter } from "@utils/shared_routes";
-import { ExploreLocalData } from "@illusive/explore_local_data";
 import { LinearGradient } from "expo-linear-gradient";
 import FullPlaylistList from "@components/FullPlaylistList";
 import { shuffle_array } from "../../lib-origin/common/utils/util";
@@ -30,8 +27,8 @@ const should_show_rewind = time_till_rewind_time > 0 && Date.now() <= rewind_dat
 export default function IllusiExplore() {
 	const { colors } = usePTheme();
 
-	const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(shared_values.cached_new_releases);
-	const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(shared_values.cached_new_releases.length === 0);
+	const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(Explore.get_new_releases);
+	const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(new_releases.length === 0);
 
 	const your_artists_ref = useRef(SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks));
 	const [forgotten_favorites, set_forgotten_favorites] = useState<CompactPlaylist[]>([]);
@@ -40,13 +37,12 @@ export default function IllusiExplore() {
 	const [for_you_artists, set_for_you_artists] = useState<CompactArtist[]>([]);
 	const [illusi_public_playlists, set_illusi_public_playlists] = useState<CompactPlaylist[]>([]);
 
-	async function get_persistant_new_releases(refreshed?: boolean) {
-		if (shared_values.cached_new_releases.length !== 0 && refreshed !== true) return [];
-		const not_seen_new_releases = await SQLNewReleases.get_not_seen_new_releases();
-		shared_values.cached_new_releases = not_seen_new_releases;
-		set_new_releases(not_seen_new_releases);
-		return not_seen_new_releases;
-	}
+	useEffect(() => {
+		if (!Explore.new_releases_stale()) return;
+		Explore.refresh_new_releases()
+			.then(set_new_releases)
+			.finally(() => set_is_loading_new_releases(false));
+	}, []);
 
 	useEffect(() => {
 		(async function () {
@@ -55,10 +51,6 @@ export default function IllusiExplore() {
 			set_for_you_playlists(await Explore.get_recommended_playlists());
 			set_for_you_artists(shuffle_array(await Explore.get_recommended_artists()));
 			set_illusi_public_playlists(await Explore.get_illusi_public_playlists());
-			if (shared_values.cached_new_releases.length !== 0) return;
-			Explore.refresh_all_services_new_releases(get_persistant_new_releases, set_is_loading_new_releases);
-			await get_persistant_new_releases();
-			set_is_loading_new_releases(false);
 		})();
 	}, []);
 
@@ -101,8 +93,6 @@ export default function IllusiExplore() {
 					<TrackHorizontalScrolls title={`Top ${Math.min(top_tracks.length, top_tracks_slice)} Tracks`} tracks={top_tracks.slice(0, top_tracks_slice)} height={5} />
 				</>
 			) : null}
-			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
-			<AlbumList title="Illusi Made Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={[ExploreLocalData.christmas_playlist]} />
 			<View style={{ height: 100 }} />
 		</ScrollView>
 	);

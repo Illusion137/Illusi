@@ -1,6 +1,6 @@
 import usePTheme from "@hooks/usePTheme";
 import { router } from "expo-router";
-import { Button, Text, View, type ColorValue, Platform } from "react-native";
+import { Button, Text, View, type ColorValue } from "react-native";
 import type { IconTouchableOpacityProps } from "./TouchableIconOpacity";
 import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
 import type { Ionicons } from "@expo/vector-icons";
@@ -13,8 +13,7 @@ export default function ModalHeader(props: { title: string; background_color?: C
 		router.dismiss();
 	}
 
-	// On mobile, modals are sheets with rounded top corners; on desktop they're full windows
-	const headerBorderRadius = Platform.OS === "ios" || Platform.OS === "android" ? { borderTopLeftRadius: 3, borderTopRightRadius: 3 } : {};
+	const headerBorderRadius = { borderTopLeftRadius: 3, borderTopRightRadius: 3 };
 
 	return (
 		<View style={{ width: "100%", height: 55, backgroundColor: props.background_color ?? colors.shelf, justifyContent: "center", alignItems: "center", ...headerBorderRadius, flexDirection: "row" }}>

@@ -128,7 +128,7 @@ export default function Artist() {
 		() =>
 			uri.includes(Constants.import_uri_id)
 				? artist_data.tracks.filter((track) => track.meta?.plays).sort((a, b) => (b.meta?.plays ?? 0) - (a.meta?.plays ?? 0))
-				: artist_data.tracks.filter((track) => track.plays).sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)),
+				: artist_data.tracks.filter((track) => track.service_plays).sort((a, b) => (b.service_plays ?? 0) - (a.service_plays ?? 0)),
 		[uri, artist_data.tracks]
 	);
 
@@ -270,7 +270,7 @@ export default function Artist() {
 								<View style={{ paddingVertical: 5 }} />
 							</>
 						) : null}
-						<TrackHorizontalScrolls title="Popular Tracks" height={4} tracks={popular_tracks} replace_album_with="plays" />
+						<TrackHorizontalScrolls title="Popular Tracks" height={4} tracks={popular_tracks} replace_album_with="service_plays" />
 						<TrackHorizontalScrolls title="Tracks" height={4} tracks={artist_data.tracks} />
 						<View style={{ paddingTop: 5 }} />
 						{artist_data.albums.length > 0 ? <AlbumList title="Albums" else_type={"ALBUM"} albums={artist_data.albums} /> : null}

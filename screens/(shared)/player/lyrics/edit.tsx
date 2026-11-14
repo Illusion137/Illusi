@@ -4,7 +4,7 @@ import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string } from "@illusive/illusive_utils";
-import { Lyrics } from "@illusive/lyrics";
+import type { Lyrics } from "@illusive/lyrics";
 import type { Prefs } from "@illusive/prefs";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { LoadingState, Track } from "@illusive/types";
@@ -16,8 +16,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, type NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import TrackPlayer, { Event, State, useProgress, useTrackPlayerEvents } from "react-native-track-player";
+import EverythingPlayer, { Event, State, useProgress, useTrackPlayerEvents } from "react-native-everything-player";
 import { invalidate_synced_lyrics } from "@utils/synced_lyrics_cache";
+import { has_synced_lyrics } from "@utils/track_lyrics";
+import type { LyricsLine, LyricsSegment } from "@origin/illusi/types";
 
 type Mode = "edit" | "sync";
 
@@ -25,6 +27,7 @@ interface Line {
 	id: string;
 	text: string;
 	ts: number | null;
+	original?: { text: string; ts: number; segments?: LyricsSegment[] };
 }
 
 function uid() {
@@ -33,18 +36,6 @@ function uid() {
 
 function pad2(n: number) {
 	return n < 10 ? `0${n}` : String(n);
-}
-function pad3(n: number) {
-	return n < 10 ? `00${n}` : n < 100 ? `0${n}` : String(n);
-}
-
-function format_lrc_timestamp(seconds: number): string {
-	const safe = Math.max(0, seconds);
-	const minutes = Math.floor(safe / 60);
-	const sec = Math.floor(safe % 60);
-	const ms_raw = Math.round((safe - Math.floor(safe)) * 1000);
-	const ms = ms_raw >= 1000 ? 999 : ms_raw;
-	return `[${pad2(minutes)}:${pad2(sec)}.${pad3(ms)}]`;
 }
 
 function format_clock(seconds: number): string {
@@ -66,31 +57,16 @@ function lines_from_plain(plain: string): Line[] {
 	return plain.split("\n").map((text) => ({ id: uid(), text, ts: null }));
 }
 
-function lines_from_synced(synced: Lyrics.SyncedLyric[]): Line[] {
-	return synced.map((s) => ({ id: uid(), text: s.text, ts: s.interval.from }));
-}
-
-// Walk the plain lines and attach the matching synced timestamp by exact text. Synced parsers
-// drop blank lines, so plain is the authoritative line set; this just enriches it. A moving
-// cursor avoids matching the same synced row twice when the song repeats a line.
-function lines_from_both(plain: string, synced: Lyrics.SyncedLyric[]): Line[] {
-	const out = lines_from_plain(plain);
-	let cursor = 0;
-	for (const lyric of synced) {
-		for (let i = cursor; i < out.length; i++) {
-			if (out[i].ts === null && out[i].text.trim() === lyric.text.trim()) {
-				out[i].ts = lyric.interval.from;
-				cursor = i + 1;
-				break;
-			}
-		}
-	}
-	return out;
+function lines_from_parsed(lines: LyricsLine[]): Line[] {
+	return lines.map((line) => {
+		const ts = line.start_ms === null ? null : line.start_ms / 1000;
+		return { id: uid(), text: line.text, ts, original: ts === null ? undefined : { text: line.text, ts, segments: line.segments } };
+	});
 }
 
 interface BuildResult {
-	plain: string;
-	synced: string | undefined;
+	lyrics: Lyrics.TrackLyrics;
+	synced: boolean;
 	aligned_count: number;
 	content_count: number;
 }
@@ -100,14 +76,19 @@ function build_output(lines: Line[]): BuildResult {
 	const content = lines.filter((l) => l.text.trim().length > 0);
 	const aligned = content.filter((l) => typeof l.ts === "number" && isFinite(l.ts));
 	if (content.length === 0 || aligned.length !== content.length) {
-		return { plain, synced: undefined, aligned_count: aligned.length, content_count: content.length };
+		return { lyrics: { sync_status: "NONE", plain }, synced: false, aligned_count: aligned.length, content_count: content.length };
 	}
-	const lrc = aligned
+	const timed: LyricsLine[] = aligned
 		.slice()
 		.sort((a, b) => (a.ts as number) - (b.ts as number))
-		.map((l) => `${format_lrc_timestamp(l.ts as number)} ${l.text}`)
-		.join("\n");
-	return { plain, synced: lrc, aligned_count: aligned.length, content_count: content.length };
+		.map((l) => {
+			const unchanged = l.original?.text === l.text && l.original.ts === l.ts;
+			const segments = unchanged ? l.original?.segments : undefined;
+			return { text: l.text, start_ms: Math.round((l.ts as number) * 1000), end_ms: null, ...(segments !== undefined ? { segments } : {}) };
+		});
+	const sync_type = timed.every((line) => line.segments !== undefined && line.segments.length > 0) ? "WORD" : "LINE";
+	const lines_out = sync_type === "WORD" ? timed : timed.map(({ segments: _, ...line }) => line);
+	return { lyrics: { sync_status: sync_type, lyrics: { sync_type, lines: lines_out } }, synced: true, aligned_count: aligned.length, content_count: content.length };
 }
 
 export default function PlayerEditLyrics() {
@@ -137,17 +118,11 @@ export default function PlayerEditLyrics() {
 				router.back();
 				return;
 			}
-			const [plain_raw, synced_raw] = await Promise.all([SQLTracks.read_track_lyrics(track), SQLTracks.read_track_synced_lyrics(track)]);
-			const plain = typeof plain_raw === "string" ? plain_raw : "";
-			const synced_text = typeof synced_raw === "string" ? synced_raw : undefined;
-			const synced_parsed = synced_text !== undefined ? Lyrics.lrclib_synced_lyrics_to_json(synced_text) : undefined;
-			const synced_lyrics = synced_parsed !== undefined && !("error" in synced_parsed) ? synced_parsed.lyrics : undefined;
-
+			const stored = await SQLTracks.read_track_lyrics(track);
 			let initial: Line[];
-			if (plain.length > 0 && synced_lyrics !== undefined) initial = lines_from_both(plain, synced_lyrics);
-			else if (plain.length > 0) initial = lines_from_plain(plain);
-			else if (synced_lyrics !== undefined) initial = lines_from_synced(synced_lyrics);
-			else initial = [{ id: uid(), text: "", ts: null }];
+			if (stored === undefined) initial = [{ id: uid(), text: "", ts: null }];
+			else if (stored.sync_status === "NONE") initial = stored.plain.length > 0 ? lines_from_plain(stored.plain) : [{ id: uid(), text: "", ts: null }];
+			else initial = lines_from_parsed(stored.lyrics.lines);
 			set_lines(initial);
 			set_loaded(true);
 		})();
@@ -245,9 +220,8 @@ export default function PlayerEditLyrics() {
 		const built = build_output(lines_ref.current);
 		set_save_state("LOADING");
 		try {
-			await SQLTracks.save_track_lyrics(track, { plain: built.plain, synced: built.synced });
+			await SQLTracks.save_track_lyrics(track, built.lyrics);
 			invalidate_synced_lyrics(track);
-			// Pick up the updated track row so a subsequent save reads the new synced_lyrics_uri.
 			const refreshed = GLOBALS.global_var.sql_tracks.find((t) => t.uid === track.uid);
 			if (refreshed) track_ref.current = refreshed;
 			set_save_state("COMPLETE");
@@ -261,8 +235,7 @@ export default function PlayerEditLyrics() {
 	function handle_save() {
 		if (!track) return;
 		const built = build_output(lines_ref.current);
-		const had_synced = typeof track.synced_lyrics_uri === "string" && track.synced_lyrics_uri.length > 0;
-		if (built.synced === undefined && had_synced) {
+		if (!built.synced && has_synced_lyrics(track)) {
 			const reason = built.content_count === 0 ? "There are no content lines to sync." : `${built.aligned_count} of ${built.content_count} lines are aligned. Saving now will clear the existing synced lyrics.`;
 			Alert.alert("Synced lyrics will be cleared", reason, [
 				{ text: "Keep editing", style: "cancel" },
@@ -282,8 +255,8 @@ export default function PlayerEditLyrics() {
 	}
 
 	const built_preview = build_output(lines);
-	const sync_status = built_preview.synced !== undefined ? "Synced lyrics ready" : `${built_preview.aligned_count}/${built_preview.content_count} lines aligned`;
-	const sync_status_color = built_preview.synced !== undefined ? colors.primary : colors.subtext;
+	const sync_status = built_preview.synced ? "Synced lyrics ready" : `${built_preview.aligned_count}/${built_preview.content_count} lines aligned`;
+	const sync_status_color = built_preview.synced ? colors.primary : colors.subtext;
 
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -455,12 +428,12 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 	}, [tap_mode, lines]);
 
 	useTrackPlayerEvents([Event.PlaybackState], (event) => {
-		if (event.type === Event.PlaybackState) set_is_playing(event.state === State.Playing);
+		set_is_playing(event.state === State.Playing);
 	});
 	useEffect(() => {
-		TrackPlayer.getPlaybackState()
-			.then((s) => set_is_playing(s.state === State.Playing))
-			.catch(() => {});
+		try {
+			set_is_playing(EverythingPlayer.getPlaybackState().state === State.Playing);
+		} catch {}
 	}, []);
 
 	const live_position = scrub_seconds !== null ? scrub_seconds : progress.position;
@@ -508,7 +481,7 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 			return;
 		}
 		if (line.ts !== null) {
-			TrackPlayer.seekTo(line.ts).catch(() => {});
+			EverythingPlayer.seekTo(line.ts);
 		}
 	}
 
@@ -522,14 +495,14 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 
 	async function toggle_play() {
 		try {
-			if (is_playing) await TrackPlayer.pause();
-			else await TrackPlayer.play();
+			if (is_playing) EverythingPlayer.pause();
+			else EverythingPlayer.play();
 		} catch {}
 	}
 	async function nudge_position(delta: number) {
 		try {
 			const target = Math.max(0, live_position + delta);
-			await TrackPlayer.seekTo(target);
+			EverythingPlayer.seekTo(target);
 		} catch {}
 	}
 
@@ -548,7 +521,7 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 					onValueChange={(value) => set_scrub_seconds((value[0] ?? 0) * duration)}
 					onSlidingComplete={async (value) => {
 						const target = (value[0] ?? 0) * duration;
-						await TrackPlayer.seekTo(target).catch(() => {});
+						EverythingPlayer.seekTo(target);
 						set_scrub_seconds(null);
 					}}
 					thumbTintColor={colors.primary}

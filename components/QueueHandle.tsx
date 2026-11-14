@@ -4,12 +4,12 @@ import { Gesture, GestureDetector, type GestureType } from "react-native-gesture
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
 import { FontAwesome6 } from "@expo/vector-icons";
-import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
+import { Event, useTrackPlayerEvents } from "react-native-everything-player";
 import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
-import { GLOBALS } from "@illusive/globals";
 import usePTheme from "@hooks/usePTheme";
-import { delete_track_from_player_queue, subscribe_track_player_queue_modified } from "@illusive/track_player_service";
+import { subscribe_track_player_queue_modified } from "@illusive/track_player_service";
+import { active_track_index, player_queue_tracks, remove_from_player_queue } from "@utils/player_queue";
 import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Track } from "@illusive/types";
 import TrackComponentBase from "@components/TrackComponentBase";
@@ -57,14 +57,10 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 		}
 	);
 
-	async function update_queue() {
-		try {
-			const idx = await TrackPlayer.getActiveTrackIndex();
-			if (idx === undefined) return;
-			set_queue(GLOBALS.global_var.playing_tracks.slice(idx));
-		} catch {
-			// player not yet initialized
-		}
+	function update_queue() {
+		const idx = active_track_index();
+		if (idx === undefined) return;
+		set_queue(player_queue_tracks().slice(idx));
 	}
 
 	useEffect(() => {
@@ -74,9 +70,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	}, []);
 
 	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
-		if (event.type === Event.PlaybackActiveTrackChanged && event.index !== undefined) {
-			set_queue(GLOBALS.global_var.playing_tracks.slice(event.index));
-		}
+		if (event.index !== undefined) set_queue(player_queue_tracks().slice(event.index));
 	});
 
 	const snap_to = useCallback(
@@ -140,10 +134,9 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 
 	const remove_track = useCallback(async (item: Track) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
-		// delete_track_from_player_queue expects the active track index, not the row index
-		const active_index = await TrackPlayer.getActiveTrackIndex();
+		const active_index = active_track_index();
 		if (active_index === undefined) return;
-		await delete_track_from_player_queue(item, active_index);
+		await remove_from_player_queue(item, active_index);
 		update_queue();
 	}, []);
 

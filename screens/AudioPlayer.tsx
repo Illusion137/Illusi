@@ -5,7 +5,7 @@ import { GestureDetector, Gesture, type GestureType } from "react-native-gesture
 import { Waveform } from "@simform_solutions/react-native-audio-waveform";
 import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TextTicker from "react-native-text-ticker";
-import TrackPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-track-player";
+import EverythingPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from "react-native-everything-player";
 import LyricsPlayer from "@screens/LyricsPlayer";
 import QueueHandle from "@components/QueueHandle";
 import NavLink from "@components/NavLink";
@@ -16,8 +16,9 @@ import { GLOBALS } from "@illusive/globals";
 import type * as IllusiveType from "@illusive/types";
 import { Prefs } from "@illusive/prefs";
 import { is_empty, shuffle_array } from "@common/utils/util";
-import { P2P, type P2PStatus } from "@illusive/p2p";
-import { get_metadata_update_threshold, get_restart_threshold, illusive_track_to_track_player_track, save_past_queue, setup_track_player, track_player_next, track_player_previous } from "@illusive/track_player_service";
+import { get_metadata_update_threshold, get_restart_threshold, save_past_queue, setup_track_player, track_player_next, track_player_previous } from "@illusive/track_player_service";
+import { active_track_index, player_queue_track, player_queue_tracks, refresh_player_queue_tracks, skip_to_next_resolved, start_player_queue } from "@utils/player_queue";
+import { has_synced_lyrics } from "@utils/track_lyrics";
 import { alert_error } from "@illusive/illusi/src/alert";
 import { artist_string, track_exists } from "@illusive/illusive_utils";
 import { ContextMenuButton, ContextMenuView } from "@components/ContextMenu";
@@ -72,9 +73,9 @@ const TrackTimestamps = memo(function TrackTimestamps() {
 function usePlaybackPlaying() {
 	const [is_playing, set_is_playing] = useState(false);
 	useEffect(() => {
-		TrackPlayer.getPlaybackState()
-			.then((s) => set_is_playing(s.state === State.Playing))
-			.catch(() => {});
+		try {
+			set_is_playing(EverythingPlayer.getPlaybackState().state === State.Playing);
+		} catch {}
 	}, []);
 	useTrackPlayerEvents([Event.PlaybackState], (event) => {
 		if (event.type === Event.PlaybackState) set_is_playing((prev) => (prev === (event.state === State.Playing) ? prev : event.state === State.Playing));
@@ -84,41 +85,32 @@ function usePlaybackPlaying() {
 
 interface PlayPauseButtonProps {
 	variant: "mini" | "big";
-	guest_locked: boolean;
-	guest_controls_routed: boolean;
 	primary_color: string;
-	subtext_color: string;
 }
 
-const PlayPauseButton = memo(function PlayPauseButton({ variant, guest_locked, guest_controls_routed, primary_color, subtext_color }: PlayPauseButtonProps) {
+const PlayPauseButton = memo(function PlayPauseButton({ variant, primary_color }: PlayPauseButtonProps) {
 	const [is_playing, set_is_playing] = usePlaybackPlaying();
-	const toggle = useCallback(async () => {
+	const toggle = useCallback(() => {
 		try {
-			const tp_state = await TrackPlayer.getPlaybackState();
-			if (guest_controls_routed) {
-				if (tp_state.state === State.Playing) P2P.request_pause();
-				else P2P.request_play();
-				return;
-			}
-			if (guest_locked) return;
+			const tp_state = EverythingPlayer.getPlaybackState();
 			set_is_playing((prev) => !prev);
-			if (tp_state.state === State.Playing) await TrackPlayer.pause();
-			else await TrackPlayer.play();
+			if (tp_state.state === State.Playing) EverythingPlayer.pause();
+			else EverythingPlayer.play();
 		} catch {
 			// player not initialized yet
 		}
-	}, [guest_controls_routed, guest_locked, set_is_playing]);
+	}, [set_is_playing]);
 
 	if (variant === "mini") {
 		return (
-			<TouchableOpacity disabled={guest_locked} hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20, opacity: guest_locked ? 0.4 : 1 }} onPress={toggle}>
-				<Ionicons name={is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={guest_locked ? subtext_color : primary_color} />
+			<TouchableOpacity hitSlop={{ left: 20, top: 20, bottom: 20, right: 20 }} style={{ top: 0, right: 20 }} onPress={toggle}>
+				<Ionicons name={is_playing ? "pause-circle-sharp" : "play-circle-sharp"} size={30} color={primary_color} />
 			</TouchableOpacity>
 		);
 	}
 	return (
-		<TouchableOpacity disabled={guest_locked} onPress={toggle} style={{ opacity: guest_locked ? 0.35 : 1 }}>
-			<Ionicons name={is_playing ? "pause" : "play"} size={60} color={guest_locked ? subtext_color : primary_color} />
+		<TouchableOpacity onPress={toggle}>
+			<Ionicons name={is_playing ? "pause" : "play"} size={60} color={primary_color} />
 		</TouchableOpacity>
 	);
 });
@@ -130,9 +122,9 @@ const MiniProgressBar = memo(function MiniProgressBar({ seek_progress, primary_c
 	const shimmer_position = useSharedValue(0);
 	const [phase, set_phase] = useState<State>(State.None);
 	useEffect(() => {
-		TrackPlayer.getPlaybackState()
-			.then((s) => set_phase(s.state))
-			.catch(() => {});
+		try {
+			set_phase(EverythingPlayer.getPlaybackState().state);
+		} catch {}
 	}, []);
 	useTrackPlayerEvents([Event.PlaybackState], (event) => {
 		if (event.type === Event.PlaybackState) set_phase((prev) => (prev === event.state ? prev : event.state));
@@ -262,14 +254,6 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const queue_pan_ref = useRef<GestureType | undefined>(undefined);
 	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_pan_ref], [lyrics_scroll_gesture]);
 
-	const [p2p_status, set_p2p_status] = useState<P2PStatus>(P2P.get_status());
-	useEffect(() => P2P.subscribe_status(set_p2p_status), []);
-	const is_guest = p2p_status.role === "guest" && p2p_status.connected;
-	const guest_permission_locked = is_guest && !p2p_status.guest_can_control;
-	const guest_loading_locked = is_guest && p2p_status.loading;
-	const guest_locked = guest_permission_locked || guest_loading_locked;
-	const guest_controls_routed = is_guest && p2p_status.guest_can_control && !p2p_status.loading;
-
 	useAnimatedReaction(
 		() => queue_expanded_progress.value > 0.01,
 		(queue_open, was_open) => {
@@ -282,19 +266,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const seek_progress = useSharedValue(0);
 	const is_seeking = useSharedValue(false);
 
-	const do_seek = useCallback(
-		(ratio: number) => {
-			const position = ratio * (metadata_duration_ref.current || 1);
-			if (guest_controls_routed) {
-				P2P.request_seek(position);
-				return;
-			}
-			if (guest_locked) return;
-			TrackPlayer.seekTo(position);
-			if (P2P.get_role() === "host") P2P.on_seek(position);
-		},
-		[guest_controls_routed, guest_locked]
-	);
+	const do_seek = useCallback((ratio: number) => {
+		EverythingPlayer.seekTo(ratio * (metadata_duration_ref.current || 1));
+	}, []);
 
 	const pan_seek = Gesture.Pan()
 		.activeOffsetX([-3, 3])
@@ -343,51 +317,34 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		const setup_t0 = Date.now();
 		const tracks_input = reshuffled_tracks ?? props.tracks;
 		Sentry.addBreadcrumb({ message: "AudioPlayer: setup start", category: "audio", level: "info", data: { track_count: tracks_input.length, first_title: tracks_input[0]?.title?.slice(0, 60) } });
-		const has_active_track = await TrackPlayer.getActiveTrack()
-			.then((t) => t !== undefined)
-			.catch(() => false);
+		let has_active_track = false;
+		try {
+			has_active_track = EverythingPlayer.getActiveTrack() !== undefined;
+		} catch {}
 		if (!Prefs.get_pref("play_without_popup") || !has_active_track) show_sheet();
 		const is_setup = await setup_track_player();
-		await TrackPlayer.reset();
-		await TrackPlayer.setRate(1.0);
-		const queue = await TrackPlayer.getQueue();
-		if (is_setup && queue.length <= 0) {
-			const tracks = reshuffled_tracks ?? props.tracks;
-			GLOBALS.global_var.playing_track_index = 0;
-			GLOBALS.global_var.playing_tracks = tracks.slice();
-			for (let i = 0; i < tracks.length; i++) {
-				if (GLOBALS.global_var.playing_tracks[i].playback === undefined) {
-					GLOBALS.global_var.playing_tracks[i] = SQLTracks.add_playback_saved_data_to_track(GLOBALS.global_var.playing_tracks[i]);
-				}
-				GLOBALS.global_var.playing_tracks[i].playback!.successful = false;
-				GLOBALS.global_var.playing_tracks[i].playback!.added = false;
-			}
-			GLOBALS.global_var.playing_tracks[0].playback!.added = true;
-			let track_misses = 0;
-			let track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
-
-			while ((track == null || track == "skip") && track_misses < 10) {
-				GLOBALS.global_var.playing_tracks = GLOBALS.global_var.playing_tracks.slice(1);
-				track = await illusive_track_to_track_player_track(GLOBALS.global_var.playing_tracks[0]);
-				track_misses++;
-			}
-			if (track !== "skip") {
-				await TrackPlayer.add(track);
-				// Added with its real url — mark resolved so the pending-url machinery
-				// in track_player_service doesn't re-fetch it on the first active change.
-				GLOBALS.global_var.playing_tracks[0].playback!.successful = true;
-			}
+		EverythingPlayer.reset();
+		EverythingPlayer.setRate(1.0);
+		let track_misses_skipped = 0;
+		if (is_setup && EverythingPlayer.getQueue().length <= 0) {
+			const tracks = tracks_input.map((track) => {
+				const with_playback = track.playback === undefined ? SQLTracks.add_playback_saved_data_to_track(track) : track;
+				with_playback.playback!.successful = false;
+				with_playback.playback!.added = false;
+				return with_playback;
+			});
+			track_misses_skipped = await start_player_queue(tracks);
 		}
-		await TrackPlayer.play();
+		EverythingPlayer.play();
 		save_past_queue();
-		Sentry.addBreadcrumb({ message: "AudioPlayer: setup done", category: "audio", level: "info", data: { elapsed_ms: Date.now() - setup_t0, track_misses_skipped: tracks_input.length - GLOBALS.global_var.playing_tracks.length } });
+		Sentry.addBreadcrumb({ message: "AudioPlayer: setup done", category: "audio", level: "info", data: { elapsed_ms: Date.now() - setup_t0, track_misses_skipped } });
 	}
 
 	useEffect(() => {
 		setup();
-		TrackPlayer.getRepeatMode()
-			.then(set_repeat_mode)
-			.catch(() => {});
+		try {
+			set_repeat_mode(EverythingPlayer.getRepeatMode());
+		} catch {}
 	}, []);
 
 	const playback_menu_config = useMemo(() => PlaybackContextMenu.playback_modes_menu(repeat_mode), [repeat_mode]);
@@ -397,15 +354,15 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				await reshuffle();
 				break;
 			case "playback-repeat-off":
-				await TrackPlayer.setRepeatMode(RepeatMode.Off);
+				EverythingPlayer.setRepeatMode(RepeatMode.Off);
 				set_repeat_mode(RepeatMode.Off);
 				break;
 			case "playback-repeat-queue":
-				await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+				EverythingPlayer.setRepeatMode(RepeatMode.Queue);
 				set_repeat_mode(RepeatMode.Queue);
 				break;
 			case "playback-repeat-track":
-				await TrackPlayer.setRepeatMode(RepeatMode.Track);
+				EverythingPlayer.setRepeatMode(RepeatMode.Track);
 				set_repeat_mode(RepeatMode.Track);
 				break;
 			default:
@@ -414,89 +371,77 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	}
 	const repeat_icon = repeat_mode === RepeatMode.Track ? "repeat-once" : repeat_mode === RepeatMode.Queue ? "repeat" : "repeat-off";
 
-	async function refresh_data() {
-		const refresh_map = new Map<string, IllusiveType.Track>(GLOBALS.global_var.sql_tracks.map((track) => [track.uid, track]));
-		for (let i = 0; i < GLOBALS.global_var.playing_tracks.length; i++) {
-			const refreshed_track = refresh_map.get(GLOBALS.global_var.playing_tracks[i].uid);
-			if (refreshed_track) {
-				GLOBALS.global_var.playing_tracks[i] = { ...refreshed_track, playback: GLOBALS.global_var.playing_tracks[i].playback ?? refreshed_track.playback };
-			}
-		}
-		let index: number | undefined;
-		try {
-			index = await TrackPlayer.getActiveTrackIndex();
-		} catch {
-			return;
-		}
-		if (index === undefined) return;
-		set_playing_track(GLOBALS.global_var.playing_tracks[index]);
+	function refresh_data() {
+		const refresh_map = GLOBALS.global_var.sql_tracks.length > 0 ? new Map<string, IllusiveType.Track>(GLOBALS.global_var.sql_tracks.map((track) => [track.uid, track])) : new Map<string, IllusiveType.Track>();
+		const refresh = (track: IllusiveType.Track) => {
+			const refreshed_track = refresh_map.get(track.uid);
+			return refreshed_track ? { ...refreshed_track, playback: track.playback ?? refreshed_track.playback } : track;
+		};
+		refresh_player_queue_tracks(refresh);
+		const index = active_track_index();
+		const active = player_queue_track(index);
+		if (active === undefined) return;
+		const refreshed = refresh(active);
+		set_playing_track(refreshed);
 		set_player_state_metadata((metadata) => ({
-			title: GLOBALS.global_var.playing_tracks[index]?.title,
-			artist: artist_string(GLOBALS.global_var.playing_tracks[index]),
+			title: refreshed.title,
+			artist: artist_string(refreshed),
 			duration: metadata.duration ?? 0,
-			artwork: GLOBALS.global_var.playing_tracks[index]?.playback!.artwork,
-			album: GLOBALS.global_var.playing_tracks[index]?.album
+			artwork: refreshed.playback!.artwork,
+			album: refreshed.album
 		}));
 	}
 
 	useGlobalTracksRefresh(refresh_data);
 
 	const handle_prev = useCallback(() => {
-		if (guest_controls_routed) {
-			P2P.request_prev();
-			return;
-		}
-		if (guest_locked) return;
 		track_player_previous();
-	}, [guest_controls_routed, guest_locked]);
+	}, []);
 
-	const handle_next = useCallback(() => {
-		if (guest_controls_routed) {
-			P2P.request_next();
-			return;
-		}
-		if (guest_locked) return;
-		track_player_next();
-	}, [guest_controls_routed, guest_locked]);
+	const handle_next = useCallback(async () => {
+		if (await skip_to_next_resolved()) await track_player_next();
+	}, []);
 
 	function toggle_panel() {
 		if (panel_state_visible) hide_sheet();
 		else show_sheet();
 	}
 
-	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackActiveTrackChanged, Event.PlaybackState], async (event) => {
-		if (event.type === Event.PlaybackProgressUpdated) {
-			if (!is_seeking.value) {
-				seek_progress.value = event.position / (metadata_duration_ref.current || 1);
-			}
-			if (is_empty(metadata_duration_ref.current) && !is_empty(event.duration)) {
-				GLOBALS.global_var.playing_tracks[event.track].duration = event.duration ?? 0;
-				set_player_state_metadata({
-					title: GLOBALS.global_var.playing_tracks[event.track]?.title,
-					artist: artist_string(GLOBALS.global_var.playing_tracks[event.track]),
-					duration: event.duration ?? 0,
-					artwork: GLOBALS.global_var.playing_tracks[event.track]?.playback!.artwork,
-					album: GLOBALS.global_var.playing_tracks[event.track]?.album
-				});
-				set_playing_track(GLOBALS.global_var.playing_tracks[event.track]);
-			}
-		} else if (event.type === Event.PlaybackActiveTrackChanged) {
-			if (event.index === undefined) return;
-			open_lyrics_token.current++; // cancel any in-flight open_lyrics fetch for the old track
-			const active_track = GLOBALS.global_var.playing_tracks[event.index];
-			set_playing_track(active_track);
-			set_does_track_exist(track_exists(active_track, GLOBALS.global_var.sql_tracks));
-			set_lyrics_loading_state(!is_empty(active_track.lyrics_uri) ? "DOWNLOADED" : "NONE");
-			// TODO investigate auto downloading n shit (FSCache results for a week)
-			// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
-			set_player_state_metadata({ title: active_track?.title, artist: artist_string(active_track), duration: event.track?.duration ?? 0, artwork: active_track?.playback!.artwork, album: active_track?.album });
-			Sentry.addBreadcrumb({
-				message: "AudioPlayer: track changed",
-				category: "audio",
-				level: "info",
-				data: { index: event.index, title: active_track?.title?.slice(0, 60), has_lyrics: !is_empty(active_track?.lyrics_uri), queue_remaining: GLOBALS.global_var.playing_tracks.length - event.index }
-			});
+	useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
+		if (!is_seeking.value) {
+			seek_progress.value = event.position / (metadata_duration_ref.current || 1);
 		}
+		const progress_track = player_queue_track(event.track);
+		if (progress_track !== undefined && is_empty(metadata_duration_ref.current) && !is_empty(event.duration)) {
+			progress_track.duration = event.duration ?? 0;
+			set_player_state_metadata({
+				title: progress_track.title,
+				artist: artist_string(progress_track),
+				duration: event.duration ?? 0,
+				artwork: progress_track.playback!.artwork,
+				album: progress_track.album
+			});
+			set_playing_track(progress_track);
+		}
+	});
+
+	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
+		if (event.index === undefined) return;
+		open_lyrics_token.current++; // cancel any in-flight open_lyrics fetch for the old track
+		const active_track = player_queue_track(event.index);
+		if (active_track === undefined) return;
+		set_playing_track(active_track);
+		set_does_track_exist(track_exists(active_track, GLOBALS.global_var.sql_tracks));
+		set_lyrics_loading_state(!is_empty(active_track.lyrics_uri) ? "DOWNLOADED" : "NONE");
+		// TODO investigate auto downloading n shit (FSCache results for a week)
+		// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
+		set_player_state_metadata({ title: active_track?.title, artist: artist_string(active_track), duration: event.track?.duration ?? 0, artwork: active_track?.playback!.artwork, album: active_track?.album });
+		Sentry.addBreadcrumb({
+			message: "AudioPlayer: track changed",
+			category: "audio",
+			level: "info",
+			data: { index: event.index, title: active_track?.title?.slice(0, 60), has_lyrics: !is_empty(active_track?.lyrics_uri), queue_remaining: player_queue_tracks().length - event.index }
+		});
 	});
 
 	async function open_lyrics() {
@@ -506,13 +451,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 			set_lyrics_overlay_visible(false);
 			return;
 		}
-		Sentry.addBreadcrumb({ message: "LyricsPlayer: opening", category: "audio", level: "info", data: { has_lyrics: !is_empty(playing_track.lyrics_uri), has_synced: !is_empty(playing_track.synced_lyrics_uri) } });
+		Sentry.addBreadcrumb({ message: "LyricsPlayer: opening", category: "audio", level: "info", data: { has_lyrics: !is_empty(playing_track.lyrics_uri), has_synced: has_synced_lyrics(playing_track) } });
 		Sentry.setTag("lyrics_open", "true");
 		const token = ++open_lyrics_token.current;
 		set_lyrics_loading_state("LOADING");
-		const current_track_index = await TrackPlayer.getActiveTrackIndex();
-		if (token !== open_lyrics_token.current || current_track_index === undefined) return;
-		const track = GLOBALS.global_var.playing_tracks[current_track_index];
+		const track = player_queue_track(active_track_index());
+		if (token !== open_lyrics_token.current || track === undefined) return;
 		if (track.lyrics_uri && !is_empty(track.lyrics_uri)) {
 			set_lyrics_loading_state("DOWNLOADED");
 			set_lyrics_overlay_visible(true);
@@ -529,8 +473,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		}
 		const saved_uri = await SQLTracks.save_track_lyrics(track, lyrics);
 		if (token !== open_lyrics_token.current) return;
-		GLOBALS.global_var.playing_tracks[current_track_index].lyrics_uri = saved_uri;
-		set_playing_track({ ...GLOBALS.global_var.playing_tracks[current_track_index] });
+		track.lyrics_uri = saved_uri;
+		track.sync_status = lyrics.sync_status;
+		set_playing_track({ ...track });
 		set_lyrics_loading_state("DOWNLOADED");
 		set_lyrics_overlay_visible(true);
 	}
@@ -612,7 +557,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<Fontisto name="play-list" size={15} color={"#00000000"} />
 						</View>
 					) : null}
-					{!panel_state_visible ? <PlayPauseButton variant="mini" guest_locked={guest_locked} guest_controls_routed={guest_controls_routed} primary_color={colors.primary} subtext_color={colors.subtext} /> : null}
+					{!panel_state_visible ? <PlayPauseButton variant="mini" primary_color={colors.primary} /> : null}
 				</View>
 				<Animated.View pointerEvents={panel_state_visible ? "auto" : "none"} style={[{ flex: 1, justifyContent: "flex-end" }, panel_content_style]}>
 					{/* Transparent context menu covering the artwork square */}
@@ -753,12 +698,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 									</View>
 								</ContextMenuButton>
 							</TouchableOpacity>
-							<TouchableOpacity disabled={guest_locked} onPress={handle_prev} style={{ opacity: guest_locked ? 0.35 : 1 }}>
-								<Ionicons name="play-back" size={36} color={guest_locked ? colors.subtext : colors.primary} />
+							<TouchableOpacity onPress={handle_prev}>
+								<Ionicons name="play-back" size={36} color={colors.primary} />
 							</TouchableOpacity>
-							<PlayPauseButton variant="big" guest_locked={guest_locked} guest_controls_routed={guest_controls_routed} primary_color={colors.primary} subtext_color={colors.subtext} />
-							<TouchableOpacity disabled={guest_locked} onPress={handle_next} style={{ opacity: guest_locked ? 0.35 : 1 }}>
-								<Ionicons name="play-forward" size={36} color={guest_locked ? colors.subtext : colors.primary} />
+							<PlayPauseButton variant="big" primary_color={colors.primary} />
+							<TouchableOpacity onPress={handle_next}>
+								<Ionicons name="play-forward" size={36} color={colors.primary} />
 							</TouchableOpacity>
 							<TouchableOpacity>
 								<ContextMenuButton menuConfig={share_menu_config} onPressMenuItem={on_press_share_menu}>

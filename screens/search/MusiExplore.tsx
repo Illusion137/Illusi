@@ -11,7 +11,7 @@ import type { Musi } from "../../../lib-origin/origin/src";
 import { create_uri } from "@illusive/illusive_utils";
 import type { CompactPlaylist } from "@illusive/types";
 import { IoniconsTouchableOpacity } from "@components/TouchableIconOpacity";
-import { clean_youtube_title } from "@illusive/parsers/youtube_parser";
+import { clean_music_title } from "@illusive/parsers/title_parser";
 import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
 import usePTheme from "@hooks/usePTheme";
 
@@ -66,7 +66,7 @@ export default function MusiExplore() {
 						{musi_explore.modules[0].placements[0].track?.user}
 					</Text>
 					<Text numberOfLines={1} style={{ color: colors.text, fontSize: 30, fontWeight: "bold", marginLeft: 10, marginRight: 50 }}>
-						{clean_youtube_title(musi_explore.modules[0].placements[0].track?.title ?? "")}
+						{clean_music_title(musi_explore.modules[0].placements[0].track?.title ?? "")}
 					</Text>
 				</ImageBackground>
 			)}

@@ -3,7 +3,7 @@ import type { Lyrics } from "@illusive/lyrics";
 import { find_current_line_idx } from "@utils/synced_lyrics_cache";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { runOnJS, runOnUI, useFrameCallback, useSharedValue, type SharedValue } from "react-native-reanimated";
-import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
+import EverythingPlayer, { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
 
 const MIN_LINE_DWELL_MS = 200;
 const SEEK_JUMP_LINES = 4;
@@ -115,33 +115,18 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 	useEffect(() => {
 		if (!enabled) return;
 
-		TrackPlayer.getPlaybackState()
-			.then((s) => {
-				playing_sv.value = s.state === State.Playing;
-			})
-			.catch(() => { });
+		try {
+			playing_sv.value = EverythingPlayer.getPlaybackState().state === State.Playing;
+		} catch { }
 
 		let cancelled = false;
 		let handle: ReturnType<typeof setTimeout> | null = null;
 
 		const schedule = () => {
 			handle = setTimeout(() => {
-				// Capture wall-clock time at the call site so the anchor accounts for the
-				// bridge roundtrip — when the Promise resolves later, the position read
-				// corresponds to ~called_at, not the resolve time.
-				const called_at = Date.now();
-				TrackPlayer.getProgress()
-					.then(({ position }) => {
-						if (cancelled) return;
-						runOnUI(() => {
-							"worklet";
-							anchor_pos_sv.value = position;
-							anchor_wall_ts_sv.value = called_at;
-							force_snap_sv.value = true;
-						})();
-					})
-					.catch(() => { })
-					.finally(() => { if (!cancelled) schedule(); });
+				if (cancelled) return;
+				resync();
+				schedule();
 			}, ANCHOR_INTERVAL_MS);
 		};
 		schedule();
@@ -152,11 +137,10 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 		};
 	}, [enabled]);
 
-	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged, Event.PlaybackState], (event) => {
-		if (event.type === Event.PlaybackState) {
-			playing_sv.value = event.state === State.Playing;
-			return;
-		}
+	useTrackPlayerEvents([Event.PlaybackState], (event) => {
+		playing_sv.value = event.state === State.Playing;
+	});
+	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], () => {
 		if (synced_ref.current !== null) resync();
 	});
 
@@ -164,16 +148,18 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 
 	function resync() {
 		const called_at = Date.now();
-		TrackPlayer.getProgress()
-			.then(({ position }) => {
-				runOnUI(() => {
-					"worklet";
-					anchor_pos_sv.value = position;
-					anchor_wall_ts_sv.value = called_at;
-					force_snap_sv.value = true;
-				})();
-			})
-			.catch(() => { });
+		let position: number;
+		try {
+			position = EverythingPlayer.getProgress().position;
+		} catch {
+			return;
+		}
+		runOnUI(() => {
+			"worklet";
+			anchor_pos_sv.value = position;
+			anchor_wall_ts_sv.value = called_at;
+			force_snap_sv.value = true;
+		})();
 	}
 
 	function begin(synced: Lyrics.SyncedLyric[], position: number) {
@@ -200,11 +186,9 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 
 		// Refresh playing state so a stale `false` from a prior pause doesn't freeze
 		// position interpolation in the frame callback.
-		TrackPlayer.getPlaybackState()
-			.then((s) => {
-				playing_sv.value = s.state === State.Playing;
-			})
-			.catch(() => { });
+		try {
+			playing_sv.value = EverythingPlayer.getPlaybackState().state === State.Playing;
+		} catch { }
 
 		set_synced_lyrics(synced);
 		set_window_center(idx);

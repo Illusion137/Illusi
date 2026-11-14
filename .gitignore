@@ -254,3 +254,4 @@ expo-env.d.ts
 
 .env.local
 .claude
+utils/gen_changelog.ts

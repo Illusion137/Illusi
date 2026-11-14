@@ -90,7 +90,7 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 	const recycling_key = props.recycling_key ?? (typeof source === "string" ? source : undefined);
 	const content_fit = to_content_fit(props.resizeMode ?? flat_style.resizeMode);
 
-	const immutable_artwork = typeof source === "string" && Illusi.is_artwork_public_url(source);
+	const immutable_artwork = typeof source === "string" && source.startsWith(Illusi.Playlists.artwork_url(""));
 	const cache_policy = immutable_artwork ? "memory-disk" : (props.cache_policy ?? "memory-disk");
 
 	const base_image = (

@@ -9,7 +9,7 @@ import type { Playlist, Track } from "@illusive/types";
 import type { Prefs } from "@illusive/prefs";
 import { ContextMenuView } from "@components/ContextMenu";
 import { if_confirm } from "@illusive/illusi/src/illusi_utils";
-import { sprinkle_into_queue } from "@illusive/illusi/src/play";
+import { sprinkle_into_queue } from "@illusive/play";
 import { Constants } from "@illusive/constants";
 import usePTheme from "@hooks/usePTheme";
 import { SharedRouter } from "@utils/shared_routes";

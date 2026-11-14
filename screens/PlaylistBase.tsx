@@ -7,7 +7,9 @@ import { Prefs } from "@illusive/prefs";
 import { GLOBALS } from "@illusive/globals";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import { PlaylistArtwork } from "@illusive/db/sync/playlist_artwork";
+import { SQLfs } from "@illusive/sql/sql_fs";
+import { Illusi } from "@origin/illusi/illusi";
+import { fs } from "@native/fs/fs";
 import type { EditMode, NamedUUID, Track } from "@illusive/types";
 import type * as Types from "@illusive/types";
 import { BlurView } from "expo-blur";
@@ -260,10 +262,21 @@ export default function PlaylistBase(props: PlaylistProps) {
 		router.back();
 	}
 
+	async function adopt_remote_artwork(playlist_uuid: string, url: string | undefined) {
+		if (url === undefined || !/^https?:/.test(url)) return;
+		const thumbnail_uri = `adopted_${playlist_uuid}`;
+		const headers = url.startsWith(Illusi.Playlists.artwork_url("")) ? Illusi.file_headers() : undefined;
+		const downloaded = await fs().download_to_file(url, SQLfs.custom_thumbnail_directory(thumbnail_uri), headers);
+		if (typeof downloaded === "object" && "error" in downloaded) return;
+		const playlist = await SQLPlaylists.playlist_data(playlist_uuid);
+		if (playlist === undefined) return;
+		await SQLPlaylists.update_playlist(playlist_uuid, { ...playlist, thumbnail_uri, artwork_path: null });
+	}
+
 	async function save_to_playlist(new_playlist_title: string) {
 		await add_tracks_to_library();
 		const playlist_uuid = await SQLPlaylists.create_playlist(new_playlist_title);
-		await PlaylistArtwork.adopt_artwork_from_url(playlist_uuid, playlist_data?.thumbnail_uri);
+		await adopt_remote_artwork(playlist_uuid, playlist_data?.thumbnail_uri).catch(() => undefined);
 		const promised_playlist_tracks: Types.Promises = [];
 		for (const track of tracks_ref) {
 			const track_uid = await SQLTracks.track_from_service_id(track);

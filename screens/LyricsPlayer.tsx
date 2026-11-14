@@ -3,20 +3,20 @@ import usePTheme from "@hooks/usePTheme";
 import useNeighborLyricsPreload from "@hooks/useNeighborLyricsPreload";
 import { useSyncedLineTracker } from "@hooks/useSyncedLineTracker";
 import useTrackColors from "@hooks/useTrackColors";
-import { ExampleObj } from "@illusive/example_objs";
 import type { Prefs } from "@illusive/prefs";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { Track } from "@illusive/types";
+import type { Lyrics } from "@illusive/lyrics";
 import { Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, type TextStyle, TouchableOpacity, View, type LayoutChangeEvent } from "react-native";
 import { GestureDetector, type NativeGesture } from "react-native-gesture-handler";
-import TrackPlayer from "react-native-track-player";
+import EverythingPlayer from "react-native-everything-player";
 import { UITextView } from "react-native-uitextview";
 import { SharedRouter } from "@utils/shared_routes";
 import { get_cached_synced_lyrics, load_synced_lyrics, with_intro_marker } from "@utils/synced_lyrics_cache";
+import { has_synced_lyrics, read_plain_lyrics } from "@utils/track_lyrics";
 import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
 
 interface LyricsSection {
@@ -108,9 +108,12 @@ interface AnimatedLyricLineProps {
 	glow_color: string;
 	base_style: TextStyle;
 	lyric_duration_ms?: number;
+	/** Timed words or syllables; when present they replace the estimated word timings */
+	segments?: Lyrics.SyncedSegment[];
+	line_from?: number;
 }
 
-export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_index, active_line_sv, color_active, color_inactive, glow_color, base_style, lyric_duration_ms }: AnimatedLyricLineProps) {
+export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_index, active_line_sv, color_active, color_inactive, glow_color, base_style, lyric_duration_ms, segments, line_from }: AnimatedLyricLineProps) {
 	const active_shared = useSharedValue(0);
 	const scale = useSharedValue(0.96);
 
@@ -125,6 +128,7 @@ export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_in
 	);
 
 	const tokens = useMemo(() => {
+		if (segments && segments.length > 0) return segments.map((segment, i) => ({ text: segment.text, is_word: true, word_index: i }));
 		const parts: { text: string; is_word: boolean; word_index: number }[] = [];
 		const regex = /(\S+|\s+)/g;
 		let m: RegExpExecArray | null;
@@ -134,9 +138,10 @@ export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_in
 			parts.push({ text: m[0], is_word, word_index: is_word ? word_idx++ : -1 });
 		}
 		return parts;
-	}, [text]);
+	}, [text, segments]);
 
 	const word_delays = useMemo(() => {
+		if (segments && segments.length > 0) return segments.map((segment) => Math.max(0, (segment.interval.from - (line_from ?? segment.interval.from)) * 1000));
 		const words = tokens.filter((t) => t.is_word).map((t) => t.text);
 		if (words.length === 0) return [] as number[];
 		const has_duration = better_synced && !!lyric_duration_ms && lyric_duration_ms > 0;
@@ -150,7 +155,7 @@ export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_in
 			acc += weight;
 		}
 		return delays;
-	}, [tokens, lyric_duration_ms]);
+	}, [tokens, lyric_duration_ms, segments, line_from]);
 
 	const wrapper_style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -267,7 +272,7 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 
 	async function get_trackplayer_progress() {
 		try {
-			const info = await TrackPlayer.getProgress();
+			const info = EverythingPlayer.getProgress();
 			if (!info.duration) return 0;
 			return info.position / info.duration;
 		} catch {
@@ -280,7 +285,7 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 		const track = track_ref.current;
 
 		// Try synced lyrics first (warm cache → instant; only await on a cold track).
-		if (track && !is_empty(track.synced_lyrics_uri)) {
+		if (track && has_synced_lyrics(track)) {
 			let cached = get_cached_synced_lyrics(track);
 			if (cached === undefined) cached = await load_synced_lyrics(track);
 			if (token !== load_token_ref.current) return;
@@ -288,11 +293,9 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 				const synced = with_intro_marker(cached);
 				let pos = 0;
 				try {
-					const progress = await TrackPlayer.getProgress();
-					if (token !== load_token_ref.current) return;
-					pos = progress.position;
+					pos = EverythingPlayer.getProgress().position;
 				} catch {
-					// TrackPlayer not yet initialized — fall back to start of track
+					// EverythingPlayer not yet initialized — fall back to start of track
 				}
 				line_y_positions.current = [];
 				line_heights.current = [];
@@ -307,10 +310,10 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 			}
 		}
 
-		const read_lyrics = await SQLTracks.read_track_lyrics({ ...ExampleObj.track_example0, lyrics_uri: track_lyrics_uri });
+		const read_lyrics = track ? await read_plain_lyrics({ ...track, lyrics_uri: track_lyrics_uri }) : undefined;
 		if (token !== load_token_ref.current) return;
 
-		if (read_lyrics === undefined || typeof read_lyrics === "object") {
+		if (read_lyrics === undefined) {
 			// Neither source worked. Clear so we don't show stale lyrics from the previous track.
 			line_y_positions.current = [];
 			line_heights.current = [];
@@ -442,7 +445,8 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 													is_following_ref.current = true;
 													set_is_following(true);
 													// Resync only after the seek commits so getProgress() returns the new position.
-													TrackPlayer.seekTo(lyric.interval.from).then(() => tracker.resync());
+													EverythingPlayer.seekTo(lyric.interval.from);
+													tracker.resync();
 												}}
 												style={styles.synced_line_wrapper}>
 												{animated ? (
@@ -455,6 +459,8 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 														glow_color={glow_color}
 														base_style={styles.lyrics_text}
 														lyric_duration_ms={lyric_duration_ms}
+														segments={lyric.segments}
+														line_from={lyric.interval.from}
 													/>
 												) : (
 													<PlainLyricLine text={lyric.text} color_inactive={color_inactive} base_style={styles.lyrics_text} />

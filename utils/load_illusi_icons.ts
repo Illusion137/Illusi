@@ -1,4 +1,4 @@
-import { illusi_icons_icon_map } from "@illusive/illusi_icons";
+import { illusi_icons_icon_map } from "@illusive/artwork";
 
 const illusi_icon = require("../assets/icon.png");
 const illusi_dark_icon = require("../assets/dark.png");

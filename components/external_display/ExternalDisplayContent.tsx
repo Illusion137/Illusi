@@ -1,11 +1,12 @@
-import { gen_uuid, is_empty } from "@common/utils/util";
-import { GLOBALS } from "@illusive/globals";
+import { gen_uuid } from "@common/utils/util";
 import { SQLGlobal } from "@illusive/sql/sql_global";
 import { subscribe_track_player_queue_modified } from "@illusive/track_player_service";
 import type { Track } from "@illusive/types";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
+import { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
+import { active_track, player_queue_track } from "@utils/player_queue";
+import { has_synced_lyrics } from "@utils/track_lyrics";
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import ExternalSyncedLyrics from "./ExternalSyncedLyrics";
 import IdleWanderingTracks from "./IdleWanderingTracks";
@@ -40,25 +41,18 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 
 	// Apply a track update without ever downgrading synced-lyrics availability for the
 	// same song — the app refreshes the global track list mid-playback and the refreshed
-	// copy may transiently drop synced_lyrics_uri, which otherwise flips the layout.
+	// copy may transiently drop its synced lyrics, which otherwise flips the layout.
 	function apply_track(next: Track | undefined) {
 		set_playing_track((prev) => {
 			if (!next) return undefined;
 			if (prev?.uid !== next.uid) return next;
-			if (!is_empty(prev.synced_lyrics_uri) && is_empty(next.synced_lyrics_uri)) return prev;
+			if (has_synced_lyrics(prev) && !has_synced_lyrics(next)) return prev;
 			return next;
 		});
 	}
 
-	async function sync_active_track() {
-		try {
-			const index = await TrackPlayer.getActiveTrackIndex();
-			if (index === undefined) apply_track(undefined);
-			else apply_track(GLOBALS.global_var.playing_tracks[index]);
-		} catch {
-			// TrackPlayer not set up yet — nothing is playing.
-			apply_track(undefined);
-		}
+	function sync_active_track() {
+		apply_track(active_track());
 	}
 
 	useEffect(() => {
@@ -76,17 +70,15 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 		};
 	}, []);
 
-	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged, Event.PlaybackState], (event) => {
-		if (event.type === Event.PlaybackActiveTrackChanged) {
-			if (event.index === undefined) apply_track(undefined);
-			else apply_track(GLOBALS.global_var.playing_tracks[event.index]);
-		} else if (event.type === Event.PlaybackState) {
-			if (event.state === State.None || event.state === State.Stopped) apply_track(undefined);
-		}
+	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
+		apply_track(player_queue_track(event.index));
+	});
+	useTrackPlayerEvents([Event.PlaybackState], (event) => {
+		if (event.state === State.None || event.state === State.Stopped) apply_track(undefined);
 	});
 
 	const is_idle = playing_track === undefined;
-	const has_synced = !is_idle && !is_empty(playing_track.synced_lyrics_uri);
+	const has_synced = !is_idle && has_synced_lyrics(playing_track);
 
 	const idle_progress = useSharedValue(is_idle ? 1 : 0);
 	const synced_progress = useSharedValue(has_synced ? 1 : 0);

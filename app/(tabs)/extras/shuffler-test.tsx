@@ -25,7 +25,7 @@ export default function ShufflerTest() {
 	);
 	const render_track = (item: { item: Track }) => (
 		<TrackComponentBase
-			score={Math.log(Math.max(FutsalShuffle.icache.track_uid_to_weight.get(item.item.uid) ?? 1, 1))}
+			score={FutsalShuffle.icache.track_uid_to_log_weight.get(item.item.uid) ?? 0}
 			track_data={item.item}
 			width_fn={() => BASE_WIDTH_FN(Constants.library_write_playlist)}
 			on_press={() => {}}

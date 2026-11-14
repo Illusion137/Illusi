@@ -12,8 +12,9 @@ import { artist_string, sum, time_to_timestamp } from "@illusive/illusive_utils"
 import TrackIconTags from "@components/TrackIconTags";
 import { KeepDelete } from "@illusive/keep_delete";
 import TextTicker from "react-native-text-ticker";
-import TrackPlayer, { Event, State, useTrackPlayerEvents } from "react-native-track-player";
+import EverythingPlayer, { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
 import { illusive_track_to_track_player_track, setup_track_player } from "@illusive/track_player_service";
+import { clear_player_queue } from "@utils/player_queue";
 import { router } from "expo-router";
 import { delete_track } from "@illusive/illusi/src/components/track";
 import { SQLTracks } from "@illusive/sql/sql_tracks";
@@ -139,7 +140,7 @@ export default function ExtraKeepDeleteScreen() {
 	useEffect(() => {
 		return () => {
 			GLOBALS.global_var.kill_audioplayer?.();
-			TrackPlayer.reset().catch(() => {});
+			EverythingPlayer.reset();
 		};
 	}, []);
 
@@ -147,10 +148,9 @@ export default function ExtraKeepDeleteScreen() {
 		playing_track.current = { ...track };
 
 		const is_setup = await setup_track_player();
-		await TrackPlayer.reset();
+		EverythingPlayer.reset();
+		clear_player_queue();
 		if (is_setup) {
-			GLOBALS.global_var.playing_track_index = 0;
-			GLOBALS.global_var.playing_tracks = [track];
 			if (track.playback) {
 				track.playback.successful = false;
 				track.playback.added = false;
@@ -159,9 +159,9 @@ export default function ExtraKeepDeleteScreen() {
 			if (trackplayer_track === "skip") {
 				throw new Error("skip");
 			}
-			await TrackPlayer.add(trackplayer_track);
+			EverythingPlayer.add(trackplayer_track);
 		}
-		await TrackPlayer.play();
+		EverythingPlayer.play();
 	}
 
 	async function animate_off(direction: 1 | -1): Promise<void> {
@@ -237,26 +237,25 @@ export default function ExtraKeepDeleteScreen() {
 	}
 
 	const toggle_playing = useCallback(async () => {
-		const tp_state = await TrackPlayer.getPlaybackState();
-		if (tp_state.state === State.Playing) await TrackPlayer.pause();
-		else await TrackPlayer.play();
+		const tp_state = EverythingPlayer.getPlaybackState();
+		if (tp_state.state === State.Playing) EverythingPlayer.pause();
+		else EverythingPlayer.play();
 	}, []);
 
-	useTrackPlayerEvents([Event.PlaybackProgressUpdated, Event.PlaybackState], async (event) => {
-		if (event.type === Event.PlaybackProgressUpdated) {
-			if (!is_sliding) {
-				set_player_state_trackplayer({ elapsed_time: event.position, duration_remaining: event.duration - event.position });
-			}
-		} else if (event.type === Event.PlaybackState) {
-			set_player_state_type(event.state);
+	useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
+		if (!is_sliding) {
+			set_player_state_trackplayer({ elapsed_time: event.position, duration_remaining: event.duration - event.position });
 		}
+	});
+	useTrackPlayerEvents([Event.PlaybackState], (event) => {
+		set_player_state_type(event.state);
 	});
 
 	async function skip_forward() {
-		await TrackPlayer.seekBy(seek_amount_seconds);
+		EverythingPlayer.seekBy(seek_amount_seconds);
 	}
 	async function skip_backward() {
-		await TrackPlayer.seekBy(-seek_amount_seconds);
+		EverythingPlayer.seekBy(-seek_amount_seconds);
 	}
 
 	if (tracks.length === 0) {
@@ -300,7 +299,7 @@ export default function ExtraKeepDeleteScreen() {
 						onSlidingStart={() => set_is_sliding(true)}
 						onSlidingComplete={async (val) => {
 							set_is_sliding(false);
-							await TrackPlayer.seekTo(val[0]);
+							EverythingPlayer.seekTo(val[0]);
 						}}
 						thumbTintColor={colors.primary}
 						minimumTrackTintColor={colors.primary}

@@ -3,21 +3,19 @@ import ModalHeader from "@components/ModalHeader";
 import usePTheme from "@hooks/usePTheme";
 import useDimensions from "@hooks/useDimensions";
 import useTrackColors from "@hooks/useTrackColors";
-import { GLOBALS } from "@illusive/globals";
-import { ExampleObj } from "@illusive/example_objs";
-import { Lyrics } from "@illusive/lyrics";
+import type { Lyrics } from "@illusive/lyrics";
 import type { Prefs } from "@illusive/prefs";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
 import type { Track } from "@illusive/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
-import TrackPlayer, { Event, useTrackPlayerEvents } from "react-native-track-player";
+import EverythingPlayer, { Event, useTrackPlayerEvents } from "react-native-everything-player";
 import { UITextView } from "react-native-uitextview";
 import { SharedRouter } from "@utils/shared_routes";
-import { alert_error } from "@illusive/illusi/src/alert";
+import { active_track } from "@utils/player_queue";
+import { read_plain_lyrics, read_synced_lyrics } from "@utils/track_lyrics";
 
 interface LyricsSection {
 	header: string | null;
@@ -80,7 +78,7 @@ export default function AudioPlayerLyrics() {
 	const { track_colors } = useTrackColors(track ?? undefined);
 
 	async function get_trackplayer_progress() {
-		const progress_info = await TrackPlayer.getProgress();
+		const progress_info = EverythingPlayer.getProgress();
 		return progress_info.position / progress_info.duration;
 	}
 
@@ -96,36 +94,33 @@ export default function AudioPlayerLyrics() {
 	}, [content_height, scrollview_height]);
 
 	async function load_track_and_lyrics(track_lyrics_uri: string) {
-		const index = (await TrackPlayer.getActiveTrackIndex()) ?? 0;
-		const resolved = GLOBALS.global_var.playing_tracks[index] ?? null;
+		const resolved = active_track() ?? null;
 		track_ref.current = resolved;
 		set_track(resolved);
+		if (resolved === null) {
+			close();
+			return;
+		}
+		const lyrics_track = { ...resolved, lyrics_uri: track_lyrics_uri };
 
-		// Try synced lyrics first
-		if (resolved && !is_empty(resolved.synced_lyrics_uri)) {
-			const synced_text = await SQLTracks.read_track_synced_lyrics(resolved);
-			if (typeof synced_text === "string") {
-				const parsed = Lyrics.lrclib_synced_lyrics_to_json(synced_text);
-				if ("error" in parsed) alert_error(parsed);
-				if (!("error" in parsed) && parsed.lyrics.length > 0) {
-					synced_lyrics_ref.current = parsed.lyrics;
-					set_synced_lyrics(parsed.lyrics);
-					set_sections([]);
-					section_times_ref.current = [];
-					set_section_times([]);
-					line_y_positions.current = [];
-					is_following_ref.current = true;
-					set_is_following(true);
+		const synced = await read_synced_lyrics(lyrics_track);
+		if (synced !== undefined) {
+			synced_lyrics_ref.current = synced;
+			set_synced_lyrics(synced);
+			set_sections([]);
+			section_times_ref.current = [];
+			set_section_times([]);
+			line_y_positions.current = [];
+			is_following_ref.current = true;
+			set_is_following(true);
 
-					const progress = await TrackPlayer.getProgress();
-					const pos = progress.position;
-					const initial_idx = find_current_line_idx(parsed.lyrics, pos);
-					current_line_idx_ref.current = initial_idx;
-					set_current_line_idx(initial_idx);
-					set_progress_ratio(isNaN(pos / progress.duration) ? 0 : pos / progress.duration);
-					return;
-				}
-			}
+			const progress = EverythingPlayer.getProgress();
+			const pos = progress.position;
+			const initial_idx = find_current_line_idx(synced, pos);
+			current_line_idx_ref.current = initial_idx;
+			set_current_line_idx(initial_idx);
+			set_progress_ratio(isNaN(pos / progress.duration) ? 0 : pos / progress.duration);
+			return;
 		}
 
 		// Fall back to plain lyrics
@@ -133,8 +128,8 @@ export default function AudioPlayerLyrics() {
 		set_synced_lyrics(null);
 		line_y_positions.current = [];
 
-		const read_lyrics = await SQLTracks.read_track_lyrics({ ...ExampleObj.track_example0, lyrics_uri: track_lyrics_uri });
-		if (read_lyrics === undefined || typeof read_lyrics === "object") {
+		const read_lyrics = await read_plain_lyrics(lyrics_track);
+		if (read_lyrics === undefined) {
 			close();
 			return;
 		}
@@ -163,11 +158,10 @@ export default function AudioPlayerLyrics() {
 	}
 
 	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async () => {
-		const current_track_index = (await TrackPlayer.getActiveTrackIndex()) ?? 0;
-		const new_track = GLOBALS.global_var.playing_tracks[current_track_index];
-		track_ref.current = new_track;
-		set_track(new_track);
-		if (is_empty(new_track.lyrics_uri)) {
+		const new_track = active_track();
+		track_ref.current = new_track ?? null;
+		set_track(new_track ?? null);
+		if (new_track === undefined || is_empty(new_track.lyrics_uri)) {
 			close();
 		} else {
 			await load_track_and_lyrics(new_track.lyrics_uri!);
@@ -246,7 +240,7 @@ export default function AudioPlayerLyrics() {
 								line_y_positions.current[i] = e.nativeEvent.layout.y;
 							}}
 							onPress={() => {
-								TrackPlayer.seekTo(lyric.interval.from);
+								EverythingPlayer.seekTo(lyric.interval.from);
 								is_following_ref.current = true;
 								set_is_following(true);
 							}}>

@@ -5,7 +5,7 @@ import BigList from "react-native-big-list";
 import type { Prefs } from "@illusive/prefs";
 import type { AlphabetScroll, EditMode, Track } from "@illusive/types";
 import TrackComponent from "./TrackComponent";
-import { play_shuffle } from "@illusive/illusi/src/play";
+import { play_shuffle } from "@illusive/play";
 import { track_query_filter, track_section_map } from "@illusive/illusive_utils";
 import { on_alphabet_scroll_update } from "@illusive/illusi/src/illusi_utils";
 import ShufflePlayButton from "./ShufflePlayButton";

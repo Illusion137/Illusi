@@ -43,7 +43,7 @@ export default function TrackComponentBase(props: {
 
 	const tint = GLOBALS.global_var.tint_table.get(props.track_data.uid);
 	const bottom_line = props.replace_album_with
-		? reinterpret_cast<string | number>(props.track_data.imported_id && props.replace_album_with === "plays" ? props.track_data.meta?.plays : props.track_data[props.replace_album_with])
+		? reinterpret_cast<string | number>(props.track_data.imported_id && props.replace_album_with === "service_plays" ? props.track_data.meta?.plays : props.track_data[props.replace_album_with])
 		: (props.track_data.album?.name ?? "");
 	const bottom_line_text = typeof bottom_line === "number" && String(bottom_line).length > 3 ? large_number_string(bottom_line) : bottom_line;
 

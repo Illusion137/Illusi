@@ -5,7 +5,6 @@ import usePTheme from "@hooks/usePTheme";
 import { GLOBALS } from "@illusive/globals";
 import { artist_string, duration_to_string } from "@illusive/illusive_utils";
 import type { Prefs } from "@illusive/prefs";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -16,7 +15,7 @@ import TextTicker from "react-native-text-ticker";
 import HeaderWith from "@components/HeaderWith";
 import IImage from "@components/IImage";
 import useTrackColors from "@hooks/useTrackColors";
-import { ExampleObj } from "@illusive/example_objs";
+import { ExampleObj } from "@utils/example_objs";
 import { SharedRouter } from "@utils/shared_routes";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -24,9 +23,10 @@ import type { GraphPoint } from "react-native-graph";
 import { SQLTrackPlays } from "@illusive/sql/sql_track_plays";
 import { DateLineGraph } from "@components/DateLineGraph";
 import useDimensions from "@hooks/useDimensions";
-import type { Track } from "@illusive/types";
+import type { Track, TrackAnalysisData } from "@illusive/types";
+import { read_plain_lyrics } from "@utils/track_lyrics";
 
-const VIBES_AXES: { key: keyof Pick<Track, "valence" | "energy" | "danceability" | "instrumentalness" | "acousticness" | "liveness" | "speechiness">; label: string }[] = [
+const VIBES_AXES: { key: keyof Pick<TrackAnalysisData, "valence" | "energy" | "danceability" | "instrumentalness" | "acousticness" | "liveness" | "speechiness">; label: string }[] = [
 	{ key: "valence", label: "Valence" },
 	{ key: "energy", label: "Energy" },
 	{ key: "danceability", label: "Dance" },
@@ -47,10 +47,10 @@ function VibesRadar(props: { track: Track | undefined; color: string; line_color
 		const a = angle_at(i);
 		return { x: cx + Math.cos(a) * r_max * t, y: cy + Math.sin(a) * r_max * t };
 	};
-	const has_any = VIBES_AXES.some(({ key }) => typeof props.track?.[key] === "number");
+	const has_any = VIBES_AXES.some(({ key }) => typeof props.track?.analysis?.[key] === "number");
 	if (!has_any) return null;
 
-	const values = VIBES_AXES.map(({ key }) => Math.max(0, Math.min(1, props.track?.[key] ?? 0)));
+	const values = VIBES_AXES.map(({ key }) => Math.max(0, Math.min(1, props.track?.analysis?.[key] ?? 0)));
 	const grid = [0.25, 0.5, 0.75, 1.0];
 	const data_points = values.map((v, i) => point_at(i, v));
 	const data_str = data_points.map((p) => `${p.x},${p.y}`).join(" ");
@@ -108,8 +108,8 @@ export default function EditTrackModal() {
 
 	useEffect(() => {
 		if (track_ref.current?.lyrics_uri) {
-			SQLTracks.read_track_lyrics(track_ref.current).then((content) => {
-				if (typeof content === "string") set_lyrics(content);
+			read_plain_lyrics(track_ref.current).then((content) => {
+				if (content !== undefined) set_lyrics(content);
 			});
 		}
 		if (track_ref.current?.uid) {
@@ -128,7 +128,7 @@ export default function EditTrackModal() {
 
 	const is_trimmed = track_ref.current?.meta?.begdur && track_ref.current?.meta?.begdur !== 0 && track_ref.current?.meta?.enddur && track_ref.current?.meta?.enddur != (track_ref.current.duration ?? 0);
 
-	const has_vibes = VIBES_AXES.some(({ key }) => typeof track_ref.current?.[key] === "number");
+	const has_vibes = VIBES_AXES.some(({ key }) => typeof track_ref.current?.analysis?.[key] === "number");
 
 	const base_data: [string, string][] = [
 		["Added", date_string(track_ref.current?.meta?.added_date)],
