@@ -16,6 +16,7 @@
     "allowJs": true,
     "types": [],
     "baseUrl": "./",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@hooks/*": [
         "./hooks/*"
