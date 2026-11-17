@@ -1,17 +1,17 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Text, SectionList } from "react-native";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
-import type { Prefs } from "@illusive/prefs";
-import SettingsMultiButton from "@components/SettingsMultiButton";
-import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import type { PrefEntry } from "@illusive/types";
-import { prefs_settings_groupby_filter } from "@illusive/illusive_utils";
-import * as FileSystem from "expo-file-system/legacy";
-import { GLOBALS } from "@illusive/globals";
-import { mass_sample_youtube_to_youtube_music, speed_sample_unavailable_tracks } from "@illusive/sampler";
-import usePTheme from "@hooks/usePTheme";
-import { share_item } from "@illusive/illusi/src/illusi_utils";
-import { router } from "expo-router";
+import { useState } from 'react';
+import { View, StyleSheet, Text, SectionList } from 'react-native';
+import { SQLTracks } from '@illusive/sql/sql_tracks';
+import type { Prefs } from '@illusive/prefs';
+import SettingsMultiButton from '@components/SettingsMultiButton';
+import ExtrasSectionButton from '@components/ExtrasSectionButton';
+import type { PrefEntry } from '@illusive/types';
+import { prefs_settings_groupby_filter } from '@illusive/illusive_utils';
+import * as FileSystem from 'expo-file-system/legacy';
+import { GLOBALS } from '@illusive/globals';
+import { mass_sample_youtube_to_youtube_music, speed_sample_unavailable_tracks } from '@illusive/sampler';
+import usePTheme from '@hooks/usePTheme';
+import { share_item } from '@illusive/illusi/src/illusi_utils';
+import { router } from 'expo-router';
 
 export default function ExtraSettingsScreen() {
 	const { colors } = usePTheme();
@@ -33,22 +33,22 @@ export default function ExtraSettingsScreen() {
 	);
 
 	async function zip_data() {
-		await share_item({ uri: FileSystem.documentDirectory ?? "" });
+		await share_item({ uri: FileSystem.documentDirectory ?? '' });
 	}
 
 	return (
-		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
+		<View style={{ backgroundColor: colors.background, width: '100%', flex: 1 }}>
 			<SectionList
 				sections={settings_data}
 				renderItem={render_item}
 				renderSectionHeader={render_section_header}
 				ListHeaderComponent={<View style={styles.line_long} />}
-				ListFooterComponent={
+				ListFooterComponent={(
 					<>
-						<ExtrasSectionButton show_arrow={true} text="Experimental Settings" icon="settings-outline" onPress={() => router.push("/extras/settings/experimental")} />
+						<ExtrasSectionButton show_arrow={true} text="Experimental Settings" icon="settings-outline" onPress={() => router.push('/extras/settings/experimental')} />
 						<Text style={styles.description_text}>Settings that have a chance of breaking things; use with caution; all disabled by default</Text>
 						<View style={{ height: 30 }} />
-						<ExtrasSectionButton show_arrow={true} text="Danger Zone" icon="warning-sharp" onPress={() => router.push("/extras/settings/danger")} />
+						<ExtrasSectionButton show_arrow={true} text="Danger Zone" icon="warning-sharp" onPress={() => router.push('/extras/settings/danger')} />
 						<View style={styles.line_long} />
 						<Text style={styles.description_text}>Where all the destructive actions to Illusi happen</Text>
 						<ExtrasSectionButton show_arrow={false} text="Cache All Thumbnails" icon="download" onPress={async () => SQLTracks.restore_thumbnail_cache()} />
@@ -59,7 +59,7 @@ export default function ExtraSettingsScreen() {
 							icon="search-circle"
 							onPress={async () => {
 								await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
-								GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");
+								GLOBALS.global_var.bottom_alert?.('FINISHED SPEED SAMPLING', 'INFO');
 							}}
 						/>
 						<ExtrasSectionButton
@@ -68,7 +68,7 @@ export default function ExtraSettingsScreen() {
 							icon="search-circle"
 							onPress={async () => {
 								await speed_sample_unavailable_tracks(GLOBALS.global_var.sql_tracks, true);
-								GLOBALS.global_var.bottom_alert?.("FINISHED SPEED SAMPLING", "INFO");
+								GLOBALS.global_var.bottom_alert?.('FINISHED SPEED SAMPLING', 'INFO');
 							}}
 						/>
 						<ExtrasSectionButton
@@ -77,7 +77,7 @@ export default function ExtraSettingsScreen() {
 							icon="construct-outline"
 							onPress={async () => {
 								await mass_sample_youtube_to_youtube_music();
-								GLOBALS.global_var.bottom_alert?.("FINISHED CONVERTING TRACKS", "INFO");
+								GLOBALS.global_var.bottom_alert?.('FINISHED CONVERTING TRACKS', 'INFO');
 							}}
 						/>
 						<ExtrasSectionButton
@@ -86,34 +86,34 @@ export default function ExtraSettingsScreen() {
 							icon="construct-outline"
 							onPress={async () => {
 								await SQLTracks.fix_track_added_metadata();
-								GLOBALS.global_var.bottom_alert?.("FINISHED FIXING TRACKS METADATA", "INFO");
+								GLOBALS.global_var.bottom_alert?.('FINISHED FIXING TRACKS METADATA', 'INFO');
 							}}
 						/>
 						<Text style={styles.description_text}>Useful for those who had Illusi pre-Illusi.14.0.0</Text>
 						<ExtrasSectionButton show_arrow={false} text="Zip All Data" icon="file-tray-full-outline" onPress={async () => await zip_data()} />
 						<View style={{ height: 80 }} />
 					</>
-				}
+				)}
 			/>
 		</View>
 	);
 }
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
 		thick_line_long: {
-			width: "90%",
+			width: '90%',
 			height: 0.4,
 			opacity: 1,
 			backgroundColor: colors.text
 		},
 		line_long: {
-			width: "100%",
+			width: '100%',
 			height: 0.4,
 			opacity: 0.1,
 			backgroundColor: colors.text
 		},
 		line_short: {
-			width: "100%",
+			width: '100%',
 			height: 0.4,
 			opacity: 0.1,
 			backgroundColor: colors.text,
@@ -132,7 +132,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			marginLeft: 10,
 			color: colors.text,
 			fontSize: 24,
-			fontWeight: "bold",
-			backgroundColor: colors.background + "f0"
+			fontWeight: 'bold',
+			backgroundColor: colors.background + 'f0'
 		}
 	});

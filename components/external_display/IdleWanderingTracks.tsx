@@ -1,12 +1,12 @@
-import usePTheme from "@hooks/usePTheme";
-import { GLOBALS } from "@illusive/globals";
-import { artist_string } from "@illusive/illusive_utils";
-import type { Track } from "@illusive/types";
-import { useEffect, useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
-import IImage from "@components/IImage";
+import usePTheme from '@hooks/usePTheme';
+import { GLOBALS } from '@illusive/globals';
+import { artist_string } from '@illusive/illusive_utils';
+import type { Track } from '@illusive/types';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import IImage from '@components/IImage';
 
 interface IdleWanderingTracksProps {
 	width: number;
@@ -23,9 +23,9 @@ function TrackCard({ track, card_height, card_width }: { track: Track; card_heig
 	const { colors } = usePTheme();
 	const artwork_size = card_height - 16;
 	return (
-		<View style={[styles.card, { width: card_width, height: card_height, backgroundColor: colors.track + "B0", borderColor: colors.line }]}>
-			<IImage source={track.playback?.artwork} style={{ width: artwork_size, height: artwork_size, borderRadius: 4, resizeMode: "cover" }} />
-			<View style={{ flex: 1, marginLeft: 12, justifyContent: "center" }}>
+		<View style={[styles.card, { width: card_width, height: card_height, backgroundColor: colors.track + 'B0', borderColor: colors.line }]}>
+			<IImage source={track.playback?.artwork} style={{ width: artwork_size, height: artwork_size, borderRadius: 4, resizeMode: 'cover' }} />
+			<View style={{ flex: 1, marginLeft: 12, justifyContent: 'center' }}>
 				<Text numberOfLines={1} style={[styles.title, { color: colors.title }]}>
 					{track.title}
 				</Text>
@@ -63,8 +63,8 @@ function WanderRow({ tracks, row_index, card_height, card_width, gap, active }: 
 	if (tracks.length === 0) return null;
 
 	return (
-		<View style={{ height: card_height, justifyContent: "center", overflow: "hidden" }}>
-			<Animated.View style={[{ flexDirection: "row", gap }, animated_style]}>
+		<View style={{ height: card_height, justifyContent: 'center', overflow: 'hidden' }}>
+			<Animated.View style={[{ flexDirection: 'row', gap }, animated_style]}>
 				{[...tracks, ...tracks].map((track, i) => (
 					<TrackCard key={`${track.uid}-${i}`} track={track} card_height={card_height} card_width={card_width} />
 				))}
@@ -99,9 +99,9 @@ export default function IdleWanderingTracks({ width, height, active }: IdleWande
 						<Stop offset="1" stopColor={colors.background} stopOpacity="1" />
 					</RadialGradient>
 				</Defs>
-				<Rect x="0" y="0" width={width} height={height} fill="url(#idle_bg)" />
+				<Rect width={width} height={height} fill="url(#idle_bg)" />
 			</Svg>
-			<View style={{ flex: 1, justifyContent: "space-evenly", paddingVertical: 24 }}>
+			<View style={{ flex: 1, justifyContent: 'space-evenly', paddingVertical: 24 }}>
 				{rows.map((tracks, row) => (
 					<WanderRow key={row} tracks={tracks} row_index={row} card_height={card_height} card_width={card_width} gap={gap} active={active} />
 				))}
@@ -111,7 +111,7 @@ export default function IdleWanderingTracks({ width, height, active }: IdleWande
 }
 
 const styles = StyleSheet.create({
-	card: { flexDirection: "row", alignItems: "center", borderRadius: 10, borderWidth: 1, paddingHorizontal: 8 },
-	title: { fontSize: 15, fontWeight: "bold" },
+	card: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, paddingHorizontal: 8 },
+	title: { fontSize: 15, fontWeight: 'bold' },
 	artist: { fontSize: 13, marginTop: 2 }
 });

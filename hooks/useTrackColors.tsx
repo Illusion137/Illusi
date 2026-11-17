@@ -1,9 +1,10 @@
-import type { Track } from "@illusive/types";
-import usePTheme from "./usePTheme";
-import { is_empty } from "@common/utils/util";
-import { SQLfs } from "@illusive/sql/sql_fs";
-import ImageColors from "react-native-image-colors";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Track } from '@illusive/types';
+import usePTheme from './usePTheme';
+import { is_empty } from '@common/utils/util';
+import { SQLfs } from '@illusive/sql/sql_fs';
+import ImageColors from 'react-native-image-colors';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { catch_log } from '@common/utils/error_util';
 
 interface TrackColors {
 	track_colors?: {
@@ -32,8 +33,8 @@ export default function useTrackColors(track: Track | undefined): TrackColors {
 			return track.thumbnail_uri!.includes(track.uid) ? SQLfs.thumbnail_directory(track.thumbnail_uri!) : SQLfs.custom_thumbnail_directory(track.thumbnail_uri!);
 		}
 		const artwork = track.playback?.artwork;
-		if (typeof artwork === "string") return artwork;
-		if (artwork && typeof artwork === "object") return artwork.uri;
+		if (typeof artwork === 'string') return artwork;
+		if (artwork && typeof artwork === 'object') return artwork.uri;
 		return undefined; // numeric placeholder icon — nothing real to sample
 	}, [track?.uid, track?.thumbnail_uri]);
 
@@ -41,13 +42,13 @@ export default function useTrackColors(track: Track | undefined): TrackColors {
 		if (!raw_artwork) return;
 		try {
 			const artwork_colors = await ImageColors.getColors(raw_artwork);
-			if (artwork_colors.platform === "ios") set_track_colors({ track_colors: artwork_colors });
+			if (artwork_colors.platform === 'ios') set_track_colors({ track_colors: artwork_colors });
 		} catch {
 			// keep base colours if extraction fails
 		}
 	}, [raw_artwork]);
 	useEffect(() => {
-		execute();
+		execute().catch(catch_log);
 	}, [execute]);
 	return track_colors;
 }

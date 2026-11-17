@@ -1,19 +1,19 @@
-import IImage from "@components/IImage";
-import { AntDesignTouchableOpacity } from "@components/TouchableIconOpacity";
-import useDimensions from "@hooks/useDimensions";
-import usePTheme from "@hooks/usePTheme";
-import { Constants } from "@illusive/constants";
-import { GLOBALS } from "@illusive/globals";
-import { artist_string } from "@illusive/illusive_utils";
-import { SQLTrackPlays } from "@illusive/sql/sql_track_plays";
-import type { Artwork, Track } from "@illusive/types";
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { useEffect, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
-import Svg, { Circle, Defs, G, Line, Path, Rect, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
-import Swiper from "react-native-swiper";
+import IImage from '@components/IImage';
+import { AntDesignTouchableOpacity } from '@components/TouchableIconOpacity';
+import useDimensions from '@hooks/useDimensions';
+import usePTheme from '@hooks/usePTheme';
+import { Constants } from '@illusive/constants';
+import { GLOBALS } from '@illusive/globals';
+import { artist_string } from '@illusive/illusive_utils';
+import { SQLTrackPlays } from '@illusive/sql/sql_track_plays';
+import type { Artwork, Track } from '@illusive/types';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming, type SharedValue } from 'react-native-reanimated';
+import Svg, { Circle, Defs, G, Line, Path, Rect, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
+import Swiper from 'react-native-swiper';
 
 const HEADER_HEIGHT = 80;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -63,7 +63,7 @@ interface FallingArtworkConfig {
 	rotation: number;
 }
 
-const month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function date_key(date: Date) {
 	return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -79,7 +79,7 @@ function format_minutes(value: number) {
 }
 
 function add_ranked_name(map: Map<string, RankedName>, name: string, track: Track, plays: number, minutes: number) {
-	const safe_name = name.trim() || "Unknown";
+	const safe_name = name.trim() || 'Unknown';
 	const previous = map.get(safe_name);
 	if (previous) {
 		previous.plays += plays;
@@ -93,7 +93,7 @@ function add_ranked_name(map: Map<string, RankedName>, name: string, track: Trac
 function get_rewind_stats(year: number): RewindStats {
 	const date_start = new Date(year, 0, 1);
 	const date_end = new Date(year + 1, 0, 1);
-	const tracks_by_uid = new Map(GLOBALS.global_var.sql_tracks.map((track) => [track.uid, track]));
+	const tracks_by_uid = new Map(GLOBALS.global_var.sql_tracks.map(track => [track.uid, track]));
 	const plays = SQLTrackPlays.all_track_plays_sync({ date_start, date_end }) as PlayEvent[];
 	const track_counts = new Map<string, number>();
 	const month_counts = new Array<number>(12).fill(0);
@@ -134,7 +134,7 @@ function get_rewind_stats(year: number): RewindStats {
 	for (const ranked of all_ranked_tracks) {
 		total_minutes += ranked.minutes;
 		add_ranked_name(artist_map, artist_string(ranked.track), ranked.track, ranked.plays, ranked.minutes);
-		add_ranked_name(album_map, ranked.track.album?.name ?? "Singles", ranked.track, ranked.plays, ranked.minutes);
+		add_ranked_name(album_map, ranked.track.album?.name ?? 'Singles', ranked.track, ranked.plays, ranked.minutes);
 	}
 
 	const top_artists = Array.from(artist_map.values())
@@ -147,11 +147,11 @@ function get_rewind_stats(year: number): RewindStats {
 	const busiest_month_index = month_counts.reduce((best, value, index) => (value > month_counts[best] ? index : best), 0);
 	const busiest_day = Array.from(day_counts.values()).sort((a, b) => b.plays - a.plays || a.date.getTime() - b.date.getTime())[0];
 	const fallback_artworks = GLOBALS.global_var.sql_tracks
-		.map((track) => track.playback?.artwork)
+		.map(track => track.playback?.artwork)
 		.filter((artwork): artwork is Artwork => artwork !== undefined && artwork !== null)
 		.slice(0, 16);
 	const artworks = ranked_tracks
-		.map((ranked) => ranked.track.playback?.artwork)
+		.map(ranked => ranked.track.playback?.artwork)
 		.filter((artwork): artwork is Artwork => artwork !== undefined && artwork !== null)
 		.slice(0, 18);
 
@@ -165,17 +165,17 @@ function get_rewind_stats(year: number): RewindStats {
 		first_play,
 		latest_play,
 		busiest_month: { label: month_labels[busiest_month_index], plays: month_counts[busiest_month_index] },
-		busiest_day: busiest_day ? { label: busiest_day.date.toLocaleDateString(undefined, { month: "short", day: "numeric" }), plays: busiest_day.plays } : { label: "None", plays: 0 },
+		busiest_day: busiest_day ? { label: busiest_day.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), plays: busiest_day.plays } : { label: 'None', plays: 0 },
 		artworks: artworks.length > 0 ? artworks : fallback_artworks,
 		month_counts
 	};
 }
 
-function RewindPage(props: { children: React.ReactNode; colors: ReturnType<typeof usePTheme>["colors"]; accent?: string }) {
+function RewindPage(props: { children: React.ReactNode; colors: ReturnType<typeof usePTheme>['colors']; accent?: string }) {
 	const accent = props.accent ?? props.colors.primary;
 	return (
 		<View style={[styles.page, { backgroundColor: props.colors.background }]}>
-			<LinearGradient colors={[accent + "66", props.colors.background, props.colors.background]} locations={[0, 0.42, 1]} style={StyleSheet.absoluteFill} />
+			<LinearGradient colors={[accent + '66', props.colors.background, props.colors.background]} locations={[0, 0.42, 1]} style={StyleSheet.absoluteFill} />
 			{props.children}
 		</View>
 	);
@@ -233,7 +233,7 @@ function FallingArtworkLayer(props: { artworks: Artwork[]; width: number; height
 		return source
 			.slice(0, 14)
 			.map((artwork, index) => ({
-				id: `${index}-${String(typeof artwork === "string" ? artwork : index)}`,
+				id: `${index}-${String(typeof artwork === 'string' ? artwork : index)}`,
 				artwork,
 				x_ratio: ((index * 29) % 100) / 100,
 				size: 58 + (index % 4) * 12,
@@ -245,7 +245,7 @@ function FallingArtworkLayer(props: { artworks: Artwork[]; width: number; height
 
 	return (
 		<View pointerEvents="none" style={StyleSheet.absoluteFill}>
-			{configs.map((item) => (
+			{configs.map(item => (
 				<FallingArtwork key={item.id} item={item} screen_height={props.height} screen_width={props.width} />
 			))}
 		</View>
@@ -262,7 +262,7 @@ function MonthWave(props: { counts: number[]; color: string; muted: string; widt
 		const y = chart_height - 18 - (count / max) * (chart_height - 46);
 		return { x, y };
 	});
-	const path = points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+	const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
 	const path_props = useAnimatedProps(() => ({ strokeDashoffset: 600 - progress.value * 600 }));
 
 	useEffect(() => {
@@ -271,7 +271,7 @@ function MonthWave(props: { counts: number[]; color: string; muted: string; widt
 
 	return (
 		<Svg width={chart_width} height={chart_height} viewBox={`0 0 ${chart_width} ${chart_height}`}>
-			{[0, 1, 2].map((line) => (
+			{[0, 1, 2].map(line => (
 				<Line key={line} x1={18} y1={36 + line * 38} x2={chart_width - 18} y2={36 + line * 38} stroke={props.muted} strokeWidth={1} opacity={0.35} />
 			))}
 			<AnimatedPath d={path} fill="none" stroke={props.color} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={600} animatedProps={path_props} />
@@ -288,9 +288,9 @@ function Bars(props: { items: RankedName[]; color: string; text: string; subtext
 		progress.value = withTiming(1, { duration: 1100, easing: Easing.out(Easing.cubic) });
 	}, [progress]);
 
-	const max = Math.max(...props.items.map((item) => item.plays), 1);
+	const max = Math.max(...props.items.map(item => item.plays), 1);
 	return (
-		<View style={{ width: "100%", gap: 12 }}>
+		<View style={{ width: '100%', gap: 12 }}>
 			{props.items.slice(0, 5).map((item, index) => (
 				<BarRow key={`${item.name}-${index}`} item={item} max={max} progress={progress} color={props.color} text={props.text} subtext={props.subtext} />
 			))}
@@ -317,9 +317,9 @@ function BarRow(props: { item: RankedName; max: number; progress: SharedValue<nu
 	);
 }
 
-function StatPill(props: { label: string; value: string; colors: ReturnType<typeof usePTheme>["colors"] }) {
+function StatPill(props: { label: string; value: string; colors: ReturnType<typeof usePTheme>['colors'] }) {
 	return (
-		<View style={[styles.stat_pill, { borderColor: props.colors.text + "24", backgroundColor: props.colors.background + "AA" }]}>
+		<View style={[styles.stat_pill, { borderColor: props.colors.text + '24', backgroundColor: props.colors.background + 'AA' }]}>
 			<Text style={[styles.stat_label, { color: props.colors.subtext }]}>{props.label}</Text>
 			<Text style={[styles.stat_value, { color: props.colors.text }]} numberOfLines={1}>
 				{props.value}
@@ -328,9 +328,9 @@ function StatPill(props: { label: string; value: string; colors: ReturnType<type
 	);
 }
 
-function RankedTrackRow(props: { ranked: RankedTrack; index: number; colors: ReturnType<typeof usePTheme>["colors"] }) {
+function RankedTrackRow(props: { ranked: RankedTrack; index: number; colors: ReturnType<typeof usePTheme>['colors'] }) {
 	return (
-		<View style={[styles.track_row, { backgroundColor: props.colors.background + "AA", borderColor: props.colors.text + "18" }]}>
+		<View style={[styles.track_row, { backgroundColor: props.colors.background + 'AA', borderColor: props.colors.text + '18' }]}>
 			<Text style={[styles.rank, { color: props.colors.primary }]}>{props.index + 1}</Text>
 			<IImage source={props.ranked.track.playback?.artwork} style={styles.row_artwork} resizeMode="cover" />
 			<View style={{ flex: 1, minWidth: 0 }}>
@@ -346,26 +346,30 @@ function RankedTrackRow(props: { ranked: RankedTrack; index: number; colors: Ret
 	);
 }
 
-function TrackSpotlight(props: { ranked?: RankedTrack; colors: ReturnType<typeof usePTheme>["colors"] }) {
+function TrackSpotlight(props: { ranked?: RankedTrack; colors: ReturnType<typeof usePTheme>['colors'] }) {
 	if (!props.ranked) return null;
 	return (
 		<View style={styles.spotlight}>
-			<IImage source={props.ranked.track.playback?.artwork} style={[styles.spotlight_artwork, { borderColor: props.colors.text + "24" }]} resizeMode="cover" />
+			<IImage source={props.ranked.track.playback?.artwork} style={[styles.spotlight_artwork, { borderColor: props.colors.text + '24' }]} resizeMode="cover" />
 			<Text numberOfLines={2} style={[styles.spotlight_title, { color: props.colors.text }]}>
 				{props.ranked.track.title}
 			</Text>
 			<Text numberOfLines={1} style={[styles.spotlight_artist, { color: props.colors.subtext }]}>
 				{artist_string(props.ranked.track)}
 			</Text>
-			<Text style={[styles.spotlight_meta, { color: props.colors.primary }]}>{format_count(props.ranked.plays)} plays</Text>
+			<Text style={[styles.spotlight_meta, { color: props.colors.primary }]}>
+				{format_count(props.ranked.plays)}
+				{' '}
+				plays
+			</Text>
 		</View>
 	);
 }
 
-function PlayCard(props: { label: string; entry?: { track: Track; date: Date }; colors: ReturnType<typeof usePTheme>["colors"] }) {
+function PlayCard(props: { label: string; entry?: { track: Track; date: Date }; colors: ReturnType<typeof usePTheme>['colors'] }) {
 	if (!props.entry) return null;
 	return (
-		<View style={[styles.play_card, { backgroundColor: props.colors.background + "B8", borderColor: props.colors.text + "20" }]}>
+		<View style={[styles.play_card, { backgroundColor: props.colors.background + 'B8', borderColor: props.colors.text + '20' }]}>
 			<Text style={[styles.stat_label, { color: props.colors.subtext }]}>{props.label}</Text>
 			<View style={styles.play_card_body}>
 				<IImage source={props.entry.track.playback?.artwork} style={styles.play_artwork} resizeMode="cover" />
@@ -376,20 +380,23 @@ function PlayCard(props: { label: string; entry?: { track: Track; date: Date }; 
 					<Text numberOfLines={1} style={[styles.track_artist, { color: props.colors.subtext }]}>
 						{artist_string(props.entry.track)}
 					</Text>
-					<Text style={[styles.play_date, { color: props.colors.primary }]}>{props.entry.date.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</Text>
+					<Text style={[styles.play_date, { color: props.colors.primary }]}>{props.entry.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</Text>
 				</View>
 			</View>
 		</View>
 	);
 }
 
-function EmptyRewind(props: { colors: ReturnType<typeof usePTheme>["colors"]; year: number; width: number; height: number }) {
+function EmptyRewind(props: { colors: ReturnType<typeof usePTheme>['colors']; year: number; width: number; height: number }) {
 	return (
 		<RewindPage colors={props.colors}>
 			<FallingArtworkLayer artworks={[Constants.icon_transparent_index]} width={props.width} height={props.height} />
 			<View style={styles.center_content}>
 				<AnimatedRewindMark size={160} color={props.colors.primary} muted={props.colors.text} />
-				<Text style={[styles.hero_title, { color: props.colors.text }]}>Illusi Rewind {props.year}</Text>
+				<Text style={[styles.hero_title, { color: props.colors.text }]}>
+					Illusi Rewind
+					{props.year}
+				</Text>
 				<Text style={[styles.hero_subtitle, { color: props.colors.subtext }]}>There is not enough listening history for this year yet.</Text>
 				<Text style={[styles.body_copy, { color: props.colors.subtext }]}>Play some tracks and come back when your year has a shape.</Text>
 			</View>
@@ -413,7 +420,10 @@ export default function RewindScreen() {
 			<View style={[styles.header, { backgroundColor: colors.background }]}>
 				<AntDesignTouchableOpacity on_press={close} style={styles.header_button} icon_name="left" icon_size={25} icon_color={colors.primary} icon_style={{}} hitslop={12} />
 				<IImage source={Constants.icon_transparent_index} style={styles.header_logo} resizeMode="contain" />
-				<Text style={[styles.header_title, { color: colors.text }]}>Illusi Rewind {year}</Text>
+				<Text style={[styles.header_title, { color: colors.text }]}>
+					Illusi Rewind
+					{year}
+				</Text>
 			</View>
 			{stats.total_plays === 0 ? (
 				<EmptyRewind colors={colors} year={year} width={width} height={height} />
@@ -423,14 +433,20 @@ export default function RewindScreen() {
 					showsButtons={false}
 					showsPagination={true}
 					loop={false}
-					dotStyle={{ backgroundColor: colors.text + "55" }}
+					dotStyle={{ backgroundColor: colors.text + '55' }}
 					activeDotStyle={{ backgroundColor: colors.primary }}
-					paginationStyle={{ right: 12, left: undefined, bottom: 24 }}>
+					paginationStyle={{ right: 12, left: undefined, bottom: 24 }}
+				>
 					<RewindPage colors={colors}>
 						<FallingArtworkLayer artworks={stats.artworks} width={width} height={height} />
 						<View style={styles.center_content}>
 							<AnimatedRewindMark size={170} color={colors.primary} muted={colors.text} />
-							<Text style={[styles.hero_title, { color: colors.text }]}>Your {stats.year} Rewind</Text>
+							<Text style={[styles.hero_title, { color: colors.text }]}>
+								Your
+								{stats.year}
+								{' '}
+								Rewind
+							</Text>
 							<Text style={[styles.hero_subtitle, { color: colors.subtext }]}>A year of plays, timestamps, repeats, and favorite moments.</Text>
 						</View>
 					</RewindPage>
@@ -454,7 +470,7 @@ export default function RewindScreen() {
 						<FallingArtworkLayer
 							artworks={stats.top_tracks
 								.slice(0, 6)
-								.map((ranked) => ranked.track.playback?.artwork)
+								.map(ranked => ranked.track.playback?.artwork)
 								.filter((artwork): artwork is Artwork => artwork !== undefined && artwork !== null)}
 							width={width}
 							height={height}
@@ -469,7 +485,7 @@ export default function RewindScreen() {
 						<ScrollView contentContainerStyle={styles.scroll_content} bounces={false}>
 							<Text style={[styles.kicker, { color: colors.primary }]}>Most replayed</Text>
 							<Text style={[styles.section_title, { color: colors.text }]}>Top tracks</Text>
-							<View style={{ gap: 10, width: "100%" }}>
+							<View style={{ gap: 10, width: '100%' }}>
 								{stats.top_tracks.slice(0, 8).map((ranked, index) => (
 									<RankedTrackRow key={ranked.track.uid} ranked={ranked} index={index} colors={colors} />
 								))}
@@ -491,7 +507,7 @@ export default function RewindScreen() {
 						<View style={styles.page_content}>
 							<Text style={[styles.kicker, { color: colors.primary }]}>Timestamped</Text>
 							<Text style={[styles.section_title, { color: colors.text }]}>First and latest</Text>
-							<View style={{ gap: 14, width: "100%" }}>
+							<View style={{ gap: 14, width: '100%' }}>
 								<PlayCard label="First play this year" entry={stats.first_play} colors={colors} />
 								<PlayCard label="Latest play this year" entry={stats.latest_play} colors={colors} />
 							</View>
@@ -501,13 +517,16 @@ export default function RewindScreen() {
 					<RewindPage colors={colors} accent={colors.primary}>
 						<View style={styles.page_content}>
 							<Text style={[styles.kicker, { color: colors.primary }]}>Recap</Text>
-							<Text style={[styles.hero_title, { color: colors.text }]}>That was {stats.year}</Text>
+							<Text style={[styles.hero_title, { color: colors.text }]}>
+								That was
+								{stats.year}
+							</Text>
 							<View style={styles.stats_grid}>
 								<StatPill label="Minutes" value={format_minutes(stats.total_minutes)} colors={colors} />
 								<StatPill label="Plays" value={format_count(stats.total_plays)} colors={colors} />
-								<StatPill label="Top track" value={stats.top_tracks[0]?.track.title ?? "Unknown"} colors={colors} />
-								<StatPill label="Top artist" value={stats.top_artists[0]?.name ?? "Unknown"} colors={colors} />
-								<StatPill label="Top album" value={stats.top_albums[0]?.name ?? "Unknown"} colors={colors} />
+								<StatPill label="Top track" value={stats.top_tracks[0]?.track.title ?? 'Unknown'} colors={colors} />
+								<StatPill label="Top artist" value={stats.top_artists[0]?.name ?? 'Unknown'} colors={colors} />
+								<StatPill label="Top album" value={stats.top_albums[0]?.name ?? 'Unknown'} colors={colors} />
 								<StatPill label="Peak day" value={stats.busiest_day.label} colors={colors} />
 							</View>
 							<GentlePulse color={colors.primary} muted={colors.text} />
@@ -541,42 +560,42 @@ function GentlePulse(props: { color: string; muted: string }) {
 }
 
 const styles = StyleSheet.create({
-	header: { position: "absolute", top: HEADER_HEIGHT, left: 0, right: 0, height: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, zIndex: 10 },
-	header_button: { width: 42, height: 42, justifyContent: "center" },
+	header: { position: 'absolute', top: HEADER_HEIGHT, left: 0, right: 0, height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, zIndex: 10 },
+	header_button: { width: 42, height: 42, justifyContent: 'center' },
 	header_logo: { width: 30, height: 30 },
-	header_title: { fontWeight: "800", fontSize: 14, width: 150, textAlign: "right" },
-	page: { flex: 1, paddingTop: HEADER_HEIGHT + 54, overflow: "hidden" },
-	center_content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26, paddingBottom: 60 },
-	page_content: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24, paddingBottom: 64, gap: 14 },
-	scroll_content: { paddingTop: 46, paddingHorizontal: 18, paddingBottom: 90, alignItems: "center", gap: 12 },
-	hero_title: { fontSize: 38, fontWeight: "900", textAlign: "center", marginTop: 14 },
-	number_title: { fontSize: 66, fontWeight: "900", textAlign: "center" },
-	hero_subtitle: { fontSize: 17, lineHeight: 24, textAlign: "center", maxWidth: 340 },
-	body_copy: { fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 10, maxWidth: 310 },
-	kicker: { fontSize: 13, fontWeight: "900", textTransform: "uppercase", letterSpacing: 0 },
-	section_title: { fontSize: 31, fontWeight: "900", textAlign: "center", marginBottom: 8 },
-	stats_grid: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center", marginTop: 12 },
-	stat_pill: { width: "46%", minHeight: 76, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, justifyContent: "center" },
-	stat_label: { fontSize: 11, fontWeight: "900", textTransform: "uppercase", letterSpacing: 0 },
-	stat_value: { fontSize: 19, fontWeight: "900", marginTop: 5 },
-	falling_artwork: { position: "absolute", top: -160, overflow: "hidden" },
-	spotlight: { width: "100%", alignItems: "center", paddingHorizontal: 12 },
+	header_title: { fontWeight: '800', fontSize: 14, width: 150, textAlign: 'right' },
+	page: { flex: 1, paddingTop: HEADER_HEIGHT + 54, overflow: 'hidden' },
+	center_content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26, paddingBottom: 60 },
+	page_content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 64, gap: 14 },
+	scroll_content: { paddingTop: 46, paddingHorizontal: 18, paddingBottom: 90, alignItems: 'center', gap: 12 },
+	hero_title: { fontSize: 38, fontWeight: '900', textAlign: 'center', marginTop: 14 },
+	number_title: { fontSize: 66, fontWeight: '900', textAlign: 'center' },
+	hero_subtitle: { fontSize: 17, lineHeight: 24, textAlign: 'center', maxWidth: 340 },
+	body_copy: { fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10, maxWidth: 310 },
+	kicker: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0 },
+	section_title: { fontSize: 31, fontWeight: '900', textAlign: 'center', marginBottom: 8 },
+	stats_grid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 12 },
+	stat_pill: { width: '46%', minHeight: 76, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
+	stat_label: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0 },
+	stat_value: { fontSize: 19, fontWeight: '900', marginTop: 5 },
+	falling_artwork: { position: 'absolute', top: -160, overflow: 'hidden' },
+	spotlight: { width: '100%', alignItems: 'center', paddingHorizontal: 12 },
 	spotlight_artwork: { width: 250, height: 250, borderRadius: 8, borderWidth: 1 },
-	spotlight_title: { fontSize: 28, fontWeight: "900", textAlign: "center", marginTop: 18 },
-	spotlight_artist: { fontSize: 17, fontWeight: "700", textAlign: "center", marginTop: 6 },
-	spotlight_meta: { fontSize: 18, fontWeight: "900", marginTop: 12 },
-	track_row: { width: "100%", borderWidth: 1, borderRadius: 8, padding: 10, flexDirection: "row", alignItems: "center", gap: 10 },
-	rank: { width: 24, fontSize: 17, fontWeight: "900", textAlign: "center" },
+	spotlight_title: { fontSize: 28, fontWeight: '900', textAlign: 'center', marginTop: 18 },
+	spotlight_artist: { fontSize: 17, fontWeight: '700', textAlign: 'center', marginTop: 6 },
+	spotlight_meta: { fontSize: 18, fontWeight: '900', marginTop: 12 },
+	track_row: { width: '100%', borderWidth: 1, borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+	rank: { width: 24, fontSize: 17, fontWeight: '900', textAlign: 'center' },
 	row_artwork: { width: 52, height: 52, borderRadius: 6 },
-	track_title: { fontSize: 15, fontWeight: "900" },
-	track_artist: { fontSize: 12, fontWeight: "700", marginTop: 2 },
-	track_count: { fontSize: 13, fontWeight: "900", minWidth: 34, textAlign: "right" },
-	bar_label_row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 5 },
-	bar_name: { flex: 1, fontSize: 15, fontWeight: "900" },
-	bar_count: { fontSize: 12, fontWeight: "900" },
-	play_card: { width: "100%", borderWidth: 1, borderRadius: 8, padding: 14 },
-	play_card_body: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 10 },
+	track_title: { fontSize: 15, fontWeight: '900' },
+	track_artist: { fontSize: 12, fontWeight: '700', marginTop: 2 },
+	track_count: { fontSize: 13, fontWeight: '900', minWidth: 34, textAlign: 'right' },
+	bar_label_row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 5 },
+	bar_name: { flex: 1, fontSize: 15, fontWeight: '900' },
+	bar_count: { fontSize: 12, fontWeight: '900' },
+	play_card: { width: '100%', borderWidth: 1, borderRadius: 8, padding: 14 },
+	play_card_body: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
 	play_artwork: { width: 70, height: 70, borderRadius: 8 },
-	play_date: { fontSize: 12, fontWeight: "900", marginTop: 7 },
+	play_date: { fontSize: 12, fontWeight: '900', marginTop: 7 },
 	pulse_wrap: { marginTop: 12 }
 });

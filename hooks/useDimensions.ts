@@ -3,7 +3,7 @@
  * Replaces module-level Dimensions.get() calls which don't respond to window resize on desktop
  */
 
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions } from 'react-native';
 
 interface Dimensions {
 	width: number;
@@ -19,7 +19,7 @@ export function useDimensions(): Dimensions {
 	const dimensions = useWindowDimensions();
 	return {
 		width: dimensions.width,
-		height: dimensions.height,
+		height: dimensions.height
 	};
 }
 

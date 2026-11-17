@@ -1,21 +1,22 @@
-import { is_empty } from "@common/utils/util";
-import ModalHeader from "@components/ModalHeader";
-import usePTheme from "@hooks/usePTheme";
-import useDimensions from "@hooks/useDimensions";
-import useTrackColors from "@hooks/useTrackColors";
-import type { Lyrics } from "@illusive/lyrics";
-import type { Prefs } from "@illusive/prefs";
-import type { Track } from "@illusive/types";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
-import EverythingPlayer, { Event, useTrackPlayerEvents } from "react-native-everything-player";
-import { UITextView } from "react-native-uitextview";
-import { SharedRouter } from "@utils/shared_routes";
-import { active_track } from "@utils/player_queue";
-import { read_plain_lyrics, read_synced_lyrics } from "@utils/track_lyrics";
+import { is_empty } from '@common/utils/util';
+import ModalHeader from '@components/ModalHeader';
+import usePTheme from '@hooks/usePTheme';
+import useDimensions from '@hooks/useDimensions';
+import useTrackColors from '@hooks/useTrackColors';
+import type { Lyrics } from '@illusive/lyrics';
+import type { Prefs } from '@illusive/prefs';
+import type { Track } from '@illusive/types';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import EverythingPlayer, { Event, useTrackPlayerEvents } from 'react-native-everything-player';
+import { UITextView } from 'react-native-uitextview';
+import { SharedRouter } from '@utils/shared_routes';
+import { active_track } from '@utils/player_queue';
+import { read_plain_lyrics, read_synced_lyrics } from '@utils/track_lyrics';
+import { catch_log } from '@common/utils/error_util';
 
 interface LyricsSection {
 	header: string | null;
@@ -25,15 +26,15 @@ interface LyricsSection {
 function parse_sections(raw: string): LyricsSection[] {
 	const sections: LyricsSection[] = [];
 	let current: LyricsSection = { header: null, lines: [] };
-	for (const line of raw.split("\n")) {
+	for (const line of raw.split('\n')) {
 		if (/^\[.+?\]$/.test(line)) {
-			if (current.lines.some((l) => l.trim())) sections.push(current);
+			if (current.lines.some(l => l.trim())) sections.push(current);
 			current = { header: line.slice(1, -1), lines: [] };
 		} else {
 			current.lines.push(line);
 		}
 	}
-	if (current.lines.some((l) => l.trim())) sections.push(current);
+	if (current.lines.some(l => l.trim())) sections.push(current);
 	return sections;
 }
 
@@ -90,7 +91,7 @@ export default function AudioPlayerLyrics() {
 				set_progress_ratio(isNaN(ratio) ? 0 : ratio);
 				scrollview_ref.current?.scrollTo({ y: max_scrollable * ratio, animated: true });
 			}
-		})();
+		})().catch(catch_log);
 	}, [content_height, scrollview_height]);
 
 	async function load_track_and_lyrics(track_lyrics_uri: string) {
@@ -149,7 +150,7 @@ export default function AudioPlayerLyrics() {
 	useEffect(() => {
 		(async () => {
 			await load_track_and_lyrics(lyrics_uri);
-		})();
+		})().catch(catch_log);
 	}, [lyrics_uri]);
 
 	function close() {
@@ -214,13 +215,13 @@ export default function AudioPlayerLyrics() {
 				background_color={track_colors?.secondary}
 				text_color={track_colors?.background}
 				close_color={track_colors?.background}
-				right_icon={{ icon_name: "pencil-outline", icon_color: track_colors?.background ?? colors.primary, icon_size: 20, on_press: () => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri) }}
+				right_icon={{ icon_name: 'pencil-outline', icon_color: track_colors?.background ?? colors.primary, icon_size: 20, on_press: () => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri) }}
 			/>
 			<View style={{ height: 3, backgroundColor: colors.shelf }}>
 				<View style={{ height: 3, width: `${progress_ratio * 100}%`, backgroundColor: track_colors?.detail ?? colors.primary }} />
 			</View>
 			<View style={{ height: 30 }} />
-			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, "transparent"]} style={{ position: "absolute", top: 0, height: gradient_height, width: "100%", zIndex: -1 }} /> : null}
+			{track_colors ? <LinearGradient colors={[track_colors.primary, track_colors.background, 'transparent']} style={{ position: 'absolute', top: 0, height: gradient_height, width: '100%', zIndex: -1 }} /> : null}
 			<ScrollView
 				ref={scrollview_ref}
 				onLayout={(e: LayoutChangeEvent) => set_scrollview_height(e.nativeEvent.layout.height)}
@@ -231,7 +232,8 @@ export default function AudioPlayerLyrics() {
 						set_is_following(false);
 					}
 				}}
-				style={{ flex: 1 }}>
+				style={{ flex: 1 }}
+			>
 				{synced_lyrics !== null ? (
 					synced_lyrics.map((lyric, i) => (
 						<Pressable
@@ -243,54 +245,60 @@ export default function AudioPlayerLyrics() {
 								EverythingPlayer.seekTo(lyric.interval.from);
 								is_following_ref.current = true;
 								set_is_following(true);
-							}}>
+							}}
+						>
 							<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={[styles.lyrics_text, { color: i === current_line_idx ? colors.text : colors.subtext }]}>
-								{lyric.text + "\n"}
-								<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
+								{lyric.text + '\n'}
+								<UITextView style={{ fontSize: 7 }}>{'\n'}</UITextView>
 							</UITextView>
 						</Pressable>
 					))
-				) : sections.length === 0 ? (
-					<UITextView uiTextView={true} style={styles.lyrics_text}>
-						Unable to find lyrics for this song
-					</UITextView>
-				) : (
-					sections.map((section, i) => {
-						const is_active = section_times.length === 0 || i === current_section_idx;
-						return (
-							<View
-								key={i}
-								onLayout={(e) => {
-									section_y_positions.current[i] = e.nativeEvent.layout.y;
-								}}>
-								{section.header ? <Text style={[styles.section_header, { color: is_active ? colors.primary : colors.subtext }]}>{section.header}</Text> : null}
-								<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ marginHorizontal: 20 }}>
-									{section.lines.map((line, j) => (
-										<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={[styles.lyrics_text, { color: is_active ? colors.text : colors.subtext }]}>
-											{line + "\n"}
-											<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
-										</UITextView>
-									))}
+				)
+					: sections.length === 0
+						? (
+								<UITextView uiTextView={true} style={styles.lyrics_text}>
+									Unable to find lyrics for this song
 								</UITextView>
-							</View>
-						);
-					})
-				)}
+							)
+						: (
+								sections.map((section, i) => {
+									const is_active = section_times.length === 0 || i === current_section_idx;
+									return (
+										<View
+											key={i}
+											onLayout={(e) => {
+												section_y_positions.current[i] = e.nativeEvent.layout.y;
+											}}
+										>
+											{section.header ? <Text style={[styles.section_header, { color: is_active ? colors.primary : colors.subtext }]}>{section.header}</Text> : null}
+											<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ marginHorizontal: 20 }}>
+												{section.lines.map((line, j) => (
+													<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={[styles.lyrics_text, { color: is_active ? colors.text : colors.subtext }]}>
+														{line + '\n'}
+														<UITextView style={{ fontSize: 7 }}>{'\n'}</UITextView>
+													</UITextView>
+												))}
+											</UITextView>
+										</View>
+									);
+								})
+							)}
 			</ScrollView>
 			{synced_lyrics !== null && !is_following ? (
 				<Pressable style={[styles.sync_button, { backgroundColor: track_colors?.secondary ?? colors.shelf }]} onPress={snap_to_current}>
 					<Ionicons name="sync-outline" size={14} color={track_colors?.background ?? colors.primary} />
 					<Text style={[styles.sync_button_text, { color: track_colors?.background ?? colors.primary }]}>Sync</Text>
 				</Pressable>
-			) : null}
+			)
+				: null}
 		</View>
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
-		lyrics_text: { color: colors.text, fontWeight: "bold", width: "85%", fontSize: 24, margin: 15, marginVertical: 5 },
-		section_header: { color: colors.primary, fontWeight: "800", fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2, marginHorizontal: 15 },
-		sync_button: { position: "absolute", bottom: 30, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-		sync_button_text: { fontWeight: "700", fontSize: 14 }
+		lyrics_text: { color: colors.text, fontWeight: 'bold', width: '85%', fontSize: 24, margin: 15, marginVertical: 5 },
+		section_header: { color: colors.primary, fontWeight: '800', fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2, marginHorizontal: 15 },
+		sync_button: { position: 'absolute', bottom: 30, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+		sync_button_text: { fontWeight: '700', fontSize: 14 }
 	});

@@ -9,13 +9,14 @@
  * - index.android.tsx: explicitly uses CustomPopover
  */
 
-import React, { useEffect, useState } from "react";
-import { View } from "react-native";
-import CustomPopover from "./CustomPopover";
-import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from "./types";
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import CustomPopover from './CustomPopover';
+import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from './types';
 
-export type { ContextMenuViewProps, MenuElementConfig, MenuConfig, OnPressMenuItemEvent } from "./types";
-export { ContextMenuButton } from "./ContextMenuButton";
+export type { ContextMenuViewProps, MenuElementConfig, MenuConfig, OnPressMenuItemEvent } from './types';
+export { ContextMenuButton } from './ContextMenuButton';
 
 export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	const [menuItems, setMenuItems] = useState<MenuActionConfig[]>([]);
@@ -30,7 +31,7 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 		await props.onPressMenuItem({ nativeEvent: { actionKey, actionTitle } });
 	};
 
-	const visibleItems = menuItems.map((item) => ({ ...item, isVisible: !item.menuAttributes?.includes("hidden") }));
+	const visibleItems = menuItems.map(item => ({ ...item, isVisible: !item.menuAttributes?.includes('hidden') }));
 
 	return (
 		<CustomPopover menuItems={visibleItems} onItemPress={handleItemPress}>
@@ -43,10 +44,10 @@ function flattenMenuItems(items: MenuElementConfig[]): MenuActionConfig[] {
 	const result: MenuActionConfig[] = [];
 	const process = (p_items: MenuElementConfig[]) => {
 		p_items.forEach((item) => {
-			if ("actionKey" in item) {
+			if ('actionKey' in item) {
 				result.push(item);
 			}
-			if ("menuItems" in item && Array.isArray(item.menuItems)) {
+			if ('menuItems' in item && Array.isArray(item.menuItems)) {
 				process(item.menuItems);
 			}
 		});

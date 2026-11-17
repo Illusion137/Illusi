@@ -1,104 +1,119 @@
-import globals from "globals";
-import pluginJs from "@eslint/js";
-import tseslint from "typescript-eslint";
+import globals from 'globals';
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import stylistic from '@stylistic/eslint-plugin';
+import unusedImports from 'eslint-plugin-unused-imports';
 
-/** @type {import('eslint').Linter.Config[]} */
-export default [
-	{ files: ["**/*.{ts}"] },
-	{ languageOptions: { globals: globals.node } },
-	{ ignores: ["babel.config.js", "eslint.config.mjs", "jest.config.js", "./origin/src/youtube_dl/PATCH/sax/sax.js", "./origin/src/manga_reader/deob.js", "./origin/src/manga_reader/deob2.js", ".expo", "node_modules", "lib-origin", "scripts", "public", "patches", "ios", "c_sources", "assets", ".vscode"] },
-	pluginJs.configs.recommended,
-	...tseslint.configs.all,
+const SOURCE = [
+	'app/**/*.{ts,tsx}',
+	'components/**/*.{ts,tsx}',
+	'hooks/**/*.{ts,tsx}',
+	'screens/**/*.{ts,tsx}',
+	'utils/**/*.{ts,tsx}',
+	'index.ts'
+];
+
+export default tseslint.config(
 	{
-		languageOptions: {
-			parserOptions: {
-				projectService: true,
-				tsconfigRootDir: import.meta.dirname
-			}
-		}
+		ignores: [
+			'**/node_modules/**',
+			'app/(tabs)/*/(shared)/**',
+			'utils/gen_changelog.ts',
+			'lib-origin/**',
+			'.expo/**',
+			'android/**',
+			'ios/**',
+			'assets/**',
+			'builds/**',
+			'c_sources/**',
+			'nodejs-assets/**',
+			'patches/**',
+			'public/**',
+			'scripts/**',
+			'stubs/**'
+		]
 	},
 	{
+		files: SOURCE,
+		extends: [
+			js.configs.recommended,
+			...tseslint.configs.strictTypeChecked,
+			...tseslint.configs.stylisticTypeChecked,
+			stylistic.configs.customize({
+				indent: 'tab',
+				quotes: 'single',
+				semi: true,
+				jsx: true,
+				arrowParens: false,
+				braceStyle: '1tbs',
+				blockSpacing: true,
+				commaDangle: 'never'
+			})
+		],
+		languageOptions: {
+			globals: globals.node,
+			parserOptions: {
+				projectService: true,
+				jsxPragma: null,
+				tsconfigRootDir: import.meta.dirname
+			}
+		},
+		plugins: {
+			'unused-imports': unusedImports
+		},
 		rules: {
-			"@typescript-eslint/no-unnecessary-type-arguments": "off",
-			"@typescript-eslint/no-redundant-type-constituents": "off",
-			"@typescript-eslint/no-empty-function": "off",
-			"@typescript-eslint/strict-void-return": "off",
-			"@typescript-eslint/no-var-requires": "off",
-			"@typescript-eslint/no-floating-promises": "off",
-			"@typescript-eslint/only-throw-error": "error",
-			"@typescript-eslint/no-namespace": "off",
-			"@typescript-eslint/no-explicit-any": "off",
-			"@typescript-eslint/no-unused-expressions": "off",
-			"@typescript-eslint/no-unused-vars": "off",
-			"@typescript-eslint/no-empty-object-type": "off",
-			"@typescript-eslint/no-require-imports": "off",
-			"no-useless-escape": "off",
-			"no-empty": "off",
-			"no-prototype-builtins": "off",
-			"no-setter-return": "off",
-			"@typescript-eslint/no-this-alias": "off",
-			"no-misleading-character-class": "off",
-			"@typescript-eslint/no-unsafe-return": "off",
-			"@typescript-eslint/no-unsafe-member-access": "off",
-			"@typescript-eslint/no-unsafe-call": "off",
-			"@typescript-eslint/no-unsafe-assignment": "off",
-			"@typescript-eslint/no-unsafe-argument": "off", // TURN THIS ON
-			"@typescript-eslint/require-await": "off",
-			"@typescript-eslint/restrict-template-expressions": "off",
-			"@typescript-eslint/no-magic-numbers": "off",
-			"@typescript-eslint/explicit-module-boundary-types": "off",
-			"@typescript-eslint/naming-convention": [
-				"off",
+			'@stylistic/no-extra-semi': 'error',
+			'@stylistic/max-statements-per-line': 'off',
+			'@stylistic/multiline-ternary': ['error', 'always-multiline', { ignoreJSX: true }],
+			'@typescript-eslint/only-throw-error': 'error',
+			'@typescript-eslint/restrict-template-expressions': 'off',
+			'@typescript-eslint/restrict-plus-operands': 'off',
+			'@typescript-eslint/no-unnecessary-type-parameters': 'off',
+			'@typescript-eslint/return-await': 'off',
+			'@typescript-eslint/consistent-type-imports': 'error',
+			'@typescript-eslint/switch-exhaustiveness-check': [
+				'error',
+				{ considerDefaultExhaustiveForUnions: true }
+			],
+			'eqeqeq': ['error', 'always', { null: 'ignore' }],
+			'@typescript-eslint/no-unused-vars': 'off',
+			'unused-imports/no-unused-imports': 'error',
+			'unused-imports/no-unused-vars': [
+				'warn',
 				{
-					selector: "default",
-					format: ["snake_case"]
-				},
-				{
-					selector: ["variable", "classProperty"],
-					format: ["snake_case", "UPPER_CASE"],
-					leadingUnderscore: "allow"
-				},
-				{
-					selector: "function",
-					format: ["snake_case"],
-					leadingUnderscore: "allow"
-				},
-				{
-					selector: "typeLike",
-					format: ["PascalCase"],
-					leadingUnderscore: "allow"
-				},
-				{
-					selector: "enumMember",
-					format: ["UPPER_CASE"]
+					vars: 'all',
+					varsIgnorePattern: '^_',
+					args: 'after-used',
+					argsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_'
 				}
 			],
-			"@typescript-eslint/explicit-function-return-type": "off",
-			"@typescript-eslint/prefer-readonly-parameter-types": "off", // I should maybe enable this
-			"@typescript-eslint/no-non-null-assertion": "off",
-			"@typescript-eslint/no-unsafe-type-assertion": "off",
-			"@typescript-eslint/no-unnecessary-condition": "warn",
-			"@typescript-eslint/prefer-destructuring": "off",
-			"@typescript-eslint/consistent-return": "off",
-			"@typescript-eslint/use-unknown-in-catch-callback-variable": "off",
-			"@typescript-eslint/strict-boolean-expressions": "off",
-			"@typescript-eslint/max-params": "off",
-			"@typescript-eslint/init-declarations": "off",
-			"@typescript-eslint/non-nullable-type-assertion-style": "off",
-			"@typescript-eslint/return-await": "off",
-			"@typescript-eslint/consistent-type-imports": "error",
-			"@typescript-eslint/no-unnecessary-condition": "off",
-			"@typescript-eslint/prefer-nullish-coalescing": "off",
-			"@typescript-eslint/explicit-member-accessibility": "off",
-			"@typescript-eslint/no-unnecessary-type-parameters": "off",
-			"@typescript-eslint/no-use-before-define": "off",
-			"@typescript-eslint/no-loop-func": "off", // CHECK THIS
-			"@typescript-eslint/no-confusing-void-expression": "off",
-			"@typescript-eslint/no-dynamic-delete": "off",
-			"@typescript-eslint/require-array-sort-compare": "off",
-			"@typescript-eslint/class-methods-use-this": "off",
-			"@typescript-eslint/no-misused-promises": "off",
-			"@typescript-eslint/ban-types": "off"
+			'@typescript-eslint/no-namespace': 'off',
+			'@typescript-eslint/no-explicit-any': 'off',
+			'@typescript-eslint/no-unused-expressions': 'off',
+			'@typescript-eslint/no-non-null-assertion': 'off',
+			'@typescript-eslint/no-unsafe-type-assertion': 'off',
+			'@typescript-eslint/no-unnecessary-condition': 'off',
+			'@typescript-eslint/no-unsafe-member-access': 'off',
+			'@typescript-eslint/no-unsafe-call': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
+			'@typescript-eslint/no-unsafe-argument': 'off',
+			'@typescript-eslint/no-unsafe-return': 'off',
+			'@typescript-eslint/no-misused-promises': 'off',
+			'@typescript-eslint/no-confusing-void-expression': 'off',
+			'@typescript-eslint/no-dynamic-delete': 'off',
+			'@typescript-eslint/no-empty-object-type': 'off',
+			'@typescript-eslint/no-empty-function': 'off',
+			'@typescript-eslint/no-require-imports': 'off',
+			'@typescript-eslint/require-await': 'off',
+			'@typescript-eslint/prefer-nullish-coalescing': 'off',
+			'@typescript-eslint/non-nullable-type-assertion-style': 'off',
+			'@typescript-eslint/use-unknown-in-catch-callback-variable': 'off',
+			'no-empty': 'off',
+			'no-empty-function': 'off',
+			'no-prototype-builtins': 'off',
+			'no-setter-return': 'off',
+			'no-misleading-character-class': 'off'
 		}
 	}
-];
+);

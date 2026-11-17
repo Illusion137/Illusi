@@ -1,21 +1,22 @@
-import { ScrollView, View } from "react-native";
-import type { CompactArtist, CompactPlaylist, FullPlaylist, Track } from "@illusive/types";
-import AlbumList from "@components/AlbumList";
-import { GLOBALS } from "@illusive/globals";
-import { useEffect, useRef, useState } from "react";
-import TrackHorizontalScrolls from "@components/TrackHorizontalScrolls";
-import HorizontalRowArtists from "@components/HorizontalRowArtists";
-import { get_unique_artists } from "@illusive/illusive_utils";
-import { Explore } from "@illusive/explore";
-import usePTheme from "@hooks/usePTheme";
-import { milliseconds_of } from "@common/utils/util";
-import HeaderWith from "@components/HeaderWith";
-import { SQLArtists } from "@illusive/sql/sql_artists";
-import IllusiRewindComponent from "@components/IllusiRewindComponent";
-import { SharedRouter } from "@utils/shared_routes";
-import { LinearGradient } from "expo-linear-gradient";
-import FullPlaylistList from "@components/FullPlaylistList";
-import { shuffle_array } from "../../lib-origin/common/utils/util";
+import { ScrollView, View } from 'react-native';
+import type { CompactArtist, CompactPlaylist, FullPlaylist, Track } from '@illusive/types';
+import AlbumList from '@components/AlbumList';
+import { GLOBALS } from '@illusive/globals';
+import { useEffect, useRef, useState } from 'react';
+import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
+import HorizontalRowArtists from '@components/HorizontalRowArtists';
+import { get_unique_artists } from '@illusive/illusive_utils';
+import { Explore } from '@illusive/explore';
+import usePTheme from '@hooks/usePTheme';
+import { milliseconds_of } from '@common/utils/util';
+import HeaderWith from '@components/HeaderWith';
+import { SQLArtists } from '@illusive/sql/sql_artists';
+import IllusiRewindComponent from '@components/IllusiRewindComponent';
+import { SharedRouter } from '@utils/shared_routes';
+import { LinearGradient } from 'expo-linear-gradient';
+import FullPlaylistList from '@components/FullPlaylistList';
+import { shuffle_array } from '../../lib-origin/common/utils/util';
+import { catch_log } from '@common/utils/error_util';
 
 const top_tracks_slice = 50;
 const rewind_date = new Date();
@@ -41,7 +42,7 @@ export default function IllusiExplore() {
 		if (!Explore.new_releases_stale()) return;
 		Explore.refresh_new_releases()
 			.then(set_new_releases)
-			.finally(() => set_is_loading_new_releases(false));
+			.finally(() => set_is_loading_new_releases(false)).catch(catch_log);
 	}, []);
 
 	useEffect(() => {
@@ -51,7 +52,7 @@ export default function IllusiExplore() {
 			set_for_you_playlists(await Explore.get_recommended_playlists());
 			set_for_you_artists(shuffle_array(await Explore.get_recommended_artists()));
 			set_illusi_public_playlists(await Explore.get_illusi_public_playlists());
-		})();
+		})().catch(catch_log);
 	}, []);
 
 	return (
@@ -60,39 +61,43 @@ export default function IllusiExplore() {
 				colors={[colors.primary, colors.background]}
 				locations={[0, 0.2]}
 				end={{ x: 1, y: 2 }}
-				style={{ width: "100%", height: "50%", position: "absolute", flex: 1, backgroundColor: colors.background, pointerEvents: "box-none" }}
+				style={{ width: '100%', height: '50%', position: 'absolute', flex: 1, backgroundColor: colors.background, pointerEvents: 'box-none' }}
 			/>
 			<View style={{ height: 80 }} />
 			<AlbumList second_line_type="ARTIST" is_loading={is_loading_new_releases} title="New Releases" else_type="ALBUM" albums={new_releases} />
-			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
+			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
 			{for_you_playlists.length === 0 ? null : <FullPlaylistList title="For You" playlists={for_you_playlists} />}
-			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
+			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
 			{should_show_rewind ? <IllusiRewindComponent /> : null}
 			<View style={{ height: 5 }} />
 			{/* <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text> */}
 			{your_artists_ref.current.length > 0 ? (
-				<HeaderWith title="Your Artists" fullpage={() => SharedRouter.goto_shared_artist_grid("Your Artists", your_artists_ref.current)}>
+				<HeaderWith title="Your Artists" fullpage={() => SharedRouter.goto_shared_artist_grid('Your Artists', your_artists_ref.current)}>
 					<HorizontalRowArtists size={80} artists={your_artists_ref.current} />
 				</HeaderWith>
-			) : null}
+			)
+				: null}
 			{for_you_artists.length > 0 ? (
-				<HeaderWith title="Recommended Artists" fullpage={() => SharedRouter.goto_shared_artist_grid("Your Artists", for_you_artists)}>
+				<HeaderWith title="Recommended Artists" fullpage={() => SharedRouter.goto_shared_artist_grid('Your Artists', for_you_artists)}>
 					<HorizontalRowArtists size={80} artists={for_you_artists} />
 				</HeaderWith>
-			) : null}
+			)
+				: null}
 			<View style={{ height: 10 }} />
-			<View style={{ height: 1, width: "95%", backgroundColor: colors.line, alignSelf: "center" }} />
+			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
 			{illusi_public_playlists.length > 0 ? <AlbumList title="Illusi Public Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
 			{forgotten_favorites.length > 0 ? (
 				<>
 					<AlbumList title="Forgotten Favorites" second_line_type="ARTIST" else_type="SINGLE" albums={forgotten_favorites} />
 				</>
-			) : null}
+			)
+				: null}
 			{top_tracks.length > 0 ? (
 				<>
 					<TrackHorizontalScrolls title={`Top ${Math.min(top_tracks.length, top_tracks_slice)} Tracks`} tracks={top_tracks.slice(0, top_tracks_slice)} height={5} />
 				</>
-			) : null}
+			)
+				: null}
 			<View style={{ height: 100 }} />
 		</ScrollView>
 	);

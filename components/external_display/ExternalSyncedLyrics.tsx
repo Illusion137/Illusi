@@ -1,17 +1,18 @@
-import usePTheme from "@hooks/usePTheme";
-import useNeighborLyricsPreload from "@hooks/useNeighborLyricsPreload";
-import { useSyncedLineTracker } from "@hooks/useSyncedLineTracker";
-import useTrackColors from "@hooks/useTrackColors";
-import type { Track } from "@illusive/types";
-import { AnimatedLyricLine } from "@screens/LyricsPlayer";
-import { get_cached_synced_lyrics, load_synced_lyrics, with_intro_marker } from "@utils/synced_lyrics_cache";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, Text, View, type LayoutChangeEvent, type TextStyle } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import EverythingPlayer from "react-native-everything-player";
-import { has_synced_lyrics } from "@utils/track_lyrics";
+import usePTheme from '@hooks/usePTheme';
+import useNeighborLyricsPreload from '@hooks/useNeighborLyricsPreload';
+import { useSyncedLineTracker } from '@hooks/useSyncedLineTracker';
+import useTrackColors from '@hooks/useTrackColors';
+import type { Track } from '@illusive/types';
+import { AnimatedLyricLine } from '@screens/LyricsPlayer';
+import { get_cached_synced_lyrics, load_synced_lyrics, with_intro_marker } from '@utils/synced_lyrics_cache';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useMemo, useRef } from 'react';
+import { StyleSheet, Text, View, type LayoutChangeEvent, type TextStyle } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import EverythingPlayer from 'react-native-everything-player';
+import { has_synced_lyrics } from '@utils/track_lyrics';
+import { catch_log } from '@common/utils/error_util';
 
 interface ExternalSyncedLyricsProps {
 	track: Track | undefined;
@@ -24,21 +25,21 @@ interface ExternalSyncedLyricsProps {
 const ANIMATED_WINDOW = 3;
 
 function glow_from_color(base: string): string {
-	if (base.startsWith("#")) {
-		const hex = base.replace("#", "");
-		const full =
-			hex.length === 3
+	if (base.startsWith('#')) {
+		const hex = base.replace('#', '');
+		const full
+			= hex.length === 3
 				? hex
-						.split("")
-						.map((c) => c + c)
-						.join("")
+						.split('')
+						.map(c => c + c)
+						.join('')
 				: hex;
 		const r = parseInt(full.slice(0, 2), 16);
 		const g = parseInt(full.slice(2, 4), 16);
 		const b = parseInt(full.slice(4, 6), 16);
 		return `rgba(${r},${g},${b},0.75)`;
 	}
-	return "rgba(255,255,255,0.75)";
+	return 'rgba(255,255,255,0.75)';
 }
 
 export default function ExternalSyncedLyrics({ track, width, height }: ExternalSyncedLyricsProps) {
@@ -67,7 +68,7 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 	useNeighborLyricsPreload(track);
 
 	const glow_color = useMemo(() => glow_from_color(track_colors?.primary ?? colors.primary), [track_colors?.primary, colors.primary]);
-	const lyrics_text_style = useMemo<TextStyle>(() => ({ color: colors.text, fontWeight: "bold", fontSize: Math.max(22, height * 0.038), marginHorizontal: 24, marginVertical: 8 }), [colors.text, height]);
+	const lyrics_text_style = useMemo<TextStyle>(() => ({ color: colors.text, fontWeight: 'bold', fontSize: Math.max(22, height * 0.038), marginHorizontal: 24, marginVertical: 8 }), [colors.text, height]);
 
 	async function load(load_track: Track) {
 		const token = ++load_token_ref.current;
@@ -100,7 +101,7 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 
 	useEffect(() => {
 		if (track && has_synced_lyrics(track)) {
-			load(track);
+			load(track).catch(catch_log);
 		} else {
 			load_token_ref.current++;
 			tracker.clear();
@@ -122,9 +123,9 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 	if (tracker.synced_lyrics === null) return null;
 
 	return (
-		<MaskedView style={{ width, height }} maskElement={<LinearGradient colors={["transparent", "black", "black", "transparent"]} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
-			<View style={{ width, height, overflow: "hidden" }}>
-				<Animated.View style={[{ position: "absolute", top: 0, left: 0, width }, teleprompter_style]}>
+		<MaskedView style={{ width, height }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
+			<View style={{ width, height, overflow: 'hidden' }}>
+				<Animated.View style={[{ position: 'absolute', top: 0, left: 0, width }, teleprompter_style]}>
 					<View style={{ height: height / 2 }} />
 					{tracker.synced_lyrics.map((lyric, i) => {
 						const near = Math.abs(i - tracker.window_center) <= ANIMATED_WINDOW;
@@ -134,7 +135,7 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 							<View
 								// Keyed by track so lines remount on a track change — index-only keys let
 								// unchanged layouts skip onLayout, stranding the teleprompter on stale offsets.
-								key={`${track?.uid ?? "none"}-${i}`}
+								key={`${track?.uid ?? 'none'}-${i}`}
 								style={styles.line_wrapper}
 								onLayout={(e: LayoutChangeEvent) => {
 									line_y_positions.current[i] = e.nativeEvent.layout.y;
@@ -143,7 +144,8 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 										tracker.pending_initial_ref.current = false;
 										center_line(i, false);
 									}
-								}}>
+								}}
+							>
 								{near ? (
 									<AnimatedLyricLine
 										text={lyric.text}

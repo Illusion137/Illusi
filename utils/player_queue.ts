@@ -1,8 +1,8 @@
-import EverythingPlayer, { Event, type EmitterSubscription } from "react-native-everything-player";
-import type { Track } from "@illusive/types";
-import { reinterpret_cast } from "@common/cast";
-import { catch_log } from "@common/utils/error_util";
-import { delete_track_from_player_queue, illusive_track_to_track_player_track, on_modify_track_player_queue } from "@illusive/track_player_service";
+import EverythingPlayer, { Event, type EmitterSubscription } from 'react-native-everything-player';
+import type { Track } from '@illusive/types';
+import { reinterpret_cast } from '@common/cast';
+import { catch_log } from '@common/utils/error_util';
+import { delete_track_from_player_queue, illusive_track_to_track_player_track, on_modify_track_player_queue } from '@illusive/track_player_service';
 
 const RESOLVED_AHEAD = 2;
 const MAX_CONSECUTIVE_MISSES = 10;
@@ -14,7 +14,7 @@ let active_track_subscription: EmitterSubscription | undefined;
 
 function native_tracks(): Track[] {
 	try {
-		return EverythingPlayer.getQueue().map((queued) => reinterpret_cast<Track>(queued.otherData));
+		return EverythingPlayer.getQueue().map(queued => reinterpret_cast<Track>(queued.otherData));
 	} catch {
 		return [];
 	}
@@ -51,7 +51,7 @@ async function fill_ahead_impl(run_generation: number) {
 		const converted = await illusive_track_to_track_player_track(next);
 		if (run_generation !== generation) return;
 		pending_tail = pending_tail.slice(1);
-		if (converted === "skip") {
+		if (converted === 'skip') {
 			if (++misses >= MAX_CONSECUTIVE_MISSES) return;
 			continue;
 		}
@@ -87,7 +87,7 @@ export async function start_player_queue(tracks: Track[]): Promise<number> {
 		remaining = rest;
 		first.playback!.added = true;
 		const converted = await illusive_track_to_track_player_track(first);
-		if (converted === "skip") {
+		if (converted === 'skip') {
 			misses++;
 			continue;
 		}
@@ -106,7 +106,7 @@ export function clear_player_queue() {
 }
 
 export async function remove_from_player_queue(track: Track, current_track_index: number) {
-	const pending_index = pending_tail.findIndex((pending) => pending.uid === track.uid);
+	const pending_index = pending_tail.findIndex(pending => pending.uid === track.uid);
 	const in_native = native_tracks().some((queued, i) => i >= current_track_index && queued.uid === track.uid);
 	if (!in_native && pending_index !== -1) {
 		pending_tail = pending_tail.filter((_, i) => i !== pending_index);

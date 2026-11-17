@@ -1,23 +1,24 @@
-import { is_empty } from "@common/utils/util";
-import usePTheme from "@hooks/usePTheme";
-import useNeighborLyricsPreload from "@hooks/useNeighborLyricsPreload";
-import { useSyncedLineTracker } from "@hooks/useSyncedLineTracker";
-import useTrackColors from "@hooks/useTrackColors";
-import type { Prefs } from "@illusive/prefs";
-import type { Track } from "@illusive/types";
-import type { Lyrics } from "@illusive/lyrics";
-import { Ionicons } from "@expo/vector-icons";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, type TextStyle, TouchableOpacity, View, type LayoutChangeEvent } from "react-native";
-import { GestureDetector, type NativeGesture } from "react-native-gesture-handler";
-import EverythingPlayer from "react-native-everything-player";
-import { UITextView } from "react-native-uitextview";
-import { SharedRouter } from "@utils/shared_routes";
-import { get_cached_synced_lyrics, load_synced_lyrics, with_intro_marker } from "@utils/synced_lyrics_cache";
-import { has_synced_lyrics, read_plain_lyrics } from "@utils/track_lyrics";
-import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import { is_empty } from '@common/utils/util';
+import usePTheme from '@hooks/usePTheme';
+import useNeighborLyricsPreload from '@hooks/useNeighborLyricsPreload';
+import { useSyncedLineTracker } from '@hooks/useSyncedLineTracker';
+import useTrackColors from '@hooks/useTrackColors';
+import type { Prefs } from '@illusive/prefs';
+import type { Track } from '@illusive/types';
+import type { Lyrics } from '@illusive/lyrics';
+import { Ionicons } from '@expo/vector-icons';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, type TextStyle, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
+import { GestureDetector, type NativeGesture } from 'react-native-gesture-handler';
+import EverythingPlayer from 'react-native-everything-player';
+import { UITextView } from 'react-native-uitextview';
+import { SharedRouter } from '@utils/shared_routes';
+import { get_cached_synced_lyrics, load_synced_lyrics, with_intro_marker } from '@utils/synced_lyrics_cache';
+import { has_synced_lyrics, read_plain_lyrics } from '@utils/track_lyrics';
+import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import { catch_log } from '@common/utils/error_util';
 
 interface LyricsSection {
 	header: string | null;
@@ -27,15 +28,15 @@ interface LyricsSection {
 function parse_sections(raw: string): LyricsSection[] {
 	const sections: LyricsSection[] = [];
 	let current: LyricsSection = { header: null, lines: [] };
-	for (const line of raw.split("\n")) {
+	for (const line of raw.split('\n')) {
 		if (/^\[.+?\]$/.test(line)) {
-			if (current.lines.some((l) => l.trim())) sections.push(current);
+			if (current.lines.some(l => l.trim())) sections.push(current);
 			current = { header: line.slice(1, -1), lines: [] };
 		} else {
 			current.lines.push(line);
 		}
 	}
-	if (current.lines.some((l) => l.trim())) sections.push(current);
+	if (current.lines.some(l => l.trim())) sections.push(current);
 	return sections;
 }
 
@@ -45,16 +46,16 @@ const LYRIC_ANIM_WINDOW = 3;
 const MAX_WORD_SWEEP_MS = 4000;
 // Fallback per-word spacing when a line has no known duration.
 const FALLBACK_WORD_MS = 90;
-const screen_w = Dimensions.get("screen").width;
+const screen_w = Dimensions.get('screen').width;
 const LYRICS_PLAYER_HEIGHT = screen_w + 50;
 
 // Rough syllable count — used to weight how long each word is given within its line.
 function estimate_syllables(word: string): number {
-	const w = word.toLowerCase().replace(/[^a-z]/g, "");
+	const w = word.toLowerCase().replace(/[^a-z]/g, '');
 	if (w.length === 0) return 1;
 	const groups = w.match(/[aeiouy]+/g);
 	let count = groups ? groups.length : 1;
-	if (w.length > 2 && w.endsWith("e")) count -= 1;
+	if (w.length > 2 && w.endsWith('e')) count -= 1;
 	return Math.max(1, count);
 }
 
@@ -86,7 +87,7 @@ const AnimatedWord = memo(function AnimatedWord({ word, delay, active_shared, co
 
 	const animated_style = useAnimatedStyle(() => {
 		const color = interpolateColor(progress.value, [0, 1], [color_inactive, color_active]);
-		const shadow = interpolateColor(progress.value, [0, 1], ["rgba(0,0,0,0)", glow_color]);
+		const shadow = interpolateColor(progress.value, [0, 1], ['rgba(0,0,0,0)', glow_color]);
 		return { color, textShadowColor: shadow, textShadowRadius: interpolate(progress.value, [0, 1], [0, 20], Extrapolation.CLAMP) };
 	});
 
@@ -141,8 +142,8 @@ export const AnimatedLyricLine = memo(function AnimatedLyricLine({ text, line_in
 	}, [text, segments]);
 
 	const word_delays = useMemo(() => {
-		if (segments && segments.length > 0) return segments.map((segment) => Math.max(0, (segment.interval.from - (line_from ?? segment.interval.from)) * 1000));
-		const words = tokens.filter((t) => t.is_word).map((t) => t.text);
+		if (segments && segments.length > 0) return segments.map(segment => Math.max(0, (segment.interval.from - (line_from ?? segment.interval.from)) * 1000));
+		const words = tokens.filter(t => t.is_word).map(t => t.text);
 		if (words.length === 0) return [] as number[];
 		const has_duration = better_synced && !!lyric_duration_ms && lyric_duration_ms > 0;
 		const span = has_duration ? Math.min(lyric_duration_ms, MAX_WORD_SWEEP_MS) : words.length * FALLBACK_WORD_MS;
@@ -209,21 +210,21 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 	const color_inactive = colors.subtext;
 	const glow_color = useMemo(() => {
 		const base = track_colors?.primary ?? colors.primary;
-		if (base.startsWith("#")) {
-			const hex = base.replace("#", "");
-			const full =
-				hex.length === 3
+		if (base.startsWith('#')) {
+			const hex = base.replace('#', '');
+			const full
+				= hex.length === 3
 					? hex
-							.split("")
-							.map((c) => c + c)
-							.join("")
+							.split('')
+							.map(c => c + c)
+							.join('')
 					: hex;
 			const r = parseInt(full.slice(0, 2), 16);
 			const g = parseInt(full.slice(2, 4), 16);
 			const b = parseInt(full.slice(4, 6), 16);
 			return `rgba(${r},${g},${b},0.75)`;
 		}
-		return "rgba(255,255,255,0.75)";
+		return 'rgba(255,255,255,0.75)';
 	}, [track_colors?.primary, colors.primary]);
 
 	function scroll_to_line_center(idx: number, animated: boolean) {
@@ -343,7 +344,7 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 	useEffect(() => {
 		if (!content_active) return;
 		if (lyrics_uri) {
-			load_lyrics(lyrics_uri);
+			load_lyrics(lyrics_uri).catch(catch_log);
 		} else {
 			load_token_ref.current++;
 			tracker.clear();
@@ -386,7 +387,7 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 				const ratio = await get_trackplayer_progress();
 				scrollview_ref.current?.scrollTo({ y: max_scrollable * ratio, animated: true });
 			}
-		})();
+		})().catch(catch_log);
 	}, [sections]);
 
 	function snap_to_current() {
@@ -398,14 +399,15 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 	if (!content_active) return null;
 
 	return (
-		<Animated.View style={[{ position: "absolute", top: 0, left: 0, right: 0, height: LYRICS_PLAYER_HEIGHT, zIndex: 20, overflow: "hidden" }, overlay_opacity_style]} pointerEvents={visible ? "auto" : "none"}>
+		<Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, height: LYRICS_PLAYER_HEIGHT, zIndex: 20, overflow: 'hidden' }, overlay_opacity_style]} pointerEvents={visible ? 'auto' : 'none'}>
 			<Animated.View style={[StyleSheet.absoluteFill, slide_style]}>
 				{lyrics_uri ? (
-					<TouchableOpacity style={{ position: "absolute", top: 8, right: 12, zIndex: 2 }} onPress={() => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri)}>
+					<TouchableOpacity style={{ position: 'absolute', top: 8, right: 12, zIndex: 2 }} onPress={() => SharedRouter.goto_shared_player_lyrics_edit(lyrics_uri)}>
 						<Ionicons name="pencil-outline" size={18} color={track_colors?.background ?? colors.primary} />
 					</TouchableOpacity>
-				) : null}
-				<MaskedView style={{ flex: 1 }} maskElement={<LinearGradient colors={["transparent", "black", "black", "transparent"]} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
+				)
+					: null}
+				<MaskedView style={{ flex: 1 }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
 					<GestureDetector gesture={scroll_gesture}>
 						<ScrollView
 							ref={scrollview_ref}
@@ -422,7 +424,8 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 									set_is_following(false);
 								}
 							}}
-							style={{ flex: 1 }}>
+							style={{ flex: 1 }}
+						>
 							{tracker.synced_lyrics !== null ? (
 								<>
 									<View style={{ height: screen_w / 2 }} />
@@ -448,7 +451,8 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 													EverythingPlayer.seekTo(lyric.interval.from);
 													tracker.resync();
 												}}
-												style={styles.synced_line_wrapper}>
+												style={styles.synced_line_wrapper}
+											>
 												{animated ? (
 													<AnimatedLyricLine
 														text={lyric.text}
@@ -470,32 +474,35 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 									})}
 									<View style={{ height: screen_w / 2 }} />
 								</>
-							) : sections.length === 0 ? (
-								<View style={{ height: LYRICS_PLAYER_HEIGHT * 0.6, alignItems: "center", justifyContent: "center" }}>
-									<Text style={{ color: colors.subtext, fontSize: 14 }}>No lyrics available</Text>
-								</View>
-							) : (
-								sections.map((section, i) => {
-									const is_active = section_times.length === 0 || i === current_section_idx;
-									return (
-										<View
-											key={i}
-											onLayout={(e) => {
-												section_y_positions.current[i] = e.nativeEvent.layout.y;
-											}}>
-											{section.header ? <Text style={[styles.section_header, { color: is_active ? colors.primary : colors.subtext }]}>{section.header}</Text> : null}
-											<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ marginHorizontal: 20 }}>
-												{section.lines.map((line, j) => (
-													<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={[styles.lyrics_text, { color: is_active ? colors.text : colors.subtext }]}>
-														{line + "\n"}
-														<UITextView style={{ fontSize: 7 }}>{"\n"}</UITextView>
-													</UITextView>
-												))}
-											</UITextView>
+							) : sections.length === 0
+								? (
+										<View style={{ height: LYRICS_PLAYER_HEIGHT * 0.6, alignItems: 'center', justifyContent: 'center' }}>
+											<Text style={{ color: colors.subtext, fontSize: 14 }}>No lyrics available</Text>
 										</View>
-									);
-								})
-							)}
+									)
+								: (
+										sections.map((section, i) => {
+											const is_active = section_times.length === 0 || i === current_section_idx;
+											return (
+												<View
+													key={i}
+													onLayout={(e) => {
+														section_y_positions.current[i] = e.nativeEvent.layout.y;
+													}}
+												>
+													{section.header ? <Text style={[styles.section_header, { color: is_active ? colors.primary : colors.subtext }]}>{section.header}</Text> : null}
+													<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} style={{ marginHorizontal: 20 }}>
+														{section.lines.map((line, j) => (
+															<UITextView uiTextView={true} selectable={true} selectionColor={colors.primary} key={j} style={[styles.lyrics_text, { color: is_active ? colors.text : colors.subtext }]}>
+																{line + '\n'}
+																<UITextView style={{ fontSize: 7 }}>{'\n'}</UITextView>
+															</UITextView>
+														))}
+													</UITextView>
+												</View>
+											);
+										})
+									)}
 						</ScrollView>
 					</GestureDetector>
 				</MaskedView>
@@ -504,7 +511,8 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 						<Ionicons name="sync-outline" size={11} color={track_colors?.background ?? colors.primary} />
 						<Text style={[styles.sync_button_text, { color: track_colors?.background ?? colors.primary }]}>Sync</Text>
 					</Pressable>
-				) : null}
+				)
+					: null}
 			</Animated.View>
 		</Animated.View>
 	);
@@ -512,11 +520,11 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 
 export default LyricsPlayer;
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
-		lyrics_text: { color: colors.text, fontWeight: "bold", fontSize: 22, marginHorizontal: 15, marginVertical: 5 },
+		lyrics_text: { color: colors.text, fontWeight: 'bold', fontSize: 22, marginHorizontal: 15, marginVertical: 5 },
 		synced_line_wrapper: { paddingVertical: 4 },
-		section_header: { color: colors.primary, fontWeight: "800", fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2, marginHorizontal: 15 },
-		sync_button: { position: "absolute", bottom: 14, right: 12, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, zIndex: 2 },
-		sync_button_text: { fontWeight: "700", fontSize: 11 }
+		section_header: { color: colors.primary, fontWeight: '800', fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2, marginHorizontal: 15 },
+		sync_button: { position: 'absolute', bottom: 14, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, zIndex: 2 },
+		sync_button_text: { fontWeight: '700', fontSize: 11 }
 	});

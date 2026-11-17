@@ -1,17 +1,18 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from "react-native";
-import CookieManager from "react-native-nitro-cookies";
-import type { WebViewNavigation } from "react-native-webview";
-import WebView from "react-native-webview";
-import { Prefs } from "@illusive/prefs";
-import { Ionicons } from "@expo/vector-icons";
-import { Illusive } from "@illusive/illusive";
-import type { MusicServiceType, SetState } from "@illusive/types";
-import { if_confirm } from "@illusive/illusi/src/illusi_utils";
-import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import { is_empty } from "@common/utils/util";
-import usePTheme from "@hooks/usePTheme";
-import { CookieJar } from "@common/utils/cookie_util";
+import { useState } from 'react';
+import { View, StyleSheet, TouchableHighlight, Image, Text, ScrollView } from 'react-native';
+import CookieManager from 'react-native-nitro-cookies';
+import type { WebViewNavigation } from 'react-native-webview';
+import WebView from 'react-native-webview';
+import { Prefs } from '@illusive/prefs';
+import { Ionicons } from '@expo/vector-icons';
+import { Illusive } from '@illusive/illusive';
+import type { MusicServiceType, SetState } from '@illusive/types';
+import { if_confirm } from '@illusive/illusi/src/illusi_utils';
+import ExtrasSectionButton from '@components/ExtrasSectionButton';
+import { is_empty } from '@common/utils/util';
+import usePTheme from '@hooks/usePTheme';
+import { CookieJar } from '@common/utils/cookie_util';
+import { catch_log } from '@common/utils/error_util';
 
 let current_service: MusicServiceType | null = null;
 
@@ -25,24 +26,30 @@ function ServiceSwitcher(props: { service: MusicServiceType; cookies_enabled: bo
 				activeOpacity={0.6}
 				underlayColor="#FFFFFF"
 				onLongPress={() => {
-					if_confirm(`Clear ${props.service} Cookies?`, "", () => {
-						Prefs.save_pref<any>(music_service.pref_cookie_jar, new CookieJar([]));
+					if_confirm(`Clear ${props.service} Cookies?`, '', () => {
+						Prefs.save_pref<any>(music_service.pref_cookie_jar, new CookieJar([])).catch(catch_log);
 						if (music_service.web_view_url) {
-							CookieManager.clearByName(music_service.web_view_url, props.service, false);
-							CookieManager.clearByName(music_service.web_view_url, props.service, true);
+							CookieManager.clearByName(music_service.web_view_url, props.service, false).catch(catch_log);
+							CookieManager.clearByName(music_service.web_view_url, props.service, true).catch(catch_log);
 						}
-					});
+					}).catch(catch_log);
 				}}
 				onPress={() => {
 					if (props.url === null) {
 						current_service = props.service;
 						props.set_url(music_service.web_view_url);
 					} else props.set_url(null);
-				}}>
+				}}
+			>
 				<View style={styles.importfrom}>
 					<Image style={{ marginHorizontal: 12, height: 25, width: 25, borderRadius: 5 }} source={{ uri: music_service.app_icon as string }} />
-					<Text style={styles.importfromtext}>Add {props.service} Account</Text>
-					<View style={{ flex: 1, alignItems: "flex-end" }}>{props.cookies_enabled && <Ionicons name={"checkmark-sharp"} size={25} color={colors.green} style={{ right: 10 }} />}</View>
+					<Text style={styles.importfromtext}>
+						Add
+						{props.service}
+						{' '}
+						Account
+					</Text>
+					<View style={{ flex: 1, alignItems: 'flex-end' }}>{props.cookies_enabled && <Ionicons name="checkmark-sharp" size={25} color={colors.green} style={{ right: 10 }} />}</View>
 				</View>
 			</TouchableHighlight>
 			<View style={styles.line} />
@@ -51,8 +58,8 @@ function ServiceSwitcher(props: { service: MusicServiceType; cookies_enabled: bo
 }
 
 export function clear_webview_data() {
-	CookieManager.clearAll(false);
-	CookieManager.clearAll(true);
+	CookieManager.clearAll(false).catch(catch_log);
+	CookieManager.clearAll(true).catch(catch_log);
 }
 
 function default_cookies_enabled_state() {
@@ -67,7 +74,7 @@ export default function ExtraExternalServicesScreen() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const illusive_external_service: MusicServiceType[] = [...Illusive.music_service.keys()].filter((key) => Illusive.music_service.get(key)!.required_cookie_credentials.length > 0);
+	const illusive_external_service: MusicServiceType[] = [...Illusive.music_service.keys()].filter(key => Illusive.music_service.get(key)!.required_cookie_credentials.length > 0);
 	const [external_services_cookies_enabled, set_external_services_cookies_enabled] = useState<Record<MusicServiceType, boolean>>(default_cookies_enabled_state());
 
 	const [url, set_url] = useState(null as string | null);
@@ -96,7 +103,7 @@ export default function ExtraExternalServicesScreen() {
 	set_key;
 
 	return (
-		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
+		<View style={{ backgroundColor: colors.background, width: '100%', flex: 1 }}>
 			{url != null && (
 				<View style={{ height: 700 }}>
 					<WebView
@@ -105,10 +112,10 @@ export default function ExtraExternalServicesScreen() {
 						style={{ flex: 1 }}
 						javaScriptCanOpenWindowsAutomatically={true}
 						onShouldStartLoadWithRequest={(event) => {
-							if (event.url.startsWith("about:")) return false;
+							if (event.url.startsWith('about:')) return false;
 							return true;
 						}}
-						originWhitelist={["*"]}
+						originWhitelist={['*']}
 						// contentMode="mobile"
 						domStorageEnabled={true}
 						javaScriptEnabled={true}
@@ -116,9 +123,9 @@ export default function ExtraExternalServicesScreen() {
 						thirdPartyCookiesEnabled={true}
 						onNavigationStateChange={web_view_navigation_change}
 						userAgent={
-							url.includes("soundcloud")
-								? "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-								: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+							url.includes('soundcloud')
+								? 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
+								: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
 						}
 						// applicationNameForUserAgent='Illusi'
 						contentMode="mobile"
@@ -126,9 +133,9 @@ export default function ExtraExternalServicesScreen() {
 				</View>
 			)}
 			<ScrollView>
-				<ExtrasSectionButton show_arrow={false} text="Clear WebView Data" icon="trash-bin" onPress={async () => if_confirm("Clear WebView Data?", "", clear_webview_data)} />
+				<ExtrasSectionButton show_arrow={false} text="Clear WebView Data" icon="trash-bin" onPress={async () => if_confirm('Clear WebView Data?', '', clear_webview_data)} />
 				{/* { Prefs.get_pref('dev_mode') ? <ExtrasSectionButton show_arrow={false} text='Log Soundcloud Cookies' icon='accessibility' onPress={
-                    async () => 
+                    async () =>
                         alert_info(
                             Prefs
                                 .get_pref('soundcloud_cookie_jar')
@@ -145,21 +152,21 @@ export default function ExtraExternalServicesScreen() {
 		</View>
 	);
 }
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
 		importfrom: {
 			height: 45,
-			width: "100%",
+			width: '100%',
 			backgroundColor: colors.track,
-			flexDirection: "row",
-			alignItems: "center"
+			flexDirection: 'row',
+			alignItems: 'center'
 		},
 		importfromtext: {
-			color: "#FFFFFF",
+			color: '#FFFFFF',
 			fontSize: 16
 		},
 		line: {
-			width: "100%",
+			width: '100%',
 			height: 0.8,
 			backgroundColor: colors.line,
 			marginHorizontal: 10
@@ -169,6 +176,6 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			marginTop: 10,
 			marginBottom: 20,
 			marginHorizontal: 12,
-			textAlign: "left"
+			textAlign: 'left'
 		}
 	});

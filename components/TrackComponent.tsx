@@ -1,21 +1,22 @@
-import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, type DimensionValue } from "react-native";
-import type { Prefs } from "@illusive/prefs";
-import type { EditMode, Track } from "@illusive/types";
-import { play } from "@illusive/play";
-import { delete_track, insert_into_write_playlist, download_track } from "@illusive/illusi/src/components/track";
-import { Constants } from "@illusive/constants";
-import { IoniconsTouchableOpacity } from "./TouchableIconOpacity";
-import { ContextMenuView, type MenuConfig } from "./ContextMenu";
-import { is_empty } from "@common/utils/util";
-import usePTheme from "@hooks/usePTheme";
-import { GLOBALS } from "@illusive/globals";
-import { ContextResolver } from "@utils/context_resolver";
-import { reinterpret_cast } from "../lib-origin/common/cast";
-import TrackComponentBase from "./TrackComponentBase";
-import { TrackContextMenu } from "@utils/context_menu";
-import { track_downloader } from "@illusive/downloader";
-import { SQLPlaylists } from "@illusive/sql/sql_playlists";
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, type DimensionValue } from 'react-native';
+import type { Prefs } from '@illusive/prefs';
+import type { EditMode, Track } from '@illusive/types';
+import { play } from '@illusive/play';
+import { delete_track, insert_into_write_playlist, download_track } from '@illusive/illusi/src/components/track';
+import { Constants } from '@illusive/constants';
+import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
+import { ContextMenuView, type MenuConfig } from './ContextMenu';
+import { is_empty } from '@common/utils/util';
+import usePTheme from '@hooks/usePTheme';
+import { GLOBALS } from '@illusive/globals';
+import { ContextResolver } from '@utils/context_resolver';
+import { reinterpret_cast } from '../lib-origin/common/cast';
+import TrackComponentBase from './TrackComponentBase';
+import { TrackContextMenu } from '@utils/context_menu';
+import { track_downloader } from '@illusive/downloader';
+import { SQLPlaylists } from '@illusive/sql/sql_playlists';
+import { catch_log } from '@common/utils/error_util';
 
 // TODO crown top tracks
 function TrackComponent(props: {
@@ -36,21 +37,21 @@ function TrackComponent(props: {
 }) {
 	const [track_data, set_track_data] = useState(props.track_data);
 
-	const [is_downloading, set_is_downloading] = useState(GLOBALS.downloading.findIndex((item) => item.uid == props.track_data.uid) !== -1);
+	const [is_downloading, set_is_downloading] = useState(GLOBALS.downloading.findIndex(item => item.uid === props.track_data.uid) !== -1);
 	const [is_downloaded, set_is_downloaded] = useState(!is_empty(props.track_data.media_uri));
 	const [playlist_saved, set_playlist_saved] = useState(
-		props.playlist_saved ??
-			(((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
-				((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist))
+		props.playlist_saved
+		?? (((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist)
+			|| ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist))
 	);
 	const [downloading_progress, set_downloading_progress] = useState(0);
 
-	const [context_menu, set_context_menu] = useState<MenuConfig>(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ""));
+	const [context_menu, set_context_menu] = useState<MenuConfig>(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? ''));
 	const [target_view_node, set_target_view_node] = useState();
 
 	const disabled_from_write_playlist = props.write_playlist_uuid !== undefined && props.write_playlist_uuid !== Constants.library_write_playlist;
 	const notdisabled_from_write_playlist = disabled_from_write_playlist ? !is_empty(props.track_data.media_uri) : false;
-	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode !== "NONE";
+	const disabled_from_edit_mode = props.edit_mode !== undefined && props.edit_mode !== 'NONE';
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
@@ -71,7 +72,7 @@ function TrackComponent(props: {
 							clearInterval(inner_interval.current);
 							inner_interval.current = null;
 						}
-						const idx = GLOBALS.global_var.sql_tracks.findIndex((item) => item.uid === props.track_data.uid);
+						const idx = GLOBALS.global_var.sql_tracks.findIndex(item => item.uid === props.track_data.uid);
 						if (idx !== -1 && !is_empty(GLOBALS.global_var.sql_tracks[idx].media_uri)) set_is_downloaded(true);
 						return;
 					}
@@ -97,11 +98,11 @@ function TrackComponent(props: {
 				const new_track_data = { ...temp_track_data, downloading_data: { saved: true, progress: 0, playlist_saved: await SQLPlaylists.track_exists_in_playlist({ uuid: props.write_playlist_uuid, track_uid: temp_track_data.uid }) } };
 				set_track_data(new_track_data);
 				set_playlist_saved(
-					((new_track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
-						((new_track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+					((new_track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist)
+					|| ((new_track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
 				);
 			}
-		})();
+		})().catch(catch_log);
 		return () => {
 			set_target_view_node(undefined);
 		};
@@ -113,8 +114,8 @@ function TrackComponent(props: {
 		// a stale playlist_saved left icons showing another row's state.
 		if (props.playlist_saved === undefined) {
 			set_playlist_saved(
-				((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist) ||
-					((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
+				((props.track_data.downloading_data?.playlist_saved ?? false) && props.write_playlist_uuid !== Constants.library_write_playlist)
+				|| ((props.track_data.downloading_data?.saved ?? false) && props.write_playlist_uuid === Constants.library_write_playlist)
 			);
 		}
 	}, [props.track_data]);
@@ -126,9 +127,9 @@ function TrackComponent(props: {
 		if (notdisabled_from_write_playlist) {
 			const clone: Track = JSON.parse(JSON.stringify(props.track_data));
 			const track: Track = { ...clone, meta: { ...clone.meta!, begdur: clone.duration * 0.2 } };
-			GLOBALS.global_var.play_tracks(track, [track], "Write Playlist");
+			GLOBALS.global_var.play_tracks(track, [track], 'Write Playlist');
 		} else if (props.from !== undefined && props.track_callback !== undefined) {
-			play(props.track_data, props.from, props.track_callback, props.play_order);
+			play(props.track_data, props.from, props.track_callback, props.play_order).catch(catch_log);
 		}
 	}
 
@@ -140,11 +141,12 @@ function TrackComponent(props: {
 			previewConfig={{ targetViewNode: target_view_node }}
 			menuConfig={context_menu}
 			onMenuWillShow={() => {
-				set_context_menu(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? props.playlist_uuid ?? ""));
+				set_context_menu(TrackContextMenu.track_component_context_menu(props.track_data, props.write_playlist_uuid ?? props.playlist_uuid ?? ''));
 			}}
 			onPressMenuItem={async ({ nativeEvent }) => {
-				ContextResolver.resolve_track_context(props.track_data, props.write_playlist_uuid, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey));
-			}}>
+				ContextResolver.resolve_track_context(props.track_data, props.write_playlist_uuid, reinterpret_cast<ContextResolver.TrackContextKeys>(nativeEvent.actionKey)).catch(catch_log);
+			}}
+		>
 			<TrackComponentBase
 				track_data={props.track_data}
 				is_downloading={is_downloading}
@@ -156,20 +158,22 @@ function TrackComponent(props: {
 				on_press={on_press}
 				on_long_press={() => {}}
 				base_background={props.base_background}
-				replace_album_with={props.replace_album_with}>
+				replace_album_with={props.replace_album_with}
+			>
 				{props.write_playlist_uuid !== undefined && props.playlist_uuid !== Constants.library_write_playlist ? (
 					<IoniconsTouchableOpacity
 						on_press={() => {
-							insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved);
+							insert_into_write_playlist(props.track_data, props.write_playlist_uuid, playlist_saved, set_playlist_saved).catch(catch_log);
 						}}
 						style={{ ...styles.centered, paddingRight: 30 }}
-						icon_name={!playlist_saved ? "add" : "checkmark"}
+						icon_name={!playlist_saved ? 'add' : 'checkmark'}
 						icon_size={30}
 						icon_color={colors.primary}
 						icon_style={{ left: 40 }}
 					/>
-				) : null}
-				{props.edit_mode === "DOWNLOAD" && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ? (
+				)
+					: null}
+				{props.edit_mode === 'DOWNLOAD' && !is_downloaded && is_empty(props.track_data.imported_id) && !is_downloading ? (
 					<IoniconsTouchableOpacity
 						on_press={async () => download_track(props.track_data, false, is_downloading, set_is_downloading, set_is_downloaded)}
 						style={styles.centered}
@@ -178,29 +182,31 @@ function TrackComponent(props: {
 						icon_color={colors.primary}
 						icon_style={{ left: 30 }}
 					/>
-				) : null}
-				{props.edit_mode === "DELETE" && !is_downloading ? (
+				)
+					: null}
+				{props.edit_mode === 'DELETE' && !is_downloading ? (
 					<IoniconsTouchableOpacity on_press={async () => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name="trash" icon_size={30} icon_color={colors.red} icon_style={styles.else_icon} />
-				) : null}
-				{props.edit_mode === "NONE" && (props.display_plays ?? false) ? <Text style={{ color: colors.text, left: 30, fontWeight: "800", fontSize: 25, alignSelf: "center" }}>{props.track_data.meta?.plays ?? 0}</Text> : null}
+				)
+					: null}
+				{props.edit_mode === 'NONE' && (props.display_plays ?? false) ? <Text style={{ color: colors.text, left: 30, fontWeight: '800', fontSize: 25, alignSelf: 'center' }}>{props.track_data.meta?.plays ?? 0}</Text> : null}
 			</TrackComponentBase>
 		</ContextMenuView>
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
-		track_box: { width: "100%", height: 60, flexDirection: "row" },
-		image: { left: 10, height: 48, width: 52, borderRadius: 2, resizeMode: "cover" },
-		text: { width: "65%", top: 5, left: 20 },
+		track_box: { width: '100%', height: 60, flexDirection: 'row' },
+		image: { left: 10, height: 48, width: 52, borderRadius: 2, resizeMode: 'cover' },
+		text: { width: '65%', top: 5, left: 20 },
 		title: { color: colors.title, fontSize: 15 },
 		artist: { color: colors.subtext, fontSize: 14 },
 		album: { color: colors.deeptext, fontSize: 12, top: 1, marginRight: 4 },
-		line: { height: 1, backgroundColor: colors.line, width: "90%", left: 85 },
+		line: { height: 1, backgroundColor: colors.line, width: '90%', left: 85 },
 		icon_thin: { marginRight: 5 },
 		icon_thick: { marginRight: 3 },
 		else_icon: { right: 10, paddingTop: 10, paddingBottom: 10, paddingLeft: 30, paddingRight: 30 },
-		centered: { justifyContent: "center" }
+		centered: { justifyContent: 'center' }
 	});
 
 // Memoized — track rows keep their object identity in the store when unchanged,

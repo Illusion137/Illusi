@@ -59,10 +59,16 @@
   },
   "include": [
     "app/**/*.tsx",
+    "app/**/*.ts",
+    "hooks/**/*.ts",
     "hooks/**/*.tsx",
+    "screens/**/*.ts",
     "screens/**/*.tsx",
+    "components/**/*.ts",
     "components/**/*.tsx",
     "utils/**/*.ts",
+    "utils/**/*.tsx",
+    "index.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nodejs-assets/nodejs-project/main.js"

@@ -3,9 +3,9 @@
  * Uses the native react-native-ios-context-menu
  */
 
-import React from "react";
-import { ContextMenuView as NativeContextMenuView } from "react-native-ios-context-menu";
-import type { ContextMenuViewProps } from "./types";
+import type React from 'react';
+import { ContextMenuView as NativeContextMenuView } from 'react-native-ios-context-menu';
+import type { ContextMenuViewProps } from './types';
 
 export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	return (
@@ -17,11 +17,12 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 			previewConfig={props.previewConfig}
 			menuConfig={props.menuConfig as any}
 			onMenuWillShow={props.onMenuWillShow}
-			onPressMenuItem={props.onPressMenuItem as any}>
+			onPressMenuItem={props.onPressMenuItem as any}
+		>
 			{props.children}
 		</NativeContextMenuView>
 	);
 };
 
-export { ContextMenuButton } from "react-native-ios-context-menu";
-export type * from "./types";
+export { ContextMenuButton } from 'react-native-ios-context-menu';
+export type * from './types';

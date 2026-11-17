@@ -1,9 +1,9 @@
 // EqualizerCurve.tsx
-import React, { useMemo } from "react";
-import { View, StyleSheet, Text } from "react-native";
-import Svg, { Path, Circle, Defs, LinearGradient, Stop } from "react-native-svg";
-import Animated, { useAnimatedProps, withTiming } from "react-native-reanimated";
-import usePTheme from "@hooks/usePTheme";
+import { useMemo } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Animated, { useAnimatedProps, withTiming } from 'react-native-reanimated';
+import usePTheme from '@hooks/usePTheme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -17,7 +17,7 @@ interface EqualizerCurveProps {
 	max?: number;
 }
 
-export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "1KHz", "2.4KHz", "15KHz"], width = 350, height = 200, active = true, min = -12, max = 12 }: EqualizerCurveProps) {
+export default function Equalizer({ values, freqs = ['60Hz', '150Hz', '400Hz', '1KHz', '2.4KHz', '15KHz'], width = 350, height = 200, active = true, min = -12, max = 12 }: EqualizerCurveProps) {
 	const points = useMemo(() => {
 		const count = values.length;
 		const stepX = width / (count - 1);
@@ -34,7 +34,7 @@ export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "
 	const { colors } = usePTheme();
 
 	return (
-		<View style={{ alignItems: "center", backgroundColor: colors.shelf, margin: 10, borderRadius: 5, paddingBottom: 5 }}>
+		<View style={{ alignItems: 'center', backgroundColor: colors.shelf, margin: 10, borderRadius: 5, paddingBottom: 5 }}>
 			<Svg width={width} height={height}>
 				<Defs>
 					<LinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
@@ -66,7 +66,7 @@ export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "
 			{/* Frequency labels */}
 			<View style={styles.labelsRow}>
 				{freqs.map((f, i) => (
-					<View key={i} style={{ width: width / freqs.length, alignItems: "center" }}>
+					<View key={i} style={{ width: width / freqs.length, alignItems: 'center' }}>
 						<Text style={styles.label}>{f}</Text>
 					</View>
 				))}
@@ -77,7 +77,7 @@ export default function Equalizer({ values, freqs = ["60Hz", "150Hz", "400Hz", "
 }
 
 function generateSmoothPath(points: { x: number; y: number }[]) {
-	if (points.length < 2) return "";
+	if (points.length < 2) return '';
 	const d = points
 		.map((p, i, arr) => {
 			if (i === 0) return `M ${p.x},${p.y}`;
@@ -85,19 +85,19 @@ function generateSmoothPath(points: { x: number; y: number }[]) {
 			const cx = (prev.x + p.x) / 2;
 			return `C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
 		})
-		.join(" ");
+		.join(' ');
 	return d;
 }
 
 const styles = StyleSheet.create({
 	labelsRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		width: "100%",
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		width: '100%',
 		marginTop: 6
 	},
 	label: {
-		color: "#aaa",
+		color: '#aaa',
 		fontSize: 12
 	}
 });

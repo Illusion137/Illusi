@@ -1,17 +1,17 @@
-import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
-import { Prefs } from "@illusive/prefs";
-import { GLOBALS } from "@illusive/globals";
-import { download_track_lyrics } from "@illusive/downloader";
-import { loggedin_services, unsampled_tracks_service, sample_tracks_service } from "@illusive/sampler";
-import type { MusicServiceType, Track } from "@illusive/types";
-import { is_empty } from "@common/utils/util";
-import { artist_string } from "@illusive/illusive_utils";
-import { Ionicons } from "@expo/vector-icons";
-import { Illusive } from "@illusive/illusive";
-import IImage from "@components/IImage";
-import usePTheme from "@hooks/usePTheme";
-import SegmentedControl from "@react-native-segmented-control/segmented-control";
+import { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import type { Prefs } from '@illusive/prefs';
+import { GLOBALS } from '@illusive/globals';
+import { download_track_lyrics } from '@illusive/downloader';
+import { loggedin_services, unsampled_tracks_service, sample_tracks_service } from '@illusive/sampler';
+import type { MusicServiceType, Track } from '@illusive/types';
+import { is_empty } from '@common/utils/util';
+import { artist_string } from '@illusive/illusive_utils';
+import { Ionicons } from '@expo/vector-icons';
+import { Illusive } from '@illusive/illusive';
+import IImage from '@components/IImage';
+import usePTheme from '@hooks/usePTheme';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
 const CHUNK_SIZE = 10;
 
@@ -21,7 +21,7 @@ function chunk_array<T>(arr: T[], size: number): T[][] {
 	return chunks;
 }
 
-type BatchProgress = { done: number; total: number };
+interface BatchProgress { done: number; total: number }
 
 export default function ExtraTrackSamplerScreen() {
 	const { colors } = usePTheme();
@@ -40,7 +40,7 @@ export default function ExtraTrackSamplerScreen() {
 	const [service_progress, set_service_progress] = useState<BatchProgress | null>(null);
 
 	// Derived track lists
-	const unlyrics_tracks = GLOBALS.global_var.sql_tracks.filter((t) => is_empty(t.lyrics_uri) && !lyrics_done_uids.has(t.uid));
+	const unlyrics_tracks = GLOBALS.global_var.sql_tracks.filter(t => is_empty(t.lyrics_uri) && !lyrics_done_uids.has(t.uid));
 
 	const logged_in_services = loggedin_services().filter((s) => {
 		const ms = Illusive.music_service.get(s);
@@ -51,7 +51,7 @@ export default function ExtraTrackSamplerScreen() {
 
 	async function fetch_all_lyrics() {
 		if (lyrics_running) return;
-		const tracks = GLOBALS.global_var.sql_tracks.filter((t) => is_empty(t.lyrics_uri));
+		const tracks = GLOBALS.global_var.sql_tracks.filter(t => is_empty(t.lyrics_uri));
 		if (tracks.length === 0) return;
 		set_lyrics_running(true);
 		set_lyrics_progress({ done: 0, total: tracks.length });
@@ -63,18 +63,18 @@ export default function ExtraTrackSamplerScreen() {
 			} catch (_) {}
 			set_lyrics_progress({ done: i + 1, total: tracks.length });
 		}
-		set_lyrics_done_uids((prev) => new Set([...prev, ...done_uids]));
+		set_lyrics_done_uids(prev => new Set([...prev, ...done_uids]));
 		set_lyrics_running(false);
 		set_lyrics_progress(null);
-		GLOBALS.global_var.bottom_alert(`Fetched lyrics for ${done_uids.length} track${done_uids.length !== 1 ? "s" : ""}`, "GOOD");
+		GLOBALS.global_var.bottom_alert(`Fetched lyrics for ${done_uids.length} track${done_uids.length !== 1 ? 's' : ''}`, 'GOOD');
 	}
 
 	async function fetch_single_lyrics(track: Track) {
 		if (lyrics_single_running.has(track.uid)) return;
-		set_lyrics_single_running((prev) => new Set([...prev, track.uid]));
+		set_lyrics_single_running(prev => new Set([...prev, track.uid]));
 		try {
 			await download_track_lyrics(track);
-			set_lyrics_done_uids((prev) => new Set([...prev, track.uid]));
+			set_lyrics_done_uids(prev => new Set([...prev, track.uid]));
 		} catch (_) {}
 		set_lyrics_single_running((prev) => {
 			const n = new Set(prev);
@@ -102,7 +102,7 @@ export default function ExtraTrackSamplerScreen() {
 		}
 		set_service_running(null);
 		set_service_progress(null);
-		GLOBALS.global_var.bottom_alert(`Converted ${done} track${done !== 1 ? "s" : ""} to ${service}`, "GOOD");
+		GLOBALS.global_var.bottom_alert(`Converted ${done} track${done !== 1 ? 's' : ''} to ${service}`, 'GOOD');
 	}
 
 	// ─── Render helpers ───────────────────────────────────────────
@@ -145,7 +145,12 @@ export default function ExtraTrackSamplerScreen() {
 				<View style={styles.tab_action_row}>
 					<View style={{ flex: 1 }}>
 						<Text style={styles.count_label}>
-							{unlyrics_tracks.length} track{unlyrics_tracks.length !== 1 ? "s" : ""} without lyrics
+							{unlyrics_tracks.length}
+							{' '}
+							track
+							{unlyrics_tracks.length !== 1 ? 's' : ''}
+							{' '}
+							without lyrics
 						</Text>
 						{lyrics_progress && (
 							<View style={styles.progress_bar_bg}>
@@ -156,21 +161,22 @@ export default function ExtraTrackSamplerScreen() {
 					<TouchableOpacity
 						onPress={fetch_all_lyrics}
 						disabled={lyrics_running || unlyrics_tracks.length === 0}
-						style={[styles.action_btn, { backgroundColor: unlyrics_tracks.length > 0 && !lyrics_running ? colors.primary : colors.shelf }]}>
-						{lyrics_running ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={[styles.action_btn_text, { color: unlyrics_tracks.length > 0 ? "#fff" : colors.subtext }]}>Fetch All</Text>}
+						style={[styles.action_btn, { backgroundColor: unlyrics_tracks.length > 0 && !lyrics_running ? colors.primary : colors.shelf }]}
+					>
+						{lyrics_running ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={[styles.action_btn_text, { color: unlyrics_tracks.length > 0 ? '#fff' : colors.subtext }]}>Fetch All</Text>}
 					</TouchableOpacity>
 				</View>
 				<FlatList
 					data={unlyrics_tracks}
-					keyExtractor={(t) => t.uid}
+					keyExtractor={t => t.uid}
 					renderItem={render_track_row_lyrics}
 					contentContainerStyle={{ paddingBottom: 32 }}
-					ListEmptyComponent={
+					ListEmptyComponent={(
 						<View style={styles.empty_state}>
 							<Ionicons name="checkmark-circle-outline" size={48} color={colors.green} />
 							<Text style={styles.empty_label}>All tracks have lyrics</Text>
 						</View>
-					}
+					)}
 				/>
 			</>
 		);
@@ -190,7 +196,7 @@ export default function ExtraTrackSamplerScreen() {
 		return (
 			<FlatList
 				data={logged_in_services}
-				keyExtractor={(s) => s}
+				keyExtractor={s => s}
 				contentContainerStyle={{ padding: 14, gap: 10, paddingBottom: 32 }}
 				renderItem={({ item: service }) => {
 					const ms = Illusive.music_service.get(service)!;
@@ -200,12 +206,17 @@ export default function ExtraTrackSamplerScreen() {
 
 					return (
 						<View style={styles.service_card}>
-							<View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
 								<IImage source={ms.app_icon} width={40} style={{ width: 40, height: 40, borderRadius: 10 }} />
 								<View style={{ flex: 1 }}>
 									<Text style={styles.service_name}>{service}</Text>
 									<Text style={styles.service_count}>
-										{unsampled.length} track{unsampled.length !== 1 ? "s" : ""} to convert
+										{unsampled.length}
+										{' '}
+										track
+										{unsampled.length !== 1 ? 's' : ''}
+										{' '}
+										to convert
 									</Text>
 									{is_this_running && service_progress && (
 										<View style={[styles.progress_bar_bg, { marginTop: 6 }]}>
@@ -217,8 +228,9 @@ export default function ExtraTrackSamplerScreen() {
 							<TouchableOpacity
 								onPress={() => convert_service(service)}
 								disabled={unsampled.length === 0 || is_this_running || is_other_running}
-								style={[styles.small_btn, { backgroundColor: unsampled.length > 0 && !is_this_running && !is_other_running ? colors.primary : colors.shelf }]}>
-								{is_this_running ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={[styles.small_btn_text, { color: unsampled.length > 0 && !is_other_running ? "#fff" : colors.subtext }]}>Convert</Text>}
+								style={[styles.small_btn, { backgroundColor: unsampled.length > 0 && !is_this_running && !is_other_running ? colors.primary : colors.shelf }]}
+							>
+								{is_this_running ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={[styles.small_btn_text, { color: unsampled.length > 0 && !is_other_running ? '#fff' : colors.subtext }]}>Convert</Text>}
 							</TouchableOpacity>
 						</View>
 					);
@@ -230,11 +242,11 @@ export default function ExtraTrackSamplerScreen() {
 	return (
 		<View style={{ backgroundColor: colors.background, flex: 1 }}>
 			<SegmentedControl
-				values={["Lyrics", "Services"]}
+				values={['Lyrics', 'Services']}
 				selectedIndex={tab_index}
 				fontStyle={{ color: colors.text }}
 				activeFontStyle={{ color: colors.primary }}
-				onChange={(e) => set_tab_index(e.nativeEvent.selectedSegmentIndex as 0 | 1)}
+				onChange={e => set_tab_index(e.nativeEvent.selectedSegmentIndex as 0 | 1)}
 				style={{ marginHorizontal: 14, marginTop: 12, marginBottom: 4 }}
 			/>
 			{tab_index === 0 && render_lyrics_tab()}
@@ -243,23 +255,23 @@ export default function ExtraTrackSamplerScreen() {
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
-		tab_action_row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
-		count_label: { color: colors.subtext, fontSize: 13, fontWeight: "500" },
-		progress_bar_bg: { height: 4, backgroundColor: colors.track, borderRadius: 2, marginTop: 6, overflow: "hidden" },
+		tab_action_row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
+		count_label: { color: colors.subtext, fontSize: 13, fontWeight: '500' },
+		progress_bar_bg: { height: 4, backgroundColor: colors.track, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
 		progress_bar_fill: { height: 4, borderRadius: 2 },
-		action_btn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, minWidth: 96, alignItems: "center", justifyContent: "center" },
-		action_btn_text: { fontSize: 14, fontWeight: "700" },
-		track_row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
-		track_title: { color: colors.text, fontSize: 14, fontWeight: "600" },
+		action_btn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, minWidth: 96, alignItems: 'center', justifyContent: 'center' },
+		action_btn_text: { fontSize: 14, fontWeight: '700' },
+		track_row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
+		track_title: { color: colors.text, fontSize: 14, fontWeight: '600' },
 		track_artist: { color: colors.subtext, fontSize: 12, marginTop: 2 },
-		artwork_ph: { backgroundColor: colors.shelf, borderRadius: 8, justifyContent: "center", alignItems: "center" },
-		small_btn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, minWidth: 68, alignItems: "center", justifyContent: "center" },
-		small_btn_text: { fontSize: 13, fontWeight: "600" },
-		service_card: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.shelf, borderRadius: 14, padding: 14 },
-		service_name: { color: colors.text, fontSize: 15, fontWeight: "700" },
+		artwork_ph: { backgroundColor: colors.shelf, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+		small_btn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, minWidth: 68, alignItems: 'center', justifyContent: 'center' },
+		small_btn_text: { fontSize: 13, fontWeight: '600' },
+		service_card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.shelf, borderRadius: 14, padding: 14 },
+		service_name: { color: colors.text, fontSize: 15, fontWeight: '700' },
 		service_count: { color: colors.subtext, fontSize: 13, marginTop: 2 },
-		empty_state: { flex: 1, justifyContent: "center", alignItems: "center", paddingTop: 60, paddingHorizontal: 32 },
-		empty_label: { color: colors.subtext, fontSize: 14, textAlign: "center" }
+		empty_state: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
+		empty_label: { color: colors.subtext, fontSize: 14, textAlign: 'center' }
 	});

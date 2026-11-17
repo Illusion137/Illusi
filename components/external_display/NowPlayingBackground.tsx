@@ -1,11 +1,11 @@
-import usePTheme from "@hooks/usePTheme";
-import useTrackColors from "@hooks/useTrackColors";
-import type { Track } from "@illusive/types";
-import { BlurView } from "expo-blur";
-import { useEffect, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
-import Animated, { cancelAnimation, Easing, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import usePTheme from '@hooks/usePTheme';
+import useTrackColors from '@hooks/useTrackColors';
+import type { Track } from '@illusive/types';
+import { BlurView } from 'expo-blur';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 interface NowPlayingBackgroundProps {
 	track: Track | undefined;
@@ -62,7 +62,7 @@ function Blob({ config, active }: { config: BlobConfig; active: boolean }) {
 
 	return (
 		<Animated.View
-			style={[{ position: "absolute", width: config.size, height: config.size, borderRadius: config.size / 2, backgroundColor: config.color, opacity: config.opacity, left: -config.size / 2, top: -config.size / 2 }, animated_style]}
+			style={[{ position: 'absolute', width: config.size, height: config.size, borderRadius: config.size / 2, backgroundColor: config.color, opacity: config.opacity, left: -config.size / 2, top: -config.size / 2 }, animated_style]}
 		/>
 	);
 }
@@ -112,7 +112,7 @@ export default function NowPlayingBackground({ track, width, height, active }: N
 	}, [track_colors?.primary, track_colors?.secondary, track_colors?.detail, width, height, colors]);
 
 	return (
-		<View style={[StyleSheet.absoluteFill, { backgroundColor: base_color, overflow: "hidden" }]}>
+		<View style={[StyleSheet.absoluteFill, { backgroundColor: base_color, overflow: 'hidden' }]}>
 			{blobs.map((config, i) => (
 				<Blob key={i} config={config} active={active} />
 			))}
@@ -129,7 +129,7 @@ export default function NowPlayingBackground({ track, width, height, active }: N
 						<Stop offset="1" stopColor="#000000" stopOpacity="0.62" />
 					</RadialGradient>
 				</Defs>
-				<Rect x="0" y="0" width={width} height={height} fill="url(#np_vignette)" />
+				<Rect width={width} height={height} fill="url(#np_vignette)" />
 			</Svg>
 		</View>
 	);

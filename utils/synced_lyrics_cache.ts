@@ -1,7 +1,7 @@
-import type { Lyrics } from "@illusive/lyrics";
-import type { Track } from "@illusive/types";
-import { player_queue_tracks } from "@utils/player_queue";
-import { has_synced_lyrics, read_synced_lyrics } from "@utils/track_lyrics";
+import type { Lyrics } from '@illusive/lyrics';
+import type { Track } from '@illusive/types';
+import { player_queue_tracks } from '@utils/player_queue';
+import { has_synced_lyrics, read_synced_lyrics } from '@utils/track_lyrics';
 
 const INTRO_MARKER_GAP_SECONDS = 2;
 
@@ -15,7 +15,7 @@ export function find_current_line_idx(synced_lyrics: Lyrics.SyncedLyric[], posit
 // Prepend a "♪" line when the song has a long intro before the first lyric.
 export function with_intro_marker(synced_lyrics: Lyrics.SyncedLyric[]): Lyrics.SyncedLyric[] {
 	if (synced_lyrics.length > 0 && synced_lyrics[0].interval.from > INTRO_MARKER_GAP_SECONDS) {
-		return [{ text: "♪", interval: { from: 0 } }, ...synced_lyrics];
+		return [{ text: '♪', interval: { from: 0 } }, ...synced_lyrics];
 	}
 	return synced_lyrics;
 }
@@ -30,7 +30,7 @@ const in_flight = new Map<string, Promise<CacheEntry>>();
 // Key on the lyrics uri too so a track that gets synced lyrics added later isn't
 // permanently cached as "none".
 function cache_key(track: Track): string {
-	return `${track.uid}|${track.lyrics_uri ?? ""}|${track.sync_status ?? ""}`;
+	return `${track.uid}|${track.lyrics_uri ?? ''}|${track.sync_status ?? ''}`;
 }
 
 function remember(key: string, entry: CacheEntry) {
@@ -86,7 +86,7 @@ export function preload_synced_lyrics(track: Track | undefined) {
 export function preload_neighbor_lyrics(current_track: Track | undefined) {
 	if (!current_track) return;
 	const tracks = player_queue_tracks();
-	const idx = tracks.findIndex((track) => track.uid === current_track.uid);
+	const idx = tracks.findIndex(track => track.uid === current_track.uid);
 	if (idx === -1) return;
 	preload_synced_lyrics(tracks[idx - 1]);
 	preload_synced_lyrics(tracks[idx + 1]);

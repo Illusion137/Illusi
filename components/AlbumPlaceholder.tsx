@@ -1,13 +1,13 @@
-import { Animated, View } from "react-native";
-import { createRef, useEffect } from "react";
-import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
-import { LinearGradient } from "expo-linear-gradient";
-import usePTheme from "@hooks/usePTheme";
-import useDimensions from "@hooks/useDimensions";
+import { Animated, View } from 'react-native';
+import { createRef, useEffect } from 'react';
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
+import { LinearGradient } from 'expo-linear-gradient';
+import usePTheme from '@hooks/usePTheme';
+import useDimensions from '@hooks/useDimensions';
 
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 export default function AlbumPlaceholder(props: { size?: number }) {
-	const shimmer_colors = ["#ffffff", "#969696", "#ffffff"];
+	const shimmer_colors = ['#ffffff', '#969696', '#ffffff'];
 	const { width } = useDimensions();
 	const size = props.size ?? width * 0.4;
 	const { colors } = usePTheme();
@@ -25,7 +25,7 @@ export default function AlbumPlaceholder(props: { size?: number }) {
 		<View style={{ padding: 5 }}>
 			<ShimmerPlaceholder style={{ width: size, height: size, borderRadius: 2, borderWidth: 1, borderColor: colors.line, opacity: 0.5 }} ref={thumbnail_ref} shimmerColors={shimmer_colors} />
 			<View style={{ width: size }}>
-				<ShimmerPlaceholder style={{ color: colors.text, fontWeight: "bold", fontSize: 14, paddingTop: 5, width: size, opacity: 0.5 }} ref={title_ref} shimmerColors={shimmer_colors} />
+				<ShimmerPlaceholder style={{ color: colors.text, fontWeight: 'bold', fontSize: 14, paddingTop: 5, width: size, opacity: 0.5 }} ref={title_ref} shimmerColors={shimmer_colors} />
 				<ShimmerPlaceholder style={{ color: colors.subtext, fontSize: 12, top: 1, width: size, opacity: 0.5 }} ref={subtitle_ref} shimmerColors={shimmer_colors} />
 			</View>
 		</View>

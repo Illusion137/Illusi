@@ -1,17 +1,17 @@
-import { gen_uuid } from "@common/utils/util";
-import { SQLGlobal } from "@illusive/sql/sql_global";
-import { subscribe_track_player_queue_modified } from "@illusive/track_player_service";
-import type { Track } from "@illusive/types";
-import { useEffect, useState } from "react";
-import { View } from "react-native";
-import { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
-import { active_track, player_queue_track } from "@utils/player_queue";
-import { has_synced_lyrics } from "@utils/track_lyrics";
-import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import ExternalSyncedLyrics from "./ExternalSyncedLyrics";
-import IdleWanderingTracks from "./IdleWanderingTracks";
-import NowPlayingBackground from "./NowPlayingBackground";
-import NowPlayingContent from "./NowPlayingContent";
+import { gen_uuid } from '@common/utils/util';
+import { SQLGlobal } from '@illusive/sql/sql_global';
+import { subscribe_track_player_queue_modified } from '@illusive/track_player_service';
+import type { Track } from '@illusive/types';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { Event, State, useTrackPlayerEvents } from 'react-native-everything-player';
+import { active_track, player_queue_track } from '@utils/player_queue';
+import { has_synced_lyrics } from '@utils/track_lyrics';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import ExternalSyncedLyrics from './ExternalSyncedLyrics';
+import IdleWanderingTracks from './IdleWanderingTracks';
+import NowPlayingBackground from './NowPlayingBackground';
+import NowPlayingContent from './NowPlayingContent';
 
 interface ExternalDisplayContentProps {
 	width: number;
@@ -102,32 +102,35 @@ export default function ExternalDisplayContent({ width, height }: ExternalDispla
 	const lyrics_layer_style = useAnimatedStyle(() => ({ opacity: synced_progress.value, transform: [{ translateX: interpolate(synced_progress.value, [0, 1], [width * 0.5, 0], Extrapolation.CLAMP) }] }));
 
 	return (
-		<View style={{ width, height, overflow: "hidden" }}>
+		<View style={{ width, height, overflow: 'hidden' }}>
 			{/* SCREEN 1 — idle wandering tracks */}
 			{mount_idle ? (
-				<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, width, height }, idle_layer_style]}>
+				<Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, width, height }, idle_layer_style]}>
 					<IdleWanderingTracks width={width} height={height} active={is_idle} />
 				</Animated.View>
-			) : null}
+			)
+				: null}
 
 			{/* SCREEN 2 / 3 — now-playing background + content (shifts left when synced lyrics show) */}
 			{mount_playing ? (
 				<>
-					<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, width, height }, playing_layer_style]}>
+					<Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, width, height }, playing_layer_style]}>
 						<NowPlayingBackground track={playing_track} width={width} height={height} active={!is_idle} />
 					</Animated.View>
-					<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, width, height, alignItems: "center", justifyContent: "center" }, playing_layer_style, now_playing_content_style]}>
+					<Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, width, height, alignItems: 'center', justifyContent: 'center' }, playing_layer_style, now_playing_content_style]}>
 						<NowPlayingContent track={playing_track} width={width} height={height} />
 					</Animated.View>
 				</>
-			) : null}
+			)
+				: null}
 
 			{/* SCREEN 3 — synced lyrics on the right half */}
 			{mount_synced ? (
-				<Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, right: 0, width: width * 0.5, height }, lyrics_layer_style]}>
+				<Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, right: 0, width: width * 0.5, height }, lyrics_layer_style]}>
 					<ExternalSyncedLyrics track={playing_track} width={width * 0.5} height={height} />
 				</Animated.View>
-			) : null}
+			)
+				: null}
 		</View>
 	);
 }

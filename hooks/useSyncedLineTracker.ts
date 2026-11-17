@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-import type { Lyrics } from "@illusive/lyrics";
-import { find_current_line_idx } from "@utils/synced_lyrics_cache";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { runOnJS, runOnUI, useFrameCallback, useSharedValue, type SharedValue } from "react-native-reanimated";
-import EverythingPlayer, { Event, State, useTrackPlayerEvents } from "react-native-everything-player";
+import type { Lyrics } from '@illusive/lyrics';
+import { find_current_line_idx } from '@utils/synced_lyrics_cache';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { runOnJS, runOnUI, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import EverythingPlayer, { Event, State, useTrackPlayerEvents } from 'react-native-everything-player';
 
 const MIN_LINE_DWELL_MS = 200;
 const SEEK_JUMP_LINES = 4;
@@ -32,12 +32,12 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 	const [window_center, set_window_center] = useState(0);
 
 	const active_line_sv = useSharedValue(0);
-	const lyric_times_sv = useSharedValue<number[]>([]);   // interval.from values only
-	const anchor_pos_sv = useSharedValue(0);               // playhead position at the last anchor (seconds)
-	const anchor_wall_ts_sv = useSharedValue(0);           // Date.now() at the last anchor (ms)
-	const line_activated_at_sv = useSharedValue(0);        // Date.now() when the current line became active
+	const lyric_times_sv = useSharedValue<number[]>([]); // interval.from values only
+	const anchor_pos_sv = useSharedValue(0); // playhead position at the last anchor (seconds)
+	const anchor_wall_ts_sv = useSharedValue(0); // Date.now() at the last anchor (ms)
+	const line_activated_at_sv = useSharedValue(0); // Date.now() when the current line became active
 	const playing_sv = useSharedValue(true);
-	const force_snap_sv = useSharedValue(false);           // set by anchor/resync to snap next frame
+	const force_snap_sv = useSharedValue(false); // set by anchor/resync to snap next frame
 
 	const synced_ref = useRef<Lyrics.SyncedLyric[] | null>(null);
 	const current_line_idx_ref = useRef(0);
@@ -64,7 +64,7 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 	}, []);
 
 	const frame_controller = useFrameCallback(() => {
-		"worklet";
+		'worklet';
 		const times = lyric_times_sv.value;
 		if (times.length === 0) return;
 
@@ -77,8 +77,7 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 		let lo = 0, hi = times.length - 1, target = 0;
 		while (lo <= hi) {
 			const mid = (lo + hi) >> 1;
-			if (times[mid] <= estimated) { target = mid; lo = mid + 1; }
-			else hi = mid - 1;
+			if (times[mid] <= estimated) { target = mid; lo = mid + 1; } else hi = mid - 1;
 		}
 
 		const current = active_line_sv.value;
@@ -155,7 +154,7 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 			return;
 		}
 		runOnUI(() => {
-			"worklet";
+			'worklet';
 			anchor_pos_sv.value = position;
 			anchor_wall_ts_sv.value = called_at;
 			force_snap_sv.value = true;
@@ -165,7 +164,7 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 	function begin(synced: Lyrics.SyncedLyric[], position: number) {
 		const token = ++token_ref.current;
 		const idx = find_current_line_idx(synced, position);
-		const times = synced.map((l) => l.interval.from);
+		const times = synced.map(l => l.interval.from);
 		const now = Date.now();
 
 		synced_ref.current = synced;
@@ -177,7 +176,7 @@ export function useSyncedLineTracker({ enabled, on_active_line }: UseSyncedLineT
 		active_line_sv.value = idx;
 
 		runOnUI(() => {
-			"worklet";
+			'worklet';
 			anchor_pos_sv.value = position;
 			anchor_wall_ts_sv.value = now;
 			line_activated_at_sv.value = now;

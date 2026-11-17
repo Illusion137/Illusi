@@ -1,59 +1,59 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Prefs } from "@illusive/prefs";
-import { is_empty } from "@common/utils/util";
-import { Ionicons } from "@expo/vector-icons";
-import usePTheme from "@hooks/usePTheme";
-import { GLOBALS } from "@illusive/globals";
+import { useState } from 'react';
+import { View, StyleSheet, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Prefs } from '@illusive/prefs';
+import { is_empty } from '@common/utils/util';
+import { Ionicons } from '@expo/vector-icons';
+import usePTheme from '@hooks/usePTheme';
+import { GLOBALS } from '@illusive/globals';
 
-const DISCORD_BLUE = "#5865F2";
+const DISCORD_BLUE = '#5865F2';
 
 export default function ExtraDiscordIntegrationScreen() {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
 
-	const [webhook_url, set_webhook_url] = useState<string>(Prefs.get_pref("discord_webhook_url") ?? "");
-	const [is_connected, set_is_connected] = useState<boolean>(!is_empty(Prefs.get_pref("discord_webhook_url")));
+	const [webhook_url, set_webhook_url] = useState<string>(Prefs.get_pref('discord_webhook_url') ?? '');
+	const [is_connected, set_is_connected] = useState<boolean>(!is_empty(Prefs.get_pref('discord_webhook_url')));
 	const [is_testing, set_is_testing] = useState<boolean>(false);
 
 	async function save_webhook(url: string) {
 		const trimmed = url.trim();
-		await Prefs.save_pref("discord_webhook_url", trimmed);
+		await Prefs.save_pref('discord_webhook_url', trimmed);
 		set_is_connected(!is_empty(trimmed));
 	}
 
 	async function clear_webhook() {
-		set_webhook_url("");
-		await save_webhook("");
+		set_webhook_url('');
+		await save_webhook('');
 	}
 
 	async function test_webhook() {
 		if (!is_connected || is_testing) return;
 		set_is_testing(true);
 		try {
-			const url = Prefs.get_pref("discord_webhook_url");
+			const url = Prefs.get_pref('discord_webhook_url');
 			if (is_empty(url)) return;
 			const response = await fetch(url, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ content: "Illusi webhook test ✓" })
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ content: 'Illusi webhook test ✓' })
 			});
 			GLOBALS.global_var.bottom_alert(
-				response.ok ? "Webhook test successful" : `Webhook failed: ${response.status}`,
-				response.ok ? "GOOD" : "ERROR"
+				response.ok ? 'Webhook test successful' : `Webhook failed: ${response.status}`,
+				response.ok ? 'GOOD' : 'ERROR'
 			);
 		} catch (e: any) {
-			GLOBALS.global_var.bottom_alert(`Webhook error: ${e?.message ?? "Unknown error"}`, "ERROR");
+			GLOBALS.global_var.bottom_alert(`Webhook error: ${e?.message ?? 'Unknown error'}`, 'ERROR');
 		} finally {
 			set_is_testing(false);
 		}
 	}
 
 	const capabilities = [
-		"Post the currently playing track to a channel",
-		"Announce when you skip or pause",
-		"Share track artwork and metadata with your server",
-		"Control playback from Discord slash commands"
+		'Post the currently playing track to a channel',
+		'Announce when you skip or pause',
+		'Share track artwork and metadata with your server',
+		'Control playback from Discord slash commands'
 	];
 
 	return (
@@ -61,7 +61,7 @@ export default function ExtraDiscordIntegrationScreen() {
 			<ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
 
 				{/* Header card */}
-				<View style={[styles.card, { alignItems: "center", paddingVertical: 24 }]}>
+				<View style={[styles.card, { alignItems: 'center', paddingVertical: 24 }]}>
 					<Ionicons name="logo-discord" size={52} color={DISCORD_BLUE} />
 					<Text style={styles.header_title}>Discord Integration</Text>
 					<Text style={styles.header_subtitle}>Connect Illusi to a Discord channel via Webhook to share what you're listening to.</Text>
@@ -94,11 +94,11 @@ export default function ExtraDiscordIntegrationScreen() {
 				<View style={styles.status_row}>
 					<View style={[styles.status_dot, { backgroundColor: is_connected ? colors.green : colors.subtext }]} />
 					<Text style={[styles.status_text, { color: is_connected ? colors.green : colors.subtext }]}>
-						{is_connected ? "Connected" : "Not configured"}
+						{is_connected ? 'Connected' : 'Not configured'}
 					</Text>
 					{is_connected && (
 						<Text style={styles.url_preview} numberOfLines={1}>
-							{Prefs.get_pref("discord_webhook_url")}
+							{Prefs.get_pref('discord_webhook_url')}
 						</Text>
 					)}
 				</View>
@@ -108,7 +108,10 @@ export default function ExtraDiscordIntegrationScreen() {
 					<Text style={styles.section_title}>What can you do?</Text>
 					<View style={styles.divider} />
 					{capabilities.map((cap, i) => (
-						<Text key={i} style={styles.bullet}>• {cap}</Text>
+						<Text key={i} style={styles.bullet}>
+							•
+							{cap}
+						</Text>
 					))}
 				</View>
 
@@ -116,11 +119,11 @@ export default function ExtraDiscordIntegrationScreen() {
 				<TouchableOpacity
 					onPress={test_webhook}
 					disabled={!is_connected || is_testing}
-					style={[styles.test_btn, { backgroundColor: is_connected ? DISCORD_BLUE : colors.shelf }]}>
+					style={[styles.test_btn, { backgroundColor: is_connected ? DISCORD_BLUE : colors.shelf }]}
+				>
 					{is_testing
-						? <ActivityIndicator color={is_connected ? "#fff" : colors.subtext} />
-						: <Text style={[styles.test_btn_text, { color: is_connected ? "#fff" : colors.subtext }]}>Test Webhook</Text>
-					}
+						? <ActivityIndicator color={is_connected ? '#fff' : colors.subtext} />
+						: <Text style={[styles.test_btn_text, { color: is_connected ? '#fff' : colors.subtext }]}>Test Webhook</Text>}
 				</TouchableOpacity>
 
 			</ScrollView>
@@ -128,7 +131,7 @@ export default function ExtraDiscordIntegrationScreen() {
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({
 	card: {
 		marginHorizontal: 14,
 		marginTop: 16,
@@ -139,27 +142,27 @@ const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
 	header_title: {
 		color: colors.text,
 		fontSize: 20,
-		fontWeight: "700",
+		fontWeight: '700',
 		marginTop: 12,
-		textAlign: "center"
+		textAlign: 'center'
 	},
 	header_subtitle: {
 		color: colors.subtext,
 		fontSize: 13,
 		marginTop: 8,
-		textAlign: "center",
+		textAlign: 'center',
 		lineHeight: 18
 	},
 	label: {
 		color: colors.subtext,
 		fontSize: 11,
-		fontWeight: "600",
+		fontWeight: '600',
 		letterSpacing: 0.8,
 		marginBottom: 8
 	},
 	input_row: {
-		flexDirection: "row",
-		alignItems: "center",
+		flexDirection: 'row',
+		alignItems: 'center',
 		backgroundColor: colors.background,
 		borderRadius: 10,
 		borderWidth: 1,
@@ -172,8 +175,8 @@ const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
 		fontSize: 13
 	},
 	status_row: {
-		flexDirection: "row",
-		alignItems: "center",
+		flexDirection: 'row',
+		alignItems: 'center',
 		marginHorizontal: 14,
 		marginTop: 12,
 		gap: 8
@@ -185,7 +188,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
 	},
 	status_text: {
 		fontSize: 13,
-		fontWeight: "600"
+		fontWeight: '600'
 	},
 	url_preview: {
 		flex: 1,
@@ -195,7 +198,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
 	section_title: {
 		color: colors.primary,
 		fontSize: 15,
-		fontWeight: "600",
+		fontWeight: '600',
 		marginBottom: 10
 	},
 	divider: {
@@ -213,10 +216,10 @@ const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({
 		marginHorizontal: 14,
 		marginTop: 20,
 		paddingVertical: 14,
-		alignItems: "center"
+		alignItems: 'center'
 	},
 	test_btn_text: {
-		fontWeight: "600",
+		fontWeight: '600',
 		fontSize: 15
 	}
 });

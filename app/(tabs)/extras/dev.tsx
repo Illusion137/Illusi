@@ -1,45 +1,46 @@
-import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Alert } from "react-native";
-import { useCallback, useEffect, useState } from "react";
-import { Prefs } from "@illusive/prefs";
-import { SQLTracks } from "@illusive/sql/sql_tracks";
-import { SQLDev } from "@illusive/sql/sql_dev";
-import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system/legacy";
-import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import { if_confirm } from "@illusive/illusi/src/illusi_utils";
-import usePTheme from "@hooks/usePTheme";
-import { SyncEngine } from "@illusive/db/sync/sync_engine";
-import { mmkv } from "@native/mmkv/mmkv";
-import { check_and_apply_update, clear_quarantine, force_update_to_latest, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from "@utils/ota_update";
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import type { Prefs } from '@illusive/prefs';
+import { SQLTracks } from '@illusive/sql/sql_tracks';
+import { SQLDev } from '@illusive/sql/sql_dev';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import ExtrasSectionButton from '@components/ExtrasSectionButton';
+import { if_confirm } from '@illusive/illusi/src/illusi_utils';
+import usePTheme from '@hooks/usePTheme';
+import { SyncEngine } from '@illusive/db/sync/sync_engine';
+import { mmkv } from '@native/mmkv/mmkv';
+import { check_and_apply_update, clear_quarantine, force_update_to_latest, get_ota_diagnostics, list_remote_bundles, rollback_update, wipe_ota_clone, type OTADiagnostics, type OTARemoteBundle } from '@utils/ota_update';
+import { catch_log } from '@common/utils/error_util';
 
 function format_mtime(mtime: number | null): string {
-	return mtime === null ? "none" : new Date(mtime).toLocaleString();
+	return mtime === null ? 'none' : new Date(mtime).toLocaleString();
 }
 
 function OTASection() {
 	const { colors } = usePTheme();
 	const [diagnostics, set_diagnostics] = useState<OTADiagnostics | null>(null);
 	const [remote_bundles, set_remote_bundles] = useState<OTARemoteBundle[] | null>(null);
-	const [remote_error, set_remote_error] = useState("");
+	const [remote_error, set_remote_error] = useState('');
 
 	const refresh = useCallback(() => {
 		get_ota_diagnostics()
 			.then(set_diagnostics)
 			.catch(() => set_diagnostics(null));
-		set_remote_error("");
+		set_remote_error('');
 		set_remote_bundles(null);
 		list_remote_bundles()
 			.then(set_remote_bundles)
-			.catch((e) => set_remote_error(String(e)));
+			.catch(e => set_remote_error(String(e)));
 	}, []);
 	useEffect(() => {
 		refresh();
 	}, [refresh]);
 
 	const row = (label: string, value: string) => (
-		<View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 3 }}>
+		<View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 3 }}>
 			<Text style={{ color: colors.subtext, fontSize: 13 }}>{label}</Text>
-			<Text style={{ color: colors.text, fontSize: 13, flexShrink: 1, textAlign: "right" }} numberOfLines={1}>
+			<Text style={{ color: colors.text, fontSize: 13, flexShrink: 1, textAlign: 'right' }} numberOfLines={1}>
 				{value}
 			</Text>
 		</View>
@@ -47,32 +48,34 @@ function OTASection() {
 
 	return (
 		<View>
-			<Text style={{ color: colors.text, fontSize: 15, fontWeight: "700", paddingHorizontal: 14, paddingTop: 16, paddingBottom: 6 }}>OTA Updates</Text>
+			<Text style={{ color: colors.text, fontSize: 15, fontWeight: '700', paddingHorizontal: 14, paddingTop: 16, paddingBottom: 6 }}>OTA Updates</Text>
 			{diagnostics ? (
-				<View style={{ backgroundColor: colors.track + "80", paddingVertical: 6 }}>
-					{row("Enabled", diagnostics.is_dev ? "no (dev build — Metro serves JS)" : diagnostics.enabled ? "yes" : "no")}
-					{row("Binary version", diagnostics.binary_version ?? "unknown")}
-					{row("Branch (expected)", diagnostics.expected_branch ?? "unknown")}
-					{row("Branch (cloned)", diagnostics.cloned_branch ?? "not cloned yet")}
-					{row("Running bundle", diagnostics.running_bundle)}
-					{row("Pulled bundle", format_mtime(diagnostics.bundle_mtime))}
-					{row("Quarantined", diagnostics.quarantined_mtime === null ? "no" : `yes (${format_mtime(diagnostics.quarantined_mtime)})`)}
-					{row("Crash counter", String(diagnostics.crash_counter))}
+				<View style={{ backgroundColor: colors.track + '80', paddingVertical: 6 }}>
+					{row('Enabled', diagnostics.is_dev ? 'no (dev build — Metro serves JS)' : diagnostics.enabled ? 'yes' : 'no')}
+					{row('Binary version', diagnostics.binary_version ?? 'unknown')}
+					{row('Branch (expected)', diagnostics.expected_branch ?? 'unknown')}
+					{row('Branch (cloned)', diagnostics.cloned_branch ?? 'not cloned yet')}
+					{row('Running bundle', diagnostics.running_bundle)}
+					{row('Pulled bundle', format_mtime(diagnostics.bundle_mtime))}
+					{row('Quarantined', diagnostics.quarantined_mtime === null ? 'no' : `yes (${format_mtime(diagnostics.quarantined_mtime)})`)}
+					{row('Crash counter', String(diagnostics.crash_counter))}
 				</View>
 			) : (
 				<Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>Loading…</Text>
 			)}
-			<Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>Remote bundles for this version</Text>
-			{remote_error !== "" ? <Text style={{ color: "#CC5555", fontSize: 12, paddingHorizontal: 14 }}>{remote_error}</Text> : null}
-			{remote_bundles === null && remote_error === "" ? <Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>Loading…</Text> : null}
+			<Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>Remote bundles for this version</Text>
+			{remote_error !== '' ? <Text style={{ color: '#CC5555', fontSize: 12, paddingHorizontal: 14 }}>{remote_error}</Text> : null}
+			{remote_bundles === null && remote_error === '' ? <Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>Loading…</Text> : null}
 			{remote_bundles !== null && remote_bundles.length === 0 ? <Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>No branch on the OTA repo for this version yet — run `yarn ota:release`.</Text> : null}
 			{remote_bundles?.map((bundle, index) => (
 				<View key={bundle.sha} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
 					<Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
-						{bundle.sha.slice(0, 7)} {index === 0 ? "(latest) " : ""}
+						{bundle.sha.slice(0, 7)}
+						{' '}
+						{index === 0 ? '(latest) ' : ''}
 						{bundle.message}
 					</Text>
-					<Text style={{ color: colors.subtext, fontSize: 11 }}>{bundle.date === "" ? "unknown date" : new Date(bundle.date).toLocaleString()}</Text>
+					<Text style={{ color: colors.subtext, fontSize: 11 }}>{bundle.date === '' ? 'unknown date' : new Date(bundle.date).toLocaleString()}</Text>
 				</View>
 			))}
 			<ExtrasSectionButton show_arrow={false} text="Refresh OTA status" icon="refresh-outline" onPress={refresh} />
@@ -83,7 +86,7 @@ function OTASection() {
 				onPress={() => {
 					// No-op in dev builds by design (Metro serves the JS).
 					check_and_apply_update()
-						.catch((e) => e)
+						.catch(e => e)
 						.finally(() => setTimeout(refresh, 2000));
 				}}
 			/>
@@ -92,12 +95,12 @@ function OTASection() {
 				text="Force update to latest bundle"
 				icon="flash-outline"
 				onPress={() => {
-					if_confirm("Force update to this version's latest bundle?", "Clears quarantine + crash counter, re-clones the branch tip, and restarts into it. No-op on dev builds.", async () => {
-						await force_update_to_latest().catch((e) => e);
+					if_confirm('Force update to this version\'s latest bundle?', 'Clears quarantine + crash counter, re-clones the branch tip, and restarts into it. No-op on dev builds.', async () => {
+						await force_update_to_latest().catch(e => e);
 						// Only reached if the update didn't clone/restart (e.g. dev build,
 						// or no branch for this version yet).
 						setTimeout(refresh, 2000);
-					});
+					}).catch(catch_log);
 				}}
 			/>
 			<ExtrasSectionButton
@@ -106,7 +109,7 @@ function OTASection() {
 				icon="medkit-outline"
 				onPress={() => {
 					clear_quarantine()
-						.catch((e) => e)
+						.catch(e => e)
 						.finally(refresh);
 				}}
 			/>
@@ -115,10 +118,10 @@ function OTASection() {
 				text="Wipe OTA clone"
 				icon="trash-outline"
 				onPress={() => {
-					if_confirm("Wipe the on-device OTA clone?", "The next check will clone fresh.", async () => {
-						await wipe_ota_clone().catch((e) => e);
+					if_confirm('Wipe the on-device OTA clone?', 'The next check will clone fresh.', async () => {
+						await wipe_ota_clone().catch(e => e);
 						refresh();
-					});
+					}).catch(catch_log);
 				}}
 			/>
 			<ExtrasSectionButton
@@ -126,10 +129,10 @@ function OTASection() {
 				text="Rollback to embedded bundle"
 				icon="arrow-undo-outline"
 				onPress={() => {
-					if_confirm("Rollback to the embedded bundle?", "The current OTA bundle gets quarantined until a newer push. Takes effect on next restart.", async () => {
-						await rollback_update().catch((e) => e);
+					if_confirm('Rollback to the embedded bundle?', 'The current OTA bundle gets quarantined until a newer push. Takes effect on next restart.', async () => {
+						await rollback_update().catch(e => e);
 						refresh();
-					});
+					}).catch(catch_log);
 				}}
 			/>
 		</View>
@@ -144,7 +147,7 @@ function MMKVSection() {
 		set_keys(null);
 		mmkv()
 			.get_keys()
-			.then((k) => set_keys([...k].sort()))
+			.then(k => set_keys([...k].sort()))
 			.catch(() => set_keys([]));
 	}, []);
 	useEffect(() => {
@@ -158,27 +161,33 @@ function MMKVSection() {
 		if (number_value !== undefined) return Alert.alert(key, String(number_value));
 		const boolean_value = await mmkv().get_boolean(key);
 		if (boolean_value !== undefined) return Alert.alert(key, String(boolean_value));
-		Alert.alert(key, "(unreadable / unknown type)");
+		Alert.alert(key, '(unreadable / unknown type)');
 	}, []);
 
 	return (
 		<View>
-			<Text style={{ color: colors.text, fontSize: 15, fontWeight: "700", paddingHorizontal: 14, paddingTop: 16, paddingBottom: 6 }}>MMKV Keys{keys ? ` (${keys.length})` : ""}</Text>
+			<Text style={{ color: colors.text, fontSize: 15, fontWeight: '700', paddingHorizontal: 14, paddingTop: 16, paddingBottom: 6 }}>
+				MMKV Keys
+				{keys ? ` (${keys.length})` : ''}
+			</Text>
 			{keys === null ? (
 				<Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>Loading…</Text>
-			) : keys.length === 0 ? (
-				<Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>No keys stored.</Text>
-			) : (
-				<View style={{ backgroundColor: colors.track + "80", paddingVertical: 6 }}>
-					{keys.map((key) => (
-						<TouchableOpacity key={key} onPress={async () => show_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
-							<Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
-								{key}
-							</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-			)}
+			)
+				: keys.length === 0
+					? (
+							<Text style={{ color: colors.subtext, fontSize: 13, paddingHorizontal: 14 }}>No keys stored.</Text>
+						)
+					: (
+							<View style={{ backgroundColor: colors.track + '80', paddingVertical: 6 }}>
+								{keys.map(key => (
+									<TouchableOpacity key={key} onPress={async () => show_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
+										<Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
+											{key}
+										</Text>
+									</TouchableOpacity>
+								))}
+							</View>
+						)}
 			<ExtrasSectionButton show_arrow={false} text="Refresh MMKV keys" icon="refresh-outline" onPress={refresh} />
 		</View>
 	);
@@ -189,17 +198,17 @@ export default function ExtraDeveloperScreen() {
 	const styles = theme_styles(colors);
 
 	async function exportSQLData() {
-		await Sharing.shareAsync(FileSystem.documentDirectory + "SQLite");
+		await Sharing.shareAsync(FileSystem.documentDirectory + 'SQLite');
 	}
 
 	return (
-		<ScrollView style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
+		<ScrollView style={{ backgroundColor: colors.background, width: '100%', flex: 1 }}>
 			<ExtrasSectionButton
 				show_arrow={true}
 				text="Load SQLite DB"
 				icon="hammer-outline"
 				onPress={async () => {
-					SQLDev.fetch_and_load_new_sqlite_file();
+					SQLDev.fetch_and_load_new_sqlite_file().catch(catch_log);
 				}}
 			/>
 			<ExtrasSectionButton
@@ -215,9 +224,9 @@ export default function ExtraDeveloperScreen() {
 				text="Load Playlists from Playlist-Tracks"
 				icon="hammer-outline"
 				onPress={async () => {
-					if_confirm("Are you sure?", "", async () => {
+					if_confirm('Are you sure?', '', async () => {
 						// await playlists_from_playlists_tracks();
-					});
+					}).catch(catch_log);
 				}}
 			/>
 			<ExtrasSectionButton
@@ -225,14 +234,14 @@ export default function ExtraDeveloperScreen() {
 				text="Undownload all tracks"
 				icon="hammer-outline"
 				onPress={async () => {
-					if_confirm("Are you sure?", "", async () => {
+					if_confirm('Are you sure?', '', async () => {
 						await SQLTracks.mark_all_tracks_undownloaded();
-					});
+					}).catch(catch_log);
 				}}
 			/>
 			<OTASection />
 			<MMKVSection />
-			<View style={{ flexDirection: "row", height: 100 }}>
+			<View style={{ flexDirection: 'row', height: 100 }}>
 				<TouchableOpacity style={styles.button} onPress={exportSQLData}>
 					<Text style={styles.button_text}>Export SQL Data</Text>
 				</TouchableOpacity>
@@ -272,13 +281,13 @@ export default function ExtraDeveloperScreen() {
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
-		button: { backgroundColor: "#201050", width: "33%", height: "100%", borderRadius: 10, justifyContent: "center", alignItems: "center" },
-		button_text: { color: colors.text, fontWeight: "bold", width: 100, textAlign: "center" },
-		container: { flex: 1, padding: 16, paddingTop: 30, backgroundColor: "#fff" },
-		header: { height: 50, backgroundColor: "#537791" },
-		text: { textAlign: "center", fontWeight: "100" },
+		button: { backgroundColor: '#201050', width: '33%', height: '100%', borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+		button_text: { color: colors.text, fontWeight: 'bold', width: 100, textAlign: 'center' },
+		container: { flex: 1, padding: 16, paddingTop: 30, backgroundColor: '#fff' },
+		header: { height: 50, backgroundColor: '#537791' },
+		text: { textAlign: 'center', fontWeight: '100' },
 		dataWrapper: { marginTop: -1 },
-		row: { height: 40, backgroundColor: "#E7E6E1" }
+		row: { height: 40, backgroundColor: '#E7E6E1' }
 	});

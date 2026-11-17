@@ -3,9 +3,9 @@
  * Mirrors the react-native-ios-context-menu API for compatibility
  */
 
-import type { IconConfig, ImageItemConfig, MenuElementSize, UIMenuOptions } from "react-native-ios-context-menu";
+import type { IconConfig, ImageItemConfig, MenuElementSize, UIMenuOptions } from 'react-native-ios-context-menu';
 
-export type MenuAttribute = "destructive" | "hidden" | "disabled";
+export type MenuAttribute = 'destructive' | 'hidden' | 'disabled';
 
 export interface MenuActionConfig {
 	actionKey: string;
@@ -16,7 +16,7 @@ export interface MenuActionConfig {
 }
 
 export interface MenuConfig {
-	type?: "menu";
+	type?: 'menu';
 
 	menuTitle: string;
 	menuSubtitle?: string;

@@ -15,7 +15,7 @@
     "build:prod": "sh scripts/build_prod.sh",
     "publish": "eas submit -p ios",
     "postinstall": "patch-package",
-    "lint": "expo lint",
+    "lint": "eslint .",
     "prebuild": "sh scripts/prebuild.sh",
     "ota:release": "sh scripts/ota_release.sh",
     "bump": "node scripts/bump_version.js",
@@ -26,11 +26,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{js,mjs,json,yaml,yml,md}": [
-      "prettier --write"
+      "eslint --fix"
     ]
   },
   "expo": {
@@ -218,6 +214,7 @@
     "@babel/plugin-transform-export-namespace-from": "^7.23.4",
     "@eslint/js": "^9.39.2",
     "@react-native-community/cli": "latest",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/base-64": "^1.0.2",
     "@types/crypto-js": "^4.2.2",
     "@types/lodash": "^4.17.20",
@@ -230,11 +227,12 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "drizzle-kit": "^0.31.5",
     "eslint": "^9.39.2",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "globals": "^16.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "metro-tsconfig-paths": "^1.0.3",
     "patch-package": "^8.0.0",
-    "prettier": "^3.8.1",
     "react-native-codegen": "^0.72.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.51.0"

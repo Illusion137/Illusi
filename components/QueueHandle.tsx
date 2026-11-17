@@ -1,29 +1,31 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
-import { FontAwesome6 } from "@expo/vector-icons";
-import { Event, useTrackPlayerEvents } from "react-native-everything-player";
-import { FlashList } from "@shopify/flash-list";
-import * as Haptics from "expo-haptics";
-import usePTheme from "@hooks/usePTheme";
-import { subscribe_track_player_queue_modified } from "@illusive/track_player_service";
-import { active_track_index, player_queue_tracks, remove_from_player_queue } from "@utils/player_queue";
-import { artist_string, duration_to_string } from "@illusive/illusive_utils";
-import type { Track } from "@illusive/types";
-import TrackComponentBase from "@components/TrackComponentBase";
-import { empty_join_dot } from "@common/utils/util";
+import type React from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import { FontAwesome6 } from '@expo/vector-icons';
+import { Event, useTrackPlayerEvents } from 'react-native-everything-player';
+import { FlashList } from '@shopify/flash-list';
+import * as Haptics from 'expo-haptics';
+import usePTheme from '@hooks/usePTheme';
+import { subscribe_track_player_queue_modified } from '@illusive/track_player_service';
+import { active_track_index, player_queue_tracks, remove_from_player_queue } from '@utils/player_queue';
+import { artist_string, duration_to_string } from '@illusive/illusive_utils';
+import type { Track } from '@illusive/types';
+import TrackComponentBase from '@components/TrackComponentBase';
+import { empty_join_dot } from '@common/utils/util';
+import { catch_log } from '@common/utils/error_util';
 
 const HANDLE_H = 58;
-const PANEL_H = Math.min(Dimensions.get("screen").height * 0.72, 640);
+const PANEL_H = Math.min(Dimensions.get('screen').height * 0.72, 640);
 const SNAP_SPRING = { damping: 34, stiffness: 350, overshootClamping: true };
 const SWIPE_ACTION_W = 75;
 
 const QueueRow = memo(function QueueRow({ item, on_remove }: { item: Track; on_remove: (item: Track) => void }) {
 	const render_right_actions = useCallback(
 		() => (
-			<TouchableOpacity onPress={() => on_remove(item)} style={{ backgroundColor: "#8B000040", width: SWIPE_ACTION_W, justifyContent: "center", alignItems: "center" }}>
+			<TouchableOpacity onPress={() => on_remove(item)} style={{ backgroundColor: '#8B000040', width: SWIPE_ACTION_W, justifyContent: 'center', alignItems: 'center' }}>
 				<FontAwesome6 name="delete-left" color="white" size={22} />
 			</TouchableOpacity>
 		),
@@ -75,7 +77,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 
 	const snap_to = useCallback(
 		(open: boolean) => {
-			"worklet";
+			'worklet';
 			panel_h.value = withSpring(open ? PANEL_H : HANDLE_H, SNAP_SPRING);
 			expanded_progress.value = withSpring(open ? 1 : 0, SNAP_SPRING);
 		},
@@ -133,7 +135,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	const has_up_next = up_next_data.length > 0;
 
 	const remove_track = useCallback(async (item: Track) => {
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(catch_log);
 		const active_index = active_track_index();
 		if (active_index === undefined) return;
 		await remove_from_player_queue(item, active_index);
@@ -143,9 +145,9 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	const list_header = useCallback(
 		() => (
 			<View>
-				<Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 2, paddingBottom: 2 }}>Now Playing</Text>
+				<Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingTop: 2, paddingBottom: 2 }}>Now Playing</Text>
 				{now_playing ? <TrackComponentBase track_data={now_playing} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="40" /> : null}
-				{has_up_next ? <Text style={{ color: colors.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 14, paddingTop: 8, paddingBottom: 2 }}>Up Next</Text> : null}
+				{has_up_next ? <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 2 }}>Up Next</Text> : null}
 			</View>
 		),
 		[colors.text, now_playing, has_up_next]
@@ -156,23 +158,23 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	const key_extractor = useCallback((item: Track, i: number) => item.uid + i, []);
 
 	return (
-		<Animated.View style={[{ position: "absolute", bottom: 0, left: 0, right: 0, height: PANEL_H, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + "40", overflow: "hidden", zIndex: 30 }, container_style]}>
+		<Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0, height: PANEL_H, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: colors.shelf + '40', overflow: 'hidden', zIndex: 30 }, container_style]}>
 			{/* Drag handle + collapsed next-up preview */}
 			<GestureDetector gesture={handle_gesture}>
 				<View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 }}>
-					<View style={{ alignSelf: "center", width: 32, height: 4, borderRadius: 2, backgroundColor: colors.subtext + "40", marginBottom: 4 }} />
+					<View style={{ alignSelf: 'center', width: 32, height: 4, borderRadius: 2, backgroundColor: colors.subtext + '40', marginBottom: 4 }} />
 					{next_track ? (
-						<View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 40 }}>
+						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 40 }}>
 							<View style={{ flex: 1 }}>
-								<Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 2 }}>NEXT UP</Text>
-								<Text style={{ color: colors.text, fontSize: 14, fontWeight: "600" }} numberOfLines={1}>
+								<Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 2 }}>NEXT UP</Text>
+								<Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
 									{empty_join_dot([next_track.title, next_track ? artist_string(next_track) : undefined])}
 								</Text>
 							</View>
 							{next_track.duration ? <Text style={{ color: colors.subtext, fontSize: 12 }}>{duration_to_string(next_track.duration)}</Text> : null}
 						</View>
 					) : (
-						<Text style={{ color: colors.subtext, fontSize: 13, textAlign: "center", paddingBottom: 2 }}>End of queue</Text>
+						<Text style={{ color: colors.subtext, fontSize: 13, textAlign: 'center', paddingBottom: 2 }}>End of queue</Text>
 					)}
 				</View>
 			</GestureDetector>

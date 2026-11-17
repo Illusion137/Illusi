@@ -1,26 +1,27 @@
-import { reinterpret_cast } from "@common/cast";
-import Equalizer from "@components/Equalizer";
-import ExtrasSectionButton from "@components/ExtrasSectionButton";
-import ModalHeader from "@components/ModalHeader";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import usePTheme from "@hooks/usePTheme";
-import { Prefs } from "@illusive/prefs";
-import { Slider } from "@miblanchard/react-native-slider";
-import { SharedRouter } from "@utils/shared_routes";
-import { useIsFocused } from "expo-router";
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
-import EverythingPlayer from "react-native-everything-player";
+import { reinterpret_cast } from '@common/cast';
+import Equalizer from '@components/Equalizer';
+import ExtrasSectionButton from '@components/ExtrasSectionButton';
+import ModalHeader from '@components/ModalHeader';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import usePTheme from '@hooks/usePTheme';
+import { Prefs } from '@illusive/prefs';
+import { Slider } from '@miblanchard/react-native-slider';
+import { SharedRouter } from '@utils/shared_routes';
+import { useIsFocused } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import EverythingPlayer from 'react-native-everything-player';
+import { catch_log } from '@common/utils/error_util';
 
 const min_crossfade = 0;
 const max_crossfade = 10;
 const min_rate = 0.01;
 const max_rate = 2.0;
-const rate_presets: Record<string, number> = { Default: 1.0, "0.5x": 0.5, "0.75x": 0.75, "1.0x": 1.0, "1.25x": 1.25, "1.5x": 1.5, "1.75x": 1.75, "2.0x": 2.0 };
-const sleep_timer_presets: Record<string, number> = { Off: 0, "5m": 5, "15m": 15, "30m": 30, "45m": 45, "1h": 60 };
+const rate_presets: Record<string, number> = { 'Default': 1.0, '0.5x': 0.5, '0.75x': 0.75, '1.0x': 1.0, '1.25x': 1.25, '1.5x': 1.5, '1.75x': 1.75, '2.0x': 2.0 };
+const sleep_timer_presets: Record<string, number> = { 'Off': 0, '5m': 5, '15m': 15, '30m': 30, '45m': 45, '1h': 60 };
 
 function sleep_timer_label(minutes: number): string {
-	if (minutes <= 0) return "Off";
+	if (minutes <= 0) return 'Off';
 	return minutes >= 60 ? `${minutes / 60}h` : `${minutes}m`;
 }
 
@@ -31,12 +32,12 @@ export default function AudioPlayerSettings() {
 	const is_focused = useIsFocused();
 
 	const [rate, set_rate] = useState<number>(1.0);
-	const [crossfade_seconds, set_crossfade_seconds] = useState<number>(Prefs.get_pref("crossfade"));
-	const [equalizer_preset, set_equalizer_preset] = useState<Prefs.EqualizerPreset>(Prefs.get_pref("equalizer_preset"));
+	const [crossfade_seconds, set_crossfade_seconds] = useState<number>(Prefs.get_pref('crossfade'));
+	const [equalizer_preset, set_equalizer_preset] = useState<Prefs.EqualizerPreset>(Prefs.get_pref('equalizer_preset'));
 	const [sleep_timer_minutes, set_sleep_timer_minutes] = useState<number>(0);
 
 	useEffect(() => {
-		set_equalizer_preset(Prefs.get_pref("equalizer_preset"));
+		set_equalizer_preset(Prefs.get_pref('equalizer_preset'));
 		try {
 			set_rate(EverythingPlayer.getRate());
 		} catch {}
@@ -49,7 +50,7 @@ export default function AudioPlayerSettings() {
 	async function update_crossfade_seconds(new_crossfade_seconds: number) {
 		EverythingPlayer.setCrossFade(new_crossfade_seconds);
 		set_crossfade_seconds(new_crossfade_seconds);
-		Prefs.save_pref("crossfade", new_crossfade_seconds);
+		Prefs.save_pref('crossfade', new_crossfade_seconds).catch(catch_log);
 	}
 	function update_sleep_timer(minutes: number) {
 		// TODO: wire up actual sleep timer scheduling (stop playback after duration)
@@ -64,18 +65,21 @@ export default function AudioPlayerSettings() {
 
 	return (
 		<>
-			<ModalHeader title={"Settings"} />
+			<ModalHeader title="Settings" />
 			<ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 				<View style={styles.card}>
 					<View style={styles.card_header}>
 						<MaterialCommunityIcons name="play-speed" size={18} color={colors.primary} />
 						<Text style={styles.card_label}>Playback Speed</Text>
-						<Text style={styles.card_value}>{String(rate).slice(0, 4)}x</Text>
+						<Text style={styles.card_value}>
+							{String(rate).slice(0, 4)}
+							x
+						</Text>
 					</View>
 					<View style={styles.card_slider}>
 						<Slider
 							value={rate}
-							onValueChange={async (value) => update_rate(value[0])}
+							onValueChange={async value => update_rate(value[0])}
 							thumbTintColor={colors.primary}
 							thumbStyle={{ width: 15, height: 15 }}
 							thumbTouchSize={{ width: 1, height: 1 }}
@@ -88,7 +92,7 @@ export default function AudioPlayerSettings() {
 						/>
 					</View>
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips_scroll}>
-						{Object.entries(rate_presets).map((preset_entry) => (
+						{Object.entries(rate_presets).map(preset_entry => (
 							<RateChipRenderer key={preset_entry[0]} entry={preset_entry} />
 						))}
 					</ScrollView>
@@ -98,13 +102,16 @@ export default function AudioPlayerSettings() {
 					<View style={styles.card_header}>
 						<MaterialCommunityIcons name="shuffle-variant" size={18} color={colors.primary} />
 						<Text style={styles.card_label}>Crossfade</Text>
-						<Text style={styles.card_value}>{String(crossfade_seconds).slice(0, 4)}s</Text>
+						<Text style={styles.card_value}>
+							{String(crossfade_seconds).slice(0, 4)}
+							s
+						</Text>
 					</View>
-					<View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 12 }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 12 }}>
 						<View style={{ flex: 1, marginRight: 12 }}>
 							<Slider
 								value={crossfade_seconds}
-								onValueChange={async (value) => update_crossfade_seconds(value[0])}
+								onValueChange={async value => update_crossfade_seconds(value[0])}
 								thumbTintColor={colors.primary}
 								thumbStyle={{ width: 15, height: 15 }}
 								thumbTouchSize={{ width: 1, height: 1 }}
@@ -152,15 +159,15 @@ export default function AudioPlayerSettings() {
 	);
 }
 
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
 		card: { backgroundColor: colors.card, borderRadius: 2, marginHorizontal: 12, marginBottom: 12, paddingTop: 14, paddingBottom: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
-		card_header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, marginBottom: 6, gap: 8 },
-		card_label: { color: colors.text, fontWeight: "500", fontSize: 15, flex: 1 },
-		card_value: { color: colors.subtext, fontWeight: "700", fontSize: 15 },
+		card_header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, marginBottom: 6, gap: 8 },
+		card_label: { color: colors.text, fontWeight: '500', fontSize: 15, flex: 1 },
+		card_value: { color: colors.subtext, fontWeight: '700', fontSize: 15 },
 		card_slider: { marginHorizontal: 18, marginTop: 4 },
-		rate_chip: { borderRadius: 16, height: 36, paddingHorizontal: 14, marginHorizontal: 4, justifyContent: "center", alignItems: "center", backgroundColor: colors.shelf, borderColor: colors.line, borderWidth: 1 },
-		chip_active: { borderColor: colors.primary, backgroundColor: colors.primary + "22" },
-		chips_scroll: { paddingHorizontal: 10, paddingVertical: 6, alignItems: "center" },
-		rate_chip_text: { color: colors.text, fontSize: 13, fontWeight: "500" }
+		rate_chip: { borderRadius: 16, height: 36, paddingHorizontal: 14, marginHorizontal: 4, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.shelf, borderColor: colors.line, borderWidth: 1 },
+		chip_active: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
+		chips_scroll: { paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center' },
+		rate_chip_text: { color: colors.text, fontSize: 13, fontWeight: '500' }
 	});

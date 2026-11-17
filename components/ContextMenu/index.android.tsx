@@ -3,10 +3,11 @@
  * Uses CustomPopover for long-press menu
  */
 
-import React, { useEffect, useState } from "react";
-import { View } from "react-native";
-import CustomPopover from "./CustomPopover";
-import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from "./types";
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import CustomPopover from './CustomPopover';
+import type { ContextMenuViewProps, MenuActionConfig, MenuElementConfig } from './types';
 
 export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	const [menuItems, setMenuItems] = useState<MenuActionConfig[]>([]);
@@ -23,7 +24,7 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = (props) => {
 	};
 
 	// Filter out hidden items
-	const visibleItems = menuItems.map((item) => ({ ...item, isVisible: !item.menuAttributes?.includes("hidden") }));
+	const visibleItems = menuItems.map(item => ({ ...item, isVisible: !item.menuAttributes?.includes('hidden') }));
 
 	return (
 		<CustomPopover menuItems={visibleItems} onItemPress={handleItemPress}>
@@ -38,10 +39,10 @@ function flattenMenuItems(menu_items: MenuElementConfig[]): MenuActionConfig[] {
 
 	const process = (items: MenuElementConfig[]) => {
 		items.forEach((item) => {
-			if ("actionKey" in item) {
+			if ('actionKey' in item) {
 				result.push(item);
 			}
-			if ("menuItems" in item && Array.isArray(item.menuItems)) {
+			if ('menuItems' in item && Array.isArray(item.menuItems)) {
 				process(item.menuItems);
 			}
 		});
@@ -51,5 +52,5 @@ function flattenMenuItems(menu_items: MenuElementConfig[]): MenuActionConfig[] {
 	return result;
 }
 
-export { ContextMenuButton } from "./ContextMenuButton";
-export type * from "./types";
+export { ContextMenuButton } from './ContextMenuButton';
+export type * from './types';

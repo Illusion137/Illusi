@@ -1,7 +1,7 @@
-import React, { createRef, useEffect } from 'react';
+import { createRef, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import type { Prefs } from '@illusive/prefs';
-import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder'
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 import { LinearGradient } from 'expo-linear-gradient';
 import usePTheme from '@hooks/usePTheme';
 
@@ -20,18 +20,18 @@ export default function TrackPlaceholderComponent() {
 		const animation = Animated.parallel(
 			[
 				thumbnail_ref.current.getAnimated(),
-					title_ref.current.getAnimated(),
-					artist_ref.current.getAnimated(),
-					album_ref.current.getAnimated()
+				title_ref.current.getAnimated(),
+				artist_ref.current.getAnimated(),
+				album_ref.current.getAnimated()
 			]
 		);
 		Animated.loop(animation).start();
 	}, []);
 
-	return ( 
-		<View style={{backgroundColor: colors.track}} >
+	return (
+		<View style={{ backgroundColor: colors.track }}>
 			<View style={styles.songbox}>
-				<View style={{justifyContent: 'center'}}>
+				<View style={{ justifyContent: 'center' }}>
 					<ShimmerPlaceholder
 						style={styles.image}
 						ref={thumbnail_ref}
@@ -39,69 +39,69 @@ export default function TrackPlaceholderComponent() {
 					/>
 				</View>
 				<View style={{ width: '60%', top: 5, left: 20 }}>
-					<ShimmerPlaceholder style={styles.title} ref={title_ref} shimmerColors={shimmer_colors}/>
-					<ShimmerPlaceholder style={styles.artist} ref={artist_ref} shimmerColors={shimmer_colors}/>
-                    <View style={{flexDirection: 'row'}}>
-    					<ShimmerPlaceholder style={styles.album} ref={album_ref} shimmerColors={shimmer_colors}/>
+					<ShimmerPlaceholder style={styles.title} ref={title_ref} shimmerColors={shimmer_colors} />
+					<ShimmerPlaceholder style={styles.artist} ref={artist_ref} shimmerColors={shimmer_colors} />
+					<View style={{ flexDirection: 'row' }}>
+						<ShimmerPlaceholder style={styles.album} ref={album_ref} shimmerColors={shimmer_colors} />
 					</View>
 				</View>
 			</View>
-			<View style={styles.line}/>
+			<View style={styles.line} />
 		</View>
 	);
 }
 
 const theme_styles = (_: Prefs.Theme['colors']) => StyleSheet.create({
-	songbox:{
+	songbox: {
 		width: '100%',
 		height: 60,
-		flexDirection: 'row',
+		flexDirection: 'row'
 	},
-	image:{
+	image: {
 		left: 10,
 		height: '80%',
 		width: 65,
 		borderRadius: 5,
 		opacity: 0.8
 	},
-	text:{
+	text: {
 		width: '65%',
 		top: 5,
 		left: 20
 	},
-	title:{
+	title: {
 		top: 1,
 		width: '76%',
-		fontSize:15,
+		fontSize: 15,
 		opacity: 0.8,
 		marginBottom: 1
 	},
-	artist:{
+	artist: {
 		width: '60%',
 		top: 1,
-		fontSize:14,
+		fontSize: 14,
 		opacity: 0.8
 	},
-	album:{
+	album: {
 		width: '70%',
 		fontSize: 12,
-        top: 2,
-        marginRight: 4,
+		top: 2,
+		marginRight: 4,
 		opacity: 0.8
 	},
-	line:{
+	line: {
 		height: 1,
 		backgroundColor: '#202020',
 		width: '90%',
 		left: 85
 	},
-	icon0:{
+	icon0: {
 		marginRight: 5
 	},
-    icon1:{
+	icon1: {
 		marginRight: 3
 	},
-	elseIcon:{
+	elseIcon: {
 		right: 10,
 		paddingTop: 10,
 		paddingBottom: 10,

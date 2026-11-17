@@ -1,6 +1,6 @@
-import { Prefs } from "@illusive/prefs";
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { Prefs } from '@illusive/prefs';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 
 interface ThemeOption {
 	name: string;
@@ -24,7 +24,7 @@ export function ThemeSelector({ themes, on_theme_press, initial_theme }: ThemeSe
 
 	return (
 		<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-			{themes.map((theme) => (
+			{themes.map(theme => (
 				<ThemeCard key={theme.name} theme={theme} is_selected={selected === theme.name} on_press={handlePress} />
 			))}
 		</ScrollView>
@@ -58,7 +58,8 @@ function ThemeCard({ theme, is_selected: isSelected, on_press: onPress }: ThemeC
 					borderColor: primary_color,
 					borderWidth: 2
 				}
-			]}>
+			]}
+		>
 			{/* Mini preview */}
 			<View style={[styles.preview, { backgroundColor: bg }]}>
 				{/* Fake track row */}
@@ -71,11 +72,11 @@ function ThemeCard({ theme, is_selected: isSelected, on_press: onPress }: ThemeC
 				</View>
 				{/* Fake progress bar */}
 				<View style={[styles.progressTrack, { backgroundColor: bar_bg }]}>
-					<View style={[styles.progressFill, { backgroundColor: primary_color, width: "40%" }]} />
+					<View style={[styles.progressFill, { backgroundColor: primary_color, width: '40%' }]} />
 				</View>
 				{/* Color dots */}
 				<View style={styles.dots}>
-					{["#e0e0e0", "#aaaaaa", primary_color].map((c, i) => (
+					{['#e0e0e0', '#aaaaaa', primary_color].map((c, i) => (
 						<View key={i} style={[styles.colorDot, { backgroundColor: c }]} />
 					))}
 				</View>
@@ -85,9 +86,9 @@ function ThemeCard({ theme, is_selected: isSelected, on_press: onPress }: ThemeC
 			<View style={styles.labelRow}>
 				<View>
 					<Text style={styles.name} numberOfLines={1}>
-						{name.replace(/_/g, " ")}
+						{name.replace(/_/g, ' ')}
 					</Text>
-					<Text style={styles.mode}>{is_dark ? "dark" : "light"}</Text>
+					<Text style={styles.mode}>{is_dark ? 'dark' : 'light'}</Text>
 				</View>
 				{isSelected && (
 					<View style={[styles.check, { backgroundColor: primary_color }]}>
@@ -101,7 +102,7 @@ function ThemeCard({ theme, is_selected: isSelected, on_press: onPress }: ThemeC
 
 const styles = StyleSheet.create({
 	row: {
-		flexDirection: "row",
+		flexDirection: 'row',
 		gap: 12,
 		paddingHorizontal: 16,
 		paddingVertical: 8
@@ -110,17 +111,17 @@ const styles = StyleSheet.create({
 		width: 140,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#e0e0e0",
-		overflow: "hidden",
-		backgroundColor: "#ffffff"
+		borderColor: '#e0e0e0',
+		overflow: 'hidden',
+		backgroundColor: '#ffffff'
 	},
 	preview: {
 		padding: 10,
 		gap: 6
 	},
 	trackRow: {
-		flexDirection: "row",
-		alignItems: "center",
+		flexDirection: 'row',
+		alignItems: 'center',
 		gap: 8,
 		borderRadius: 6,
 		padding: 8
@@ -137,24 +138,24 @@ const styles = StyleSheet.create({
 	titleBar: {
 		height: 6,
 		borderRadius: 3,
-		width: "70%"
+		width: '70%'
 	},
 	subtitleBar: {
 		height: 4,
 		borderRadius: 2,
-		width: "45%"
+		width: '45%'
 	},
 	progressTrack: {
 		height: 4,
 		borderRadius: 2,
-		overflow: "hidden"
+		overflow: 'hidden'
 	},
 	progressFill: {
-		height: "100%",
+		height: '100%',
 		borderRadius: 2
 	},
 	dots: {
-		flexDirection: "row",
+		flexDirection: 'row',
 		gap: 4
 	},
 	colorDot: {
@@ -163,34 +164,34 @@ const styles = StyleSheet.create({
 		borderRadius: 5
 	},
 	labelRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
 		paddingHorizontal: 10,
 		paddingVertical: 8
 	},
 	name: {
 		fontSize: 12,
-		fontWeight: "500",
-		color: "#1a1a1a",
-		textTransform: "capitalize"
+		fontWeight: '500',
+		color: '#1a1a1a',
+		textTransform: 'capitalize'
 	},
 	mode: {
 		fontSize: 11,
-		color: "#888888",
+		color: '#888888',
 		marginTop: 2
 	},
 	check: {
 		width: 20,
 		height: 20,
 		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center"
+		alignItems: 'center',
+		justifyContent: 'center'
 	},
 	checkMark: {
-		color: "#ffffff",
+		color: '#ffffff',
 		fontSize: 11,
-		fontWeight: "700",
+		fontWeight: '700',
 		lineHeight: 14
 	}
 });

@@ -1,20 +1,21 @@
-import { memo, useEffect, useState } from "react";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { SQLPlaylists } from "@illusive/sql/sql_playlists";
-import { selection_store } from "@illusive/stores/selection_store";
-import useSelectionStore from "@hooks/useSelectionStore";
-import FourTrackArtwork from "./FourTrackArtwork";
-import type { Playlist, Track } from "@illusive/types";
-import type { Prefs } from "@illusive/prefs";
-import { ContextMenuView } from "@components/ContextMenu";
-import { if_confirm } from "@illusive/illusi/src/illusi_utils";
-import { sprinkle_into_queue } from "@illusive/play";
-import { Constants } from "@illusive/constants";
-import usePTheme from "@hooks/usePTheme";
-import { SharedRouter } from "@utils/shared_routes";
-import { GLOBALS } from "@illusive/globals";
-import { empty_join_dot } from "../lib-origin/common/utils/util";
+import { memo, useEffect, useState } from 'react';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SQLPlaylists } from '@illusive/sql/sql_playlists';
+import { selection_store } from '@illusive/stores/selection_store';
+import useSelectionStore from '@hooks/useSelectionStore';
+import FourTrackArtwork from './FourTrackArtwork';
+import type { Playlist, Track } from '@illusive/types';
+import type { Prefs } from '@illusive/prefs';
+import { ContextMenuView } from '@components/ContextMenu';
+import { if_confirm } from '@illusive/illusi/src/illusi_utils';
+import { sprinkle_into_queue } from '@illusive/play';
+import { Constants } from '@illusive/constants';
+import usePTheme from '@hooks/usePTheme';
+import { SharedRouter } from '@utils/shared_routes';
+import { GLOBALS } from '@illusive/globals';
+import { empty_join_dot } from '../lib-origin/common/utils/util';
+import { catch_log } from '@common/utils/error_util';
 
 function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: boolean; track: Track; already_in?: boolean }; compact?: boolean }) {
 	const { colors } = usePTheme();
@@ -23,7 +24,7 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 	const [pinned, set_pinned] = useState(props.playlist_data.pinned);
 	const [is_public, set_is_public] = useState(props.playlist_data.public);
 	const [disabled, set_disabled] = useState(props.select?.already_in ?? false);
-	const [visual_data, set_visual_data] = useState<Playlist["visual_data"]>();
+	const [visual_data, set_visual_data] = useState<Playlist['visual_data']>();
 
 	const select_mode = props.select?.mode ?? false;
 	const compact = props.compact ?? false;
@@ -44,7 +45,7 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 				const resolved_tracks = await Promise.resolve(props.playlist_data.visual_data.four_track);
 				set_visual_data({ four_track: resolved_tracks?.slice(0, 4) ?? [], track_count: resolved_tracks?.length ?? 0 });
 			}
-		})();
+		})().catch(catch_log);
 	}, [props.playlist_data]);
 
 	useEffect(() => {
@@ -58,7 +59,7 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 			}
 			set_disabled(await SQLPlaylists.track_exists_in_playlist({ uuid: props.playlist_data.uuid, track_uid: props.select.track.uid }));
 		}
-		init();
+		init().catch(catch_log);
 	}, [props.select]);
 
 	function toggle_state() {
@@ -66,7 +67,7 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 	}
 
 	async function on_press() {
-		SharedRouter.goto_shared_playlist(props.playlist_data.uuid, "UUID", {});
+		SharedRouter.goto_shared_playlist(props.playlist_data.uuid, 'UUID', {});
 	}
 
 	async function toggle_pin() {
@@ -84,7 +85,7 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 		await SQLPlaylists.archive_playlist(props.playlist_data.uuid, new_archive);
 	}
 	const confirm_delete = async () =>
-		if_confirm("Are you sure you want to delete this playlist?", "This action can NOT be reversed", async () => {
+		if_confirm('Are you sure you want to delete this playlist?', 'This action can NOT be reversed', async () => {
 			await SQLPlaylists.delete_playlist(props.playlist_data.uuid);
 		});
 
@@ -94,20 +95,20 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 				menuTitle: `Playlist - ${props.playlist_data.title}`,
 				menuItems: [
 					{
-						actionKey: "playlist-sprinkle-in-queue",
-						actionTitle: "Sprinke in Queue",
-						menuAttributes: is_playing_music ? undefined : ["hidden"],
-						icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "square.3.layers.3d.middle.filled" } }
+						actionKey: 'playlist-sprinkle-in-queue',
+						actionTitle: 'Sprinke in Queue',
+						menuAttributes: is_playing_music ? undefined : ['hidden'],
+						icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'square.3.layers.3d.middle.filled' } }
 					},
-					{ actionKey: "playlist-pin", actionTitle: props.playlist_data.pinned ? "Unpin" : "Pin", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "pin" } } },
-					{ actionKey: "playlist-public", actionTitle: props.playlist_data.public ? "Make Private" : "Make Public", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: props.playlist_data.public ? "person" : "person.3.sequence" } } },
-					{ actionKey: "playlist-archive", actionTitle: props.playlist_data.archived ? "Unarchive" : "Archive", icon: { type: "IMAGE_SYSTEM", imageValue: { systemName: "archivebox" } } },
+					{ actionKey: 'playlist-pin', actionTitle: props.playlist_data.pinned ? 'Unpin' : 'Pin', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'pin' } } },
+					{ actionKey: 'playlist-public', actionTitle: props.playlist_data.public ? 'Make Private' : 'Make Public', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: props.playlist_data.public ? 'person' : 'person.3.sequence' } } },
+					{ actionKey: 'playlist-archive', actionTitle: props.playlist_data.archived ? 'Unarchive' : 'Archive', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'archivebox' } } },
 					{
-						actionKey: "playlist-delete",
-						actionSubtitle: props.playlist_data.pinned ? "Unable to delete a pinned playlist" : undefined,
-						actionTitle: "Delete",
-						menuAttributes: props.playlist_data.pinned ? ["disabled", "destructive"] : ["destructive"],
-						icon: { type: "IMAGE_SYSTEM", imageOptions: { tint: colors.red, renderingMode: "alwaysOriginal" }, imageValue: { systemName: "trash" } }
+						actionKey: 'playlist-delete',
+						actionSubtitle: props.playlist_data.pinned ? 'Unable to delete a pinned playlist' : undefined,
+						actionTitle: 'Delete',
+						menuAttributes: props.playlist_data.pinned ? ['disabled', 'destructive'] : ['destructive'],
+						icon: { type: 'IMAGE_SYSTEM', imageOptions: { tint: colors.red, renderingMode: 'alwaysOriginal' }, imageValue: { systemName: 'trash' } }
 					}
 				]
 			}}
@@ -117,25 +118,26 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 			}}
 			onPressMenuItem={async ({ nativeEvent }: { nativeEvent: { actionKey: string } }) => {
 				switch (nativeEvent.actionKey) {
-					case "playlist-sprinkle-in-queue":
-						sprinkle_into_queue(await SQLPlaylists.playlist_tracks(props.playlist_data.uuid));
+					case 'playlist-sprinkle-in-queue':
+						sprinkle_into_queue(await SQLPlaylists.playlist_tracks(props.playlist_data.uuid)).catch(catch_log);
 						break;
-					case "playlist-pin":
-						toggle_pin();
+					case 'playlist-pin':
+						toggle_pin().catch(catch_log);
 						break;
-					case "playlist-public":
-						toggle_public();
+					case 'playlist-public':
+						toggle_public().catch(catch_log);
 						break;
-					case "playlist-archive":
-						toggle_archive();
+					case 'playlist-archive':
+						toggle_archive().catch(catch_log);
 						break;
-					case "playlist-delete":
-						confirm_delete();
+					case 'playlist-delete':
+						confirm_delete().catch(catch_log);
 						break;
 					default:
 						break;
 				}
-			}}>
+			}}
+		>
 			<TouchableOpacity
 				disabled={disabled}
 				style={{ ...styles.button, opacity: disabled ? 0.5 : 1.0, height: compact ? 55 : 80 }}
@@ -143,38 +145,43 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 					return;
 				}}
 				delayLongPress={Constants.long_press_delay}
-				onPress={select_mode ? toggle_state : on_press}>
+				onPress={select_mode ? toggle_state : on_press}
+			>
 				<>
 					<View style={{ width: 7 }} />
 					<FourTrackArtwork thumbnail_uri={props.playlist_data.thumbnail_uri} four_track={visual_data?.four_track ?? []} size={compact ? 22 : 35} />
-					<View style={{ flexDirection: "column", left: 15, justifyContent: "center" }}>
-						<Text style={{ color: colors.text, fontSize: 15, fontWeight: "bold" }}>{props.playlist_data.title}</Text>
-						<View style={{ flexDirection: "row", alignItems: "center", top: 2 }}>
+					<View style={{ flexDirection: 'column', left: 15, justifyContent: 'center' }}>
+						<Text style={{ color: colors.text, fontSize: 15, fontWeight: 'bold' }}>{props.playlist_data.title}</Text>
+						<View style={{ flexDirection: 'row', alignItems: 'center', top: 2 }}>
 							{pinned ? (
 								<>
 									<MaterialIcons name="push-pin" size={16} color={colors.primary} />
 									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
 								</>
-							) : null}
-							<Text style={{ color: colors.subtext, fontSize: 14 }}>{empty_join_dot([`${visual_data?.track_count ?? 0} ${(visual_data?.track_count ?? 0) === 1 ? "track" : "tracks"}`])}</Text>
+							)
+								: null}
+							<Text style={{ color: colors.subtext, fontSize: 14 }}>{empty_join_dot([`${visual_data?.track_count ?? 0} ${(visual_data?.track_count ?? 0) === 1 ? 'track' : 'tracks'}`])}</Text>
 							{is_public ? (
 								<>
 									<Text style={{ color: colors.subtext, fontSize: 14 }}> • </Text>
 									<MaterialIcons name="people" size={16} color={colors.primary} />
 								</>
-							) : null}
+							)
+								: null}
 						</View>
 					</View>
-					{!select_mode ? null : (
-						<View style={{ flex: 1, justifyContent: "center", alignItems: "flex-end", paddingRight: 20 }}>
-							<Ionicons name={selected ? "checkmark" : "ellipse-outline"} size={24} color={selected ? colors.green : colors.subtext} />
-						</View>
-					)}
+					{!select_mode
+						? null
+						: (
+								<View style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 20 }}>
+									<Ionicons name={selected ? 'checkmark' : 'ellipse-outline'} size={24} color={selected ? colors.green : colors.subtext} />
+								</View>
+							)}
 				</>
 			</TouchableOpacity>
-			<View style={{ width: "100%", height: 1, marginLeft: 90, backgroundColor: colors.line }} />
+			<View style={{ width: '100%', height: 1, marginLeft: 90, backgroundColor: colors.line }} />
 		</ContextMenuView>
 	);
 }
 export default memo(PlaylistComponent);
-const theme_styles = (colors: Prefs.Theme["colors"]) => StyleSheet.create({ button: { width: "100%", alignItems: "center", backgroundColor: colors.track, flexDirection: "row" }, notfound: { width: 70, height: 70, borderRadius: 5, left: 15 } });
+const theme_styles = (colors: Prefs.Theme['colors']) => StyleSheet.create({ button: { width: '100%', alignItems: 'center', backgroundColor: colors.track, flexDirection: 'row' }, notfound: { width: 70, height: 70, borderRadius: 5, left: 15 } });

@@ -2,97 +2,97 @@ import { wait } from '@common/utils/timed_util';
 import IImage from '@components/IImage';
 import { GLOBALS } from '@illusive/globals';
 import useDimensions from '@hooks/useDimensions';
-import React, { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { View } from 'react-native';
 import Animated, {
-    useSharedValue,
-    withTiming,
-    useAnimatedStyle,
-    Easing,
-    type SharedValue,
+	useSharedValue,
+	withTiming,
+	useAnimatedStyle,
+	Easing,
+	type SharedValue
 } from 'react-native-reanimated';
+import { catch_log } from '@common/utils/error_util';
 
 interface Falling_item {
-    id: number;
-    x: number;
-    y: SharedValue<number>;
-    rotation: number;
-    speed: number;
-    source: any;
+	id: number;
+	x: number;
+	y: SharedValue<number>;
+	rotation: number;
+	speed: number;
+	source: any;
 }
 
+export default function ExtraDevTestScreen() {
+	const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useDimensions();
+	const title = 'Janurary';
+	const images = useRef(GLOBALS.global_var.sql_tracks.slice(0, 50).map(t => t.playback?.artwork ?? 0));
 
-export default function ExtraDevTestScreen(){
-    const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useDimensions();
-    const title = "Janurary";
-    const images = useRef(GLOBALS.global_var.sql_tracks.slice(0, 50).map(t => t.playback?.artwork ?? 0));
+	const title_position = useSharedValue(0);
+	const falling_items: Falling_item[] = useMemo(() =>
+		images.current.map((source, i) => {
+			return {
+				id: i,
+				x: Math.random() * SCREEN_WIDTH,
+				y: useSharedValue(-200),
+				rotation: (Math.random() - 0.5) * 30,
+				speed: 8000 + Math.random() * 3000,
+				source
+			};
+		}),
+	[SCREEN_WIDTH]);
 
-    const title_position = useSharedValue(0);
-    const falling_items: Falling_item[] = useMemo(() =>
-        images.current.map((source, i) => {
-            return {
-                id: i,
-                x: Math.random() * SCREEN_WIDTH,
-                y: useSharedValue(-200),
-                rotation: (Math.random() - 0.5) * 30,
-                speed: 8000 + Math.random() * 3000,
-                source,
-            };
-        })
-    , [SCREEN_WIDTH]);
+	useEffect(() => {
+		(async () => {
+			title_position.value = withTiming(SCREEN_HEIGHT, {
+				duration: 7000,
+				easing: Easing.quad
+			});
+			falling_items.forEach((item) => {
+				item.y.value = withTiming(SCREEN_HEIGHT, {
+					duration: item.speed,
+					easing: Easing.quad
+				});
+			});
+			await wait(11000);
+			falling_items.forEach((item) => {
+				item.y.value = -200;
+			});
+			falling_items.forEach((item) => {
+				item.y.value = withTiming(SCREEN_HEIGHT, {
+					duration: item.speed,
+					easing: Easing.quad
+				});
+			});
+		})().catch(catch_log);
+	}, []);
 
-    useEffect(() => {
-        (async() => {
-            title_position.value = withTiming(SCREEN_HEIGHT, {
-                duration: 7000,
-                easing: Easing.quad,
-            });
-            falling_items.forEach((item) => {
-                item.y.value = withTiming(SCREEN_HEIGHT, {
-                    duration: item.speed,
-                    easing: Easing.quad,
-                });
-            });
-            await wait(11000);
-            falling_items.forEach((item) => {
-                item.y.value = -200;
-            });
-            falling_items.forEach((item) => {
-                item.y.value = withTiming(SCREEN_HEIGHT, {
-                    duration: item.speed,
-                    easing: Easing.quad,
-                });
-            });
-        })();
-    }, []);
+	const title_animated_style = useAnimatedStyle(() => ({
+		position: 'absolute',
+		transform: [{ translateY: title_position.value }]
+	}));
 
-    const title_animated_style = useAnimatedStyle(() => ({
-        position: 'absolute',
-        transform: [{translateY: title_position.value}],
-    }));
-
-    return (
-        <View style={{flex: 1}}>
-            <Animated.Text style={[title_animated_style, {left: "40%", color: "white", fontSize: 30, fontWeight: 'bold'}]}>{title}</Animated.Text>
-            {falling_items.map((item) => {
-                const animated_style = useAnimatedStyle(() => ({
-                    position: 'absolute',
-                    left: item.x,
-                    transform: [{ rotate: `${item.rotation}deg` }, {translateY: item.y.value}],
-                }));
-                return (
-                    <Animated.View key={item.id} style={[animated_style]}>
-                        <IImage
-                            key={item.id}
-                            source={item.source}
-                            style={[{ width: 100, height: 100 }]}
-                            resizeMode="cover"
-                        />
-                    </Animated.View>
-                );
-            })}
-        </View>
-    );
+	return (
+		<View style={{ flex: 1 }}>
+			<Animated.Text style={[title_animated_style, { left: '40%', color: 'white', fontSize: 30, fontWeight: 'bold' }]}>{title}</Animated.Text>
+			{falling_items.map((item) => {
+				const animated_style = useAnimatedStyle(() => ({
+					position: 'absolute',
+					left: item.x,
+					transform: [{ rotate: `${item.rotation}deg` }, { translateY: item.y.value }]
+				}));
+				return (
+					<Animated.View key={item.id} style={[animated_style]}>
+						<IImage
+							key={item.id}
+							source={item.source}
+							style={[{ width: 100, height: 100 }]}
+							resizeMode="cover"
+						/>
+					</Animated.View>
+				);
+			})}
+		</View>
+	);
 }
 
 // import { useEffect } from "react";
@@ -166,7 +166,6 @@ export default function ExtraDevTestScreen(){
 //     C165 180 140 180 140 205
 //     C140 230 165 230 165 205
 // `;
-
 
 // const AnimatedPath = Animated.createAnimatedComponent(Path);
 // const AnimatedRect = Animated.createAnimatedComponent(Rect);

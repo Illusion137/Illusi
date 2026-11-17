@@ -1,6 +1,6 @@
-import { AppState } from "react-native";
-import * as Sentry from "@sentry/react-native";
-import * as Battery from "expo-battery";
+import { AppState } from 'react-native';
+import * as Sentry from '@sentry/react-native';
+import * as Battery from 'expo-battery';
 
 const SAMPLE_INTERVAL_MS = 2000;
 // Firing this much later than scheduled implies roughly this many ms of blocked JS.
@@ -39,7 +39,7 @@ export function start_perf_monitor() {
 
 		// Ignore samples taken across a suspend/resume — the timer is throttled while
 		// backgrounded and the catch-up tick would look like a huge fake stall.
-		if (AppState.currentState !== "active" || lag > BACKGROUND_GAP_MS) {
+		if (AppState.currentState !== 'active' || lag > BACKGROUND_GAP_MS) {
 			reset_streak();
 			return;
 		}
@@ -64,7 +64,7 @@ export function start_perf_monitor() {
 		if (__DEV__) {
 			console.warn(`[perf] sustained JS-thread saturation (worst ${Math.round(worst_lag)}ms over ${SAMPLE_INTERVAL_MS}ms)`, extra);
 		} else {
-			Sentry.captureMessage("Sustained JS thread saturation", { level: "warning", tags: { perf: "js_thread_lag" }, extra });
+			Sentry.captureMessage('Sustained JS thread saturation', { level: 'warning', tags: { perf: 'js_thread_lag' }, extra });
 		}
 		reset_streak();
 	}, SAMPLE_INTERVAL_MS);
@@ -99,17 +99,17 @@ let heap_last_warn = 0;
 export function start_heap_monitor() {
 	if (heap_timer !== null) return;
 	heap_timer = setInterval(() => {
-		if (AppState.currentState !== "active") return;
+		if (AppState.currentState !== 'active') return;
 		const mb = js_heap_used_mb();
 		if (mb === null) return;
 		last_heap_mb = mb;
-		Sentry.setTag("js_heap_mb", String(Math.round(mb)));
+		Sentry.setTag('js_heap_mb', String(Math.round(mb)));
 		const now = Date.now();
 		if (!__DEV__ && mb > HEAP_WARN_MB && now - heap_last_warn > HEAP_COOLDOWN_MS) {
 			heap_last_warn = now;
-			Sentry.captureMessage("JS heap unusually large", {
-				level: "warning",
-				tags: { perf: "js_heap" },
+			Sentry.captureMessage('JS heap unusually large', {
+				level: 'warning',
+				tags: { perf: 'js_heap' },
 				extra: { heap_used_mb: mb, ...(context_provider?.() ?? {}) }
 			});
 		}
@@ -135,18 +135,18 @@ export function start_thermal_monitor() {
 	battery_level_sub?.remove();
 
 	low_power_sub = Battery.addLowPowerModeListener(({ lowPowerMode }) => {
-		Sentry.setTag("low_power_mode", String(lowPowerMode));
+		Sentry.setTag('low_power_mode', String(lowPowerMode));
 		if (!lowPowerMode) return;
 		const extra = { ...(context_provider?.() ?? {}), js_heap_mb: js_heap_used_mb() };
-		Sentry.addBreadcrumb({ message: "Low Power Mode activated", category: "perf", level: "warning", data: extra });
+		Sentry.addBreadcrumb({ message: 'Low Power Mode activated', category: 'perf', level: 'warning', data: extra });
 		if (!__DEV__) {
-			Sentry.captureMessage("Low Power Mode activated during playback", {
-				level: "warning",
-				tags: { perf: "low_power_mode" },
+			Sentry.captureMessage('Low Power Mode activated during playback', {
+				level: 'warning',
+				tags: { perf: 'low_power_mode' },
 				extra
 			});
 		} else {
-			console.warn("[perf] Low Power Mode activated", extra);
+			console.warn('[perf] Low Power Mode activated', extra);
 		}
 	});
 
@@ -154,22 +154,22 @@ export function start_thermal_monitor() {
 	battery_sample_ts = 0;
 	battery_sample_level = -1;
 	battery_level_sub = Battery.addBatteryLevelListener(({ batteryLevel }) => {
-		if (AppState.currentState !== "active") return;
+		if (AppState.currentState !== 'active') return;
 		const now = Date.now();
 		if (battery_sample_ts > 0 && battery_sample_level > 0) {
 			const elapsed_min = (now - battery_sample_ts) / 60000;
 			const drain_pct_per_min = ((battery_sample_level - batteryLevel) * 100) / elapsed_min;
 			if (drain_pct_per_min > 2 && elapsed_min > 2) {
 				const extra = { drain_pct_per_min: Math.round(drain_pct_per_min * 10) / 10, elapsed_min: Math.round(elapsed_min), ...(context_provider?.() ?? {}) };
-				Sentry.addBreadcrumb({ message: "High battery drain rate", category: "perf", level: "warning", data: extra });
+				Sentry.addBreadcrumb({ message: 'High battery drain rate', category: 'perf', level: 'warning', data: extra });
 				if (!__DEV__) {
-					Sentry.captureMessage("High battery drain rate during playback", {
-						level: "warning",
-						tags: { perf: "battery_drain" },
+					Sentry.captureMessage('High battery drain rate during playback', {
+						level: 'warning',
+						tags: { perf: 'battery_drain' },
 						extra
 					});
 				} else {
-					console.warn("[perf] high battery drain", extra);
+					console.warn('[perf] high battery drain', extra);
 				}
 			}
 		}
@@ -190,14 +190,14 @@ let memory_warning_count = 0;
 export function report_memory_warning() {
 	memory_warning_count++;
 	const extra = { warning_count: memory_warning_count, ...(context_provider?.() ?? {}) };
-	Sentry.addBreadcrumb({ message: "iOS memory warning", category: "perf", level: "warning", data: extra });
+	Sentry.addBreadcrumb({ message: 'iOS memory warning', category: 'perf', level: 'warning', data: extra });
 	if (!__DEV__ && memory_warning_count >= 2) {
-		Sentry.captureMessage("Repeated iOS memory warnings — OOM kill likely", {
-			level: "warning",
-			tags: { perf: "memory" },
+		Sentry.captureMessage('Repeated iOS memory warnings — OOM kill likely', {
+			level: 'warning',
+			tags: { perf: 'memory' },
 			extra
 		});
 	} else if (__DEV__) {
-		console.warn("[perf] memory warning", extra);
+		console.warn('[perf] memory warning', extra);
 	}
 }

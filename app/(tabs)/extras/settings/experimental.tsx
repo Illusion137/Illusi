@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Text, SectionList } from "react-native";
-import type { Prefs } from "@illusive/prefs";
-import SettingsMultiButton from "@components/SettingsMultiButton";
-import { prefs_settings_groupby_filter } from "@illusive/illusive_utils";
-import usePTheme from "@hooks/usePTheme";
-import type { BasePref } from "@native/mmkv/mmkv_utils";
+import { useState } from 'react';
+import { View, StyleSheet, Text, SectionList } from 'react-native';
+import type { Prefs } from '@illusive/prefs';
+import SettingsMultiButton from '@components/SettingsMultiButton';
+import { prefs_settings_groupby_filter } from '@illusive/illusive_utils';
+import usePTheme from '@hooks/usePTheme';
+import type { BasePref } from '@native/mmkv/mmkv_utils';
 
 export default function ExtraExperimentalSettingsScreen() {
 	const { colors } = usePTheme();
@@ -12,7 +12,7 @@ export default function ExtraExperimentalSettingsScreen() {
 
 	type PrefEntry = [Prefs.PrefOptions, BasePref<unknown>];
 
-	const [settings_data, _] = useState(prefs_settings_groupby_filter("EXPERIMENTAL"));
+	const [settings_data, _] = useState(prefs_settings_groupby_filter('EXPERIMENTAL'));
 	const render_item = (item: { item: PrefEntry; index: number }) => (
 		<>
 			<SettingsMultiButton settings_key={item.item[0]} settings_pref={item.item[1]} />
@@ -27,39 +27,39 @@ export default function ExtraExperimentalSettingsScreen() {
 		</>
 	);
 	return (
-		<View style={{ backgroundColor: colors.background, width: "100%", flex: 1 }}>
+		<View style={{ backgroundColor: colors.background, width: '100%', flex: 1 }}>
 			<SectionList
 				sections={settings_data}
 				renderItem={render_item}
 				renderSectionHeader={render_section_header}
 				ListHeaderComponent={<View style={styles.line_long} />}
-				ListFooterComponent={
+				ListFooterComponent={(
 					<>
 						<View style={styles.line_long} />
 						<View style={{ height: 30 }} />
 						<View style={{ height: 200 }} />
 					</>
-				}
+				)}
 			/>
 		</View>
 	);
 }
-const theme_styles = (colors: Prefs.Theme["colors"]) =>
+const theme_styles = (colors: Prefs.Theme['colors']) =>
 	StyleSheet.create({
 		thick_line_long: {
-			width: "90%",
+			width: '90%',
 			height: 0.4,
 			opacity: 1,
 			backgroundColor: colors.text
 		},
 		line_long: {
-			width: "100%",
+			width: '100%',
 			height: 0.4,
 			opacity: 0.1,
 			backgroundColor: colors.text
 		},
 		line_short: {
-			width: "100%",
+			width: '100%',
 			height: 0.4,
 			opacity: 0.1,
 			backgroundColor: colors.text,
@@ -78,7 +78,7 @@ const theme_styles = (colors: Prefs.Theme["colors"]) =>
 			marginLeft: 10,
 			color: colors.text,
 			fontSize: 24,
-			fontWeight: "bold",
-			backgroundColor: colors.background + "f0"
+			fontWeight: 'bold',
+			backgroundColor: colors.background + 'f0'
 		}
 	});

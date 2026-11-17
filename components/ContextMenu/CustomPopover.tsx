@@ -3,10 +3,11 @@
  * Shows a menu on long-press with keyboard-accessible items
  */
 
-import React, { useRef, useState } from "react";
-import { View, Text, Modal, TouchableOpacity, StyleSheet, FlatList } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { MenuActionConfig, MenuAttribute } from "./types";
+import type React from 'react';
+import { useRef, useState } from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { MenuActionConfig, MenuAttribute } from './types';
 
 interface MenuItem extends MenuActionConfig {
 	isVisible: boolean;
@@ -35,17 +36,17 @@ const CustomPopover: React.FC<CustomPopoverProps> = ({ menuItems, onItemPress, c
 		try {
 			await onItemPress(actionKey, actionTitle);
 		} catch (e) {
-			console.error("Error in context menu action:", e);
+			console.error('Error in context menu action:', e);
 		}
 	};
 
-	const visibleItems = menuItems.filter((item) => item.isVisible);
+	const visibleItems = menuItems.filter(item => item.isVisible);
 
-	const isDestructive = (attributes?: MenuAttribute[]) => attributes?.includes("destructive");
+	const isDestructive = (attributes?: MenuAttribute[]) => attributes?.includes('destructive');
 
 	const renderMenuItem = ({ item }: { item: MenuItem }) => (
 		<TouchableOpacity style={[styles.menuItem, isDestructive(item.menuAttributes) && styles.destructiveItem]} onPress={async () => handleMenuItemPress(item.actionKey, item.actionTitle)}>
-			{item.icon && <MaterialCommunityIcons name={typeof item.icon === "string" ? (item.icon as any) : "circle"} size={18} color={isDestructive(item.menuAttributes) ? "#FF3B30" : "#007AFF"} style={styles.menuIcon} />}
+			{item.icon && <MaterialCommunityIcons name={typeof item.icon === 'string' ? (item.icon as any) : 'circle'} size={18} color={isDestructive(item.menuAttributes) ? '#FF3B30' : '#007AFF'} style={styles.menuIcon} />}
 			<Text style={[styles.menuItemText, isDestructive(item.menuAttributes) && styles.destructiveText]}>{item.actionTitle}</Text>
 		</TouchableOpacity>
 	);
@@ -59,7 +60,7 @@ const CustomPopover: React.FC<CustomPopoverProps> = ({ menuItems, onItemPress, c
 			<Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
 				<TouchableOpacity style={styles.backdrop} onPress={() => setVisible(false)} activeOpacity={1}>
 					<View style={[styles.popoverContainer, { top: position.top, left: position.left }]}>
-						<FlatList data={visibleItems} renderItem={renderMenuItem} keyExtractor={(item) => item.actionKey} scrollEnabled={visibleItems.length > 5} nestedScrollEnabled style={styles.menuList} />
+						<FlatList data={visibleItems} renderItem={renderMenuItem} keyExtractor={item => item.actionKey} scrollEnabled={visibleItems.length > 5} nestedScrollEnabled style={styles.menuList} />
 					</View>
 				</TouchableOpacity>
 			</Modal>
@@ -68,27 +69,27 @@ const CustomPopover: React.FC<CustomPopoverProps> = ({ menuItems, onItemPress, c
 };
 
 const styles = StyleSheet.create({
-	backdrop: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" },
+	backdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
 	popoverContainer: {
-		position: "absolute",
-		backgroundColor: "#fff",
+		position: 'absolute',
+		backgroundColor: '#fff',
 		borderRadius: 8,
 		elevation: 5,
-		shadowColor: "#000",
+		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.25,
 		shadowRadius: 3.84,
 		minWidth: 200,
 		maxWidth: 300,
 		maxHeight: 400,
-		overflow: "hidden"
+		overflow: 'hidden'
 	},
 	menuList: { flexGrow: 0 },
-	menuItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
+	menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
 	menuIcon: { marginRight: 12 },
-	menuItemText: { fontSize: 14, color: "#000", flex: 1 },
-	destructiveItem: { backgroundColor: "#fff5f5" },
-	destructiveText: { color: "#FF3B30", fontWeight: "600" }
+	menuItemText: { fontSize: 14, color: '#000', flex: 1 },
+	destructiveItem: { backgroundColor: '#fff5f5' },
+	destructiveText: { color: '#FF3B30', fontWeight: '600' }
 });
 
 export default CustomPopover;

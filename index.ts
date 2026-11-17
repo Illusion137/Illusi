@@ -1,2 +1,2 @@
 import '@origin/youtube/ytdl_polyfill.ts';
-import "expo-router/entry";
+import 'expo-router/entry';

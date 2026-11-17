@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/only-throw-error */
 /**
  * OTA hot-update via GitHub (react-native-ota-hot-update, git mode).
  *
@@ -57,29 +56,30 @@
  * whenever the native PATH had been cleared (binary update, crash rollback).
  */
 
-import hotUpdate from "react-native-ota-hot-update";
-import { Alert, NativeModules, Platform } from "react-native";
-import { GLOBALS } from "@illusive/globals";
-import { Prefs } from "@illusive/prefs";
-import { mmkv } from "@native/mmkv/mmkv";
-import Constants from "expo-constants";
-import RNFS from "react-native-fs";
-import * as Sentry from "@sentry/react-native";
+import hotUpdate from 'react-native-ota-hot-update';
+import { Alert, NativeModules, Platform } from 'react-native';
+import { GLOBALS } from '@illusive/globals';
+import { Prefs } from '@illusive/prefs';
+import { mmkv } from '@native/mmkv/mmkv';
+import Constants from 'expo-constants';
+import RNFS from 'react-native-fs';
+import * as Sentry from '@sentry/react-native';
+import { catch_log } from '@common/utils/error_util';
 
 /** GitHub repo that stores the OTA bundles. Must be public (or use a token in the URL). */
-const OTA_REPO_URL = "https://github.com/Illusion137/Illusi-ota.git";
+const OTA_REPO_URL = 'https://github.com/Illusion137/Illusi-ota.git';
 
 /** Path inside the cloned repo where main.jsbundle lives. */
-const OTA_BUNDLE_PATH = "output/main.jsbundle";
+const OTA_BUNDLE_PATH = 'output/main.jsbundle';
 
 /** The library clones into this subdirectory of the document directory. */
-const OTA_GIT_DIR = "git_hot_update";
+const OTA_GIT_DIR = 'git_hot_update';
 
 /** MMKV key for the consecutive crash/bad-launch counter. */
-const CRASH_COUNTER_KEY = "ota_crash_counter";
+const CRASH_COUNTER_KEY = 'ota_crash_counter';
 
 /** MMKV key holding the mtime of a bundle that crash-looped and was rolled back. */
-const QUARANTINE_MTIME_KEY = "ota_quarantined_bundle_mtime";
+const QUARANTINE_MTIME_KEY = 'ota_quarantined_bundle_mtime';
 
 /** How many consecutive failed launches before we roll back. */
 const CRASH_THRESHOLD = 3;
@@ -91,7 +91,7 @@ const CRASH_THRESHOLD = 3;
  * mark_launch_success clears it to 0; an intentional resetApp (apply/rollback)
  * also clears it so the deliberate restart isn't mis-counted as a crash.
  */
-const BOOT_PENDING_KEY = "ota_boot_pending";
+const BOOT_PENDING_KEY = 'ota_boot_pending';
 
 /**
  * When true, OTA outcomes are surfaced via the app's toast so they're visible
@@ -100,7 +100,7 @@ const BOOT_PENDING_KEY = "ota_boot_pending";
  * turns it on so the dev-screen button reports exactly what happened.
  */
 let verbose_ota_alerts = false;
-function ota_alert(text: string, type: "GOOD" | "WARN" | "ERROR" | "INFO", info?: string): void {
+function ota_alert(text: string, type: 'GOOD' | 'WARN' | 'ERROR' | 'INFO', info?: string): void {
 	if (!verbose_ota_alerts) return;
 	try {
 		GLOBALS.global_var.bottom_alert?.(text, type, info);
@@ -180,10 +180,10 @@ async function latest_remote_commit(branch: string): Promise<string | null> {
 	try {
 		const repo = /github\.com[/:]([^/]+)\/([^/.]+)/.exec(OTA_REPO_URL);
 		if (repo === null) return null;
-		const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits/${encodeURIComponent(branch)}`, { headers: { Accept: "application/vnd.github+json" } });
+		const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits/${encodeURIComponent(branch)}`, { headers: { Accept: 'application/vnd.github+json' } });
 		if (!response.ok) return null;
 		const commit = (await response.json()) as { sha?: string };
-		return typeof commit.sha === "string" && commit.sha.length > 0 ? commit.sha : null;
+		return typeof commit.sha === 'string' && commit.sha.length > 0 ? commit.sha : null;
 	} catch (_) {
 		return null;
 	}
@@ -199,15 +199,15 @@ async function local_bundle_commit(branch: string): Promise<string | null> {
 	const git_dir = `${git_dir_path()}/.git`;
 	for (const ref of [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`]) {
 		try {
-			const sha = (await RNFS.readFile(`${git_dir}/${ref}`, "utf8")).trim();
+			const sha = (await RNFS.readFile(`${git_dir}/${ref}`, 'utf8')).trim();
 			if (/^[0-9a-f]{40}$/.test(sha)) return sha;
 		} catch (_) {
 			// ref file missing — try the next candidate
 		}
 	}
 	try {
-		const packed = await RNFS.readFile(`${git_dir}/packed-refs`, "utf8");
-		for (const line of packed.split("\n")) {
+		const packed = await RNFS.readFile(`${git_dir}/packed-refs`, 'utf8');
+		for (const line of packed.split('\n')) {
 			const match = /^([0-9a-f]{40}) (.+)$/.exec(line.trim());
 			if (match !== null && (match[2] === `refs/heads/${branch}` || match[2] === `refs/remotes/origin/${branch}`)) return match[1];
 		}
@@ -246,11 +246,11 @@ function notify_download(state: OTADownloadState): void {
 async function ask_install(bundle_id: string): Promise<boolean> {
 	return new Promise((resolve) => {
 		Alert.alert(
-			"New Update Available",
+			'New Update Available',
 			`Would you like to install OTA bundle ${bundle_id}?`,
 			[
-				{ text: "No", style: "cancel", onPress: () => resolve(false) },
-				{ text: "Yes", onPress: () => resolve(true) }
+				{ text: 'No', style: 'cancel', onPress: () => resolve(false) },
+				{ text: 'Yes', onPress: () => resolve(true) }
 			],
 			{ cancelable: false }
 		);
@@ -258,12 +258,12 @@ async function ask_install(bundle_id: string): Promise<boolean> {
 }
 
 /** Which JS bundle this process actually booted from. */
-function running_bundle(): "ota" | "embedded" | "metro" {
+function running_bundle(): 'ota' | 'embedded' | 'metro' {
 	const source_code = NativeModules?.SourceCode;
-	const script_url: string = source_code?.getConstants?.()?.scriptURL ?? source_code?.scriptURL ?? "";
-	if (script_url.includes(`/${OTA_GIT_DIR}/`)) return "ota";
-	if (script_url.startsWith("http")) return "metro";
-	return "embedded";
+	const script_url: string = source_code?.getConstants?.()?.scriptURL ?? source_code?.scriptURL ?? '';
+	if (script_url.includes(`/${OTA_GIT_DIR}/`)) return 'ota';
+	if (script_url.startsWith('http')) return 'metro';
+	return 'embedded';
 }
 
 /**
@@ -275,7 +275,7 @@ function running_bundle(): "ota" | "embedded" | "metro" {
  */
 async function set_sentry_ota_context(branch: string | null): Promise<void> {
 	try {
-		Sentry.setContext("ota_hot_update", {
+		Sentry.setContext('ota_hot_update', {
 			is_enabled: branch !== null,
 			branch,
 			running_bundle: running_bundle(),
@@ -321,7 +321,7 @@ async function check_crash_guard(): Promise<boolean> {
 	if (!prev_boot_incomplete) {
 		// Previous launch booted cleanly (or this is a first run) — no crash streak.
 		await store.set_number(CRASH_COUNTER_KEY, 0);
-		console.log("[OTA] Previous launch booted cleanly");
+		console.log('[OTA] Previous launch booted cleanly');
 		return false;
 	}
 
@@ -342,11 +342,11 @@ async function check_crash_guard(): Promise<boolean> {
 	await store.set_number(BOOT_PENDING_KEY, 0);
 	const ok = await hotUpdate.setupExactBundlePath(embedded_bundle_path());
 	if (ok) {
-		hotUpdate.resetApp();
+		hotUpdate.resetApp().catch(catch_log);
 	} else {
 		// Embedded bundle not found where expected — last resort: delete the OTA
 		// bundle files and clear the native path entirely.
-		console.error("[OTA] Could not register embedded bundle — removing OTA bundle instead");
+		console.error('[OTA] Could not register embedded bundle — removing OTA bundle instead');
 		hotUpdate.removeUpdate(true);
 	}
 	return true;
@@ -380,7 +380,7 @@ export async function mark_launch_success(): Promise<void> {
 	// prior crash-loop from lingering.
 	await store.set_number(BOOT_PENDING_KEY, 0);
 	await store.set_number(CRASH_COUNTER_KEY, 0);
-	console.log("[OTA] Launch success — boot marked complete");
+	console.log('[OTA] Launch success — boot marked complete');
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -398,12 +398,12 @@ export async function mark_launch_success(): Promise<void> {
  *                        and restarts on success.
  */
 export async function check_and_apply_update(silent = false): Promise<void> {
-	if (__DEV__ || Platform.OS !== "ios") return;
+	if (__DEV__ || Platform.OS !== 'ios') return;
 
 	const branch = ota_branch();
-	set_sentry_ota_context(branch).catch((e) => e);
+	set_sentry_ota_context(branch).catch(e => e);
 	if (branch === null) {
-		console.warn("[OTA] Native binary version unavailable — skipping update check");
+		console.warn('[OTA] Native binary version unavailable — skipping update check');
 		return;
 	}
 
@@ -428,16 +428,16 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		const remote_sha = await latest_remote_commit(branch);
 		if (remote_sha === null) {
 			console.log(`[OTA] No remote bundle for '${branch}' (or check failed) — skipping`);
-			ota_alert("OTA: no remote bundle for this version", "INFO");
+			ota_alert('OTA: no remote bundle for this version', 'INFO');
 			return;
 		}
 		const local_sha = await local_bundle_commit(branch);
 		if (local_sha === remote_sha) {
-			console.log("[OTA] Already up to date (local clone matches remote tip)");
-			ota_alert("OTA: already up to date", "INFO");
+			console.log('[OTA] Already up to date (local clone matches remote tip)');
+			ota_alert('OTA: already up to date', 'INFO');
 			return;
 		}
-		if (Prefs.get_pref("recent_rejected_ota_update") === remote_sha) {
+		if (Prefs.get_pref('recent_rejected_ota_update') === remote_sha) {
 			console.log(`[OTA] Bundle ${remote_sha.slice(0, 7)} was previously declined — not asking again`);
 			return;
 		}
@@ -445,7 +445,7 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		const install = await ask_install(prompted_bundle_id);
 		if (!install) {
 			console.log(`[OTA] User declined bundle ${prompted_bundle_id}`);
-			await Prefs.save_pref("recent_rejected_ota_update", remote_sha);
+			await Prefs.save_pref('recent_rejected_ota_update', remote_sha);
 			return;
 		}
 	}
@@ -466,7 +466,7 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		const quarantined_mtime = await store.get_number(QUARANTINE_MTIME_KEY);
 		if (quarantined_mtime !== undefined) {
 			if (mtime_after <= quarantined_mtime) {
-				console.log("[OTA] Bundle is quarantined after a crash rollback — waiting for a newer push");
+				console.log('[OTA] Bundle is quarantined after a crash rollback — waiting for a newer push');
 				return;
 			}
 			await store.remove_key(QUARANTINE_MTIME_KEY);
@@ -474,8 +474,8 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 
 		const registered = await hotUpdate.setupExactBundlePath(device_bundle_path());
 		if (!registered) {
-			console.warn("[OTA] Failed to register pulled bundle path");
-			ota_alert("OTA: failed to register pulled bundle", "ERROR");
+			console.warn('[OTA] Failed to register pulled bundle path');
+			ota_alert('OTA: failed to register pulled bundle', 'ERROR');
 			return;
 		}
 		// A freshly applied bundle earns a fresh crash budget: reset the counter
@@ -488,14 +488,14 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 		// The user already approved this install in the pre-download prompt (or
 		// the caller asked for silent), so restart immediately — no second
 		// confirmation. The toast is the last thing they see before the restart.
-		GLOBALS.global_var.bottom_alert?.("Update downloaded — restarting to apply", "GOOD");
-		hotUpdate.resetApp();
+		GLOBALS.global_var.bottom_alert?.('Update downloaded — restarting to apply', 'GOOD');
+		hotUpdate.resetApp().catch(catch_log);
 	}
 
 	// Put the progress overlay up, then yield a beat so it actually paints
 	// before the git work starts hogging the JS thread.
 	notify_download({ active: true, bundle_id: prompted_bundle_id, received: 0, total: 0 });
-	await new Promise((resolve) => setTimeout(resolve, 100));
+	await new Promise(resolve => setTimeout(resolve, 100));
 
 	try {
 		await hotUpdate.git.checkForGitUpdate({
@@ -517,29 +517,29 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 			// right away. The library already registered the bundle path itself
 			// on clone success.
 			onCloneSuccess: async () => {
-				console.log("[OTA] Initial bundle cloned, restarting…");
-				ota_alert("OTA: cloned latest bundle — restarting", "GOOD");
+				console.log('[OTA] Initial bundle cloned, restarting…');
+				ota_alert('OTA: cloned latest bundle — restarting', 'GOOD');
 				// Fresh clone → fresh crash budget for the bundle we're about to boot.
 				// Await the writes: resetApp kills the process, and an unflushed MMKV
 				// write would leave a stale pending flag / counter behind.
-				await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch((e) => e);
+				await mmkv().set_number(CRASH_COUNTER_KEY, 0).catch(e => e);
 				await mark_clean_restart();
-				hotUpdate.resetApp();
+				hotUpdate.resetApp().catch(catch_log);
 			},
 			onCloneFailed: (msg: string) => {
 				// Expected until the first ota:release for this binary version. Wipe
 				// whatever the failed clone left behind — a partial .git dir would make
 				// the next check take the pull path and wedge OTA permanently.
-				console.warn("[OTA] Clone failed:", msg);
-				ota_alert("OTA clone failed", "WARN", msg);
-				wipe_git_dir().catch((e) => e);
+				console.warn('[OTA] Clone failed:', msg);
+				ota_alert('OTA clone failed', 'WARN', msg);
+				wipe_git_dir().catch(e => e);
 			},
 
 			// Subsequent update (pull).
 			// onPullSuccess fires only if onProgress reported bytes (unlikely in RN).
 			onPullSuccess: () => {
-				console.log("[OTA] Bundle updated via pull (progress detected)");
-				apply_pulled_bundle().catch((e) => console.warn("[OTA] Apply failed:", e));
+				console.log('[OTA] Bundle updated via pull (progress detected)');
+				apply_pulled_bundle().catch(e => console.warn('[OTA] Apply failed:', e));
 			},
 
 			// The library fires onPullFailed("No updated") whenever onProgress never
@@ -549,24 +549,24 @@ export async function check_and_apply_update(silent = false): Promise<void> {
 				const mtime_after = await bundle_mtime();
 				const updated = mtime_after !== null && (mtime_before === null || mtime_after > mtime_before);
 				if (updated) {
-					console.log("[OTA] Bundle updated (detected via mtime — library progress bug workaround)");
+					console.log('[OTA] Bundle updated (detected via mtime — library progress bug workaround)');
 					apply_pulled_bundle().catch((e) => {
-						console.warn("[OTA] Apply failed:", e);
-						ota_alert("OTA apply failed", "ERROR", String(e));
+						console.warn('[OTA] Apply failed:', e);
+						ota_alert('OTA apply failed', 'ERROR', String(e));
 					});
 					return;
 				}
-				if (msg === "No updated") {
-					console.log("[OTA] Already up to date");
-					ota_alert("OTA: already up to date", "INFO");
+				if (msg === 'No updated') {
+					console.log('[OTA] Already up to date');
+					ota_alert('OTA: already up to date', 'INFO');
 				} else {
-					console.warn("[OTA] Pull failed:", msg);
-					ota_alert("OTA pull failed", "WARN", msg);
+					console.warn('[OTA] Pull failed:', msg);
+					ota_alert('OTA pull failed', 'WARN', msg);
 				}
 			},
 
 			onFinishProgress: () => {
-				console.log("[OTA] Done");
+				console.log('[OTA] Done');
 			}
 		});
 	} finally {
@@ -590,9 +590,9 @@ export async function check_and_apply_update(silent = false): Promise<void> {
  * same as check_and_apply_update. Intended for the dev screen.
  */
 export async function force_update_to_latest(): Promise<void> {
-	if (__DEV__ || Platform.OS !== "ios") {
+	if (__DEV__ || Platform.OS !== 'ios') {
 		// Make the no-op visible instead of the button appearing to do nothing.
-		GLOBALS.global_var.bottom_alert?.(__DEV__ ? "OTA is disabled in dev builds (Metro serves JS)" : "OTA only runs on iOS", "INFO");
+		GLOBALS.global_var.bottom_alert?.(__DEV__ ? 'OTA is disabled in dev builds (Metro serves JS)' : 'OTA only runs on iOS', 'INFO');
 		return;
 	}
 	const store = mmkv();
@@ -604,7 +604,7 @@ export async function force_update_to_latest(): Promise<void> {
 	// release build shows why nothing happened. On a successful clone the app
 	// resetApps and never returns here; on any failure we turn chatter back off.
 	verbose_ota_alerts = true;
-	GLOBALS.global_var.bottom_alert?.("OTA: forcing update — cloning latest bundle…", "INFO");
+	GLOBALS.global_var.bottom_alert?.('OTA: forcing update — cloning latest bundle…', 'INFO');
 	try {
 		await check_and_apply_update(true);
 	} finally {
@@ -636,7 +636,7 @@ export interface OTADiagnostics {
 	cloned_branch: string | null;
 	/** mtime (ms) of the pulled bundle on disk; null when never cloned. */
 	bundle_mtime: number | null;
-	running_bundle: "ota" | "embedded" | "metro";
+	running_bundle: 'ota' | 'embedded' | 'metro';
 	quarantined_mtime: number | null;
 	crash_counter: number;
 	repo_url: string;
@@ -653,7 +653,7 @@ export async function get_ota_diagnostics(): Promise<OTADiagnostics> {
 	}
 	return {
 		is_dev: __DEV__,
-		enabled: !__DEV__ && Platform.OS === "ios" && ota_branch() !== null,
+		enabled: !__DEV__ && Platform.OS === 'ios' && ota_branch() !== null,
 		binary_version: native_binary_version(),
 		expected_branch: ota_branch(),
 		cloned_branch,
@@ -678,18 +678,18 @@ export interface OTARemoteBundle {
  */
 export async function list_remote_bundles(): Promise<OTARemoteBundle[]> {
 	const branch = ota_branch();
-	if (branch === null) throw new Error("Native binary version unavailable");
+	if (branch === null) throw new Error('Native binary version unavailable');
 	const repo = /github\.com[/:]([^/]+)\/([^/.]+)/.exec(OTA_REPO_URL);
 	if (repo === null) throw new Error(`Not a GitHub repo URL: ${OTA_REPO_URL}`);
-	const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits?sha=${encodeURIComponent(branch)}&per_page=20`, { headers: { Accept: "application/vnd.github+json" } });
+	const response = await fetch(`https://api.github.com/repos/${repo[1]}/${repo[2]}/commits?sha=${encodeURIComponent(branch)}&per_page=20`, { headers: { Accept: 'application/vnd.github+json' } });
 	// 404/422 = repo or branch missing — expected before the first ota:release
 	if (response.status === 404 || response.status === 422) return [];
 	if (!response.ok) throw new Error(`GitHub API responded ${response.status}`);
 	const commits = (await response.json()) as { sha: string; commit: { message: string; committer?: { date?: string }; author?: { date?: string } } }[];
-	return commits.map((c) => ({
+	return commits.map(c => ({
 		sha: c.sha,
-		date: c.commit.committer?.date ?? c.commit.author?.date ?? "",
-		message: c.commit.message.split("\n")[0]
+		date: c.commit.committer?.date ?? c.commit.author?.date ?? '',
+		message: c.commit.message.split('\n')[0]
 	}));
 }
 

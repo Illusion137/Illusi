@@ -1,15 +1,16 @@
-import { reinterpret_cast } from "@common/cast";
-import usePTheme from "@hooks/usePTheme";
-import { resolved_artwork } from "@illusive/artwork";
-import type { Artwork } from "@illusive/types";
-import { fs } from "@native/fs/fs";
-import { BlurView, type BlurViewProps } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
-import { StyleSheet, View, type DimensionValue, type ImageProps, type ViewStyle } from "react-native";
-import { Image, type ImageContentFit, type ImageProps as ExpoImageProps, type ImageStyle as ExpoImageStyle } from "expo-image";
-import hexToRgba from "hex-to-rgba";
-import { Illusi } from "@origin/illusi/illusi";
+import { reinterpret_cast } from '@common/cast';
+import usePTheme from '@hooks/usePTheme';
+import { resolved_artwork } from '@illusive/artwork';
+import type { Artwork } from '@illusive/types';
+import { fs } from '@native/fs/fs';
+import { BlurView, type BlurViewProps } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
+import { StyleSheet, View, type DimensionValue, type ImageProps, type ViewStyle } from 'react-native';
+import { Image, type ImageContentFit, type ImageProps as ExpoImageProps, type ImageStyle as ExpoImageStyle } from 'expo-image';
+import hexToRgba from 'hex-to-rgba';
+import { Illusi } from '@origin/illusi/illusi';
+import { catch_log } from '@common/utils/error_util';
 
 export interface IImageProps {
 	source: Artwork | undefined | null;
@@ -18,22 +19,22 @@ export interface IImageProps {
 	blur?: BlurViewProps;
 	fade?: { percent: DimensionValue; color?: string; middle_opacity?: number; end_opacity?: number };
 	useview?: boolean;
-	cache_policy?: ExpoImageProps["cachePolicy"];
+	cache_policy?: ExpoImageProps['cachePolicy'];
 }
 
 // expo-image uses contentFit; the codebase passes RN's resizeMode (as a prop or
 // inside style). Map it so existing call sites keep their layout.
 function to_content_fit(resize_mode: unknown): ImageContentFit {
 	switch (resize_mode) {
-		case "contain":
-			return "contain";
-		case "stretch":
-			return "fill";
-		case "center":
-		case "repeat":
-			return "none";
+		case 'contain':
+			return 'contain';
+		case 'stretch':
+			return 'fill';
+		case 'center':
+		case 'repeat':
+			return 'none';
 		default:
-			return "cover";
+			return 'cover';
 	}
 }
 
@@ -48,13 +49,13 @@ function run_throttled_fs_check(check: () => Promise<void>): void {
 			active_fs_checks--;
 			const next = pending_fs_checks.shift();
 			if (next) next();
-		});
+		}).catch(catch_log);
 	};
 	if (active_fs_checks < MAX_CONCURRENT_FS_CHECKS) run();
 	else pending_fs_checks.push(run);
 }
 
-export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) {
+export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps) {
 	const flat_style = reinterpret_cast<{ height?: DimensionValue; resizeMode?: string }>(StyleSheet.flatten(props.style) ?? {});
 	const image_height = props.height ?? flat_style.height ?? 0;
 
@@ -65,13 +66,13 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 	const fade_middle_color = hexToRgba(props.fade?.color ?? colors.background, props.fade?.middle_opacity ?? 0.2);
 
 	function update_source() {
-		if (typeof props.source === "number" || props.source === undefined || props.source === null) {
+		if (typeof props.source === 'number' || props.source === undefined || props.source === null) {
 			set_source(props.source);
-		} else if (typeof props.source === "string" && (props.source.includes("https:") || props.source.includes("http:"))) {
+		} else if (typeof props.source === 'string' && (props.source.includes('https:') || props.source.includes('http:'))) {
 			set_source(props.source);
-		} else if (typeof props.source === "string") {
+		} else if (typeof props.source === 'string') {
 			run_throttled_fs_check(async () => {
-				if (typeof props.source !== "string") return;
+				if (typeof props.source !== 'string') return;
 				const source_file_info = await fs().get_info(props.source);
 				if (!source_file_info.exists || source_file_info.is_directory) {
 					set_source(undefined);
@@ -82,16 +83,16 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 		}
 	}
 
-	const source_key = typeof props.source === "object" && props.source !== null ? JSON.stringify(props.source) : props.source;
+	const source_key = typeof props.source === 'object' && props.source !== null ? JSON.stringify(props.source) : props.source;
 	useEffect(() => {
 		update_source();
 	}, [source_key]);
 
-	const recycling_key = props.recycling_key ?? (typeof source === "string" ? source : undefined);
+	const recycling_key = props.recycling_key ?? (typeof source === 'string' ? source : undefined);
 	const content_fit = to_content_fit(props.resizeMode ?? flat_style.resizeMode);
 
-	const immutable_artwork = typeof source === "string" && source.startsWith(Illusi.Playlists.artwork_url(""));
-	const cache_policy = immutable_artwork ? "memory-disk" : (props.cache_policy ?? "memory-disk");
+	const immutable_artwork = typeof source === 'string' && source.startsWith(Illusi.Playlists.artwork_url(''));
+	const cache_policy = immutable_artwork ? 'memory-disk' : (props.cache_policy ?? 'memory-disk');
 
 	const base_image = (
 		<Image
@@ -105,20 +106,22 @@ export default function IImage(props: Omit<ImageProps, "source"> & IImageProps) 
 		/>
 	);
 
-	const image_with_tint = props.tint ? (
-		<>
-			{base_image}
-			<View style={{ ...reinterpret_cast<ViewStyle>(props.style), opacity: props.tint.opacity, position: "absolute", backgroundColor: props.tint.color }} />
-		</>
-	) : (
-		base_image
-	);
+	const image_with_tint = props.tint
+		? (
+				<>
+					{base_image}
+					<View style={{ ...reinterpret_cast<ViewStyle>(props.style), opacity: props.tint.opacity, position: 'absolute', backgroundColor: props.tint.color }} />
+				</>
+			)
+		: (
+				base_image
+			);
 
 	const inner = (
 		<>
 			{image_with_tint}
-			{props.blur ? <BlurView {...props.blur} style={{ pointerEvents: "box-none", position: "absolute", bottom: 0, height: image_height, width: "100%" }} /> : null}
-			{props.fade ? <LinearGradient colors={["transparent", fade_middle_color, fade_end_color]} style={{ pointerEvents: "box-none", position: "absolute", bottom: 0, height: props.fade.percent, width: "100%" }} /> : null}
+			{props.blur ? <BlurView {...props.blur} style={{ pointerEvents: 'box-none', position: 'absolute', bottom: 0, height: image_height, width: '100%' }} /> : null}
+			{props.fade ? <LinearGradient colors={['transparent', fade_middle_color, fade_end_color]} style={{ pointerEvents: 'box-none', position: 'absolute', bottom: 0, height: props.fade.percent, width: '100%' }} /> : null}
 		</>
 	);
 
