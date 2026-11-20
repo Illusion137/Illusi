@@ -50,6 +50,17 @@ class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         )
     }
 
+    /// Scene-based apps never receive `application(_:continue:restorationHandler:)`
+    /// on the AppDelegate, so Siri shortcuts and universal links arrive here instead.
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        if RNSSSiriShortcuts.scene(scene, continue: userActivity) { return }
+        RCTLinkingManager.application(
+            UIApplication.shared,
+            continue: userActivity,
+            restorationHandler: { _ in }
+        )
+    }
+
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
@@ -60,6 +71,8 @@ class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let delegate = UIApplication.shared.delegate as? AppDelegate,
             let factory = delegate.reactNativeFactory
         else { return }
+
+        RNSSSiriShortcuts.sceneWillConnect(with: connectionOptions)
 
         let window = UIWindow(windowScene: windowScene)
         self.window = window

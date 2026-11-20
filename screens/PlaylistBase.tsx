@@ -107,7 +107,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 		const key = props.type === 'UUID' ? props.uuid : props.type === 'DEFAULT_PLAYLIST' ? props.default_playlist_title : '';
 		return {
 			activityType: 'com.illusion137.Illusi.ShuffleMusic',
-			persistentIdentifier: 'com.illusion137.Illusi.ShuffleMusic',
+			persistentIdentifier: `com.illusion137.Illusi.ShuffleMusic.${key}`,
 			title: 'Shuffle Shortcut ' + playlist_data?.title,
 			isEligibleForHandoff: true,
 			isEligibleForPrediction: true,

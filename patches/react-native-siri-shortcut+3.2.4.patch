@@ -1,8 +1,140 @@
+diff --git a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.h b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.h
+index baccfc4..a4425db 100644
+--- a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.h
++++ b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.h
+@@ -13,6 +13,7 @@
+ #import <UIKit/UIUserActivity.h>
+ #endif
+ 
++#import <UIKit/UIKit.h>
+ #import <React/RCTEventEmitter.h>
+ 
+ NS_ASSUME_NONNULL_BEGIN
+@@ -31,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
+ + (BOOL)scene:(nonnull UIScene *)scene
+ continueUserActivity:(nonnull NSUserActivity *)userActivity API_AVAILABLE(ios(13.0));
+ 
+++ (void)sceneWillConnectWithOptions:(nonnull UISceneConnectionOptions *)connectionOptions API_AVAILABLE(ios(13.0));
++
+ @end
+ 
+ NS_ASSUME_NONNULL_END
 diff --git a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
-index b1a8a6e..1fa4546 100644
+index b1a8a6e..3e8b356 100644
 --- a/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
 +++ b/node_modules/react-native-siri-shortcut/ios/RNSSSiriShortcuts.m
-@@ -207,10 +207,7 @@ RCT_EXPORT_METHOD(donateShortcut:(NSDictionary *)options)
+@@ -66,15 +66,52 @@ API_AVAILABLE(ios(12.0))
+ 
+ #pragma mark Class Properties
+ 
++/// Shortcut that launched (or reached) the app before JS subscribed. In a scene-based,
++/// bridgeless app `bridge.launchOptions` never carries the user activity, and events
++/// posted before `startObserving` are dropped, so it is held here for `getInitialShortcut`.
++static NSDictionary * _Nullable rnss_pendingShortcutInfo = nil;
++static BOOL rnss_hasObservers = NO;
++
+++ (BOOL)isShortcutUserActivity:(NSUserActivity *)userActivity
++{
++    NSArray<NSString *> *activityTypes = [NSBundle mainBundle].infoDictionary[@"NSUserActivityTypes"];
++    return [activityTypes containsObject:userActivity.activityType];
++}
++
+++ (NSDictionary *)shortcutInfoWithUserActivity:(NSUserActivity *)userActivity
++{
++    return @{
++        @"userInfo": RCTNullIfNil(userActivity.userInfo),
++        @"activityType": userActivity.activityType,
++    };
++}
++
+ + (void)postShortcutReceivedNotificationWithUserActivity:(NSUserActivity *)userActivity
+ {
++    NSDictionary *shortcutInfo = [RNSSSiriShortcuts shortcutInfoWithUserActivity:userActivity];
++    @synchronized ([RNSSSiriShortcuts class]) {
++        if (!rnss_hasObservers) {
++            rnss_pendingShortcutInfo = shortcutInfo;
++            return;
++        }
++    }
+     NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
+     [notificationCenter postNotificationName:@"shortcutReceived"
+                                       object:nil
+-                                    userInfo:@{
+-        @"userInfo": RCTNullIfNil(userActivity.userInfo),
+-        @"activityType": userActivity.activityType,
+-    }];
++                                    userInfo:shortcutInfo];
++}
++
+++ (void)sceneWillConnectWithOptions:(UISceneConnectionOptions *)connectionOptions
++API_AVAILABLE(ios(13.0))
++{
++    for (NSUserActivity *userActivity in connectionOptions.userActivities) {
++        if ([RNSSSiriShortcuts isShortcutUserActivity:userActivity]) {
++            @synchronized ([RNSSSiriShortcuts class]) {
++                rnss_pendingShortcutInfo = [RNSSSiriShortcuts shortcutInfoWithUserActivity:userActivity];
++            }
++            return;
++        }
++    }
+ }
+ 
+ + (BOOL)application:(UIApplication *)application
+@@ -85,6 +122,9 @@ continueUserActivity:(NSUserActivity *)userActivity
+ #else
+ (nonnull void (^)(NSArray *_Nullable))restorationHandler {
+ #endif
++    if (![RNSSSiriShortcuts isShortcutUserActivity:userActivity]) {
++        return NO;
++    }
+     [RNSSSiriShortcuts postShortcutReceivedNotificationWithUserActivity:userActivity];
+     return YES;
+ }
+@@ -93,6 +133,9 @@ continueUserActivity:(NSUserActivity *)userActivity
+ continueUserActivity:(NSUserActivity *)userActivity
+ API_AVAILABLE(ios(13.0))
+ {
++    if (![RNSSSiriShortcuts isShortcutUserActivity:userActivity]) {
++        return NO;
++    }
+     [RNSSSiriShortcuts postShortcutReceivedNotificationWithUserActivity:userActivity];
+     return YES;
+ }
+@@ -129,11 +172,17 @@ API_AVAILABLE(ios(13.0))
+                            selector:@selector(handleReceivedShortcutNotification:)
+                                name:@"shortcutReceived"
+                              object:nil];
++    @synchronized ([RNSSSiriShortcuts class]) {
++        rnss_hasObservers = YES;
++    }
+ }
+ 
+ - (void)stopObserving
+ {
+     _hasListeners = NO;
++    @synchronized ([RNSSSiriShortcuts class]) {
++        rnss_hasObservers = NO;
++    }
+     
+     NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
+     [notificationCenter removeObserver:self
+@@ -151,6 +200,15 @@ API_AVAILABLE(ios(13.0))
+ RCT_EXPORT_METHOD(getInitialShortcut:(RCTPromiseResolveBlock)resolve
+                   rejecter:(__unused RCTPromiseRejectBlock)reject)
+ {
++    @synchronized ([RNSSSiriShortcuts class]) {
++        if (rnss_pendingShortcutInfo != nil) {
++            NSDictionary *pendingShortcutInfo = rnss_pendingShortcutInfo;
++            rnss_pendingShortcutInfo = nil;
++            resolve(pendingShortcutInfo);
++            return;
++        }
++    }
++
+     // Extract the NSUserActivity data from launchOptions
+     NSDictionary *userActivityDictionary = self.bridge.launchOptions[UIApplicationLaunchOptionsUserActivityDictionaryKey];
+     NSDictionary * _Nullable shortcutInfo = nil;
+@@ -207,10 +265,7 @@ RCT_EXPORT_METHOD(donateShortcut:(NSDictionary *)options)
      __block NSUserActivity *activity = [RCTConvert NSUserActivity:options];
      
      dispatch_async(dispatch_get_main_queue(), ^{
@@ -14,7 +146,22 @@ index b1a8a6e..1fa4546 100644
      });
      [activity becomeCurrent];
  }
-@@ -285,7 +282,7 @@ RCT_EXPORT_METHOD(presentShortcut:(NSDictionary *)options
+@@ -264,8 +319,12 @@ RCT_EXPORT_METHOD(presentShortcut:(NSDictionary *)options
+             __block INVoiceShortcut *addedVoiceShortcut;
+             for (INVoiceShortcut *voiceShortcut in voiceShortcuts) {
+                 NSUserActivity * _Nullable userActivity = voiceShortcut.shortcut.userActivity;
+-                if (userActivity != nil &&
+-                    [userActivity.activityType isEqualToString:activity.activityType]) {
++                // Every shortcut can share one activityType (it must be listed in
++                // NSUserActivityTypes), so prefer persistentIdentifier to tell them apart.
++                BOOL matches = activity.persistentIdentifier != nil
++                    ? [userActivity.persistentIdentifier isEqualToString:activity.persistentIdentifier]
++                    : [userActivity.activityType isEqualToString:activity.activityType];
++                if (userActivity != nil && matches) {
+                     addedVoiceShortcut = voiceShortcut;
+                     break;
+                 }
+@@ -285,7 +344,7 @@ RCT_EXPORT_METHOD(presentShortcut:(NSDictionary *)options
                      self->_presenterViewController = presenterViewController;
                  }
                  self->_presenterViewController.modalPresentationStyle = UIModalPresentationFormSheet;
@@ -23,7 +170,7 @@ index b1a8a6e..1fa4546 100644
                  [rootViewController presentViewController:self->_presenterViewController
                                                   animated:true
                                                 completion:nil];
-@@ -351,6 +348,33 @@ RCT_EXPORT_METHOD(getShortcuts:(RCTPromiseResolveBlock)resolve
+@@ -351,6 +410,33 @@ RCT_EXPORT_METHOD(getShortcuts:(RCTPromiseResolveBlock)resolve
  
  #pragma mark Helpers
  

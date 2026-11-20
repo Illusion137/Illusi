@@ -33,7 +33,7 @@ export default function Library() {
 	function get_shortcut(): ShortcutOptions {
 		return {
 			activityType: 'com.illusion137.Illusi.ShuffleMusic',
-			persistentIdentifier: 'com.illusion137.Illusi.ShuffleMusic',
+			persistentIdentifier: `com.illusion137.Illusi.ShuffleMusic.${Constants.library_write_playlist}`,
 			title: 'Shuffle Shortcut ' + 'Library',
 			isEligibleForHandoff: true,
 			isEligibleForPrediction: true,
