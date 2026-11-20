@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift b/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
-index 09be306..50ba108 100644
+index 09be306..114175f 100644
 --- a/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
 +++ b/node_modules/react-native-ios-utilities/ios/Sources/Extensions+Helpers/RCTView+Helpers.swift
 @@ -25,15 +25,9 @@ public extension RCTView {
@@ -19,7 +19,7 @@ index 09be306..50ba108 100644
 +  var closestParentReactContentView: UIView? {
 +    return nil;
    };
- 
+   
    var reactTouchHandlers: [RCTTouchHandler]? {
 @@ -58,6 +52,6 @@ public extension RCTView {
        currentView = superview;
@@ -29,3 +29,84 @@ index 09be306..50ba108 100644
 +    return nil;
    };
  };
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx b/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx
+index b6f450b..3f3fd84 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx
+@@ -1,4 +1,3 @@
+-import * as React from 'react';
+ import { StyleSheet, View, Text } from 'react-native';
+ 
+ import { Colors }  from '../misc/Colors';
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/CardRowStepper.tsx b/node_modules/react-native-ios-utilities/src/example_components/CardRowStepper.tsx
+index 4bd26fd..e96c659 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/CardRowStepper.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/CardRowStepper.tsx
+@@ -1,4 +1,3 @@
+-import * as React from 'react';
+ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+ 
+ import { Colors }  from '../misc/Colors';
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/CardRowSwitch.tsx b/node_modules/react-native-ios-utilities/src/example_components/CardRowSwitch.tsx
+index 93d9fc7..0305588 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/CardRowSwitch.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/CardRowSwitch.tsx
+@@ -1,4 +1,3 @@
+-import * as React from 'react';
+ import { StyleSheet, View, Text, Switch } from 'react-native';
+ 
+ import { Colors }  from '../misc/Colors';
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/ExampleItemCard.tsx b/node_modules/react-native-ios-utilities/src/example_components/ExampleItemCard.tsx
+index edffcc3..8a653ef 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/ExampleItemCard.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/ExampleItemCard.tsx
+@@ -13,7 +13,7 @@ export type ExampleItemCardProps = {
+ 
+   style?: StyleProp<ViewStyle>;
+   extraContentContainerStyle?: ViewStyle;
+-  children?: JSX.Element | JSX.Element[];
++  children?: React.JSX.Element | React.JSX.Element[];
+ };
+ 
+ 
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/ObjectPropertyDisplay.tsx b/node_modules/react-native-ios-utilities/src/example_components/ObjectPropertyDisplay.tsx
+index f285127..add7a5e 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/ObjectPropertyDisplay.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/ObjectPropertyDisplay.tsx
+@@ -1,4 +1,3 @@
+-import * as React from 'react';
+ import { StyleSheet, View, Text, type ViewStyle, type TextStyle, type StyleProp } from 'react-native';
+ 
+ import { Colors } from '../misc/Colors';
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/Spacer.tsx b/node_modules/react-native-ios-utilities/src/example_components/Spacer.tsx
+index 39fb21b..9970158 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/Spacer.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/Spacer.tsx
+@@ -1,5 +1,3 @@
+-import * as React from 'react';
+-
+ import { View } from 'react-native';
+ 
+ 
+diff --git a/node_modules/react-native-ios-utilities/src/example_components/ViewShapes.tsx b/node_modules/react-native-ios-utilities/src/example_components/ViewShapes.tsx
+index 503957b..ad605ec 100644
+--- a/node_modules/react-native-ios-utilities/src/example_components/ViewShapes.tsx
++++ b/node_modules/react-native-ios-utilities/src/example_components/ViewShapes.tsx
+@@ -6,7 +6,7 @@ export function TriangleView(props: {
+   width?: number;
+   height?: number;
+   color?: string;
+-  children?: JSX.Element | JSX.Element[]; 
++  children?: React.JSX.Element | React.JSX.Element[]; 
+ }){
+ 
+   const { width, height, color } = props;
+@@ -32,7 +32,7 @@ export function CircleView(props: {
+   style?: ViewStyle;
+   size?: number;
+   color?: string;
+-  children?: JSX.Element | JSX.Element[]; 
++  children?: React.JSX.Element | React.JSX.Element[]; 
+ }){
+ 
+   const size = props.size ?? 30;

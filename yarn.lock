@@ -3083,10 +3083,24 @@
   resolved "https://registry.yarnpkg.com/@tokenizer/token/-/token-0.3.0.tgz#fe98a93fe789247e998c75e74e9c7c63217aa276"
   integrity sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==
 
+"@types/adm-zip@^0.5.7":
+  version "0.5.8"
+  resolved "https://registry.yarnpkg.com/@types/adm-zip/-/adm-zip-0.5.8.tgz#d4ee920d9fbef78061d039fa7c4776de7a0bb1af"
+  integrity sha512-RVVH7QvZYbN+ihqZ4kX/dMiowf6o+Jk1fNwiSdx0NahBJLU787zkULhGhJM8mf/obmLGmgdMM0bXsQTmyfbR7Q==
+  dependencies:
+    "@types/node" "*"
+
 "@types/base-64@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@types/base-64/-/base-64-1.0.2.tgz#f7bc80d242306f20c57f076d79d1efe2d31032ca"
   integrity sha512-uPgKMmM9fmn7I+Zi6YBqctOye4SlJsHKcisjHIMWpb2YKZRc36GpKyNuQ03JcT+oNXg1m7Uv4wU94EVltn8/cw==
+
+"@types/better-sqlite3@^9.6.0":
+  version "9.6.0"
+  resolved "https://registry.yarnpkg.com/@types/better-sqlite3/-/better-sqlite3-9.6.0.tgz#d14d1135e3eca08d4ee90477790b4e879ad26761"
+  integrity sha512-ZEEwBSgMu7GYJOynoagg5X9JbxfL6dTJDsgViJIqh67jV44kyOr9RXfmFjLK5rzC4MWssP06t9hu/JwGDnUbCg==
+  dependencies:
+    "@types/node" "*"
 
 "@types/crypto-js@^4.2.2":
   version "4.2.2"
