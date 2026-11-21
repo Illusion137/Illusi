@@ -2,6 +2,7 @@ import { reinterpret_cast } from '@common/cast';
 import Equalizer from '@components/Equalizer';
 import ModalHeader from '@components/ModalHeader';
 import { Prefs } from '@illusive/prefs';
+import { equalizer_bands } from '@illusive/track_player_service';
 import MultiOption from '@screens/MultiOption';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -16,7 +17,7 @@ export default function EqualizerSelector() {
 		if (!all_equalizer_presets.includes(preset)) return;
 		set_current_equalizer_preset(preset);
 		Prefs.save_pref('equalizer_preset', preset).catch(catch_log);
-		EverythingPlayer.setEqualizer(Prefs.equalizer_presets[preset] as unknown as number[]);
+		EverythingPlayer.setEqualizer(equalizer_bands(preset));
 	}
 
 	return (
