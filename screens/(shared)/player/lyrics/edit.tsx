@@ -17,7 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, type NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import EverythingPlayer, { Event, State, useProgress, useTrackPlayerEvents } from 'react-native-everything-player';
-import { invalidate_synced_lyrics } from '@utils/synced_lyrics_cache';
+import { invalidate_lyrics } from '@utils/lyrics_cache';
 import { has_synced_lyrics } from '@utils/track_lyrics';
 import type { LyricsLine, LyricsSegment } from '@origin/illusi/types';
 import { catch_log } from '@common/utils/error_util';
@@ -222,7 +222,7 @@ export default function PlayerEditLyrics() {
 		set_save_state('LOADING');
 		try {
 			await SQLTracks.save_track_lyrics(track, built.lyrics);
-			invalidate_synced_lyrics(track);
+			invalidate_lyrics(track);
 			const refreshed = GLOBALS.global_var.sql_tracks.find(t => t.uid === track.uid);
 			if (refreshed) track_ref.current = refreshed;
 			set_save_state('COMPLETE');
