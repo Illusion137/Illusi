@@ -27,7 +27,7 @@ export default function Playlist() {
 		case 'WRITE_PLAYLIST':
 			return <PlaylistBase type={type} write_playlist_uuid={uri} serialized_playlist_data={serialized_playlist_data} />;
 		case 'TRACKS_LIST':
-			return <PlaylistBase type={type} title={title} tracks={tracks} />;
+			return <PlaylistBase type={type} title={title} tracks={tracks} continuation={shared_values.tracks_list_continuation} />;
 		default: return (<></>);
 	}
 }

@@ -4,5 +4,5 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function ArtistsGrid() {
 	const { title } = useLocalSearchParams<{ title: string }>();
-	return (<ArtistGridRenderer title={title} artist_data={shared_values.artist_grid.map(artist => artist.name)} />);
+	return (<ArtistGridRenderer title={title} artist_data={shared_values.artist_grid.map(artist => artist.name)} continuation={shared_values.artist_grid_continuation} />);
 }

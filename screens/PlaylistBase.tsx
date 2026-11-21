@@ -45,6 +45,8 @@ import IImage from '@components/IImage';
 import { SQLArtists } from '@illusive/sql/sql_artists';
 import { menuconfig_local_playlist } from '@utils/context_menu';
 import { catch_log } from '@common/utils/error_util';
+import { continue_all, continue_once, track_key } from '@illusive/continuation';
+import { reinterpret_cast } from '@common/cast';
 
 let search_query = '';
 let tracks_ref: Track[] = [];
@@ -75,6 +77,7 @@ export interface PlaylistTracksListProps {
 	type: 'TRACKS_LIST';
 	title: string;
 	tracks: Track[];
+	continuation?: Types.Continuation<Track>;
 }
 export type PlaylistProps = PlaylistDefaultPlaylistProps | PlaylistURIProps | PlaylistUUIDProps | PlaylistWritePlaylistProps | PlaylistTracksListProps;
 
@@ -100,6 +103,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 	const [tracks, set_tracks] = useState<Track[]>([]);
 	const [edit_mode_state, set_edit_mode_state] = useState<EditMode>('NONE');
 	const [continuation, set_continuation] = useState<unknown>();
+	const tracks_list_ref = useRef<Track[]>(props.type === 'TRACKS_LIST' ? props.tracks : []);
 	const [search_query_state, set_search_query_state] = useState<string>('');
 	const filtered_tracks = track_query_filter(tracks, search_query_state);
 
@@ -173,7 +177,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 				initial = await PlaylistPage.playlist_initial_data_write_playlist_uuid(props.serialized_playlist_data);
 				break;
 			case 'TRACKS_LIST':
-				initial = await PlaylistPage.playlist_initial_data_tracks_list(props.title, props.tracks);
+				initial = await PlaylistPage.playlist_initial_data_tracks_list(props.title, props.tracks, props.continuation);
 		}
 		set_playlist_data(initial.playlist_data);
 		initial.initial_tracks = await initial.initial_tracks;
@@ -199,7 +203,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 			return;
 		}
 		if (props.type === 'TRACKS_LIST') {
-			const refreshed_tracks = SQLTracks.add_playback_saved_data_to_tracks(props.tracks);
+			const refreshed_tracks = SQLTracks.add_playback_saved_data_to_tracks(tracks_list_ref.current);
 			tracks_ref = refreshed_tracks;
 			set_tracks(refreshed_tracks);
 			return;
@@ -243,7 +247,19 @@ export default function PlaylistBase(props: PlaylistProps) {
 			GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: n_tracks, playlist_data: o_playlist_data, continuation: n_continuation });
 			return n_continuation !== null;
 		}
+		if (typeof continuation === 'function' && props.type === 'TRACKS_LIST') {
+			const result = await continue_once(tracks_list_ref.current, reinterpret_cast<Types.Continuation<Track>>(continuation), track_key);
+			set_tracks_list(result.items);
+			set_continuation(result.continuation ?? null);
+			return result.continuation !== undefined;
+		}
 		return false;
+	}
+	function set_tracks_list(list: Track[]) {
+		tracks_list_ref.current = list;
+		tracks_ref = SQLTracks.add_playback_saved_data_to_tracks(list);
+		set_initial_tracks(tracks_ref);
+		set_tracks(tracks_ref);
 	}
 	async function full_continue() {
 		if (!is_empty(continuation) && props.type === 'URI') {
@@ -254,6 +270,10 @@ export default function PlaylistBase(props: PlaylistProps) {
 			set_tracks(tracks_ref);
 			set_continuation(null);
 			GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: tracks_ref, playlist_data: playlist_data!, continuation: null });
+		}
+		if (typeof continuation === 'function' && props.type === 'TRACKS_LIST') {
+			set_tracks_list(await continue_all(tracks_list_ref.current, reinterpret_cast<Types.Continuation<Track>>(continuation), track_key));
+			set_continuation(null);
 		}
 		return tracks_ref;
 	}

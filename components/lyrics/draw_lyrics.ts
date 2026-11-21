@@ -22,12 +22,12 @@ export interface LyricsFrame {
 
 export const CASCADE_LIFETIME_MS = 1600;
 const INACTIVE_SCALE = 0.95;
-const DIM_NEAR = 0.4;
-const DIM_FAR = 0.16;
-const DIM_STEP = 0.06;
+const DIM_NEAR = 0.6;
+const DIM_FAR = 0.3;
+const DIM_STEP = 0.05;
 const UNSUNG_ALPHA = 0.42;
 const BACKGROUND_DIM = 0.8;
-const MAX_BLUR = 4;
+const MAX_BLUR = 3;
 const LEAD_IN_MS = 150;
 const FADE_OUT_MS = 450;
 const LIFT = 0.06;

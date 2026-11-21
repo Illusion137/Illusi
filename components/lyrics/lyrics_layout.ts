@@ -11,7 +11,7 @@ const BACKGROUND_SCALE = 0.62;
 /** Singers that sing together rather than as a duet partner */
 const GROUP_AGENTS = new Set(['v1000']);
 const STATIC_OPACITY = 0.85;
-const CREDITS_OPACITY = 0.45;
+const CREDITS_OPACITY = 1;
 
 export interface LyricsStyle {
 	color: string;

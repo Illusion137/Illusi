@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import type { CompactPlaylist } from '@illusive/types';
+import type { CompactPlaylist, Continuation } from '@illusive/types';
 import type { Track } from '@illusive/types';
 import type { SecondLineType } from './Album';
 import Album from './Album';
@@ -20,6 +20,7 @@ export default function AlbumList(props: {
 	title: string;
 	else_type: 'ALBUM' | 'SINGLE' | 'EP';
 	albums: CompactPlaylist[];
+	continuation?: Continuation<CompactPlaylist>;
 	refresh?: {
 		last_refresh: Date;
 		refresh_data: () => Promise<(CompactPlaylist | ResponseError)[] | ResponseError>;
@@ -63,7 +64,7 @@ export default function AlbumList(props: {
 	}, [props.albums]);
 
 	function full_screen() {
-		SharedRouter.goto_shared_album_grid(props.title, props.albums);
+		SharedRouter.goto_shared_album_grid(props.title, props.albums, props.continuation);
 	}
 
 	return (

@@ -1,7 +1,7 @@
 import { reinterpret_cast } from '@common/cast';
 import { encodeLocalSearchParams } from '@hooks/useParsedLocalSearchParams';
 import { GLOBALS } from '@illusive/globals';
-import type { CompactArtist, CompactPlaylist, SerializedCompactPlaylistData, Track } from '@illusive/types';
+import type { CompactArtist, CompactPlaylist, Continuation, SerializedCompactPlaylistData, Track } from '@illusive/types';
 import type { PlaylistType } from '@screens/PlaylistBase';
 import { router } from 'expo-router';
 import { shared_values } from './shared_values';
@@ -141,31 +141,34 @@ export namespace SharedRouter {
 		});
 	}
 
-	export function goto_shared_track_list(title: string, tracks: Track[]) {
+	export function goto_shared_track_list(title: string, tracks: Track[], continuation?: Continuation<Track>) {
 		const initial_route = get_initial_route();
 		if (!initial_route) return;
 		const type: PlaylistType = 'TRACKS_LIST';
 		shared_values.tracks_list = tracks;
+		shared_values.tracks_list_continuation = continuation;
 		router.push({
 			pathname: reinterpret_cast<GoodRoute>(`/(tabs)/${initial_route}/(shared)/playlist/[uri]`),
 			params: { title: title, type, force_order: '1' }
 		});
 	}
 
-	export function goto_shared_artist_grid(title: string, artists: CompactArtist[]) {
+	export function goto_shared_artist_grid(title: string, artists: CompactArtist[], continuation?: Continuation<CompactArtist>) {
 		const initial_route = get_initial_route();
 		if (!initial_route) return;
 		shared_values.artist_grid = artists;
+		shared_values.artist_grid_continuation = continuation;
 		router.push({
 			pathname: reinterpret_cast<GoodRoute>(`/(tabs)/${initial_route}/(shared)/artist_grid`),
 			params: { title }
 		});
 	}
 
-	export function goto_shared_album_grid(title: string, albums: CompactPlaylist[]) {
+	export function goto_shared_album_grid(title: string, albums: CompactPlaylist[], continuation?: Continuation<CompactPlaylist>) {
 		const initial_route = get_initial_route();
 		if (!initial_route) return;
 		shared_values.album_grid = albums;
+		shared_values.album_grid_continuation = continuation;
 		router.push({
 			pathname: reinterpret_cast<GoodRoute>(`/(tabs)/${initial_route}/(shared)/album_grid`),
 			params: { title }

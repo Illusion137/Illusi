@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import type { Track } from '@illusive/types';
+import type { Continuation, Track } from '@illusive/types';
 import TrackComponent from './TrackComponent';
 import { Constants } from '@illusive/constants';
 import { BASE_WIDTH_FN } from './TrackComponentBase';
@@ -16,6 +16,7 @@ export default function TrackHorizontalScrolls(props: {
 	title: string;
 	height: number;
 	tracks: Track[];
+	continuation?: Continuation<Track>;
 	replace_album_with?: keyof Track;
 }) {
 	const { colors } = usePTheme();
@@ -49,7 +50,7 @@ export default function TrackHorizontalScrolls(props: {
 	const key_extractor = useCallback((item: Track[], index: number) => item[0]?.uid ?? `col-${index}`, []);
 
 	function full_screen() {
-		SharedRouter.goto_shared_track_list(props.title, props.tracks);
+		SharedRouter.goto_shared_track_list(props.title, props.tracks, props.continuation);
 	}
 
 	return (

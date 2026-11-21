@@ -1,8 +1,7 @@
 import EverythingPlayer, { Event, type EmitterSubscription } from 'react-native-everything-player';
 import type { Track } from '@illusive/types';
-import { reinterpret_cast } from '@common/cast';
 import { catch_log } from '@common/utils/error_util';
-import { delete_track_from_player_queue, illusive_track_to_track_player_track, on_modify_track_player_queue } from '@illusive/track_player_service';
+import { delete_track_from_player_queue, illusive_track_to_track_player_track, on_modify_track_player_queue, track_of_queued } from '@illusive/track_player_service';
 
 const RESOLVED_AHEAD = 2;
 const MAX_CONSECUTIVE_MISSES = 10;
@@ -14,7 +13,7 @@ let active_track_subscription: EmitterSubscription | undefined;
 
 function native_tracks(): Track[] {
 	try {
-		return EverythingPlayer.getQueue().map(queued => reinterpret_cast<Track>(queued.otherData));
+		return EverythingPlayer.getQueue().map(track_of_queued);
 	} catch {
 		return [];
 	}

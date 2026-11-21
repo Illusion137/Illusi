@@ -14,7 +14,7 @@ import { SharedRouter } from '@utils/shared_routes';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 
 const screen_w = Dimensions.get('screen').width;
-const LYRICS_PLAYER_HEIGHT = screen_w + 50;
+const LYRICS_PLAYER_HEIGHT = screen_w + 30;
 
 interface LyricsPlayerProps {
 	visible: boolean;
@@ -72,9 +72,9 @@ const LyricsPlayer = memo(function LyricsPlayer({ visible, playing_track, lyrics
 					</TouchableOpacity>
 				)
 					: null}
-				<MaskedView style={{ flex: 1 }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
+				<MaskedView style={{ flex: 1 }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.12, 0.93, 1]} style={{ flex: 1 }} />}>
 					{lyrics ? (
-						<TTMLLyrics key={playing_track.uid} ref={lyrics_ref} lyrics={lyrics} color={colors.text} font_size={26} padding_horizontal={20} on_follow_change={set_is_following} scroll_gesture={scroll_gesture} />
+						<TTMLLyrics key={playing_track.uid} ref={lyrics_ref} lyrics={lyrics} color={colors.text} font_size={20} padding_horizontal={20} on_follow_change={set_is_following} scroll_gesture={scroll_gesture} />
 					) : lyrics === null
 						? (
 								<View style={styles.empty}>

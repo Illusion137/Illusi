@@ -21,7 +21,7 @@ export default function ExternalSyncedLyrics({ track, width, height }: ExternalS
 	if (lyrics === null || lyrics === undefined || lyrics.sync_type === 'NONE') return null;
 
 	return (
-		<MaskedView style={{ width, height }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.18, 0.82, 1]} style={{ flex: 1 }} />}>
+		<MaskedView style={{ width, height }} maskElement={<LinearGradient colors={['transparent', 'black', 'black', 'transparent']} locations={[0, 0.12, 0.88, 1]} style={{ flex: 1 }} />}>
 			<TTMLLyrics lyrics={lyrics} color={colors.text} font_size={Math.max(28, height * 0.05)} padding_horizontal={32} anchor={0.4} style={{ width, height }} />
 		</MaskedView>
 	);

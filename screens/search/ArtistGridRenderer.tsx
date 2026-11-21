@@ -1,8 +1,8 @@
 import { Text, TouchableOpacity, View } from 'react-native';
-import type { ArtistSortMode, CompactArtist, NamedUUID } from '@illusive/types';
+import type { ArtistSortMode, CompactArtist, Continuation, NamedUUID } from '@illusive/types';
 import BigList from 'react-native-big-list';
 import SearchBarV1 from '@components/SearchBarV1';
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { artist_query_filter } from '@illusive/illusive_utils';
 import { COMPACT_ARTIST_QUERY_FLAGS } from '@illusive/query_flags';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,10 +15,13 @@ import { SQLArtists } from '@illusive/sql/sql_artists';
 import { router } from 'expo-router';
 import { AntDesignTouchableOpacity } from '@components/TouchableIconOpacity';
 import useDimensions from '@hooks/useDimensions';
+import { compact_artist_key, continue_all, merge_unique } from '@illusive/continuation';
+import { catch_log } from '@common/utils/error_util';
 
 export default function ArtistGridRenderer(props: {
 	title: string;
 	artist_data: NamedUUID[];
+	continuation?: Continuation<CompactArtist>;
 }) {
 	const { colors } = usePTheme();
 	const { width } = useDimensions();
@@ -27,8 +30,17 @@ export default function ArtistGridRenderer(props: {
 	const columns = 3;
 	const [query, set_query] = useState<string>('');
 	const [sort_mode, set_sort_mode] = useState<ArtistSortMode>('NEWEST');
+	const [artist_data, set_artist_data] = useState<NamedUUID[]>(props.artist_data ?? []);
 
-	const artists = artist_query_filter(SQLArtists.sort_compact_artists(sort_mode, props.artist_data ?? [], GLOBALS.global_var.sql_tracks), query);
+	useEffect(() => {
+		set_artist_data(props.artist_data ?? []);
+		if (props.continuation === undefined) return;
+		continue_all([], props.continuation, compact_artist_key)
+			.then(more => set_artist_data(merge_unique(props.artist_data ?? [], more.map(artist => artist.name), artist => artist.uri ?? artist.name)))
+			.catch(catch_log);
+	}, [props.artist_data, props.continuation]);
+
+	const artists = artist_query_filter(SQLArtists.sort_compact_artists(sort_mode, artist_data, GLOBALS.global_var.sql_tracks), query);
 	const split_artists: [CompactArtist, CompactArtist, CompactArtist][] = artists.reduce((result_array: any[], item, index) => {
 		const chunk_index = Math.floor(index / columns);
 

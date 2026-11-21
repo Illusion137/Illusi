@@ -4,5 +4,5 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function AlbumGrid() {
 	const { title } = useLocalSearchParams<{ title: string }>();
-	return (<AlbumGridRenderer title={title} album_data={shared_values.album_grid} />);
+	return (<AlbumGridRenderer title={title} album_data={shared_values.album_grid} continuation={shared_values.album_grid_continuation} />);
 }

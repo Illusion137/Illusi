@@ -12,7 +12,7 @@ import { usePlaybackClock } from './usePlaybackClock';
 /** Scroll starts this early so the cascade has landed by the time the line is sung */
 const SCROLL_LEAD_MS = 500;
 const FOCUS_MS = 450;
-const DEFAULT_FONT_FAMILIES = ['SF Pro Display', 'System Font', 'Helvetica Neue'];
+const DEFAULT_FONT_FAMILIES = ['.AppleSystemUIFont', 'System', 'Helvetica Neue'];
 
 export interface TTMLLyricsHandle {
 	resume_follow: () => void;

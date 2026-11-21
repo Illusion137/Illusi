@@ -1,10 +1,10 @@
 import { Text, TouchableOpacity, View } from 'react-native';
-import type { AlbumSortMode, CompactPlaylist } from '@illusive/types';
+import type { AlbumSortMode, CompactPlaylist, Continuation } from '@illusive/types';
 import type { Track } from '@illusive/types';
 import Album from '@components/Album';
 import BigList from 'react-native-big-list';
 import SearchBarV1 from '@components/SearchBarV1';
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { album_query_filter, sort_compact_playlists } from '@illusive/illusive_utils';
 import { COMPACT_PLAYLIST_QUERY_FLAGS } from '@illusive/query_flags';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,8 +15,10 @@ import usePTheme from '@hooks/usePTheme';
 import { router } from 'expo-router';
 import { AntDesignTouchableOpacity } from '@components/TouchableIconOpacity';
 import useDimensions from '@hooks/useDimensions';
+import { compact_playlist_key, continue_all } from '@illusive/continuation';
+import { catch_log } from '@common/utils/error_util';
 
-export default function AlbumGridRenderer(props: { title: string; album_data: CompactPlaylist[] }) {
+export default function AlbumGridRenderer(props: { title: string; album_data: CompactPlaylist[]; continuation?: Continuation<CompactPlaylist> }) {
 	const { colors } = usePTheme();
 	const { width } = useDimensions();
 
@@ -24,10 +26,15 @@ export default function AlbumGridRenderer(props: { title: string; album_data: Co
 	const columns = 3;
 	const [query, set_query] = useState<string>('');
 	const [sort_mode, set_sort_mode] = useState<AlbumSortMode>('NEWEST');
+	const [album_data, set_album_data] = useState<CompactPlaylist[]>(props.album_data ?? []);
 
-	const other_tracks = props.album_data.filter(album => album.song_track).map(album => album.song_track) as Track[];
+	useEffect(() => {
+		continue_all(props.album_data ?? [], props.continuation, compact_playlist_key).then(set_album_data).catch(catch_log);
+	}, [props.album_data, props.continuation]);
 
-	const albums = sort_compact_playlists(sort_mode, album_query_filter(props.album_data ?? [], query), GLOBALS.global_var.sql_tracks);
+	const other_tracks = album_data.filter(album => album.song_track).map(album => album.song_track) as Track[];
+
+	const albums = sort_compact_playlists(sort_mode, album_query_filter(album_data, query), GLOBALS.global_var.sql_tracks);
 	const split_albums: [CompactPlaylist, CompactPlaylist, CompactPlaylist][] = albums.reduce((result_array: any[], item, index) => {
 		const chunk_index = Math.floor(index / columns);
 

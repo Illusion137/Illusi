@@ -26,6 +26,8 @@ import { Constants } from '@illusive/constants';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { catch_log } from '@common/utils/error_util';
+import { load_artist_first_pages } from '@illusive/get_artist';
+import { SharedRouter } from '@utils/shared_routes';
 
 export default function Artist() {
 	const { uri } = useLocalSearchParams<{ uri: IllusiveURI }>();
@@ -95,6 +97,11 @@ export default function Artist() {
 			set_watched(!artist.is_following);
 		}
 		GLOBALS.global_var.artist_cache.add(uri, { artist_data: artist });
+		load_artist_first_pages(artist).then((full_artist) => {
+			full_artist.tracks = SQLTracks.add_playback_saved_data_to_tracks(full_artist.tracks);
+			set_artist_data(prev => ({ ...full_artist, is_following: prev.is_following }));
+			GLOBALS.global_var.artist_cache.update(uri, { artist_data: full_artist });
+		}).catch(catch_log);
 	}
 
 	function refresh_data() {
@@ -180,13 +187,16 @@ export default function Artist() {
 								{remove_topic(artist_data.name)}
 							</Text>
 							<Text style={{ fontSize: 13, color: colors.subtext, marginTop: 4 }}>
-								{artist_data.tracks.length === 100 ? '100+' : artist_data.tracks.length}
+								{artist_data.tracks.length}
+								{artist_data.tracks_continuation ? '+' : ''}
 								{' '}
 								Tracks •
 								{artist_data.albums.length}
+								{artist_data.albums_continuation ? '+' : ''}
 								{' '}
 								Albums •
 								{artist_data.singles_eps.length}
+								{artist_data.singles_eps_continuation ? '+' : ''}
 								{' '}
 								Singles/EPs
 							</Text>
@@ -293,18 +303,18 @@ export default function Artist() {
 									)
 										: null}
 									<TrackHorizontalScrolls title="Popular Tracks" height={4} tracks={popular_tracks} replace_album_with="service_plays" />
-									<TrackHorizontalScrolls title="Tracks" height={4} tracks={artist_data.tracks} />
+									<TrackHorizontalScrolls title="Tracks" height={4} tracks={artist_data.tracks} continuation={artist_data.tracks_continuation} />
 									<View style={{ paddingTop: 5 }} />
-									{artist_data.albums.length > 0 ? <AlbumList title="Albums" else_type="ALBUM" albums={artist_data.albums} /> : null}
+									{artist_data.albums.length > 0 ? <AlbumList title="Albums" else_type="ALBUM" albums={artist_data.albums} continuation={artist_data.albums_continuation} /> : null}
 									<View style={{ paddingTop: 5 }} />
-									{artist_data.singles_eps.length > 0 ? <AlbumList title="Singles & EPs" else_type="SINGLE" albums={artist_data.singles_eps} /> : null}
+									{artist_data.singles_eps.length > 0 ? <AlbumList title="Singles & EPs" else_type="SINGLE" albums={artist_data.singles_eps} continuation={artist_data.singles_eps_continuation} /> : null}
 									{artist_data.appears_on !== undefined && artist_data.appears_on.length > 0 ? <AlbumList title="Appears On" else_type="SINGLE" albums={artist_data.appears_on} /> : null}
-									{artist_data.playlists.length > 0 ? <AlbumList title="Playlists" else_type="SINGLE" albums={artist_data.playlists} /> : null}
+									{artist_data.playlists.length > 0 ? <AlbumList title="Playlists" else_type="SINGLE" albums={artist_data.playlists} continuation={artist_data.playlists_continuation} /> : null}
 									<View style={{ paddingTop: 20 }} />
 									<TrackHorizontalScrolls title="From Your Library" height={5} tracks={shared_tracks} />
 									<View style={{ paddingVertical: 10 }} />
 									{artist_data.similar_artists.length > 0 ? (
-										<HeaderWith title="Similar Artists">
+										<HeaderWith title="Similar Artists" fullpage={() => SharedRouter.goto_shared_artist_grid('Similar Artists', artist_data.similar_artists, artist_data.similar_artists_continuation)}>
 											<HorizontalRowArtists artists={artist_data.similar_artists} />
 										</HeaderWith>
 									)
