@@ -114,15 +114,6 @@ export namespace SharedRouter {
 		});
 	}
 
-	export function goto_shared_player_lyrics(lyrics_uri: string) {
-		const initial_route = get_initial_route();
-		if (!initial_route) return;
-		router.push({
-			pathname: reinterpret_cast<GoodRoute>(`/(tabs)/${initial_route}/(shared)/player/lyrics`),
-			params: { lyrics_uri }
-		});
-	}
-
 	export function goto_shared_player_queue() {
 		const initial_route = get_initial_route();
 		if (!initial_route) return;
