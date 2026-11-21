@@ -44,17 +44,17 @@ export default function Playlists() {
 
 	useEffect(() => {
 		const unsubscribe_playlists = db.$client.reactiveExecute({
-			query: 'SELECT id from playlists LIMIT 1',
+			query: 'SELECT uuid FROM playlists LIMIT 1',
 			arguments: [],
-			fireOn: [{ table: 'playlists' }, { table: 'playlists_tracks' }],
+			fireOn: [{ table: 'playlists' }, { table: 'playlist_tracks' }, { table: 'playlist_inherited_searches' }, { table: 'playlist_inherited_playlists' }],
 			callback: () => {
 				refresh_playlists().catch(catch_log);
 			}
 		});
 		const unsubscribe_default_playlists = db.$client.reactiveExecute({
-			query: 'SELECT id from tracks LIMIT 1',
+			query: 'SELECT uid FROM user_tracks LIMIT 1',
 			arguments: [],
-			fireOn: [{ table: 'tracks' }, { table: 'recently_played_tracks' }],
+			fireOn: [{ table: 'user_tracks' }, { table: 'recently_played' }],
 			callback: () => {
 				refresh_default_playlists().catch(catch_log);
 			}
