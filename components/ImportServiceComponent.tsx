@@ -35,7 +35,7 @@ export default function ImportServiceComponent(props: {
 					<IImage style={{ marginHorizontal: 12, height: 25, width: 25, borderRadius: 5 }} source={artwork} />
 					<Text style={styles.import_from_text}>
 						Import Playlist From
-						{props.service_name}
+						{' ' + props.service_name}
 					</Text>
 				</View>
 			</TouchableHighlight>
