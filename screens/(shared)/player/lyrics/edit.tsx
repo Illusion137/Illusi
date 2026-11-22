@@ -4,7 +4,7 @@ import useDimensions from '@hooks/useDimensions';
 import useTrackColors from '@hooks/useTrackColors';
 import { GLOBALS } from '@illusive/globals';
 import { artist_string } from '@illusive/illusive_utils';
-import type { Lyrics } from '@illusive/lyrics';
+import { Lyrics } from '@illusive/lyrics';
 import type { Prefs } from '@illusive/prefs';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import type { LoadingState, Track } from '@illusive/types';
@@ -65,6 +65,31 @@ function lines_from_parsed(lines: LyricsLine[]): Line[] {
 	});
 }
 
+const shifted_seconds = (seconds: number, delta: number) => Math.round((seconds + delta) * 1000) / 1000;
+
+/** Every timestamp moved by delta seconds, or null when one would land outside the audio */
+function shift_lines(lines: Line[], delta: number, duration: number): Line[] | null {
+	const fits = (seconds: number) => seconds >= 0 && (duration <= 0 || seconds <= duration);
+	const shift_ms = (ms: number) => Math.round(ms + delta * 1000);
+	const timed = lines.filter(line => line.ts !== null);
+	if (timed.length === 0) return null;
+	for (const line of timed) {
+		if (!fits(shifted_seconds(line.ts!, delta))) return null;
+		for (const segment of line.original?.segments ?? []) {
+			if (!fits(shift_ms(segment.start_ms) / 1000) || (segment.end_ms !== null && !fits(shift_ms(segment.end_ms) / 1000))) return null;
+		}
+	}
+	return lines.map((line) => {
+		if (line.ts === null) return line;
+		const original = line.original && {
+			...line.original,
+			ts: shifted_seconds(line.original.ts, delta),
+			segments: line.original.segments?.map(segment => ({ ...segment, start_ms: shift_ms(segment.start_ms), end_ms: segment.end_ms === null ? null : shift_ms(segment.end_ms) }))
+		};
+		return { ...line, ts: shifted_seconds(line.ts, delta), original };
+	});
+}
+
 interface BuildResult {
 	lyrics: Lyrics.TrackLyrics;
 	synced: boolean;
@@ -109,6 +134,7 @@ export default function PlayerEditLyrics() {
 	const [lines, set_lines] = useState<Line[]>([]);
 	const [save_state, set_save_state] = useState<LoadingState>('NONE');
 	const [loaded, set_loaded] = useState(false);
+	const [offset, set_offset] = useState(0);
 	const lines_ref = useRef<Line[]>([]);
 	lines_ref.current = lines;
 
@@ -202,6 +228,13 @@ export default function PlayerEditLyrics() {
 		});
 	}
 
+	function shift_all(delta: number, duration: number) {
+		const shifted = shift_lines(lines_ref.current, delta, duration);
+		if (shifted === null) return;
+		set_lines(shifted);
+		set_offset(current => shifted_seconds(current, delta));
+	}
+
 	function clear_all() {
 		Alert.alert('Clear all lines?', 'This will remove every line in the editor. Save afterward to persist the change.', [
 			{ text: 'Cancel', style: 'cancel' },
@@ -212,7 +245,10 @@ export default function PlayerEditLyrics() {
 	function clear_all_timestamps() {
 		Alert.alert('Clear all timestamps?', 'Line text stays. You\'ll need to re-align before saving synced lyrics.', [
 			{ text: 'Cancel', style: 'cancel' },
-			{ text: 'Clear', style: 'destructive', onPress: () => mutate(draft => draft.map(l => ({ ...l, ts: null }))) }
+			{ text: 'Clear', style: 'destructive', onPress: () => {
+				mutate(draft => draft.map(l => ({ ...l, ts: null })));
+				set_offset(0);
+			} }
 		]);
 	}
 
@@ -223,6 +259,7 @@ export default function PlayerEditLyrics() {
 		try {
 			await SQLTracks.save_track_lyrics(track, built.lyrics);
 			invalidate_lyrics(track);
+			Lyrics.contribute_user(track, built.lyrics).catch(catch_log);
 			const refreshed = GLOBALS.global_var.sql_tracks.find(t => t.uid === track.uid);
 			if (refreshed) track_ref.current = refreshed;
 			set_save_state('COMPLETE');
@@ -296,7 +333,7 @@ export default function PlayerEditLyrics() {
 						clear_all={clear_all}
 					/>
 				) : (
-					<SyncEditor lines={lines} colors={colors} styles={styles} update_ts={update_ts} clear_all_timestamps={clear_all_timestamps} />
+					<SyncEditor lines={lines} colors={colors} styles={styles} update_ts={update_ts} clear_all_timestamps={clear_all_timestamps} offset={offset} shift_all={shift_all} track_duration={track?.duration ?? 0} />
 				)}
 
 				<View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, backgroundColor: colors.background }}>
@@ -408,11 +445,20 @@ interface SyncEditorProps {
 	styles: ReturnType<typeof theme_styles>;
 	update_ts: (id: string, ts: number | null) => void;
 	clear_all_timestamps: () => void;
+	offset: number;
+	shift_all: (delta: number, duration: number) => void;
+	track_duration: number;
 }
 
 const NUDGE_SECONDS = 0.1;
+const SHIFT_STEPS = [-1, -NUDGE_SECONDS, NUDGE_SECONDS, 1] as const;
 
-function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: SyncEditorProps) {
+function signed_seconds(seconds: number, digits: number): string {
+	const sign = seconds > 0 ? '+' : seconds < 0 ? '−' : '';
+	return `${sign}${Math.abs(seconds).toFixed(digits)}s`;
+}
+
+function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps, offset, shift_all, track_duration }: SyncEditorProps) {
 	const progress = useProgress(100);
 	const [is_playing, set_is_playing] = useState(false);
 	const [tap_mode, set_tap_mode] = useState(false);
@@ -512,6 +558,17 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 	}
 
 	const duration = progress.duration > 0 ? progress.duration : 0;
+	const audio_length = duration > 0 ? duration : track_duration;
+	const has_timestamps = lines.some(line => line.ts !== null);
+
+	function render_shift(step: number) {
+		const fits = shift_lines(lines, step, audio_length) !== null;
+		return (
+			<TouchableOpacity key={step} onPress={() => shift_all(step, audio_length)} disabled={!fits} style={[styles.shift_btn, fits ? null : styles.icon_btn_disabled]}>
+				<Text style={{ color: colors.text, fontSize: 11, fontWeight: '700' }}>{signed_seconds(step, Math.abs(step) >= 1 ? 0 : 1)}</Text>
+			</TouchableOpacity>
+		);
+	}
 
 	return (
 		<>
@@ -564,6 +621,17 @@ function SyncEditor({ lines, colors, styles, update_ts, clear_all_timestamps }: 
 					<Text style={[styles.mode_pill_text, { color: colors.text }]}>Reset</Text>
 				</TouchableOpacity>
 			</View>
+
+			{has_timestamps ? (
+				<View style={[styles.section_card, styles.shift_row]}>
+					<Text style={{ color: colors.text, fontWeight: '700', fontSize: 12 }}>Shift all</Text>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+						{SHIFT_STEPS.slice(0, 2).map(step => render_shift(step))}
+						<Text style={{ color: offset === 0 ? colors.subtext : colors.primary, fontSize: 12, fontWeight: '700', minWidth: 52, textAlign: 'center' }}>{signed_seconds(offset, 1)}</Text>
+						{SHIFT_STEPS.slice(2).map(step => render_shift(step))}
+					</View>
+				</View>
+			) : null}
 
 			<ScrollView
 				ref={scrollview_ref}
@@ -657,5 +725,7 @@ const theme_styles = (colors: Prefs.Theme['colors']) =>
 		sync_row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
 		sync_row_divider: { borderTopWidth: 0.5, borderTopColor: '#ffffff10' },
 		sync_ts_pill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 0.5 },
+		shift_row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingVertical: 8 },
+		shift_btn: { minWidth: 36, height: 26, paddingHorizontal: 6, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: colors.line, backgroundColor: colors.shelf },
 		assign_btn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 0.5 }
 	});

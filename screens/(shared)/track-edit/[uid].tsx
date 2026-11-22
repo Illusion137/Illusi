@@ -6,6 +6,7 @@ import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import { Ionicons } from '@expo/vector-icons';
 import usePTheme from '@hooks/usePTheme';
 import useTrackColors from '@hooks/useTrackColors';
+import useCatalogSuggestions, { type CatalogSuggestion } from '@hooks/useCatalogSuggestions';
 import { ExampleObj } from '@utils/example_objs';
 import { GLOBALS } from '@illusive/globals';
 import { Illusive } from '@illusive/illusive';
@@ -32,6 +33,37 @@ type SetArtistsState = (args: (prev: NamedUUID[]) => NamedUUID[]) => any;
 
 const MAX_SUGGESTIONS = 30;
 
+function CatalogSuggestionRows(props: { suggestions: CatalogSuggestion[]; round: boolean; on_pick: (suggestion: CatalogSuggestion) => void }) {
+	const { colors } = usePTheme();
+	if (props.suggestions.length === 0) return null;
+	const size = props.round ? 36 : 44;
+	return (
+		<>
+			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: colors.shelf }}>
+				<Ionicons name="cloud-outline" size={12} color={colors.searchPlaceholder} />
+				<Text style={{ color: colors.searchPlaceholder, fontSize: 11, fontWeight: '700' }}>Illusi catalog</Text>
+			</View>
+			{props.suggestions.map((suggestion, i) => (
+				<TouchableOpacity
+					key={suggestion.named.uri ?? suggestion.named.name}
+					style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: i < props.suggestions.length - 1 ? 0.5 : 0, borderBottomColor: colors.line }}
+					onPress={() => props.on_pick(suggestion)}
+				>
+					<IImage
+						style={{ width: size, height: size, borderRadius: props.round ? size / 2 : 2, marginRight: 12, borderWidth: props.round ? 0 : 1, borderColor: colors.line }}
+						source={suggestion.artwork || (props.round ? SQLArtists.default_profile_picture_url : Illusive.illusi_dark_icon_index)}
+					/>
+					<View style={{ flex: 1 }}>
+						<Text style={{ color: colors.text, fontSize: 14, fontWeight: '500' }} numberOfLines={1}>{suggestion.named.name}</Text>
+						{suggestion.subtitle ? <Text style={{ color: colors.searchPlaceholder, fontSize: 12 }} numberOfLines={1}>{suggestion.subtitle}</Text> : null}
+					</View>
+					<Ionicons name="chevron-forward" size={13} color={colors.searchPlaceholder} />
+				</TouchableOpacity>
+			))}
+		</>
+	);
+}
+
 function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: number; set_artists_state: SetArtistsState; on_focus?: (row: View | null) => void }) {
 	const { colors } = usePTheme();
 
@@ -40,11 +72,14 @@ function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: num
 	const row_ref = useRef<View>(null);
 	const [close_artists, set_close_artists] = useState(() => all_artists.slice(0, MAX_SUGGESTIONS));
 	const [input_focused, set_input_focused] = useState(false);
+	const [query, set_query] = useState('');
+	const catalog_artists = useCatalogSuggestions('artist', query, input_focused);
 
 	const is_only = props.total_artists === 1;
 
 	function on_name_change(name: string) {
 		artist_name_ref.current = name;
+		set_query(name);
 		set_close_artists(all_artists.filter(a => a?.name?.toLowerCase().includes(name?.toLowerCase())).slice(0, MAX_SUGGESTIONS));
 	}
 
@@ -53,6 +88,8 @@ function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: num
 		if (!typed) return;
 		const matched = all_artists.find(a => a.name?.toLowerCase() === typed?.toLowerCase());
 		props.set_artists_state((prev) => {
+			// Already holds this name, e.g. just picked from the catalog
+			if (prev[props.index]?.name === typed) return prev;
 			const updated = [...prev];
 			updated[props.index] = matched ? { name: matched.name, uri: matched.uri ?? null } : { name: typed, uri: null };
 			return updated;
@@ -92,7 +129,7 @@ function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: num
 					<Ionicons name="trash-outline" size={20} color={is_only ? colors.subtext : colors.red} />
 				</TouchableOpacity>
 			</View>
-			{input_focused && close_artists.length > 0 ? (
+			{input_focused && (close_artists.length > 0 || catalog_artists.length > 0) ? (
 				<View style={{ backgroundColor: colors.card + 'ee', borderRadius: 2, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.line, marginBottom: 4 }}>
 					<ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 						{close_artists.map((artist, i) => (
@@ -115,6 +152,20 @@ function ArtistRow(props: { artist: NamedUUID; index: number; total_artists: num
 								<Ionicons name="chevron-forward" size={13} color={colors.searchPlaceholder} />
 							</TouchableOpacity>
 						))}
+						<CatalogSuggestionRows
+							suggestions={catalog_artists}
+							round
+							on_pick={({ named }) => {
+								props.set_artists_state((prev) => {
+									const updated = [...prev];
+									updated[props.index] = named;
+									return updated;
+								});
+								artist_name_ref.current = named.name;
+								set_input_focused(false);
+								Keyboard.dismiss();
+							}}
+						/>
 					</ScrollView>
 				</View>
 			)
@@ -192,6 +243,10 @@ export default function EditTrackModal() {
 	const [close_albums, set_close_album] = useState<ArtworkNamedUUID[]>([]);
 	useEffect(() => set_close_album(all_albums.filter(album => album.name?.toLowerCase().includes(album_ref.current?.name?.toLowerCase() ?? '')).slice(0, MAX_SUGGESTIONS)), [album_ref.current?.name]);
 	const [album_name_input_focused, set_album_name_input_focused] = useState<boolean>(false);
+	const [album_query, set_album_query] = useState('');
+	const catalog_albums = useCatalogSuggestions('album', album_query, album_name_input_focused);
+	const [picked_album_artwork, set_picked_album_artwork] = useState<string | null>(null);
+	const [album_input_key, set_album_input_key] = useState(0);
 	const [editing_album_name_state, set_editing_album_name_state] = useState<LoadingState>('NONE');
 
 	const [saving_state, set_saving_state] = useState<LoadingState>('NONE');
@@ -231,18 +286,25 @@ export default function EditTrackModal() {
 		set_artists_state(prev => [...prev, { name: '', uri: null }]);
 	}
 
+	/** Links the album to the library's album of that name, unless it was picked from the catalog */
+	function link_local_album() {
+		const album = album_ref.current;
+		if (!album || album.uri?.startsWith('illusi:')) return;
+		const other_album_uri: IllusiveURI | null = album.name ? (GLOBALS.global_var.sql_tracks.find(t => t.album?.uri && t.album.name === album.name)?.album?.uri ?? null) : null;
+		if (!album.uri || other_album_uri !== null) album.uri = other_album_uri;
+	}
+
 	function on_album_name_change(new_album_name: string) {
-		if (album_ref.current === null) album_ref.current = { name: new_album_name, uri: null };
+		if (album_ref.current === null || album_ref.current.uri?.startsWith('illusi:')) album_ref.current = { name: new_album_name, uri: null };
 		else album_ref.current.name = new_album_name;
 		set_editing_album_name_state('LOADING');
+		set_album_query(new_album_name);
+		set_picked_album_artwork(null);
 		set_close_album(all_albums.filter(album => album.name?.toLowerCase().includes(new_album_name?.toLowerCase())).slice(0, MAX_SUGGESTIONS));
 	}
 	function on_album_name_submit() {
 		if (album_ref.current && track_ref.current) {
-			const other_album_uri: IllusiveURI | null = album_ref.current?.name ? (GLOBALS.global_var.sql_tracks.find(track => track.album?.uri && track.album?.name && track.album.name === album_ref.current?.name)?.album?.uri ?? null) : null;
-			if ((album_ref.current && !album_ref.current?.uri) || other_album_uri !== null) {
-				album_ref.current.uri = other_album_uri;
-			}
+			link_local_album();
 			set_editing_album_name_state('COMPLETE');
 		} else set_editing_album_name_state('NONE');
 	}
@@ -251,14 +313,9 @@ export default function EditTrackModal() {
 		if (!track_ref.current) return;
 		set_saving_state('LOADING');
 		try {
-			const other_album_uri: IllusiveURI | null = album_ref.current?.name ? (GLOBALS.global_var.sql_tracks.find(t => t.album?.uri && t.album.name === album_ref.current?.name)?.album?.uri ?? null) : null;
-			if (album_ref.current && (!album_ref.current.uri || other_album_uri !== null)) {
-				album_ref.current.uri = other_album_uri;
-			}
-			await SQLTracks.update_track(track_ref.current.uid, { ...track_ref.current, title: title_ref.current, album: album_ref.current ?? track_ref.current.album, artists: artists_state });
-			track_ref.current.title = title_ref.current;
-			track_ref.current.artists = artists_state;
-			if (album_ref.current) track_ref.current.album = album_ref.current;
+			link_local_album();
+			const edited = await SQLTracks.edit_track(track_ref.current.uid, { title: title_ref.current, artists: artists_state, album: album_ref.current ?? track_ref.current.album ?? null });
+			if (edited) track_ref.current = edited;
 			set_saving_state('COMPLETE');
 			setTimeout(() => set_saving_state('NONE'), 2000);
 		} catch (_) {
@@ -434,11 +491,12 @@ export default function EditTrackModal() {
 				<View ref={album_section_ref} style={styles.section_card}>
 					<Text style={styles.section_label}>Album</Text>
 					<View style={{ flexDirection: 'row', marginTop: 10, alignItems: 'center' }}>
-						<IImage source={album_artwork} style={{ height: 60, width: 60, borderRadius: 2, borderWidth: 1, borderColor: colors.line }} />
+						<IImage source={picked_album_artwork ?? album_artwork} style={{ height: 60, width: 60, borderRadius: 2, borderWidth: 1, borderColor: colors.line }} />
 						<View style={{ flex: 1, marginLeft: 14 }}>
 							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 								<TextInput
-									defaultValue={track_ref.current?.album?.name}
+									key={album_input_key}
+									defaultValue={album_ref.current?.name ?? track_ref.current?.album?.name}
 									autoCorrect={false}
 									placeholder="Album name"
 									placeholderTextColor={colors.searchPlaceholder}
@@ -460,7 +518,7 @@ export default function EditTrackModal() {
 						</View>
 					</View>
 				</View>
-				{album_name_input_focused && close_albums.length > 0 ? (
+				{album_name_input_focused && (close_albums.length > 0 || catalog_albums.length > 0) ? (
 					<View style={{ backgroundColor: colors.card + 'ee', borderRadius: 2, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.line, marginHorizontal: 16, marginTop: 4 }}>
 						<ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 							{close_albums.map((album, i) => (
@@ -471,6 +529,7 @@ export default function EditTrackModal() {
 										album_ref.current = { name: album.name, uri: album.uri ?? null };
 										set_editing_album_name_state('LOADING');
 										set_album_name_input_focused(false);
+										set_album_input_key(k => k + 1);
 										Keyboard.dismiss();
 									}}
 								>
@@ -479,6 +538,18 @@ export default function EditTrackModal() {
 									<Ionicons name="chevron-forward" size={14} color={colors.searchPlaceholder} />
 								</TouchableOpacity>
 							))}
+							<CatalogSuggestionRows
+								suggestions={catalog_albums}
+								round={false}
+								on_pick={({ named, artwork }) => {
+									album_ref.current = named;
+									set_picked_album_artwork(artwork || null);
+									set_editing_album_name_state('COMPLETE');
+									set_album_name_input_focused(false);
+									set_album_input_key(k => k + 1);
+									Keyboard.dismiss();
+								}}
+							/>
 						</ScrollView>
 					</View>
 				)
