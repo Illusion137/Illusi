@@ -4,6 +4,7 @@ import type { Lyrics } from '@illusive/lyrics';
 import type { ParsedLyrics } from '@origin/illusi/types';
 import { get_cached_lyrics, get_cached_translation, load_lyrics, load_translation } from '@utils/lyrics_cache';
 import { useEffect, useState } from 'react';
+import useWordSyncedLyrics from '@hooks/useWordSyncedLyrics';
 
 function cached_display(track: Track): Lyrics.TranslatedLyrics | null | undefined {
 	return get_cached_translation(track) ?? get_cached_lyrics(track);
@@ -47,5 +48,5 @@ export default function useTrackLyrics(track: Track | undefined, enabled = true)
 		};
 	}, [enabled, track?.uid, track?.lyrics_uri, track?.sync_status]);
 
-	return lyrics;
+	return useWordSyncedLyrics(track, lyrics);
 }
