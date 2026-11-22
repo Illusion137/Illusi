@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, TextInput, TouchableHighlight, ScrollView, ActivityIndicator } from 'react-native';
 import type { Prefs } from '@illusive/prefs';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import usePTheme from '@hooks/usePTheme';
 import { IllusiAccount } from '@illusive/db/sync/illusi_account';
 import { SyncEngine } from '@illusive/db/sync/sync_engine';
@@ -151,6 +153,26 @@ export default function ExtraSyncScreen() {
 		set_loading(false);
 	}
 
+	async function handle_pick_avatar() {
+		const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.9 });
+		const asset = picked.canceled ? undefined : picked.assets[0];
+		if (asset === undefined) return;
+		const file = { uri: asset.uri, name: asset.fileName ?? 'avatar.jpg', type: asset.mimeType ?? 'image/jpeg' };
+		await run(async () => {
+			const result = await IllusiAccount.set_avatar(file);
+			if (!('error' in result)) set_account(prev => (prev === null ? prev : { ...prev, avatar_id: result.avatar_id }));
+			return result;
+		});
+	}
+
+	async function handle_remove_avatar() {
+		await run(async () => {
+			const result = await IllusiAccount.remove_avatar();
+			if (!('error' in result)) set_account(prev => (prev === null ? prev : { ...prev, avatar_id: null }));
+			return result;
+		});
+	}
+
 	async function handle_dismiss_dropped() {
 		await SyncEngine.dismiss_dropped();
 		set_dropped([]);
@@ -206,6 +228,30 @@ export default function ExtraSyncScreen() {
 						<Text style={styles.header_text}>Logged In</Text>
 					</View>
 					<View style={styles.line} />
+					{unverified ? null : (
+						<View style={styles.profile_row}>
+							<TouchableHighlight activeOpacity={0.6} underlayColor="transparent" onPress={handle_pick_avatar} disabled={loading}>
+								{account?.avatar_id ? (
+									<Image source={IllusiAccount.avatar_source(account.avatar_id)} style={styles.avatar} contentFit="cover" cachePolicy="disk" />
+								) : (
+									<View style={[styles.avatar, styles.avatar_empty]}><Ionicons name="person" size={30} color={colors.subtext} /></View>
+								)}
+							</TouchableHighlight>
+							<View style={{ flex: 1, marginLeft: 14 }}>
+								<Text style={styles.username_text} numberOfLines={1}>{account?.username ?? me?.user.username ?? ''}</Text>
+								<View style={styles.row}>
+									<TouchableHighlight activeOpacity={0.6} underlayColor="transparent" onPress={handle_pick_avatar} disabled={loading}>
+										<Text style={styles.link_text}>{account?.avatar_id ? 'Change Photo' : 'Add Photo'}</Text>
+									</TouchableHighlight>
+									{account?.avatar_id ? (
+										<TouchableHighlight activeOpacity={0.6} underlayColor="transparent" onPress={handle_remove_avatar} disabled={loading}>
+											<Text style={[styles.link_text, { marginLeft: 16 }]}>Remove</Text>
+										</TouchableHighlight>
+									) : null}
+								</View>
+							</View>
+						</View>
+					)}
 					<View style={styles.info_row}>
 						<Text style={styles.label}>Account</Text>
 						<Text style={styles.value} numberOfLines={1}>
@@ -429,5 +475,10 @@ const theme_styles = (colors: Prefs.Theme['colors']) =>
 		toggle_text: { color: colors.subtext, fontSize: 13, textAlign: 'center', paddingVertical: 8 },
 		info_row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.line },
 		label: { color: colors.subtext, fontSize: 14 },
-		value: { color: colors.text, fontSize: 14, fontWeight: '500', maxWidth: '60%' }
+		value: { color: colors.text, fontSize: 14, fontWeight: '500', maxWidth: '60%' },
+		profile_row: { flexDirection: 'row', alignItems: 'center', paddingBottom: 12 },
+		avatar: { width: 64, height: 64, borderRadius: 32 },
+		avatar_empty: { backgroundColor: colors.shelf, alignItems: 'center', justifyContent: 'center' },
+		username_text: { color: colors.text, fontSize: 18, fontWeight: '600', marginBottom: 4 },
+		link_text: { color: colors.primary, fontSize: 14, paddingVertical: 4 }
 	});
