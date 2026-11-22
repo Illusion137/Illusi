@@ -1,5 +1,6 @@
 import { LyricsAlign } from '@illusive/lyrics_align';
-import type { LyricsLine, LyricsSegment, ParsedLyrics } from '@origin/illusi/types';
+import type { Lyrics } from '@illusive/lyrics';
+import type { LyricsLine, LyricsSegment } from '@origin/illusi/types';
 import { FontWeight, Skia, TextAlign, type LineMetrics, type SkParagraph } from '@shopify/react-native-skia';
 
 /** A held syllable this long gets the glow + swell emphasis */
@@ -12,6 +13,8 @@ const BACKGROUND_SCALE = 0.62;
 const GROUP_AGENTS = new Set(['v1000']);
 const STATIC_OPACITY = 0.85;
 const CREDITS_OPACITY = 1;
+const TRANSLATION_SCALE = 0.58;
+const TRANSLATION_OPACITY = 0.75;
 
 export interface LyricsStyle {
 	color: string;
@@ -69,6 +72,8 @@ export interface LineItem extends ItemBase {
 	align: LyricAlign;
 	main: LyricVocals;
 	background: LyricVocals | null;
+	translation: SkParagraph | null;
+	translation_y: number;
 	text_height: number;
 }
 export interface GapItem extends ItemBase {
@@ -205,7 +210,7 @@ function line_end_ms(line: LyricsLine, next: LyricsLine | undefined): number {
 	return line.end_ms ?? line.segments?.at(-1)?.end_ms ?? next?.start_ms ?? start + 5000;
 }
 
-export function build_lyrics_layout(lyrics: ParsedLyrics, viewport_width: number, viewport_height: number, style: LyricsStyle): LyricsLayout {
+export function build_lyrics_layout(lyrics: Lyrics.TranslatedLyrics, viewport_width: number, viewport_height: number, style: LyricsStyle): LyricsLayout {
 	const width = Math.max(1, viewport_width - style.padding_horizontal * 2);
 	const line_gap = style.font_size * 0.6;
 	const top_inset = viewport_height * style.anchor;
@@ -227,7 +232,14 @@ export function build_lyrics_layout(lyrics: ParsedLyrics, viewport_width: number
 			}
 			const header = LyricsAlign.is_header(text);
 			const paragraph = make_paragraph(header ? text.slice(1, -1) : text, header ? style.font_size * 0.55 : style.font_size, TextAlign.Left, width, style, header ? FontWeight.SemiBold : style.font_weight, STATIC_OPACITY);
-			push({ kind: 'static', y, height: paragraph.getHeight() + line_gap, begin_ms: Infinity, end_ms: Infinity, paragraph });
+			const translated = header ? undefined : line.translated?.trim();
+			if (translated === undefined || translated === '') {
+				push({ kind: 'static', y, height: paragraph.getHeight() + line_gap, begin_ms: Infinity, end_ms: Infinity, paragraph });
+				continue;
+			}
+			push({ kind: 'static', y, height: paragraph.getHeight() + style.font_size * 0.15, begin_ms: Infinity, end_ms: Infinity, paragraph });
+			const translation = make_paragraph(translated, style.font_size * TRANSLATION_SCALE, TextAlign.Left, width, style, FontWeight.Medium, STATIC_OPACITY * TRANSLATION_OPACITY);
+			push({ kind: 'static', y, height: translation.getHeight() + line_gap, begin_ms: Infinity, end_ms: Infinity, paragraph: translation });
 		}
 	} else {
 		const lines = lyrics.lines.filter(line => line.start_ms !== null && line.text.trim() !== '' && !LyricsAlign.is_header(line.text));
@@ -251,7 +263,15 @@ export function build_lyrics_layout(lyrics: ParsedLyrics, viewport_width: number
 				text_height = background.y + background.height;
 				item_end = Math.max(item_end, line.background.end_ms ?? line.background.segments?.at(-1)?.end_ms ?? item_end);
 			}
-			push({ kind: 'line', y, height: text_height + line_gap, begin_ms, end_ms: item_end, text: line.text, align, main, background, text_height });
+			let translation: SkParagraph | null = null;
+			let translation_y = 0;
+			const translated = line.translated?.trim();
+			if (translated !== undefined && translated !== '') {
+				translation = make_paragraph(translated, style.font_size * TRANSLATION_SCALE, text_align(align), width, style, FontWeight.Medium, TRANSLATION_OPACITY);
+				translation_y = text_height + style.font_size * 0.15;
+				text_height = translation_y + translation.getHeight();
+			}
+			push({ kind: 'line', y, height: text_height + line_gap, begin_ms, end_ms: item_end, text: line.text, align, main, background, translation, translation_y, text_height });
 			sung_until = Math.max(sung_until, item_end);
 		}
 	}

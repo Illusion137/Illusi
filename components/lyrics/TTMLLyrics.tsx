@@ -1,4 +1,4 @@
-import type { ParsedLyrics } from '@origin/illusi/types';
+import type { Lyrics } from '@illusive/lyrics';
 import { Canvas, createPicture, FontWeight, Picture } from '@shopify/react-native-skia';
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
@@ -20,7 +20,7 @@ export interface TTMLLyricsHandle {
 
 export interface TTMLLyricsProps {
 	ref?: Ref<TTMLLyricsHandle>;
-	lyrics: ParsedLyrics;
+	lyrics: Lyrics.TranslatedLyrics;
 	/** Keep the active line anchored; manual scrolling pauses this until `resume_follow_ms` of inactivity */
 	follow?: boolean;
 	on_follow_change?: (following: boolean) => void;

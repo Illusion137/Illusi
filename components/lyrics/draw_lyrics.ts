@@ -28,6 +28,7 @@ const DIM_STEP = 0.05;
 const UNSUNG_ALPHA = 0.42;
 const BACKGROUND_DIM = 0.8;
 const MAX_BLUR = 3;
+const BELOW_SHARP_LINES = 3;
 const LEAD_IN_MS = 150;
 const FADE_OUT_MS = 450;
 const LIFT = 0.06;
@@ -184,7 +185,8 @@ function draw_line(canvas: SkCanvas, layout: LyricsLayout, item: LineItem, index
 	const active = activeness(item.begin_ms, item.end_ms, frame.time_ms);
 	const distance = Math.abs(index - frame.focus);
 	const dim = mix(Math.max(DIM_FAR, DIM_NEAR - Math.max(distance - 1, 0) * DIM_STEP), DIM_NEAR, frame.manual);
-	const blur = frame.blur ? Math.min(Math.max(distance - 0.6, 0), MAX_BLUR) * (1 - frame.manual) * (1 - active) : 0;
+	const sharp = index > frame.focus ? BELOW_SHARP_LINES : 0.6;
+	const blur = frame.blur ? Math.min(Math.max(distance - sharp, 0), MAX_BLUR) * (1 - frame.manual) * (1 - active) : 0;
 	const scale = mix(INACTIVE_SCALE, 1, active);
 	const left = layout.padding_horizontal;
 	const origin_x = item.align === 'right' ? left + layout.width : item.align === 'center' ? left + layout.width / 2 : left;
@@ -196,6 +198,11 @@ function draw_line(canvas: SkCanvas, layout: LyricsLayout, item: LineItem, index
 	canvas.translate(-origin_x, -origin_y);
 	draw_vocals(canvas, item.main, left, y, layout.width, frame.time_ms, dim, active, blur);
 	if (item.background !== null) draw_vocals(canvas, item.background, left, y + item.background.y, layout.width, frame.time_ms, dim * BACKGROUND_DIM, active * BACKGROUND_DIM, blur);
+	if (item.translation !== null) {
+		canvas.saveLayer(layer_paint(mix(dim, 1, active), blur), bounds(left, y + item.translation_y, layout.width, item.translation.getHeight(), blur * 3));
+		item.translation.paint(canvas, left, y + item.translation_y);
+		canvas.restore();
+	}
 	canvas.restore();
 }
 

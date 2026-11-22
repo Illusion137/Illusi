@@ -1,6 +1,7 @@
 import { is_empty } from '@common/utils/util';
 import type { Track } from '@illusive/types';
 import type { ParsedLyrics } from '@origin/illusi/types';
+import { Lyrics } from '@illusive/lyrics';
 import { player_queue_tracks } from '@utils/player_queue';
 import { read_parsed_lyrics } from '@utils/track_lyrics';
 
@@ -10,6 +11,8 @@ type CacheEntry = ParsedLyrics | null;
 const MAX_CACHE_ENTRIES = 50;
 const cache = new Map<string, CacheEntry>();
 const in_flight = new Map<string, Promise<CacheEntry>>();
+const translations = new Map<string, Lyrics.TranslatedLyrics>();
+const translating = new Map<string, Promise<Lyrics.TranslatedLyrics | null>>();
 
 // Key on the lyrics uri too so a track that gets lyrics added later isn't
 // permanently cached as "none".
@@ -21,12 +24,12 @@ function has_lyrics(track: Track): boolean {
 	return !is_empty(track.lyrics_uri);
 }
 
-function remember(key: string, entry: CacheEntry) {
-	if (cache.size >= MAX_CACHE_ENTRIES) {
-		const oldest = cache.keys().next().value;
-		if (oldest !== undefined) cache.delete(oldest);
+function remember<T>(map: Map<string, T>, key: string, entry: T) {
+	if (map.size >= MAX_CACHE_ENTRIES) {
+		const oldest = map.keys().next().value;
+		if (oldest !== undefined) map.delete(oldest);
 	}
-	cache.set(key, entry);
+	map.set(key, entry);
 }
 
 // Returns the cached entry, or undefined when nothing has been loaded for this track yet.
@@ -47,7 +50,7 @@ export async function load_lyrics(track: Track): Promise<CacheEntry> {
 	in_flight.set(key, promise);
 	try {
 		const result = await promise;
-		remember(key, result);
+		remember(cache, key, result);
 		return result;
 	} finally {
 		in_flight.delete(key);
@@ -60,6 +63,33 @@ export function invalidate_lyrics(track: Track) {
 	const prefix = `${track.uid}|`;
 	for (const key of Array.from(cache.keys())) {
 		if (key.startsWith(prefix)) cache.delete(key);
+	}
+	for (const key of Array.from(translations.keys())) {
+		if (key.startsWith(prefix)) translations.delete(key);
+	}
+}
+
+export function get_cached_translation(track: Track): Lyrics.TranslatedLyrics | undefined {
+	return translations.get(cache_key(track));
+}
+
+// English under each line for Japanese, Korean and Chinese lyrics; null when they don't need it or translating failed.
+export async function load_translation(track: Track, lyrics: ParsedLyrics): Promise<Lyrics.TranslatedLyrics | null> {
+	if (!Lyrics.should_translate(Lyrics.to_plain(lyrics))) return null;
+	const key = cache_key(track);
+	const cached = translations.get(key);
+	if (cached !== undefined) return cached;
+	const existing = translating.get(key);
+	if (existing) return existing;
+
+	const promise = Lyrics.translate_parsed_lyrics(lyrics).then(result => ('error' in result ? null : result));
+	translating.set(key, promise);
+	try {
+		const result = await promise;
+		if (result !== null) remember(translations, key, result);
+		return result;
+	} finally {
+		translating.delete(key);
 	}
 }
 
