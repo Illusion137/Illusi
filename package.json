@@ -150,7 +150,7 @@
     "react-native-dropdown-select-list": "^2.0.4",
     "react-native-easing-gradient": "^1.1.1",
     "react-native-element-dropdown": "^2.10.0",
-    "react-native-everything-player": "https://github.com/Illusion137/everything-player#bf2144563157fce96e808d27830a25b192a49c32",
+    "react-native-everything-player": "https://github.com/Illusion137/everything-player",
     "react-native-external-display": "^0.6.6",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.32.0",
