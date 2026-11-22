@@ -1,0 +1,105 @@
+diff --git a/node_modules/react-native-big-list/dist/commonjs/BigList.js b/node_modules/react-native-big-list/dist/commonjs/BigList.js
+index b40bcd5..184ee96 100644
+--- a/node_modules/react-native-big-list/dist/commonjs/BigList.js
++++ b/node_modules/react-native-big-list/dist/commonjs/BigList.js
+@@ -1055,10 +1055,29 @@ class BigList extends _react.PureComponent {
+    * Component did update.
+    * @param prevProps
+    */
+-  componentDidUpdate(prevProps) {
++  componentDidUpdate(prevProps, prevState) {
+     if (prevProps.initialScrollIndex !== this.props.initialScrollIndex) {
+       throw new Error("initialScrollIndex cannot be changed after mounting");
+     }
++    // Content shrinking past the scroll position sends no scroll event, so the rendered block stays where the old
++    // content was and only spacers show until the user scrolls again
++    const maxScrollTop = Math.max(0, this.state.height - this.containerHeight);
++    if (prevState.height !== this.state.height && this.containerHeight > 0 && this.scrollTop > maxScrollTop) {
++      this.scrollTop = maxScrollTop;
++      this.scrollTo(this.props.horizontal ? { x: maxScrollTop, y: 0, animated: false } : { x: 0, y: maxScrollTop, animated: false });
++      const nextState = (0, _utils.processBlock)({
++        containerHeight: this.containerHeight,
++        scrollTop: this.scrollTop,
++        batchSizeThreshold: this.props.batchSizeThreshold,
++      });
++      if (
++        nextState.batchSize !== this.state.batchSize ||
++        nextState.blockStart !== this.state.blockStart ||
++        nextState.blockEnd !== this.state.blockEnd
++      ) {
++        this.setState(nextState);
++      }
++    }
+   }
+ 
+   /**
+diff --git a/node_modules/react-native-big-list/dist/module/BigList.js b/node_modules/react-native-big-list/dist/module/BigList.js
+index bcda79c..92076d3 100644
+--- a/node_modules/react-native-big-list/dist/module/BigList.js
++++ b/node_modules/react-native-big-list/dist/module/BigList.js
+@@ -1047,10 +1047,29 @@ class BigList extends PureComponent {
+    * Component did update.
+    * @param prevProps
+    */
+-  componentDidUpdate(prevProps) {
++  componentDidUpdate(prevProps, prevState) {
+     if (prevProps.initialScrollIndex !== this.props.initialScrollIndex) {
+       throw new Error("initialScrollIndex cannot be changed after mounting");
+     }
++    // Content shrinking past the scroll position sends no scroll event, so the rendered block stays where the old
++    // content was and only spacers show until the user scrolls again
++    const maxScrollTop = Math.max(0, this.state.height - this.containerHeight);
++    if (prevState.height !== this.state.height && this.containerHeight > 0 && this.scrollTop > maxScrollTop) {
++      this.scrollTop = maxScrollTop;
++      this.scrollTo(this.props.horizontal ? { x: maxScrollTop, y: 0, animated: false } : { x: 0, y: maxScrollTop, animated: false });
++      const nextState = processBlock({
++        containerHeight: this.containerHeight,
++        scrollTop: this.scrollTop,
++        batchSizeThreshold: this.props.batchSizeThreshold,
++      });
++      if (
++        nextState.batchSize !== this.state.batchSize ||
++        nextState.blockStart !== this.state.blockStart ||
++        nextState.blockEnd !== this.state.blockEnd
++      ) {
++        this.setState(nextState);
++      }
++    }
+   }
+ 
+   /**
+diff --git a/node_modules/react-native-big-list/lib/BigList.jsx b/node_modules/react-native-big-list/lib/BigList.jsx
+index b875612..1709bdb 100644
+--- a/node_modules/react-native-big-list/lib/BigList.jsx
++++ b/node_modules/react-native-big-list/lib/BigList.jsx
+@@ -1043,10 +1043,29 @@ class BigList extends PureComponent {
+    * Component did update.
+    * @param prevProps
+    */
+-  componentDidUpdate(prevProps) {
++  componentDidUpdate(prevProps, prevState) {
+     if (prevProps.initialScrollIndex !== this.props.initialScrollIndex) {
+       throw new Error("initialScrollIndex cannot be changed after mounting");
+     }
++    // Content shrinking past the scroll position sends no scroll event, so the rendered block stays where the old
++    // content was and only spacers show until the user scrolls again
++    const maxScrollTop = Math.max(0, this.state.height - this.containerHeight);
++    if (prevState.height !== this.state.height && this.containerHeight > 0 && this.scrollTop > maxScrollTop) {
++      this.scrollTop = maxScrollTop;
++      this.scrollTo(this.props.horizontal ? { x: maxScrollTop, y: 0, animated: false } : { x: 0, y: maxScrollTop, animated: false });
++      const nextState = processBlock({
++        containerHeight: this.containerHeight,
++        scrollTop: this.scrollTop,
++        batchSizeThreshold: this.props.batchSizeThreshold,
++      });
++      if (
++        nextState.batchSize !== this.state.batchSize ||
++        nextState.blockStart !== this.state.blockStart ||
++        nextState.blockEnd !== this.state.blockEnd
++      ) {
++        this.setState(nextState);
++      }
++    }
+   }
+ 
+   /**

@@ -57,6 +57,7 @@ function LibraryTrackList(
 	}, [props.edit_mode]);
 
 	async function refresh_data(query?: string) {
+		const query_changed = query !== undefined && query !== search_query;
 		search_query = query ?? search_query ?? '';
 
 		const tracks = track_query_filter(GLOBALS.global_var.sql_tracks, search_query);
@@ -64,6 +65,7 @@ function LibraryTrackList(
 
 		if (writing_to_playlist) set_saved_track_uids(await SQLPlaylists.playlist_track_uid_set(props.write_playlist_uuid!));
 		set_all_data({ char_data: section_map.char_data, track_mask: section_map.section_map, num_tracks: tracks.length });
+		if (query_changed) biglist_ref.current?.scrollToTop({ animated: false });
 	}
 	function on_edit_mode_change(edit_mode: EditMode) {
 		if (edit_mode === 'NONE') {
