@@ -37,7 +37,7 @@ export default function TrackIconTags(props: TrackIconTagsProps) {
 				: null}
 			{!is_empty(props.track_data.imported_id) ? <MaterialCommunityIcons name="file-upload" size={props.size} color={colors.primary} style={[styles.icon_thin, glow_style]} /> : null}
 			{!is_empty(props.track_data.youtube_id) ? <Ionicons name="logo-youtube" size={props.size} color={service_icon_map.YouTube.color} style={[styles.icon_thin, glow_style]} /> : null}
-			{!is_empty(props.track_data.soundcloud_id) ? <MaterialCommunityIcons name="soundcloud" size={props.size} color={service_icon_map.SoundCloud.color} style={[styles.icon_thin, glow_style]} /> : null}
+			{!is_empty(props.track_data.soundcloud_id) || !is_empty(props.track_data.soundcloud_permalink) ? <MaterialCommunityIcons name="soundcloud" size={props.size} color={service_icon_map.SoundCloud.color} style={[styles.icon_thin, glow_style]} /> : null}
 			{!is_empty(props.track_data.spotify_id) ? <MaterialCommunityIcons name="spotify" size={props.size} color={service_icon_map.Spotify.color} style={[styles.icon_thick, glow_style]} /> : null}
 			{!is_empty(props.track_data.applemusic_id) ? <Fontisto name="applemusic" size={props.size} color={service_icon_map['Apple Music'].color} style={[styles.icon_thin, glow_style]} /> : null}
 			{!is_empty(props.track_data.amazonmusic_id) ? <Ionicons name="logo-amazon" size={props.size} color={service_icon_map['Amazon Music'].color} style={[styles.icon_thin, glow_style]} /> : null}
