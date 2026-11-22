@@ -17,6 +17,9 @@ DESKTOP_CHECKLIST.md
 **/extras/(shared)/
 **/audiobooks/(shared)/
 
+sample-main.js
+sample-package.json
+
 LIB_MODIFIED.txt
 
 # Expo
