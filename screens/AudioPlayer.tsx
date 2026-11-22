@@ -16,7 +16,7 @@ import { GLOBALS } from '@illusive/globals';
 import type * as IllusiveType from '@illusive/types';
 import { Prefs } from '@illusive/prefs';
 import { is_empty, shuffle_array } from '@common/utils/util';
-import { get_metadata_update_threshold, get_restart_threshold, save_past_queue, setup_track_player, track_player_next, track_player_previous } from '@illusive/track_player_service';
+import { get_metadata_update_threshold, get_restart_threshold, save_past_queue, setup_track_player, track_player_next, track_player_previous, watch_playback_duration } from '@illusive/track_player_service';
 import { active_track_index, player_queue_track, player_queue_tracks, refresh_player_queue_tracks, skip_to_next_resolved, start_player_queue } from '@utils/player_queue';
 import { has_synced_lyrics } from '@utils/track_lyrics';
 import { alert_error } from '@illusive/illusi/src/alert';
@@ -183,11 +183,11 @@ const PlayerBackdrop = memo(function PlayerBackdrop({ best_artwork, track_uid }:
 				<View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} />
 			</MaskedView>
 			<MaskedView
-				style={{ position: 'absolute', top: art_top_y + screen_w - 270, left: 0, right: 0, bottom: 0 }}
+				style={{ position: 'absolute', top: art_top_y + screen_w - 200, left: 0, right: 0, bottom: 0 }}
 				maskElement={<LinearGradient colors={['transparent', 'transparent', 'black', 'black']} locations={[0, 0.1, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1 }} />}
 			>
-				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={45} style={{ position: 'absolute', top: 270 - screen_w, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
-				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={45} style={{ position: 'absolute', top: 270, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={30} style={{ position: 'absolute', top: 200 - screen_w, left: 0, right: 0, height: screen_w, maxWidth: screen_w }} resizeMode="cover" />
+				<IImage source={best_artwork} recycling_key={track_uid} blurRadius={30} style={{ position: 'absolute', top: 200, left: 0, right: 0, height: screen_w, maxWidth: screen_w, transform: [{ scaleY: -1 }] }} resizeMode="cover" />
 				<View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
 			</MaskedView>
 			<LinearGradient colors={['rgba(0,0,0,0.75)', 'rgba(0,0,0,0.25)', 'transparent']} locations={[0, 0.55, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: art_top_y + 25 }} />
@@ -218,6 +218,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>('NONE');
 	const [lyrics_overlay_visible, set_lyrics_overlay_visible] = useState(false);
 	const open_lyrics_token = useRef(0);
+	const stop_duration_watch = useRef<() => void>(() => {});
+	useEffect(() => () => stop_duration_watch.current(), []);
 	// const [sample_artwork_color, _] = useState<string>(Prefs.dark_theme.colors.background);
 
 	const [panel_state_visible, set_panel_state_visible] = useState(false);
@@ -442,6 +444,11 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		// TODO investigate auto downloading n shit (FSCache results for a week)
 		// if (is_empty(GLOBALS.global_var.playing_tracks[event.index].lyrics_uri)) set_lyrics_overlay_visible(false);
 		set_player_state_metadata({ title: active_track?.title, artist: artist_string(active_track), duration: event.track?.duration ?? 0, artwork: active_track?.playback!.artwork, album: active_track?.album });
+		stop_duration_watch.current();
+		stop_duration_watch.current = watch_playback_duration(active_track, event.index, (duration) => {
+			set_playing_track(track => (track.uid === active_track.uid ? { ...track, duration } : track));
+			set_player_state_metadata(metadata => ({ ...metadata, duration }));
+		});
 		Sentry.addBreadcrumb({
 			message: 'AudioPlayer: track changed',
 			category: 'audio',
@@ -575,12 +582,14 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<View style={{ width: '100%', height: Dimensions.get('screen').width }} />
 						</ContextMenuView>
 					</View>
+					<View style={[styles.textcontainer, { flexDirection: 'row', alignItems: 'flex-start' }]}>
+						<TextTicker style={[styles.title, { width: screen_w - 70 }]} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
+							{player_state_metadata.title}
+						</TextTicker>
+					</View>
 					{/* TITLE & ARTIST ---------------------------------------------------- */}
 					<View style={[styles.textcontainer, { flexDirection: 'row', alignItems: 'flex-start' }]}>
 						<View style={{ flex: 1 }}>
-							<TextTicker style={styles.title} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
-								{player_state_metadata.title}
-							</TextTicker>
 							<View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }}>
 								{playing_track.artists.map((artist, index) => {
 									const artist_uri = artist?.uri ?? '';
@@ -622,7 +631,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							)}
 						</View>
 						{/* ACTION BUTTONS */}
-						<View style={{ flexDirection: 'row', gap: 8, paddingTop: 4, top: 20, marginLeft: 10 }}>
+						<View style={{ flexDirection: 'row', gap: 8, paddingTop: 4, top: 5, marginLeft: 10 }}>
 							<TouchableOpacity
 								onPress={async () => {
 									if (playing_track === undefined) return;
@@ -673,8 +682,8 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 									waveColor={colors.text}
 									scrubColor={colors.text}
 									candleWidth={1}
-									candleSpace={1}
-									candleHeightScale={5}
+									candleSpace={0}
+									candleHeightScale={6}
 									containerStyle={{ height: 64 }}
 									onError={() => {}}
 								/>
@@ -695,9 +704,9 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 						{playing_track.meta?.enddur && enddur !== playing_track.duration ? <View style={{ height: 20, width: 1, left: `${(enddur / playing_track.duration) * 100}%`, backgroundColor: colors.red, position: 'absolute' }} /> : null}
 					</View>
 					<TrackTimestamps />
-					<View style={{ height: 8 }} />
+					<View style={{ height: 4 }} />
 					{/* PLAY CONTROLS ---------------------------------------------------- */}
-					<View style={{ marginBottom: 72 }}>
+					<View style={{ marginBottom: 60 }}>
 						<View style={styles.playbackcontainer}>
 							<TouchableOpacity>
 								<ContextMenuButton menuConfig={playback_menu_config} onPressMenuItem={on_press_playback_menu}>

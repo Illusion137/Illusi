@@ -166,7 +166,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 					{next_track ? (
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 40 }}>
 							<View style={{ flex: 1 }}>
-								<Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 2 }}>NEXT UP</Text>
+								<Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 2 }}>Upcoming</Text>
 								<Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
 									{empty_join_dot([next_track.title, next_track ? artist_string(next_track) : undefined])}
 								</Text>
