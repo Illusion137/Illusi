@@ -12,6 +12,8 @@ import { SQLRecentlyPlayed } from '@illusive/sql/sql_recently_played';
 import { db } from '@illusive/db/database';
 import { outbox_table } from '@illusive/db/schema';
 import { alert_info } from '@illusive/illusi/src/alert';
+import { SQLfs } from '@illusive/sql/sql_fs';
+import { Image as ExpoImage } from 'expo-image';
 
 // TODO add clean directories
 export default function ExtraDangerScreen() {
@@ -34,6 +36,17 @@ export default function ExtraDangerScreen() {
 			/>
 			<ExtrasSectionButton show_arrow={false} text="Clear Recently Played Data" icon="trash-outline" onPress={async () => if_confirm('Clear recently played tracks?', 'Are You Sure?', SQLRecentlyPlayed.clear_recently_played_tracks)} />
 			<ExtrasSectionButton show_arrow={false} text="Clear New Releases Cache" icon="trash-outline" onPress={async () => if_confirm('Clear new releases cache?', 'Are You Sure?', Explore.clear_new_releases)} />
+			<ExtrasSectionButton
+				show_arrow={false}
+				text="Clear Cache"
+				icon="trash-outline"
+				onPress={async () =>
+					if_confirm('Clear cache?', 'Cached web responses and images will be deleted.', async () => {
+						const deleted = await SQLfs.clear_cache_directory();
+						await Promise.all([ExpoImage.clearDiskCache(), ExpoImage.clearMemoryCache()]);
+						alert_info(`Deleted ${deleted} files`);
+					})}
+			/>
 			<ExtrasSectionButton show_arrow={false} text="Clear Thumbnail Cache" icon="trash-outline" onPress={async () => if_confirm('Clear thumbnail cache?', 'Are You Sure?', SQLTracks.clean_thumbnail_cache)} />
 			<ExtrasSectionButton
 				show_arrow={false}
