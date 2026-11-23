@@ -286,9 +286,13 @@ export namespace TracksListContextMenu {
 
 const shortcuts_app_icon = Image.resolveAssetSource(require('../assets/shortcut.png'));
 
-export const menuconfig_local_playlist = (edit_mode_state: EditMode, colors: Prefs.Theme['colors'], filtered_tracks: Track[]): MenuConfig => ({
+export const playlist_push_discord_item = (discord_uri: string | undefined): MenuElementConfig =>
+	base_menu_item('playlist-actions-push-discord', 'Push Discord', () => (!can_push_discord() || is_empty(discord_uri) ? ['hidden'] : undefined), discord_app_icon);
+
+export const menuconfig_local_playlist = (edit_mode_state: EditMode, colors: Prefs.Theme['colors'], filtered_tracks: Track[], discord_uri?: string): MenuConfig => ({
 	menuTitle: '',
 	menuItems: [
+		playlist_push_discord_item(discord_uri),
 		{
 			menuTitle: 'Quick Modes',
 			menuOptions: ['displayInline'],
