@@ -19,6 +19,7 @@ export default function ExtrasLayout() {
 			<Stack.Screen name="track-sampler" options={{ title: 'Track Sampler', headerShown: true }} />
 			<Stack.Screen name="linker" options={{ title: 'Linker', headerShown: true }} />
 			<Stack.Screen name="sync" options={{ title: 'Sync', headerShown: true }} />
+			<Stack.Screen name="login" options={{ title: 'Log In', presentation: 'modal', headerShown: false }} />
 			<Stack.Screen name="shuffler" options={{ title: 'Shuffler', headerShown: true }} />
 			<Stack.Screen name="shuffler-test" options={{ title: 'Shuffler Test', headerShown: true, presentation: 'formSheet' }} />
 			<Stack.Screen name="statistics" options={{ title: 'Statistics', headerShown: true }} />

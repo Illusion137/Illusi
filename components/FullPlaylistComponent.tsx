@@ -10,6 +10,12 @@ import { SharedRouter } from '@utils/shared_routes';
 import IImage from './IImage';
 import type { Prefs } from '@illusive/prefs';
 import useDimensions from '@hooks/useDimensions';
+import { ContextMenuView } from '@components/ContextMenu';
+import { ContextResolver } from '@utils/context_resolver';
+import { TracksListContextMenu } from '@utils/context_menu';
+import useMenuConfig from '@hooks/useMenuConfig';
+import { reinterpret_cast } from '@common/cast';
+import { catch_log } from '@common/utils/error_util';
 
 function get_playlist_artwork(playlist: FullPlaylist) {
 	if (playlist.artwork_url) return playlist.artwork_url;
@@ -25,6 +31,7 @@ export default function FullPlaylistComponent(props: { playlist_data: FullPlayli
 	const size = useMemo(() => props.size ?? width * 0.4, [props.size, width]);
 	const { colors } = usePTheme();
 	const [loading, set_loading] = useState(false);
+	const [menu_config, refresh_menu_config] = useMenuConfig(() => TracksListContextMenu.tracks_list_context_menu(props.playlist_data.title));
 
 	async function on_press() {
 		if (loading) return;
@@ -45,38 +52,46 @@ export default function FullPlaylistComponent(props: { playlist_data: FullPlayli
 	const styles = make_styles(colors, size);
 
 	return (
-		<TouchableOpacity style={styles.container} onPress={on_press} delayLongPress={Constants.long_press_delay} activeOpacity={0.8}>
-			<View>
-				<IImage source={artwork} style={styles.artwork} />
+		<ContextMenuView
+			menuConfig={menu_config}
+			onMenuWillShow={refresh_menu_config}
+			onPressMenuItem={({ nativeEvent }) => {
+				ContextResolver.resolve_tracks_list_context(props.playlist_data.title, props.playlist_data.tracks_callback, reinterpret_cast<ContextResolver.TracksListContextKeys>(nativeEvent.actionKey)).catch(catch_log);
+			}}
+		>
+			<TouchableOpacity style={styles.container} onPress={on_press} onLongPress={() => {}} delayLongPress={Constants.long_press_delay} activeOpacity={0.8}>
+				<View>
+					<IImage source={artwork} style={styles.artwork} />
 
-				{props.playlist_data.explicit === 'EXPLICIT' && (
-					<View style={styles.explicit_badge}>
-						<MaterialIcons name="explicit" size={13} color="#fff" />
+					{props.playlist_data.explicit === 'EXPLICIT' && (
+						<View style={styles.explicit_badge}>
+							<MaterialIcons name="explicit" size={13} color="#fff" />
+						</View>
+					)}
+
+					<View style={styles.playlist_badge}>
+						<Ionicons name="list" size={11} color="rgba(255,255,255,0.9)" />
 					</View>
-				)}
 
-				<View style={styles.playlist_badge}>
-					<Ionicons name="list" size={11} color="rgba(255,255,255,0.9)" />
+					{loading && (
+						<View style={styles.loading_overlay}>
+							<ActivityIndicator size="small" color="#fff" />
+						</View>
+					)}
 				</View>
 
-				{loading && (
-					<View style={styles.loading_overlay}>
-						<ActivityIndicator size="small" color="#fff" />
-					</View>
-				)}
-			</View>
-
-			<View style={styles.text_container}>
-				<Text style={styles.title} numberOfLines={1}>
-					{props.playlist_data.title}
-				</Text>
-				{!!second_line && (
-					<Text style={styles.subtitle} numberOfLines={1}>
-						{second_line}
+				<View style={styles.text_container}>
+					<Text style={styles.title} numberOfLines={1}>
+						{props.playlist_data.title}
 					</Text>
-				)}
-			</View>
-		</TouchableOpacity>
+					{!!second_line && (
+						<Text style={styles.subtitle} numberOfLines={1}>
+							{second_line}
+						</Text>
+					)}
+				</View>
+			</TouchableOpacity>
+		</ContextMenuView>
 	);
 }
 

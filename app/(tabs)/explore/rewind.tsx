@@ -1,5 +1,5 @@
 import IImage from '@components/IImage';
-import { AntDesignTouchableOpacity } from '@components/TouchableIconOpacity';
+import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import useDimensions from '@hooks/useDimensions';
 import usePTheme from '@hooks/usePTheme';
 import { Constants } from '@illusive/constants';
@@ -418,7 +418,7 @@ export default function RewindScreen() {
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<View style={[styles.header, { backgroundColor: colors.background }]}>
-				<AntDesignTouchableOpacity on_press={close} style={styles.header_button} icon_name="left" icon_size={25} icon_color={colors.primary} icon_style={{}} hitslop={12} />
+				<IoniconsTouchableOpacity on_press={close} style={styles.header_button} icon_name="chevron-back" icon_size={25} icon_color={colors.primary} icon_style={{}} hitslop={12} />
 				<IImage source={Constants.icon_transparent_index} style={styles.header_logo} resizeMode="contain" />
 				<Text style={[styles.header_title, { color: colors.text }]}>
 					Illusi Rewind

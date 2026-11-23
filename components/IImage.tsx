@@ -91,12 +91,12 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps) 
 	const recycling_key = props.recycling_key ?? (typeof source === 'string' ? source : undefined);
 	const content_fit = to_content_fit(props.resizeMode ?? flat_style.resizeMode);
 
-	const immutable_artwork = typeof source === 'string' && source.startsWith(Illusi.Playlists.artwork_url(''));
+	const immutable_artwork = typeof source === 'string' && (source.startsWith(Illusi.Playlists.artwork_url('')) || source.startsWith(Illusi.Account.avatar_url('')));
 	const cache_policy = immutable_artwork ? 'memory-disk' : (props.cache_policy ?? 'memory-disk');
 
 	const base_image = (
 		<Image
-			source={reinterpret_cast<string | number | { uri: string }>(resolved_artwork(source))}
+			source={immutable_artwork ? { uri: source, headers: Illusi.file_headers() } : reinterpret_cast<string | number | { uri: string }>(resolved_artwork(source))}
 			style={reinterpret_cast<ExpoImageStyle>(props.style)}
 			contentFit={content_fit}
 			cachePolicy={cache_policy}

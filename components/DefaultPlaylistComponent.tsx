@@ -1,14 +1,16 @@
 import { View, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import type { Track } from '@illusive/types';
 import type { Prefs } from '@illusive/prefs';
-import { sprinkle_into_queue } from '@illusive/play';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import FourTrackArtwork from './FourTrackArtwork';
 import { SQLPlaylists } from '@illusive/sql/sql_playlists';
 import { ContextMenuView } from '@components/ContextMenu';
 import { Constants } from '@illusive/constants';
 import usePTheme from '@hooks/usePTheme';
-import { GLOBALS } from '@illusive/globals';
+import { ContextResolver } from '@utils/context_resolver';
+import { TracksListContextMenu } from '@utils/context_menu';
+import useMenuConfig from '@hooks/useMenuConfig';
+import { reinterpret_cast } from '@common/cast';
 import { SharedRouter } from '@utils/shared_routes';
 import useDimensions from '@hooks/useDimensions';
 import { catch_log } from '@common/utils/error_util';
@@ -18,7 +20,7 @@ export default function DefaultPlaylistComponent(props: { four_track: Track[]; t
 	const item_size = useMemo(() => width * 0.29, [width]);
 	const styles = useMemo(() => theme_styles(colors, item_size), [colors, item_size]);
 
-	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
+	const [menu_config, refresh_menu_config] = useMenuConfig(() => TracksListContextMenu.tracks_list_context_menu(props.title));
 
 	async function navigate() {
 		SharedRouter.goto_shared_playlist(props.title, 'DEFAULT_PLAYLIST', { force_order: props.force_order ? '1' : '0' });
@@ -29,28 +31,10 @@ export default function DefaultPlaylistComponent(props: { four_track: Track[]; t
 			shouldEnableAggressiveCleanup
 			shouldCleanupOnComponentWillUnmountForMenuPreview
 			shouldCleanupOnComponentWillUnmountForAuxPreview
-			menuConfig={{
-				menuTitle: `Illusi Playlist - ${props.title}`,
-				menuItems: [
-					{
-						actionKey: 'playlist-sprinkle-in-queue',
-						actionTitle: 'Sprinke in Queue',
-						menuAttributes: is_playing_music ? undefined : ['disabled'],
-						icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'square.3.layers.3d.middle.filled' } }
-					}
-				]
-			}}
-			onMenuWillShow={() => {
-				set_is_playing_music(GLOBALS.global_var.is_playing);
-			}}
-			onPressMenuItem={async ({ nativeEvent }) => {
-				switch (nativeEvent.actionKey) {
-					case 'playlist-sprinkle-in-queue':
-						sprinkle_into_queue(await SQLPlaylists.playlist_tracks(props.title)).catch(catch_log);
-						break;
-					default:
-						break;
-				}
+			menuConfig={menu_config}
+			onMenuWillShow={refresh_menu_config}
+			onPressMenuItem={({ nativeEvent }) => {
+				ContextResolver.resolve_tracks_list_context(props.title, async () => SQLPlaylists.playlist_tracks(props.title), reinterpret_cast<ContextResolver.TracksListContextKeys>(nativeEvent.actionKey)).catch(catch_log);
 			}}
 		>
 			<TouchableHighlight onLongPress={() => {}} delayLongPress={Constants.long_press_delay} style={styles.default_playlist_button} onPress={navigate}>

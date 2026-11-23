@@ -8,12 +8,19 @@ import usePTheme from '@hooks/usePTheme';
 import IImage from './IImage';
 import { remove_topic } from '@common/utils/clean_util';
 import { SharedRouter } from '@utils/shared_routes';
+import { ContextMenuView } from '@components/ContextMenu';
+import { ContextResolver } from '@utils/context_resolver';
+import { AlbumContextMenu } from '@utils/context_menu';
+import useMenuConfig from '@hooks/useMenuConfig';
+import { catch_log } from '@common/utils/error_util';
+import { Constants } from '@illusive/constants';
 
 export default function CompactPlaylistComponent(props: { playlist_data: CompactPlaylist; base_background?: boolean }) {
 	const thumbnail_uri = get_album_artwork(props.playlist_data);
 
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
+	const [menu_config, refresh_menu_config] = useMenuConfig(() => AlbumContextMenu.compact_playlist_context_menu(props.playlist_data), async () => ContextResolver.prefetch_album_tracks(props.playlist_data));
 
 	async function navigate() {
 		if (is_empty(props.playlist_data.title.uri)) return;
@@ -21,8 +28,15 @@ export default function CompactPlaylistComponent(props: { playlist_data: Compact
 	}
 
 	return (
-		<>
-			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track, opacity: !props.playlist_data.title.uri ? 0.5 : 1.0 }]} onPress={navigate}>
+		<ContextMenuView
+			isContextMenuEnabled={props.playlist_data.song_track ? true : !is_empty(props.playlist_data.title.uri)}
+			menuConfig={menu_config}
+			onMenuWillShow={refresh_menu_config}
+			onPressMenuItem={({ nativeEvent }) => {
+				ContextResolver.resolve_compact_playlist_context(props.playlist_data, nativeEvent.actionKey).catch(catch_log);
+			}}
+		>
+			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track, opacity: !props.playlist_data.title.uri ? 0.5 : 1.0 }]} onPress={navigate} onLongPress={() => {}} delayLongPress={Constants.long_press_delay}>
 				<>
 					<View style={{ width: 2 }} />
 					<IImage source={thumbnail_uri} style={styles.image} />
@@ -42,7 +56,7 @@ export default function CompactPlaylistComponent(props: { playlist_data: Compact
 				</>
 			</TouchableOpacity>
 			<View style={{ width: '100%', height: 1, marginLeft: 90, backgroundColor: '#303030' }} />
-		</>
+		</ContextMenuView>
 	);
 }
 const theme_styles = (colors: Prefs.Theme['colors']) =>

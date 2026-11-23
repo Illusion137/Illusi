@@ -2,6 +2,7 @@ import usePTheme from '@hooks/usePTheme';
 import { get_common_styles } from '@utils/common_styles';
 import { extras_layout, type CustomComponents } from '@utils/extras';
 import ExtrasSectionButton from './ExtrasSectionButton';
+import AccountButton from './AccountButton';
 import { Text, View, type NativeSyntheticEvent } from 'react-native';
 import { router } from 'expo-router';
 import SegmentedControl, { type NativeSegmentedControlIOSChangeEvent } from '@react-native-segmented-control/segmented-control';
@@ -33,6 +34,7 @@ function ExtrasThemeSelector() {
 function ExtrasCustomComponentRenderer(props: { component: CustomComponents }) {
 	switch (props.component) {
 		case 'theme_selector': return ExtrasThemeSelector();
+		case 'account_button': return <AccountButton />;
 		default: return (<></>);
 	}
 }

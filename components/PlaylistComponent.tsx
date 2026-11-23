@@ -7,13 +7,13 @@ import useSelectionStore from '@hooks/useSelectionStore';
 import FourTrackArtwork from './FourTrackArtwork';
 import type { Playlist, Track } from '@illusive/types';
 import type { Prefs } from '@illusive/prefs';
-import { ContextMenuView } from '@components/ContextMenu';
-import { if_confirm } from '@illusive/illusi/src/illusi_utils';
-import { sprinkle_into_queue } from '@illusive/play';
+import { ContextMenuView, type MenuConfig } from '@components/ContextMenu';
 import { Constants } from '@illusive/constants';
 import usePTheme from '@hooks/usePTheme';
 import { SharedRouter } from '@utils/shared_routes';
-import { GLOBALS } from '@illusive/globals';
+import { ContextResolver } from '@utils/context_resolver';
+import { PlaylistContextMenu } from '@utils/context_menu';
+import { reinterpret_cast } from '@common/cast';
 import { empty_join_dot } from '../lib-origin/common/utils/util';
 import { catch_log } from '@common/utils/error_util';
 
@@ -31,7 +31,8 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 	// Subscribed through the store so the checkmark flips synchronously on toggle
 	// and only this row re-renders.
 	const selected = useSelectionStore(state => state.selected_playlists_uuids.has(props.playlist_data.uuid));
-	const [is_playing_music, set_is_playing_music] = useState(GLOBALS.global_var.is_playing);
+	const current_playlist = (): Playlist => ({ ...props.playlist_data, pinned, public: is_public });
+	const [context_menu, set_context_menu] = useState<MenuConfig>(() => PlaylistContextMenu.playlist_component_context_menu(current_playlist()));
 
 	useEffect(() => {
 		set_pinned(Boolean(props.playlist_data.pinned));
@@ -70,72 +71,18 @@ function PlaylistComponent(props: { playlist_data: Playlist; select?: { mode: bo
 		SharedRouter.goto_shared_playlist(props.playlist_data.uuid, 'UUID', {});
 	}
 
-	async function toggle_pin() {
-		const new_pin = !(props.playlist_data.pinned ?? false);
-		set_pinned(new_pin);
-		await SQLPlaylists.pin_unpin_playlist(props.playlist_data.uuid, new_pin);
-	}
-	async function toggle_public() {
-		const new_public = !(props.playlist_data.public ?? false);
-		set_is_public(new_public);
-		await SQLPlaylists.public_private_playlist(props.playlist_data.uuid, new_public);
-	}
-	async function toggle_archive() {
-		const new_archive = !(props.playlist_data.archived ?? false);
-		await SQLPlaylists.archive_playlist(props.playlist_data.uuid, new_archive);
-	}
-	const confirm_delete = async () =>
-		if_confirm('Are you sure you want to delete this playlist?', 'This action can NOT be reversed', async () => {
-			await SQLPlaylists.delete_playlist(props.playlist_data.uuid);
-		});
-
 	return (
 		<ContextMenuView
-			menuConfig={{
-				menuTitle: `Playlist - ${props.playlist_data.title}`,
-				menuItems: [
-					{
-						actionKey: 'playlist-sprinkle-in-queue',
-						actionTitle: 'Sprinke in Queue',
-						menuAttributes: is_playing_music ? undefined : ['hidden'],
-						icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'square.3.layers.3d.middle.filled' } }
-					},
-					{ actionKey: 'playlist-pin', actionTitle: props.playlist_data.pinned ? 'Unpin' : 'Pin', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'pin' } } },
-					{ actionKey: 'playlist-public', actionTitle: props.playlist_data.public ? 'Make Private' : 'Make Public', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: props.playlist_data.public ? 'person' : 'person.3.sequence' } } },
-					{ actionKey: 'playlist-archive', actionTitle: props.playlist_data.archived ? 'Unarchive' : 'Archive', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'archivebox' } } },
-					{
-						actionKey: 'playlist-delete',
-						actionSubtitle: props.playlist_data.pinned ? 'Unable to delete a pinned playlist' : undefined,
-						actionTitle: 'Delete',
-						menuAttributes: props.playlist_data.pinned ? ['disabled', 'destructive'] : ['destructive'],
-						icon: { type: 'IMAGE_SYSTEM', imageOptions: { tint: colors.red, renderingMode: 'alwaysOriginal' }, imageValue: { systemName: 'trash' } }
-					}
-				]
-			}}
+			menuConfig={context_menu}
 			isContextMenuEnabled={!select_mode}
 			onMenuWillShow={() => {
-				set_is_playing_music(GLOBALS.global_var.is_playing);
+				set_context_menu(PlaylistContextMenu.playlist_component_context_menu(current_playlist()));
 			}}
 			onPressMenuItem={async ({ nativeEvent }: { nativeEvent: { actionKey: string } }) => {
-				switch (nativeEvent.actionKey) {
-					case 'playlist-sprinkle-in-queue':
-						sprinkle_into_queue(await SQLPlaylists.playlist_tracks(props.playlist_data.uuid)).catch(catch_log);
-						break;
-					case 'playlist-pin':
-						toggle_pin().catch(catch_log);
-						break;
-					case 'playlist-public':
-						toggle_public().catch(catch_log);
-						break;
-					case 'playlist-archive':
-						toggle_archive().catch(catch_log);
-						break;
-					case 'playlist-delete':
-						confirm_delete().catch(catch_log);
-						break;
-					default:
-						break;
-				}
+				ContextResolver.resolve_playlist_context(current_playlist(), reinterpret_cast<ContextResolver.PlaylistContextKeys>(nativeEvent.actionKey), (patch) => {
+					if (patch.pinned !== undefined) set_pinned(patch.pinned);
+					if (patch.public !== undefined) set_is_public(patch.public);
+				}).catch(catch_log);
 			}}
 		>
 			<TouchableOpacity

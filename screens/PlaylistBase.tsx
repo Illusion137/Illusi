@@ -20,7 +20,7 @@ import { Illusive } from '@illusive/illusive';
 import { music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '@illusive/illusive_utils';
 import { empty_join_dot, is_empty, json_catch } from '@common/utils/util';
 import { Constants } from '@illusive/constants';
-import { AntDesignTouchableOpacity, FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '@components/TouchableIconOpacity';
+import { FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import { alert_error } from '@illusive/illusi/src/alert';
 import type { ShortcutOptions } from 'react-native-siri-shortcut';
 import { presentShortcut } from 'react-native-siri-shortcut';
@@ -473,7 +473,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 	return (
 		<View style={styles.top_container}>
 			<View style={styles.header} pointerEvents="box-none">
-				<AntDesignTouchableOpacity on_press={router.back} style={{}} icon_name="left" icon_size={30} icon_color={colors.primary} icon_style={{}} />
+				<IoniconsTouchableOpacity on_press={router.back} style={{}} icon_name="chevron-back" icon_size={30} icon_color={colors.primary} icon_style={{}} />
 				{props.type !== 'WRITE_PLAYLIST' ? (
 					<TouchableOpacity>
 						<ContextMenuButton

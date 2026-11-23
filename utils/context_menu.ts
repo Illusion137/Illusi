@@ -1,18 +1,18 @@
 import type { IconConfig, UIMenuOptions } from 'react-native-ios-context-menu';
 import type { MenuConfig, MenuElementConfig, MenuAttribute } from '@components/ContextMenu/types';
-import type { ContextResolver } from './context_resolver';
+import { ContextResolver } from './context_resolver';
 import type { ImageItemConfig, ImageResolvedAssetSource } from 'react-native-ios-utilities';
 import { Image } from 'react-native';
 import { is_empty } from '@common/utils/util';
 import { Prefs } from '@illusive/prefs';
 import { ShareLinks } from '@illusive/share_links';
-import type { EditMode, Track } from '@illusive/types';
+import type { CompactArtist, CompactPlaylist, EditMode, NamedUUID, Playlist, Track } from '@illusive/types';
+import { remove_topic } from '@common/utils/clean_util';
 import { reinterpret_cast } from '@common/cast';
 import { GLOBALS } from '@illusive/globals';
 import { Constants } from '@illusive/constants';
 import { RepeatMode } from 'react-native-everything-player';
 
-// TODO add support for discord without play mode
 type Icon = ImageResolvedAssetSource | string;
 export function resolve_icon(icon?: Icon): IconConfig | ImageItemConfig | undefined {
 	return typeof icon === 'undefined' ? undefined : typeof icon === 'object' ? { iconType: 'REQUIRE', iconValue: icon } : { type: 'IMAGE_SYSTEM', imageValue: { systemName: icon } };
@@ -29,6 +29,7 @@ export function extract_menu_items<Keys extends string>(items: MenuElementConfig
 export function get_menu_item<Keys extends string>(items: MenuElementConfig[], key: Keys) {
 	return items.find(item => reinterpret_cast<{ actionKey: Keys }>(item).actionKey === key)!;
 }
+const discord_app_icon = Image.resolveAssetSource(require('../assets/discord.png'));
 export namespace TrackContextMenu {
 	const track_menu_item = (key: ContextResolver.TrackContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: Icon): MenuElementConfig => base_menu_item<ContextResolver.TrackContextKeys>(key, title, attributes, icon);
 
@@ -41,7 +42,6 @@ export namespace TrackContextMenu {
 					'music.mic'
 				);
 
-	const discord_app_icon = Image.resolveAssetSource(require('../assets/discord.png'));
 	export const track_all_functions = (track: Track, write_playlist_uuid: string) => {
 		const is_playlist_saved
 			= ((track.downloading_data?.playlist_saved ?? false) && write_playlist_uuid !== Constants.library_write_playlist) || ((track.downloading_data?.saved ?? false) && write_playlist_uuid === Constants.library_write_playlist);
@@ -181,6 +181,107 @@ export namespace PlaybackContextMenu {
 			}
 		]
 	});
+}
+
+const inline_section = (items: MenuElementConfig[]): MenuConfig => ({ menuTitle: '', menuOptions: ['displayInline'], menuItems: items });
+const hidden_unless_playing = (): MenuAttribute[] | undefined => (!GLOBALS.global_var.is_playing ? ['hidden'] : undefined);
+const can_push_discord = () => !is_empty(Prefs.get_pref('discord_webhook_url'));
+
+namespace CollectionMenu {
+	export function items<P extends string>(prefix: P, opts: { shuffle_title?: string; can_play?: boolean } = {}): MenuElementConfig[] {
+		return [
+			base_menu_item(`${prefix}-play`, 'Play', () => (opts.can_play === false ? ['hidden'] : undefined), 'play'),
+			base_menu_item(`${prefix}-shuffle`, opts.shuffle_title ?? 'Shuffle', undefined, 'shuffle'),
+			base_menu_item(`${prefix}-enqueue`, 'Enqueue All', hidden_unless_playing, 'text.append'),
+			base_menu_item(`${prefix}-play-next`, 'Play Next', hidden_unless_playing, 'text.insert'),
+			base_menu_item(`${prefix}-sprinkle-in-queue`, 'Sprinkle in Queue', hidden_unless_playing, 'square.3.layers.3d.middle.filled'),
+			base_menu_item(`${prefix}-station`, 'Play Station', undefined, 'waveform.circle')
+		];
+	}
+	/** Three small buttons on top (queueing while playing, playing otherwise, Discord last), then the rest inline */
+	export function sections<P extends string>(prefix: P, all_fns: MenuElementConfig[], discord_key?: string, can_play = true): MenuElementConfig[] {
+		const ordered = (GLOBALS.global_var.is_playing ? ['enqueue', 'sprinkle-in-queue', 'play-next', 'play', 'shuffle', 'station'] : ['play', 'shuffle', 'station'])
+			.filter(action => can_play || action !== 'play')
+			.map(action => `${prefix}-${action}`);
+		const top = discord_key !== undefined ? [...ordered.slice(0, 2), discord_key] : ordered.slice(0, 3);
+		const rest = discord_key !== undefined ? ordered.slice(2) : ordered.slice(3);
+		return [
+			{ ...inline_section(extract_menu_items(all_fns, top)), menuPreferredElementSize: 'small' as const },
+			...(rest.length > 0 ? [inline_section(extract_menu_items(all_fns, rest))] : [])
+		];
+	}
+	export function view_artists_element(prefix: string, artists: NamedUUID[]): MenuElementConfig {
+		return artists.length <= 1
+			? base_menu_item(`${prefix}-view-artist`, 'View Artist', () => (is_empty(artists[0]?.uri) ? ['hidden'] : undefined), 'music.mic')
+			: menu_folder('View Artists', artists.map((artist, i) => base_menu_item(`${prefix}-view-artist-${i}`, remove_topic(artist.name), () => (is_empty(artist.uri) ? ['hidden'] : undefined), 'music.mic')), 'music.mic');
+	}
+}
+
+export namespace PlaylistContextMenu {
+	const playlist_menu_item = (key: ContextResolver.PlaylistContextKeys, title: string, attributes?: () => MenuAttribute[] | undefined, icon?: Icon): MenuElementConfig => base_menu_item<ContextResolver.PlaylistContextKeys>(key, title, attributes, icon);
+
+	export const playlist_all_functions = (playlist: Playlist) => [
+		...CollectionMenu.items('playlist'),
+		playlist_menu_item('playlist-push-discord', 'Push Discord', () => (!can_push_discord() || !(playlist.public ?? false) ? ['hidden'] : undefined), discord_app_icon),
+		playlist_menu_item('playlist-share-illusi', 'Share', () => (!(playlist.public ?? false) ? ['hidden'] : undefined), 'square.and.arrow.up'),
+		playlist_menu_item('playlist-duplicate', 'Duplicate', undefined, 'plus.square.on.square'),
+		playlist_menu_item('playlist-pin', playlist.pinned ? 'Unpin' : 'Pin', undefined, playlist.pinned ? 'pin.slash' : 'pin'),
+		playlist_menu_item('playlist-public', playlist.public ? 'Make Private' : 'Make Public', undefined, playlist.public ? 'person' : 'person.3.sequence'),
+		playlist_menu_item('playlist-archive', playlist.archived ? 'Unarchive' : 'Archive', undefined, 'archivebox'),
+		{
+			...playlist_menu_item('playlist-delete', 'Delete', () => (playlist.pinned ? ['disabled', 'destructive'] : ['destructive']), 'trash'),
+			actionSubtitle: playlist.pinned ? 'Unable to delete a pinned playlist' : undefined
+		}
+	];
+
+	export const playlist_component_context_menu = (playlist: Playlist): MenuConfig => {
+		const all_fns = playlist_all_functions(playlist);
+		const discord = can_push_discord() && (playlist.public ?? false) ? 'playlist-push-discord' : undefined;
+		return menu_folder(`Playlist - ${playlist.title}`, [
+			...CollectionMenu.sections('playlist', all_fns, discord),
+			inline_section(extract_menu_items<ContextResolver.PlaylistContextKeys>(all_fns, ['playlist-share-illusi', 'playlist-duplicate'])),
+			inline_section(extract_menu_items<ContextResolver.PlaylistContextKeys>(all_fns, ['playlist-pin', 'playlist-public', 'playlist-archive'])),
+			...extract_menu_items<ContextResolver.PlaylistContextKeys>(all_fns, ['playlist-delete'])
+		]);
+	};
+}
+
+export namespace ArtistContextMenu {
+	export const artist_component_context_menu = (artist: CompactArtist): MenuConfig => {
+		const all_fns = [
+			...CollectionMenu.items('artist', { shuffle_title: 'Shuffle Play', can_play: false }),
+			base_menu_item<ContextResolver.ArtistContextKeys>('artist-push-discord', 'Push Discord', () => (!can_push_discord() ? ['hidden'] : undefined), discord_app_icon),
+			base_menu_item<ContextResolver.ArtistContextKeys>('artist-view', 'View Artist', undefined, 'music.mic')
+		];
+		return menu_folder(remove_topic(artist.name.name), [
+			...CollectionMenu.sections('artist', all_fns, can_push_discord() ? 'artist-push-discord' : undefined, false),
+			...extract_menu_items<ContextResolver.ArtistContextKeys>(all_fns, ['artist-view'])
+		]);
+	};
+}
+
+export namespace AlbumContextMenu {
+	export const album_component_context_menu = (album: CompactPlaylist): MenuConfig => {
+		const all_fns = [
+			...CollectionMenu.items('album'),
+			base_menu_item<ContextResolver.AlbumContextKeys>('album-push-discord', 'Push Discord', () => (!can_push_discord() ? ['hidden'] : undefined), discord_app_icon),
+			base_menu_item<ContextResolver.AlbumContextKeys>('album-save-to-library', 'Save to Library', () => (ContextResolver.album_in_library(album) === true ? ['hidden'] : undefined), 'plus.circle'),
+			base_menu_item<ContextResolver.AlbumContextKeys>('album-share', 'Share', undefined, 'square.and.arrow.up')
+		];
+		return menu_folder(album.title.name, [
+			...CollectionMenu.sections('album', all_fns, can_push_discord() ? 'album-push-discord' : undefined),
+			CollectionMenu.view_artists_element('album', album.artist),
+			inline_section(extract_menu_items<ContextResolver.AlbumContextKeys>(all_fns, ['album-save-to-library', 'album-share']))
+		]);
+	};
+	export const compact_playlist_context_menu = (album: CompactPlaylist): MenuConfig => {
+		const song = ContextResolver.compact_playlist_song(album);
+		return song !== undefined ? TrackContextMenu.track_component_context_menu(song, '') : album_component_context_menu(album);
+	};
+}
+
+export namespace TracksListContextMenu {
+	export const tracks_list_context_menu = (title: string): MenuConfig => menu_folder(title, CollectionMenu.sections('tracks', CollectionMenu.items('tracks')));
 }
 
 const shortcuts_app_icon = Image.resolveAssetSource(require('../assets/shortcut.png'));

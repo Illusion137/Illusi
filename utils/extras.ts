@@ -3,7 +3,7 @@ import { Prefs } from '@illusive/prefs';
 import type { Href } from 'expo-router';
 import { Linking } from 'react-native';
 
-export type CustomComponents = 'theme_selector';
+export type CustomComponents = 'theme_selector' | 'account_button';
 interface ExtraNavigationBtnBase {
 	title: string;
 	icon: keyof (typeof Ionicons)['glyphMap'] | 'NONE';
@@ -19,13 +19,8 @@ interface ExtraLayout {
 
 export const extras_layout: () => ExtraLayout[] = () => [
 	{
-		buttons: [
-			{
-				title: 'Sync',
-				href: '/extras/sync',
-				icon: 'sync-outline'
-			}
-		],
+		buttons: [],
+		custom_components: ['account_button'],
 		description: 'Backup your music, transfer your playlists to other devices, recover deleted music and more'
 	},
 	{

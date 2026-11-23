@@ -13,7 +13,7 @@ import RowArtist from '@components/RowArtist';
 import usePTheme from '@hooks/usePTheme';
 import { SQLArtists } from '@illusive/sql/sql_artists';
 import { router } from 'expo-router';
-import { AntDesignTouchableOpacity } from '@components/TouchableIconOpacity';
+import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import useDimensions from '@hooks/useDimensions';
 import { compact_artist_key, continue_all, merge_unique } from '@illusive/continuation';
 import { catch_log } from '@common/utils/error_util';
@@ -109,7 +109,7 @@ export default function ArtistGridRenderer(props: {
 			<View style={{ height: 90 }} />
 			<View style={{ flexDirection: 'row', width: '100%', justifyContent: 'center' }}>
 				<Text style={{ bottom: 20, color: colors.text, fontSize: 18, fontWeight: '500' }}>{props.title}</Text>
-				<AntDesignTouchableOpacity on_press={close} style={{ position: 'absolute', left: 15, bottom: 15 }} icon_name="left" icon_size={25} icon_color={colors.primary} icon_style={{}} />
+				<IoniconsTouchableOpacity on_press={close} style={{ position: 'absolute', left: 15, bottom: 15 }} icon_name="chevron-back" icon_size={25} icon_color={colors.primary} icon_style={{}} />
 			</View>
 			<View style={{ width: '95%', zIndex: 5, flexDirection: 'row', justifyContent: 'space-between' }}>
 				<View style={{ width: '88%' }}>

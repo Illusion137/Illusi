@@ -7,10 +7,18 @@ import usePTheme from '@hooks/usePTheme';
 import IImage from './IImage';
 import { remove_topic } from '@common/utils/clean_util';
 import { SharedRouter } from '@utils/shared_routes';
+import { ContextMenuView } from '@components/ContextMenu';
+import { ContextResolver } from '@utils/context_resolver';
+import { ArtistContextMenu } from '@utils/context_menu';
+import useMenuConfig from '@hooks/useMenuConfig';
+import { reinterpret_cast } from '@common/cast';
+import { catch_log } from '@common/utils/error_util';
+import { Constants } from '@illusive/constants';
 
 export default function CompactArtistComponent(props: { artist_data: CompactArtist; base_background?: boolean }) {
 	const { colors } = usePTheme();
 	const styles = theme_styles(colors);
+	const [menu_config, refresh_menu_config] = useMenuConfig(() => ArtistContextMenu.artist_component_context_menu(props.artist_data));
 
 	async function navigate() {
 		if (is_empty(props.artist_data.name.uri)) return;
@@ -25,8 +33,15 @@ export default function CompactArtistComponent(props: { artist_data: CompactArti
 					: props.artist_data.profile_artwork_url;
 
 	return (
-		<>
-			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track }]} onPress={navigate}>
+		<ContextMenuView
+			isContextMenuEnabled={!is_empty(props.artist_data.name.uri)}
+			menuConfig={menu_config}
+			onMenuWillShow={refresh_menu_config}
+			onPressMenuItem={({ nativeEvent }) => {
+				ContextResolver.resolve_artist_context(props.artist_data, reinterpret_cast<ContextResolver.ArtistContextKeys>(nativeEvent.actionKey)).catch(catch_log);
+			}}
+		>
+			<TouchableOpacity style={[styles.button, { backgroundColor: props.base_background ? colors.background : colors.track }]} onPress={navigate} onLongPress={() => {}} delayLongPress={Constants.long_press_delay}>
 				<>
 					<View style={{ width: 8 }} />
 					<IImage source={artwork} style={styles.image} />
@@ -40,7 +55,7 @@ export default function CompactArtistComponent(props: { artist_data: CompactArti
 				</>
 			</TouchableOpacity>
 			<View style={{ width: '100%', height: 1, marginLeft: 90, backgroundColor: '#303030' }} />
-		</>
+		</ContextMenuView>
 	);
 }
 const theme_styles = (colors: Prefs.Theme['colors']) =>

@@ -1,4 +1,4 @@
-import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableHighlight } from 'react-native';
 import type { Prefs } from '@illusive/prefs';
 import usePTheme from '@hooks/usePTheme';
@@ -12,7 +12,7 @@ function ExtrasSectionButton(props: { onPress: () => void; transparent?: boolean
 			<View style={props.transparent ?? false ? { ...styles.sectionContainer, backgroundColor: '#00000000' } : styles.sectionContainer}>
 				{props.icon !== 'NONE' ? <Ionicons name={props.indev ? 'construct' : (props.icon as any)} size={25} color={colors.primary} style={{ left: 10 }} /> : null}
 				<Text style={styles.btnsectionText}>{props.text}</Text>
-				{props.show_arrow && <AntDesign name="right" size={22} color={colors.primary} style={{ position: 'absolute', left: '90%' }} />}
+				{props.show_arrow && <Ionicons name="chevron-forward" size={22} color={colors.primary} style={{ position: 'absolute', left: '90%' }} />}
 			</View>
 		</TouchableHighlight>
 	);

@@ -7,7 +7,7 @@ import { chunkify } from '@common/utils/util';
 import { FlashList } from '@shopify/flash-list';
 import { get_common_styles } from '@utils/common_styles';
 import usePTheme from '@hooks/usePTheme';
-import { AntDesignTouchableOpacity } from './TouchableIconOpacity';
+import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
 import { SharedRouter } from '@utils/shared_routes';
 import useDimensions from '@hooks/useDimensions';
 import { useCallback, useMemo } from 'react';
@@ -59,7 +59,7 @@ export default function TrackHorizontalScrolls(props: {
 				<>
 					<View style={{ flexDirection: 'row', alignContent: 'center', width: '100%', justifyContent: 'space-between', marginBottom: 10, marginTop: 10 }}>
 						<Text style={{ color: colors.text, fontSize: 25, fontWeight: 'bold', left: 20 }}>{props.title}</Text>
-						<AntDesignTouchableOpacity icon_name="right" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{ right: 20, top: 5 }} hitslop={12} />
+						<IoniconsTouchableOpacity icon_name="chevron-forward" icon_color={colors.text} on_press={full_screen} icon_size={20} icon_style={{ right: 20, top: 5 }} hitslop={12} />
 					</View>
 					<View style={common_styles.line_long} />
 					<FlashList

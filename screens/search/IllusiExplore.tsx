@@ -15,7 +15,7 @@ import IllusiRewindComponent from '@components/IllusiRewindComponent';
 import { SharedRouter } from '@utils/shared_routes';
 import { LinearGradient } from 'expo-linear-gradient';
 import FullPlaylistList from '@components/FullPlaylistList';
-import { shuffle_array } from '../../lib-origin/common/utils/util';
+import { shuffle_array } from '@common/utils/util';
 import { catch_log } from '@common/utils/error_util';
 
 const top_tracks_slice = 50;
@@ -29,7 +29,6 @@ export default function IllusiExplore() {
 	const { colors } = usePTheme();
 
 	const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(Explore.get_new_releases);
-	const [is_loading_new_releases, set_is_loading_new_releases] = useState<boolean>(new_releases.length === 0);
 
 	const your_artists_ref = useRef(SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks));
 	const [forgotten_favorites, set_forgotten_favorites] = useState<CompactPlaylist[]>([]);
@@ -42,7 +41,7 @@ export default function IllusiExplore() {
 		if (!Explore.new_releases_stale()) return;
 		Explore.refresh_new_releases()
 			.then(set_new_releases)
-			.finally(() => set_is_loading_new_releases(false)).catch(catch_log);
+			.catch(catch_log);
 	}, []);
 
 	useEffect(() => {
@@ -64,10 +63,20 @@ export default function IllusiExplore() {
 				style={{ width: '100%', height: '50%', position: 'absolute', flex: 1, backgroundColor: colors.background, pointerEvents: 'box-none' }}
 			/>
 			<View style={{ height: 80 }} />
-			<AlbumList second_line_type="ARTIST" is_loading={is_loading_new_releases} title="New Releases" else_type="ALBUM" albums={new_releases} />
-			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
-			{for_you_playlists.length === 0 ? null : <FullPlaylistList title="For You" playlists={for_you_playlists} />}
-			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
+			{
+				new_releases.length > 0 ? (
+					<>
+						<AlbumList second_line_type="ARTIST" title="New Releases" else_type="ALBUM" albums={new_releases} />
+						<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
+					</>
+				) : null
+			}
+			{for_you_playlists.length === 0 ? null : (
+				<>
+					<FullPlaylistList title="For You" playlists={for_you_playlists} />
+					<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
+				</>
+			)}
 			{should_show_rewind ? <IllusiRewindComponent /> : null}
 			<View style={{ height: 5 }} />
 			{/* <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text> */}
@@ -84,8 +93,7 @@ export default function IllusiExplore() {
 			)
 				: null}
 			<View style={{ height: 10 }} />
-			<View style={{ height: 1, width: '95%', backgroundColor: colors.line, alignSelf: 'center' }} />
-			{illusi_public_playlists.length > 0 ? <AlbumList title="Illusi Public Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
+			{illusi_public_playlists.length > 0 ? <AlbumList title="User Playlists" second_line_type="ARTIST" else_type="ALBUM" albums={illusi_public_playlists} /> : null}
 			{forgotten_favorites.length > 0 ? (
 				<>
 					<AlbumList title="Forgotten Favorites" second_line_type="ARTIST" else_type="SINGLE" albums={forgotten_favorites} />

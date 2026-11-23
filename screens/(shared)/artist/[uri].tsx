@@ -12,7 +12,7 @@ import { alert_error } from '@illusive/illusi/src/alert';
 import HeaderWith from '@components/HeaderWith';
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
-import { AntDesignTouchableOpacity, IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
+import { IoniconsTouchableOpacity } from '@components/TouchableIconOpacity';
 import IImage from '@components/IImage';
 import usePTheme from '@hooks/usePTheme';
 import useTrackStore from '@hooks/useTrackStore';
@@ -175,7 +175,7 @@ export default function Artist() {
 	return (
 		<>
 			<View style={{ position: 'absolute', top: 60, marginHorizontal: 20, zIndex: 2, flexDirection: 'row', justifyContent: 'space-between' }} pointerEvents="box-none">
-				<AntDesignTouchableOpacity on_press={close} style={{}} icon_name="left" icon_size={30} icon_color={colors.primary} icon_style={{}} />
+				<IoniconsTouchableOpacity on_press={close} style={{}} icon_name="chevron-back" icon_size={30} icon_color={colors.primary} icon_style={{}} />
 			</View>
 			<ScrollView bounces={false} keyboardShouldPersistTaps="handled">
 				<View style={{ width: '100%', height: 320 }}>
