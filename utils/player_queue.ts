@@ -1,7 +1,7 @@
 import EverythingPlayer, { Event, type EmitterSubscription } from 'react-native-everything-player';
 import type { Track } from '@illusive/types';
 import { catch_log } from '@common/utils/error_util';
-import { delete_track_from_player_queue, illusive_track_to_track_player_track, on_modify_track_player_queue, track_of_queued } from '@illusive/track_player_service';
+import { delete_track_from_player_queue, illusive_track_to_track_player_track, invalidate_queue_inserts, on_modify_track_player_queue, track_of_queued } from '@illusive/track_player_service';
 
 const RESOLVED_AHEAD = 2;
 const MAX_CONSECUTIVE_MISSES = 10;
@@ -77,6 +77,7 @@ function ensure_active_track_subscription() {
 
 export async function start_player_queue(tracks: Track[]): Promise<number> {
 	generation++;
+	invalidate_queue_inserts();
 	pending_tail = [];
 	ensure_active_track_subscription();
 	let remaining = tracks;
@@ -101,6 +102,7 @@ export async function start_player_queue(tracks: Track[]): Promise<number> {
 
 export function clear_player_queue() {
 	generation++;
+	invalidate_queue_inserts();
 	pending_tail = [];
 }
 
