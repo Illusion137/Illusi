@@ -1,6 +1,8 @@
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
-import type { Prefs } from '@illusive/prefs';
+import { Prefs } from '@illusive/prefs';
+import Clipboard from '@react-native-clipboard/clipboard';
+import { CookieJar } from '@common/utils/cookie_util';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { SQLDev } from '@illusive/sql/sql_dev';
 import * as Sharing from 'expo-sharing';
@@ -139,6 +141,24 @@ function OTASection() {
 	);
 }
 
+function serialize_pref_value(value: unknown): string {
+	if (value instanceof CookieJar) return value.toString();
+	if (value instanceof Date) return value.toISOString();
+	if (typeof value === 'string') return value;
+	return JSON.stringify(value);
+}
+
+async function read_mmkv_value(key: string): Promise<string | undefined> {
+	if (key in Prefs.prefs) return serialize_pref_value(Prefs.get_pref(key as Prefs.PrefOptions));
+	const string_value = await mmkv().get_string(key);
+	if (string_value !== undefined) return string_value;
+	const number_value = await mmkv().get_number(key);
+	if (number_value !== undefined) return String(number_value);
+	const boolean_value = await mmkv().get_boolean(key);
+	if (boolean_value !== undefined) return String(boolean_value);
+	return undefined;
+}
+
 function MMKVSection() {
 	const { colors } = usePTheme();
 	const [keys, set_keys] = useState<string[] | null>(null);
@@ -154,14 +174,11 @@ function MMKVSection() {
 		refresh();
 	}, [refresh]);
 
-	const show_value = useCallback(async (key: string) => {
-		const string_value = await mmkv().get_string(key);
-		if (string_value !== undefined) return Alert.alert(key, string_value);
-		const number_value = await mmkv().get_number(key);
-		if (number_value !== undefined) return Alert.alert(key, String(number_value));
-		const boolean_value = await mmkv().get_boolean(key);
-		if (boolean_value !== undefined) return Alert.alert(key, String(boolean_value));
-		Alert.alert(key, '(unreadable / unknown type)');
+	const copy_value = useCallback(async (key: string) => {
+		const value = await read_mmkv_value(key);
+		if (value === undefined) return Alert.alert(key, '(unreadable / unknown type)');
+		Clipboard.setString(value);
+		Alert.alert(`Copied ${key}`, value.length > 500 ? `${value.slice(0, 500)}…` : value);
 	}, []);
 
 	return (
@@ -180,7 +197,7 @@ function MMKVSection() {
 					: (
 							<View style={{ backgroundColor: colors.track + '80', paddingVertical: 6 }}>
 								{keys.map(key => (
-									<TouchableOpacity key={key} onPress={async () => show_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
+									<TouchableOpacity key={key} onPress={async () => copy_value(key)} style={{ paddingHorizontal: 14, paddingVertical: 6 }}>
 										<Text style={{ color: colors.text, fontSize: 13 }} numberOfLines={1}>
 											{key}
 										</Text>
