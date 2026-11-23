@@ -3,7 +3,6 @@ pushd ../lib-origin/
 # ts-node -T scripts/prebuild.ts
 popd
 
-yarn add github:Illusion137/RNTPvE
 yarn prebuild
 
 # Re-run CocoaPods so Podfile post_install hooks (deployment target normalization) are applied

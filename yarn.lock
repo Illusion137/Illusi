@@ -9287,13 +9287,6 @@ react-native-elevation@^1.0.0:
     "@bufbuild/protobuf" "^2.16.0"
     shaka-player "^5.3.1"
 
-"react-native-everything-player@https://github.com/Illusion137/everything-player#bf2144563157fce96e808d27830a25b192a49c32":
-  version "0.1.0"
-  resolved "https://github.com/Illusion137/everything-player#bf2144563157fce96e808d27830a25b192a49c32"
-  dependencies:
-    "@bufbuild/protobuf" "^2.16.0"
-    shaka-player "^5.3.1"
-
 react-native-external-display@^0.6.6:
   version "0.6.6"
   resolved "https://registry.yarnpkg.com/react-native-external-display/-/react-native-external-display-0.6.6.tgz#d9b5baae550b50504966b47875590910c715bb08"
