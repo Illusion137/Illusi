@@ -1,95 +1,82 @@
-import { decode_track } from '@illusive/discord';
+import { IllusiAccount } from '@illusive/db/sync/illusi_account';
+import { IllusiViews } from '@illusive/illusi_views';
+import { ShareLinks } from '@illusive/share_links';
+import { Illusi } from '@origin/illusi/illusi';
 import { GLOBALS } from '@illusive/globals';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import * as Linking from 'expo-linking';
 import { SharedRouter } from './shared_routes';
-import type { MusicServiceType } from '@illusive/types';
-import { create_uri } from '@illusive/illusive_utils';
+import { SharedUrls } from '@illusive/shared_urls';
 import { catch_log } from '@common/utils/error_util';
 
-async function link_incoming_track(etrack: string) {
-	const decoded = decode_track(etrack);
-	if ('error' in decoded) {
-		GLOBALS.global_var.bottom_alert('Failed to open shared track', 'WARN', decoded);
+async function link_incoming_illusi_track(illusi_id: string) {
+	if (!IllusiAccount.is_logged_in()) {
+		GLOBALS.global_var.bottom_alert('Log in to Illusi to open this track', 'WARN');
 		return;
 	}
-	const track = SQLTracks.add_playback_saved_data_to_track(decoded);
-	GLOBALS.global_var.play_tracks(track, [track], 'Shared Track');
-}
-
-async function link_incoming_playlist(playlist_uri: string) {
-	const uuid_regex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
-	if (uuid_regex.test(playlist_uri)) {
-		playlist_uri = create_uri('illusi', playlist_uri);
+	const view = await Illusi.Tracks.get(illusi_id);
+	if (Illusi.is_error(view)) {
+		GLOBALS.global_var.bottom_alert('Failed to open shared track', 'WARN', view);
+		return;
 	}
-	SharedRouter.goto_shared_playlist(playlist_uri, 'URI', {
-		force_order: '1'
-	});
+	const [track] = IllusiViews.prefer_local([IllusiViews.track(view)], GLOBALS.global_var.sql_tracks);
+	const playable = SQLTracks.add_playback_saved_data_to_track(track);
+	GLOBALS.global_var.play_tracks(playable, [playable], 'Shared Track');
 }
 
 function handle_illusi_url(parsed: Linking.ParsedURL) {
-	if (parsed.path === 'view') {
-		parsed = Linking.parse((parsed.queryParams as { url: string }).url);
+	const incoming = ShareLinks.parse(parsed.path ?? '');
+	if ('error' in incoming) {
+		GLOBALS.global_var.bottom_alert('Failed to open Illusi link', 'WARN', incoming);
+		return;
 	}
-	if (parsed.path?.startsWith('track')) {
-		const etrack = parsed.path.split('/')[1];
-		link_incoming_track(etrack).catch(catch_log);
-	} else if (parsed.path?.startsWith('playlist')) {
-		const playlist_uri = parsed.path.split('/')[1];
-		link_incoming_playlist(playlist_uri).catch(catch_log);
+	if (incoming.type === 'track') {
+		const track = SQLTracks.add_playback_saved_data_to_track(incoming.track);
+		GLOBALS.global_var.play_tracks(track, [track], 'Shared Track');
+	} else if (incoming.type === 'illusi_track') {
+		link_incoming_illusi_track(incoming.illusi_id).catch(catch_log);
+	} else {
+		SharedRouter.goto_shared_playlist(incoming.uri, 'URI', { force_order: '1' });
 	}
 }
 
-const service_hostname_map: Record<MusicServiceType, string> = {
-	'Illusi': 'illusi.dev',
-	'Musi': 'feelthemusi.com',
-	'YouTube': 'www.youtube.com',
-	'YouTube Music': 'music.youtube.com',
-	'Spotify': 'spotify.com',
-	'Amazon Music': 'music.amazon.com',
-	'Apple Music': 'music.apple.com',
-	'SoundCloud': 'soundcloud.com',
-	'BandLab': 'bandlab.com',
-	'Audiomack': 'audiomack.com',
-	'Deezer': 'deezer.com',
-	'Tidal': 'tidal.com',
-	'Pandora': 'pandora.com',
-	'API': '$$NO_USE$$'
-} as const;
-const service_linking_map: Record<MusicServiceType, (url: Linking.ParsedURL) => Promise<void>> = {
-	'Illusi': async (_) => { },
-	'Musi': async (_) => { },
-	'YouTube': async (_) => { },
-	'YouTube Music': async (_) => { },
-	'Spotify': async (_) => { },
-	'Amazon Music': async (_) => { },
-	'Apple Music': async (_) => { },
-	'SoundCloud': async (_) => { },
-	'BandLab': async (_) => { },
-	'Audiomack': async (_) => { },
-	'Deezer': async (_) => { },
-	'Tidal': async (_) => { },
-	'Pandora': async (_) => { },
-	'API': async (_) => { }
-};
+/** The link a share sheet passed as `url=`, whole: the share extension leaves the link's own `&`s unescaped */
+function shared_url(url: string): string | null {
+	const match = /[?&]url=/.exec(url);
+	if (match === null) return null;
+	const raw = url.slice(match.index + match[0].length);
+	try {
+		return decodeURIComponent(raw);
+	} catch {
+		return raw;
+	}
+}
+
+async function open_shared_url(url: string) {
+	if (url.startsWith('illusi:')) return handle_illusi_url(Linking.parse(url));
+	const target = await SharedUrls.resolve(url);
+	if (target === null) {
+		GLOBALS.global_var.bottom_alert('Illusi can\'t open this link', 'WARN');
+		return;
+	}
+	if (target.type === 'playlist') {
+		SharedRouter.goto_shared_playlist(target.uri, 'URI', {});
+		return;
+	}
+	const resolved = await SharedUrls.resolve_track(target);
+	if ('error' in resolved) {
+		GLOBALS.global_var.bottom_alert('Failed to open shared track', 'WARN', resolved);
+		return;
+	}
+	const track = SQLTracks.add_playback_saved_data_to_track(resolved);
+	GLOBALS.global_var.play_tracks(track, [track], 'Shared Track');
+}
 
 function handle_link(url: string) {
 	const parsed = Linking.parse(url);
-	if (parsed.scheme === 'illusi') return handle_illusi_url(parsed);
-	if (parsed.hostname === 'actions') {
-		if (!parsed.queryParams) return;
-		if (!('url' in parsed.queryParams)) return;
-		const parsed_query = Linking.parse(parsed.queryParams.url as string);
-		if (parsed_query.scheme === 'illusi') return handle_illusi_url(parsed_query);
-		else {
-			for (const key of Object.keys(service_hostname_map) as MusicServiceType[]) {
-				if (parsed_query.hostname?.includes(service_hostname_map[key])) {
-					service_linking_map[key](parsed_query).catch(catch_log);
-					return;
-				}
-			}
-		}
-	}
+	const shared = shared_url(url);
+	if (shared !== null) open_shared_url(shared).catch(catch_log);
+	else if (parsed.scheme === 'illusi') handle_illusi_url(parsed);
 }
 
 export function get_linking_handler() {

@@ -1,6 +1,5 @@
 import { is_empty } from '@common/utils/util';
-import { Constants } from '@illusive/constants';
-import { encode_track, play_track_discord_send } from '@illusive/discord';
+import { play_track_discord_send } from '@illusive/discord';
 import { upload_track_thumbnail } from '@illusive/document_picker';
 import { download_track, undownload_track } from '@illusive/downloader';
 import { GLOBALS } from '@illusive/globals';
@@ -10,6 +9,7 @@ import { play, play_track_next, push_track_to_playing_queue } from '@illusive/pl
 import { Prefs } from '@illusive/prefs';
 import { SQLfs } from '@illusive/sql/sql_fs';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
+import { ShareLinks } from '@illusive/share_links';
 import type { Track } from '@illusive/types';
 import { SharedRouter } from './shared_routes';
 import { alert_error } from '@illusive/illusi/src/alert';
@@ -83,19 +83,20 @@ export namespace ContextResolver {
 				SharedRouter.goto_shared_playlist(track.album?.uri ?? '', 'URI', { fs_cache_playlist_as_album: '1' });
 				break;
 
-			case 'track-share-original':
-				if (!is_empty(track.youtube_id))
-					await share_item({ link: `https://www.youtube.com/watch?v=${track.youtube_id}` });
-				else if (!is_empty(track.soundcloud_permalink))
-					await share_item({ link: track.soundcloud_permalink! });
+			case 'track-share-original': {
+				const link = ShareLinks.source(track);
+				if (link !== null) await share_item({ link });
 				break;
+			}
 			case 'track-share-downloaded':
 				if (is_empty(track.media_uri)) break;
 				await share_item({ uri: SQLfs.media_directory(track.media_uri!) });
 				break;
-			case 'track-share-illusi':
-				await share_item({ link: `${Constants.illusi_url_base}/track/${encode_track(track)}` });
+			case 'track-share-illusi': {
+				const link = ShareLinks.track(track);
+				if (link !== null) await share_item({ link });
 				break;
+			}
 
 			case 'track-download-media':
 				await download_track(track, false);

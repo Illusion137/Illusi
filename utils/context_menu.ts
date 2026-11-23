@@ -5,6 +5,7 @@ import type { ImageItemConfig, ImageResolvedAssetSource } from 'react-native-ios
 import { Image } from 'react-native';
 import { is_empty } from '@common/utils/util';
 import { Prefs } from '@illusive/prefs';
+import { ShareLinks } from '@illusive/share_links';
 import type { EditMode, Track } from '@illusive/types';
 import { reinterpret_cast } from '@common/cast';
 import { GLOBALS } from '@illusive/globals';
@@ -62,8 +63,8 @@ export namespace TrackContextMenu {
 			track_menu_item('track-delete-lyrics', 'Delete Lyrics', () => (is_empty(track.lyrics_uri) || !is_saved ? ['hidden'] : ['destructive']), 'trash'),
 			track_menu_item('track-delete', 'Delete', () => (!is_saved ? ['hidden'] : ['destructive']), 'trash'),
 			track_menu_item('track-delete-playlist', 'Delete From Playlist', () => (is_empty(write_playlist_uuid) || write_playlist_uuid === Constants.library_write_playlist || !is_playlist_saved ? ['hidden'] : ['destructive']), 'trash'),
-			track_menu_item('track-share-illusi', 'Illusi Link', () => (!is_empty(track.imported_id) ? ['hidden'] : undefined), 'link'),
-			track_menu_item('track-share-original', 'Source Link', () => (!is_empty(track.imported_id) ? ['hidden'] : undefined), 'link.icloud.fill'),
+			track_menu_item('track-share-illusi', 'Illusi Link', () => (ShareLinks.can_share_track(track) ? undefined : ['hidden']), 'link'),
+			track_menu_item('track-share-original', 'Source Link', () => (ShareLinks.source(track) === null ? ['hidden'] : undefined), 'link.icloud.fill'),
 			track_menu_item('track-share-downloaded', 'Downloaded File', () => (is_empty(track.media_uri) ? ['hidden'] : undefined), 'folder.circle'),
 			track_menu_item('track-share-thumbnail', 'Thumbnail', () => (is_empty(track.thumbnail_uri) ? ['hidden'] : undefined), 'photo.artframe'),
 			track_menu_item('track-enqueue', 'Enqueue Track', () => (!GLOBALS.global_var.is_playing ? ['hidden'] : undefined), 'text.append'),

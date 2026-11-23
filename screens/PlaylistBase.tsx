@@ -25,6 +25,7 @@ import { alert_error } from '@illusive/illusi/src/alert';
 import type { ShortcutOptions } from 'react-native-siri-shortcut';
 import { presentShortcut } from 'react-native-siri-shortcut';
 import { share_item } from '@illusive/illusi/src/illusi_utils';
+import { ShareLinks } from '@illusive/share_links';
 import type { ResponseError } from '@common/types';
 import { Ionicons } from '@expo/vector-icons';
 import type { MenuConfig } from '@components/ContextMenu';
@@ -407,6 +408,17 @@ export default function PlaylistBase(props: PlaylistProps) {
 						/>
 					)
 						: null}
+					{props.type === 'URI' ? (
+						<FontAwesomeTouchableOpacity
+							on_press={async () => share_item({ link: ShareLinks.uri(props.uri) })}
+							style={styles.playlist_button}
+							icon_name="share"
+							icon_size={25}
+							icon_color={colors.primary}
+							icon_style={{}}
+						/>
+					)
+						: null}
 					{props.type === 'UUID' ? (
 						<>
 							<IoniconsTouchableOpacity
@@ -431,7 +443,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 							/>
 							<FontAwesomeTouchableOpacity
 								disabled={!(playlist_data?.public ?? false)}
-								on_press={async () => share_item({ link: `${Constants.illusi_url_base}/playlist/${playlist_data?.uuid}` })}
+								on_press={async () => (playlist_data ? share_item({ link: ShareLinks.playlist(playlist_data.uuid) }) : undefined)}
 								style={!(playlist_data?.public ?? false) ? { ...styles.playlist_button, opacity: 0.4 } : styles.playlist_button}
 								icon_name="share"
 								icon_size={25}
