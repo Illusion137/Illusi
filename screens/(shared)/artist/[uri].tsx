@@ -3,7 +3,7 @@ import { ScrollView, View, Text, TouchableOpacity, TextInput, ActivityIndicator 
 import AlbumList from '@components/AlbumList';
 import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
 import LatestRelease from '@components/LatestRelease';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { best_thumbnail, music_service_uri_to_music_service, split_uri, tracks_with_artist } from '@illusive/illusive_utils';
 import { GLOBALS } from '@illusive/globals';
 import { Illusive } from '@illusive/illusive';
@@ -26,7 +26,7 @@ import { Constants } from '@illusive/constants';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { catch_log } from '@common/utils/error_util';
-import { load_artist_first_pages } from '@illusive/get_artist';
+import { load_artist_first_pages, load_service_artist } from '@illusive/get_artist';
 import { SharedRouter } from '@utils/shared_routes';
 
 export default function Artist() {
@@ -50,6 +50,8 @@ export default function Artist() {
 	const [watched, set_watched] = useState<boolean | undefined>(undefined);
 	const [search_query, set_search_query] = useState<string>('');
 	const [is_loading, set_is_loading] = useState(true);
+	const [loading_service, set_loading_service] = useState(false);
+	const from_service = useRef(false);
 
 	useEffect(() => {
 		initial_data().finally(() => set_is_loading(false)).catch(catch_log);
@@ -98,10 +100,22 @@ export default function Artist() {
 		}
 		GLOBALS.global_var.artist_cache.add(uri, { artist_data: artist });
 		load_artist_first_pages(artist).then((full_artist) => {
+			if (from_service.current) return;
 			full_artist.tracks = SQLTracks.add_playback_saved_data_to_tracks(full_artist.tracks);
 			set_artist_data(prev => ({ ...full_artist, is_following: prev.is_following }));
 			GLOBALS.global_var.artist_cache.update(uri, { artist_data: full_artist });
 		}).catch(catch_log);
+		if (artist.service_uris !== undefined) {
+			set_loading_service(true);
+			load_service_artist(artist, split[0] === 'illusi' ? split[1] : undefined).then((service_artist) => {
+				if (service_artist === null) return;
+				from_service.current = true;
+				service_artist.tracks = SQLTracks.add_playback_saved_data_to_tracks(service_artist.tracks);
+				set_artist_data(service_artist);
+				set_watched(service_artist.is_following === undefined ? undefined : !service_artist.is_following);
+				GLOBALS.global_var.artist_cache.update(uri, { artist_data: service_artist });
+			}).finally(() => set_loading_service(false)).catch(catch_log);
+		}
 	}
 
 	function refresh_data() {
@@ -186,20 +200,23 @@ export default function Artist() {
 							<Text numberOfLines={2} style={{ fontSize: 36, lineHeight: 40, fontWeight: 'bold', color: colors.text }}>
 								{remove_topic(artist_data.name)}
 							</Text>
-							<Text style={{ fontSize: 13, color: colors.subtext, marginTop: 4 }}>
-								{artist_data.tracks.length}
-								{artist_data.tracks_continuation ? '+' : ''}
-								{' '}
-								Tracks •
-								{artist_data.albums.length}
-								{artist_data.albums_continuation ? '+' : ''}
-								{' '}
-								Albums •
-								{artist_data.singles_eps.length}
-								{artist_data.singles_eps_continuation ? '+' : ''}
-								{' '}
-								Singles/EPs
-							</Text>
+							<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+								<Text style={{ fontSize: 13, color: colors.subtext }}>
+									{artist_data.tracks.length}
+									{artist_data.tracks_continuation ? '+' : ''}
+									{' '}
+									Tracks •
+									{artist_data.albums.length}
+									{artist_data.albums_continuation ? '+' : ''}
+									{' '}
+									Albums •
+									{artist_data.singles_eps.length}
+									{artist_data.singles_eps_continuation ? '+' : ''}
+									{' '}
+									Singles/EPs
+								</Text>
+								{loading_service ? <ActivityIndicator size="small" color={colors.subtext} style={{ marginLeft: 6, transform: [{ scale: 0.7 }] }} /> : null}
+							</View>
 							{artist_data.is_following !== undefined ? (
 								<TouchableOpacity onPress={on_watch_unwatch} style={{ marginTop: 10, alignSelf: 'flex-start', borderRadius: 40, backgroundColor: colors.text, paddingVertical: 8, paddingHorizontal: 18 }}>
 									<Text style={{ color: colors.background, fontSize: 14, fontWeight: '600' }}>{watched ? 'Unwatch' : 'Watch'}</Text>

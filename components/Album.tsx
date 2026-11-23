@@ -42,7 +42,7 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 		}
 	}
 
-	const year = new Date(props.album_data.date ?? 0).getFullYear();
+	const year = props.album_data.date ? new Date(props.album_data.date).getFullYear() : undefined;
 	const artist_name = props.album_data.artist?.[0]?.name ?? props.album_data.song_track?.artists?.[0]?.name ?? '';
 	const second_line = (props.second_line_type ?? 'YEAR') === 'YEAR' ? (year ?? remove_topic(artist_name)) : (remove_topic(artist_name) ?? year);
 
@@ -68,7 +68,7 @@ export default function Album(props: { album_data: CompactPlaylist; second_line_
 					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 						{props.album_data.explicit === 'EXPLICIT' ? <MaterialIcons name="explicit" size={18} color={colors.secondary} style={{}} /> : null}
 						<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 12, top: 0, width: size }}>
-							{empty_join_dot([single_case(props.album_data.album_type ?? (props.second_line_type === 'ARTIST' ? String(year) : artist_name) ?? '...'), second_line])}
+							{empty_join_dot([single_case(props.album_data.album_type ?? (props.second_line_type === 'ARTIST' ? (year === undefined ? undefined : String(year)) : artist_name) ?? '...'), second_line])}
 						</Text>
 					</View>
 				</View>

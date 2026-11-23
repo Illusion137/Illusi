@@ -2,7 +2,7 @@ import { ScrollView, View } from 'react-native';
 import type { CompactArtist, CompactPlaylist, FullPlaylist, Track } from '@illusive/types';
 import AlbumList from '@components/AlbumList';
 import { GLOBALS } from '@illusive/globals';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { get_unique_artists } from '@illusive/illusive_utils';
@@ -17,8 +17,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FullPlaylistList from '@components/FullPlaylistList';
 import { shuffle_array } from '@common/utils/util';
 import { catch_log } from '@common/utils/error_util';
+import { SQLGlobal } from '@illusive/sql/sql_global';
+import { load_illusi_artist_artwork } from '@illusive/get_artist';
 
 const top_tracks_slice = 50;
+const artwork_prefetch_count = 50;
+const your_artists_refresh_ms = 250;
+
+function your_artists(): CompactArtist[] {
+	return SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks);
+}
+
 const rewind_date = new Date();
 rewind_date.setMonth(10);
 rewind_date.setDate(28);
@@ -30,7 +39,7 @@ export default function IllusiExplore() {
 
 	const [new_releases, set_new_releases] = useState<CompactPlaylist[]>(Explore.get_new_releases);
 
-	const your_artists_ref = useRef(SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks));
+	const [artists, set_artists] = useState<CompactArtist[]>(your_artists);
 	const [forgotten_favorites, set_forgotten_favorites] = useState<CompactPlaylist[]>([]);
 	const [top_tracks, set_top_tracks] = useState<Track[]>([]);
 	const [for_you_playlists, set_for_you_playlists] = useState<FullPlaylist[]>([]);
@@ -43,6 +52,25 @@ export default function IllusiExplore() {
 			.then(set_new_releases)
 			.catch(catch_log);
 	}, []);
+
+	useEffect(() => {
+		let timeout: ReturnType<typeof setTimeout> | undefined;
+		const refresh = () => {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => set_artists(your_artists()), your_artists_refresh_ms);
+		};
+		const unsubscribe = SQLArtists.subscribe_artwork(refresh);
+		SQLGlobal.push_global_sql_tracks_update_callback('illusi_explore_your_artists', refresh);
+		return () => {
+			clearTimeout(timeout);
+			unsubscribe();
+			SQLGlobal.pop_global_sql_tracks_update_callback('illusi_explore_your_artists');
+		};
+	}, []);
+
+	useEffect(() => {
+		load_illusi_artist_artwork(artists.slice(0, artwork_prefetch_count).map(artist => artist.name)).catch(catch_log);
+	}, [artists]);
 
 	useEffect(() => {
 		(async function () {
@@ -80,9 +108,9 @@ export default function IllusiExplore() {
 			{should_show_rewind ? <IllusiRewindComponent /> : null}
 			<View style={{ height: 5 }} />
 			{/* <Text style={{color: colors.text, fontSize: 25, fontWeight: 'bold', left: 15}}>{"Your Artists"}</Text> */}
-			{your_artists_ref.current.length > 0 ? (
-				<HeaderWith title="Your Artists" fullpage={() => SharedRouter.goto_shared_artist_grid('Your Artists', your_artists_ref.current)}>
-					<HorizontalRowArtists size={80} artists={your_artists_ref.current} />
+			{artists.length > 0 ? (
+				<HeaderWith title="Your Artists" fullpage={() => SharedRouter.goto_shared_artist_grid('Your Artists', artists)}>
+					<HorizontalRowArtists size={80} artists={artists} />
 				</HeaderWith>
 			)
 				: null}
