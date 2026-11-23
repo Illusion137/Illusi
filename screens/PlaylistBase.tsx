@@ -17,7 +17,7 @@ import FourTrackArtwork from '@components/FourTrackArtwork';
 import ShufflePlayButton from '@components/ShufflePlayButton';
 import { default_playlists } from '@illusive/default_playlists';
 import { Illusive } from '@illusive/illusive';
-import { music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '@illusive/illusive_utils';
+import { create_uri, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '@illusive/illusive_utils';
 import { empty_join_dot, is_empty, json_catch } from '@common/utils/util';
 import { Constants } from '@illusive/constants';
 import { FontAwesomeTouchableOpacity, IoniconsTouchableOpacity, MaterialCommunityIconsTouchableOpacity } from '@components/TouchableIconOpacity';
@@ -44,7 +44,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import NavLink from '@components/NavLink';
 import IImage from '@components/IImage';
 import { SQLArtists } from '@illusive/sql/sql_artists';
-import { menuconfig_local_playlist } from '@utils/context_menu';
+import { menuconfig_local_playlist, playlist_push_discord_item } from '@utils/context_menu';
+import { play_playlist_discord_send } from '@illusive/discord';
 import { catch_log } from '@common/utils/error_util';
 import { continue_all, continue_once, track_key } from '@illusive/continuation';
 import { reinterpret_cast } from '@common/cast';
@@ -125,9 +126,12 @@ export default function PlaylistBase(props: PlaylistProps) {
 		};
 	}
 
+	const discord_uri = props.type === 'URI' ? reinterpret_cast<Types.IllusiveURI>(props.uri) : props.type === 'UUID' && (playlist_data?.public ?? false) ? create_uri('illusi', props.uuid) : undefined;
+
 	const menuconfig_external_playlist: MenuConfig = {
 		menuTitle: '',
 		menuItems: [
+			playlist_push_discord_item(discord_uri),
 			{ actionKey: 'playlist-actions-save-to-playlist', actionTitle: 'Save Playlist', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'list.bullet' } } },
 			{ actionKey: 'playlist-actions-add-tracks-to-library', actionTitle: 'Add Tracks To Library', icon: { type: 'IMAGE_SYSTEM', imageValue: { systemName: 'books.vertical' } } }
 		]
@@ -478,7 +482,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 					<TouchableOpacity>
 						<ContextMenuButton
 							menuConfig={
-								props.type === 'UUID' || props.type === 'DEFAULT_PLAYLIST' || props.type === 'TRACKS_LIST' ? menuconfig_local_playlist(edit_mode_state, colors, filtered_tracks) : props.uri ? menuconfig_external_playlist : undefined
+								props.type === 'UUID' || props.type === 'DEFAULT_PLAYLIST' || props.type === 'TRACKS_LIST' ? menuconfig_local_playlist(edit_mode_state, colors, filtered_tracks, discord_uri) : props.uri ? menuconfig_external_playlist : undefined
 							}
 							onPressMenuItem={async ({ nativeEvent }: any) => {
 								switch (nativeEvent.actionKey) {
@@ -507,6 +511,9 @@ export default function PlaylistBase(props: PlaylistProps) {
 										if (Platform.OS === 'ios') {
 											presentShortcut(getShortcut(), data => data);
 										}
+										break;
+									case 'playlist-actions-push-discord':
+										if (discord_uri !== undefined) await play_playlist_discord_send(Prefs.get_pref('discord_webhook_url'), discord_uri, Prefs.get_pref('always_shuffle') ? 'shuffle' : 'order', e => alert_error(e));
 										break;
 									case 'playlist-actions-save-to-playlist':
 										await save_to_playlist(playlist_data?.title ?? 'New Playlist');
