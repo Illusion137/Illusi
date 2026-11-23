@@ -45,6 +45,7 @@ function ServiceSwitcher(props: { service: MusicServiceType; cookies_enabled: bo
 					<Image style={{ marginHorizontal: 12, height: 25, width: 25, borderRadius: 5 }} source={{ uri: music_service.app_icon as string }} />
 					<Text style={styles.importfromtext}>
 						Add
+						{' '}
 						{props.service}
 						{' '}
 						Account
