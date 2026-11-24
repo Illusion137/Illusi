@@ -48,7 +48,7 @@ export namespace TrackContextMenu {
 		const is_saved = is_playlist_saved || (track.downloading_data?.saved ?? false) || GLOBALS.global_var.sql_tracks.find(t => t.uid === track.uid);
 		return [
 			track_menu_item('track-station', 'Play Station', () => (is_empty(track.youtube_id) && is_empty(track.soundcloud_id)) ? ['hidden'] : undefined, 'waveform.circle'),
-			track_menu_item('track-push-discord', 'Push Discord', () => (is_empty(Prefs.get_pref('discord_webhook_url')) || !is_empty(track.imported_id) ? ['hidden'] : undefined), discord_app_icon),
+			track_menu_item('track-push-discord', 'Push Discord', () => (is_empty(Prefs.get_pref('discord_webhook_url')) ? ['hidden'] : undefined), discord_app_icon),
 			view_artist_element(track),
 			track_menu_item('track-view-album', 'View Album', () => (is_empty(track.album?.uri) ? ['hidden'] : undefined), 'list.bullet'),
 			track_menu_item('track-view-info', 'View Track Info', () => (!is_saved ? ['hidden'] : undefined), 'plus.viewfinder'),
