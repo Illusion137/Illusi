@@ -1,9 +1,9 @@
-import type React from 'react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, Text, TouchableOpacity, View } from 'react-native';
-import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
+import { GestureDetector, useExclusiveGestures, usePanGesture, useTapGesture, type ComposedGesture, type PanGesture } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Event, useTrackPlayerEvents } from 'react-native-everything-player';
 import { FlashList } from '@shopify/flash-list';
@@ -32,20 +32,68 @@ const QueueRow = memo(function QueueRow({ item, on_remove }: { item: Track; on_r
 		[item, on_remove]
 	);
 	return (
-		<ReanimatedSwipeable renderRightActions={render_right_actions} rightThreshold={40} overshootRight={false} friction={2} dragOffsetFromRightEdge={10}>
+		<ReanimatedSwipeable renderRightActions={render_right_actions} rightThreshold={40} overshootRight={false} friction={2}>
 			<TrackComponentBase track_data={item} on_press={undefined} on_long_press={() => {}} disabled={true} background_opacity="C0" />
 		</ReanimatedSwipeable>
 	);
 });
 
-const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_ref: React.RefObject<GestureType | undefined> }>(function QueueHandle({ expanded_progress, pan_gesture_ref }) {
-	const { colors } = usePTheme();
-	const [queue, set_queue] = useState<Track[]>([]);
+export interface QueueHandleGestures {
+	panel_h: SharedValue<number>;
+	pan: PanGesture;
+	handle_gesture: ComposedGesture;
+}
 
+// Created by the AudioPlayer rather than QueueHandle so the pan's handler tag
+// is owned by the same component as the SlidingUpPanel that waits on it.
+export function useQueueHandleGestures(expanded_progress: SharedValue<number>): QueueHandleGestures {
 	const panel_h = useSharedValue(HANDLE_H);
 	const drag_base = useSharedValue(HANDLE_H);
-	// True while a drag is mid-flight and hasn't been resolved to a rest state yet.
-	const needs_snap = useSharedValue(false);
+
+	const snap_to = useCallback(
+		(open: boolean) => {
+			'worklet';
+			panel_h.value = withSpring(open ? PANEL_H : HANDLE_H, SNAP_SPRING);
+			expanded_progress.value = withSpring(open ? 1 : 0, SNAP_SPRING);
+		},
+		[panel_h, expanded_progress]
+	);
+
+	const pan = usePanGesture({
+		activeOffsetY: [-12, 12],
+		failOffsetX: [-10, 10],
+		onActivate: () => {
+			drag_base.value = panel_h.value;
+		},
+		onUpdate: (e) => {
+			const new_h = Math.max(HANDLE_H, Math.min(PANEL_H, drag_base.value - e.translationY));
+			panel_h.value = new_h;
+			expanded_progress.value = (new_h - HANDLE_H) / (PANEL_H - HANDLE_H);
+		},
+		onDeactivate: (e) => {
+			// A deliberate flick wins over position; otherwise snap to nearest end.
+			const halfway = panel_h.value > (HANDLE_H + PANEL_H) / 2;
+			if (e.canceled) snap_to(halfway);
+			else snap_to(e.velocityY < -400 ? true : e.velocityY > 400 ? false : halfway);
+		}
+	});
+
+	// Tap the handle to toggle fully open / closed (no precise drag needed).
+	const tap = useTapGesture({
+		maxDuration: 250,
+		onDeactivate: () => {
+			snap_to(!(panel_h.value > (HANDLE_H + PANEL_H) / 2));
+		}
+	});
+
+	const handle_gesture = useExclusiveGestures(pan, tap);
+
+	return { panel_h, pan, handle_gesture };
+}
+
+const QueueHandle = memo<{ gestures: QueueHandleGestures }>(function QueueHandle({ gestures: { panel_h, handle_gesture } }) {
+	const { colors } = usePTheme();
+	const [queue, set_queue] = useState<Track[]>([]);
 
 	// Mount the list on the first open and keep it mounted: repeatedly
 	// mounting/unmounting a FlashList on the first frame of every drag caused a
@@ -54,8 +102,7 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	useAnimatedReaction(
 		() => panel_h.value > HANDLE_H + 1,
 		(open, was) => {
-			// eslint-disable-next-line @typescript-eslint/no-deprecated
-			if (open && !was && was !== null) runOnJS(set_list_mounted)(true);
+			if (open && !was && was !== null) scheduleOnRN(set_list_mounted, true);
 		}
 	);
 
@@ -74,54 +121,6 @@ const QueueHandle = memo<{ expanded_progress: SharedValue<number>; pan_gesture_r
 	useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
 		if (event.index !== undefined) set_queue(player_queue_tracks().slice(event.index));
 	});
-
-	const snap_to = useCallback(
-		(open: boolean) => {
-			'worklet';
-			panel_h.value = withSpring(open ? PANEL_H : HANDLE_H, SNAP_SPRING);
-			expanded_progress.value = withSpring(open ? 1 : 0, SNAP_SPRING);
-		},
-		[panel_h, expanded_progress]
-	);
-
-	// withRef exposes this pan to AudioPlayer, which registers it as a blocking
-	// gesture on the outer SlidingUpPanel: the player pan can't activate until
-	// this one fails, so a drag that starts on the queue handle can never win
-	// the activation race and yank the whole player around.
-	const pan = Gesture.Pan()
-		.withRef(pan_gesture_ref)
-		.activeOffsetY([-12, 12])
-		.failOffsetX([-10, 10])
-		.onStart(() => {
-			drag_base.value = panel_h.value;
-			needs_snap.value = true;
-		})
-		.onUpdate((e) => {
-			const new_h = Math.max(HANDLE_H, Math.min(PANEL_H, drag_base.value - e.translationY));
-			panel_h.value = new_h;
-			expanded_progress.value = (new_h - HANDLE_H) / (PANEL_H - HANDLE_H);
-		})
-		.onEnd((e) => {
-			// A deliberate flick wins over position; otherwise snap to nearest end.
-			const snap_open = e.velocityY < -400 ? true : e.velocityY > 400 ? false : panel_h.value > (HANDLE_H + PANEL_H) / 2;
-			snap_to(snap_open);
-			needs_snap.value = false;
-		})
-		.onFinalize(() => {
-			if (!needs_snap.value) return;
-			needs_snap.value = false;
-			snap_to(panel_h.value > (HANDLE_H + PANEL_H) / 2);
-		});
-
-	// Tap the handle to toggle fully open / closed (no precise drag needed).
-	const tap = Gesture.Tap()
-		.maxDuration(250)
-		.onEnd(() => {
-			const is_open = panel_h.value > (HANDLE_H + PANEL_H) / 2;
-			snap_to(!is_open);
-		});
-
-	const handle_gesture = Gesture.Exclusive(pan, tap);
 
 	// Fixed height + translateY instead of animating `height`: a height change
 	// forces a full layout pass (and a FlashList relayout) on every frame of the

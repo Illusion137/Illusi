@@ -3,7 +3,7 @@ import { Constants } from '@illusive/constants';
 import { FutsalShuffle } from '@illusive/futsal_shuffle';
 import { GLOBALS } from '@illusive/globals';
 import type { Track } from '@illusive/types';
-import { useLocalSearchParams } from 'expo-router/build/hooks';
+import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import BigList from 'react-native-big-list';

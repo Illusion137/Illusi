@@ -8,40 +8,9 @@ import { is_empty } from '@common/utils/util';
 import { Ionicons } from '@expo/vector-icons';
 import IImage from '@components/IImage';
 import usePTheme from '@hooks/usePTheme';
-import type { Track } from '@illusive/types';
 import { catch_log } from '@common/utils/error_util';
 
-type RawSearchResult = Awaited<ReturnType<typeof Lyrics.fuzzy_search_lyrics>>[number];
-interface SearchResult {
-	raw: RawSearchResult;
-	matched_line: string;
-	match_count: number;
-}
-
-const LRC_TIMESTAMP_RE = /\[[\d:.]+\]/g;
-
-function clean_lyric_line(line: string): string {
-	return line.replace(LRC_TIMESTAMP_RE, '').trim();
-}
-
-function pick_matched_line(content: string, query_words: string[]): { line: string; count: number } {
-	if (query_words.length === 0) return { line: '', count: 0 };
-	let best_line = '';
-	let best_count = 0;
-	for (const raw_line of content.split('\n')) {
-		const cleaned = clean_lyric_line(raw_line);
-		if (cleaned.length === 0) continue;
-		const lower = cleaned.toLowerCase();
-		let count = 0;
-		for (const w of query_words) if (lower.includes(w)) count++;
-		if (count > best_count) {
-			best_line = cleaned;
-			best_count = count;
-			if (count === query_words.length) break;
-		}
-	}
-	return { line: best_line, count: best_count };
-}
+type SearchResult = Lyrics.LyricsSearchResult;
 
 function highlight_text(line: string, query_words: string[], colors: { text: string; primary: string }) {
 	if (query_words.length === 0 || line.length === 0) return line;
@@ -71,44 +40,17 @@ export default function ExtraLyricsFinderScreen() {
 	const [is_loading, set_is_loading] = useState(true);
 	const [has_lyrics, set_has_lyrics] = useState(false);
 
-	const uri_to_track = useRef<Map<string, Track>>(new Map());
 	const debounce_ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		const tracks = GLOBALS.global_var.sql_tracks;
-		const map = new Map<string, Track>();
-		tracks.forEach((t) => {
-			if (!is_empty(t.lyrics_uri)) map.set(t.lyrics_uri!, t);
-		});
-		uri_to_track.current = map;
-		set_has_lyrics(map.size > 0);
+		set_has_lyrics(tracks.some(t => !is_empty(t.lyrics_uri)));
 
 		Lyrics.load_lyrics_into_fuzzy_memory(tracks).then(() => set_is_loading(false)).catch(catch_log);
 	}, []);
 
 	const run_search = useCallback(async (q: string) => {
-		const trimmed = q.trim();
-		if (is_empty(trimmed)) {
-			set_results([]);
-			return;
-		}
-		const query_words = trimmed
-			.toLowerCase()
-			.split(/\s+/)
-			.filter(w => w.length > 0);
-		const raw = await Lyrics.fuzzy_search_lyrics(trimmed);
-		const filtered: SearchResult[] = [];
-		for (const r of Array.from(raw)) {
-			const track = uri_to_track.current.get(r.obj.filename);
-			const title = (track?.title ?? '').toLowerCase();
-			const title_match = query_words.every(w => title.includes(w));
-			const { line, count } = pick_matched_line(r.obj.content, query_words);
-			const content_match = count > 0;
-			if (!title_match && !content_match) continue;
-			filtered.push({ raw: r, matched_line: line, match_count: count });
-		}
-		filtered.sort((a, b) => b.match_count - a.match_count);
-		set_results(filtered);
+		set_results(await Lyrics.fuzzy_search_lyrics(q));
 	}, []);
 
 	function on_query_change(text: string) {
@@ -118,18 +60,17 @@ export default function ExtraLyricsFinderScreen() {
 	}
 
 	function on_result_press(result: SearchResult, all: SearchResult[]) {
-		const track = uri_to_track.current.get(result.raw.obj.filename);
-		if (track === undefined) return;
-		const queue = all.map(r => uri_to_track.current.get(r.raw.obj.filename)).filter((t): t is Track => t !== undefined);
+		const track = result.track;
+		const queue = all.map(r => r.track);
 		const start_idx = queue.findIndex(t => t.uid === track.uid);
 		const ordered = start_idx >= 0 ? [...queue.slice(start_idx), ...queue.slice(0, start_idx)] : [track];
 		GLOBALS.global_var.play_tracks(track, ordered, 'Lyrics Finder');
 	}
 
 	function render_result({ item }: { item: SearchResult }) {
-		const track = uri_to_track.current.get(item.raw.obj.filename);
-		const title = track?.title ?? item.raw.obj.filename;
-		const artist = track ? artist_string(track) : '';
+		const track = item.track;
+		const title = track.title;
+		const artist = artist_string(track);
 		const query_words = query
 			.trim()
 			.toLowerCase()
@@ -139,8 +80,8 @@ export default function ExtraLyricsFinderScreen() {
 		return (
 			<TouchableOpacity onPress={() => on_result_press(item, results)} style={styles.result_row} activeOpacity={0.6}>
 				<View style={styles.artwork_wrap}>
-					{track?.playback?.artwork ? (
-						<IImage source={track?.playback?.artwork} style={styles.artwork} />
+					{track.playback?.artwork ? (
+						<IImage source={track.playback.artwork} style={styles.artwork} />
 					) : (
 						<View style={[styles.artwork, styles.artwork_fallback]}>
 							<Ionicons name="musical-note" size={18} color={colors.subtext} />
@@ -156,9 +97,9 @@ export default function ExtraLyricsFinderScreen() {
 							{artist}
 						</Text>
 					)}
-					{!is_empty(item.matched_line) && (
+					{!is_empty(item.line) && (
 						<Text style={styles.result_snippet} numberOfLines={2}>
-							{highlight_text(item.matched_line, query_words, { text: colors.deeptext, primary: colors.primary })}
+							{highlight_text(item.line, query_words, { text: colors.deeptext, primary: colors.primary })}
 						</Text>
 					)}
 				</View>
@@ -222,7 +163,7 @@ export default function ExtraLyricsFinderScreen() {
 												result
 												{results.length !== 1 ? 's' : ''}
 											</Text>
-											<FlatList data={results} keyExtractor={(item, i) => item.raw.obj.path + i} renderItem={render_result} contentContainerStyle={{ paddingBottom: 24 }} />
+											<FlatList data={results} keyExtractor={item => item.track.uid} renderItem={render_result} contentContainerStyle={{ paddingBottom: 24 }} />
 										</>
 									)}
 		</View>

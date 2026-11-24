@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-deprecated */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Fontisto, Ionicons, MaterialCommunityIcons, SimpleLineIcons } from '@expo/vector-icons';
-import { GestureDetector, Gesture, type GestureType } from 'react-native-gesture-handler';
+import { GestureDetector, useCompetingGestures, useNativeGesture, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
 import { Waveform } from '@simform_solutions/react-native-audio-waveform';
 import { ActivityIndicator, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import TextTicker from 'react-native-text-ticker';
 import EverythingPlayer, { Event, RepeatMode, State, useTrackPlayerEvents } from 'react-native-everything-player';
 import LyricsPlayer from '@screens/LyricsPlayer';
-import QueueHandle from '@components/QueueHandle';
+import QueueHandle, { useQueueHandleGestures } from '@components/QueueHandle';
 import NavLink from '@components/NavLink';
 import IImage from '@components/IImage';
 import * as Sentry from '@sentry/react-native';
@@ -36,8 +35,9 @@ import TrackIconTags from '@components/TrackIconTags';
 import { Lyrics } from '@illusive/lyrics';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
-import Animated, { cancelAnimation, Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Extrapolation, interpolate, useAnimatedReaction, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
 import { catch_log } from '@common/utils/error_util';
+import { scheduleOnRN } from 'react-native-worklets';
 
 // TODO ensure highest quality thumbnails here
 type LyricsLoadingState = 'NONE' | 'LOADING' | 'FAILED' | 'DOWNLOADED';
@@ -228,7 +228,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		() => panel_animated.value > panel_min_height + 1,
 		(isVisible, wasVisible) => {
 			if (isVisible !== wasVisible) {
-				runOnJS(set_panel_state_visible)(isVisible);
+				scheduleOnRN(set_panel_state_visible, isVisible);
 			}
 		}
 	);
@@ -258,15 +258,17 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const queue_dim_style = useAnimatedStyle(() => ({ opacity: interpolate(queue_expanded_progress.value, [0, 1], [0, 0.65], Extrapolation.CLAMP) }));
 	const [queue_drag_disabled, set_queue_drag_disabled] = useState(false);
 	const outer_drag_enabled = !queue_drag_disabled;
-	const lyrics_scroll_gesture = useMemo(() => Gesture.Native(), []);
-	const queue_pan_ref = useRef<GestureType | undefined>(undefined);
-	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_pan_ref], [lyrics_scroll_gesture]);
+	// Created here rather than in LyricsPlayer/QueueHandle so their handler tags
+	// outlive the child detectors and never go stale in the panel's relations.
+	const lyrics_scroll_gesture = useNativeGesture();
+	const queue_gestures = useQueueHandleGestures(queue_expanded_progress);
+	const panel_blocking_gestures = useMemo(() => [lyrics_scroll_gesture, queue_gestures.pan], [lyrics_scroll_gesture, queue_gestures.pan]);
 
 	useAnimatedReaction(
 		() => queue_expanded_progress.value > 0.01,
 		(queue_open, was_open) => {
 			if (queue_open !== was_open && was_open !== null) {
-				runOnJS(set_queue_drag_disabled)(queue_open);
+				scheduleOnRN(set_queue_drag_disabled, queue_open);
 			}
 		}
 	);
@@ -278,33 +280,35 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 		EverythingPlayer.seekTo(ratio * (metadata_duration_ref.current || 1));
 	}, []);
 
-	const pan_seek = Gesture.Pan()
-		.activeOffsetX([-3, 3])
-		.failOffsetY([-20, 20])
-		.onStart((e) => {
+	const pan_seek = usePanGesture({
+		activeOffsetX: [-3, 3],
+		failOffsetY: [-20, 20],
+		onActivate: (e) => {
 			is_seeking.value = true;
 			seek_progress.value = Math.max(0, Math.min(e.x / seekbar_width, 1));
-		})
-		.onUpdate((e) => {
+		},
+		onUpdate: (e) => {
 			seek_progress.value = Math.max(0, Math.min(e.x / seekbar_width, 1));
-		})
-		.onEnd(() => {
-			runOnJS(do_seek)(seek_progress.value);
+		},
+		onDeactivate: () => {
+			scheduleOnRN(do_seek, seek_progress.value);
 			is_seeking.value = false;
-		})
-		.onFinalize(() => {
+		},
+		onFinalize: () => {
 			is_seeking.value = false;
-		});
+		}
+	});
 
-	const tap_seek = Gesture.Tap()
-		.maxDuration(250)
-		.onEnd((e) => {
+	const tap_seek = useTapGesture({
+		maxDuration: 250,
+		onDeactivate: (e) => {
 			const ratio = Math.max(0, Math.min(e.x / seekbar_width, 1));
 			seek_progress.value = ratio;
-			runOnJS(do_seek)(ratio);
-		});
+			scheduleOnRN(do_seek, ratio);
+		}
+	});
 
-	const seek_gesture = Gesture.Race(pan_seek, tap_seek);
+	const seek_gesture = useCompetingGestures(pan_seek, tap_seek);
 
 	const track_fill_style = useAnimatedStyle(() => ({ width: seek_progress.value * seekbar_width }));
 	const thumb_seek_style = useAnimatedStyle(() => ({ left: seek_progress.value * seekbar_width - 4 }));
@@ -740,7 +744,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
 					<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'black' }, queue_dim_style]} />
 				</Animated.View>
-				<QueueHandle expanded_progress={queue_expanded_progress} pan_gesture_ref={queue_pan_ref} />
+				<QueueHandle gestures={queue_gestures} />
 			</>
 		</SlidingUpPanel>
 	);

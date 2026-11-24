@@ -29,7 +29,7 @@ import { get_linking_handler } from '@utils/linking';
 import { breadcrumb as log_breadcrumb, initialize_sentry_severity_handler, set_breadcrumb_console_sink } from '@common/sentry_error_handler';
 import { AppState, Platform } from 'react-native';
 import { check_and_apply_update, mark_launch_success } from '@utils/ota_update';
-import { report_memory_warning, set_perf_context_provider, start_heap_monitor, start_perf_monitor, start_thermal_monitor, stop_heap_monitor, stop_perf_monitor, stop_thermal_monitor } from '@utils/perf_monitor';
+import { report_memory_warning, set_perf_context_provider } from '@utils/perf_monitor';
 import nodejs from 'nodejs-mobile-react-native';
 import { catch_log } from '@common/utils/error_util';
 // TODO fix carplay in future; + make UI actually good; too buggy for prod right now, causing crashes
@@ -145,9 +145,10 @@ export default Sentry.wrap(function App() {
 				Sentry.addBreadcrumb({ message: 'From node: ' + msg + '@' + new Date().getTime() });
 			});
 		}
-		start_perf_monitor();
-		start_thermal_monitor();
-		start_heap_monitor();
+		// TODO look about removing these entirely
+		// start_perf_monitor();
+		// start_thermal_monitor();
+		// start_heap_monitor();
 
 		const linking_handler = get_linking_handler();
 
@@ -165,7 +166,7 @@ export default Sentry.wrap(function App() {
 			if (OTA_ENABLED) {
 				ota_check_timer = setTimeout(() => {
 					check_and_apply_update().catch(e => e);
-				}, 5000);
+				}, 3000);
 			}
 			GLOBALS.global_var.kill_audioplayer = () => {
 				if (!GLOBALS.global_var.is_playing) return;
@@ -193,9 +194,10 @@ export default Sentry.wrap(function App() {
 			linking_handler.remove();
 			memory_warning_subscription.remove();
 			if (ota_check_timer) clearTimeout(ota_check_timer);
-			stop_perf_monitor();
-			stop_thermal_monitor();
-			stop_heap_monitor();
+			// TODO check this too
+			// stop_perf_monitor();
+			// stop_thermal_monitor();
+			// stop_heap_monitor();
 			// Cleanup CarPlay (iOS only)
 			if (CarPlayService) {
 				CarPlayService.destroy();

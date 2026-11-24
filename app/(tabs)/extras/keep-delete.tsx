@@ -20,7 +20,7 @@ import { delete_track } from '@illusive/illusi/src/components/track';
 import { SQLTracks } from '@illusive/sql/sql_tracks';
 import { SQLGlobal } from '@illusive/sql/sql_global';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, cancelAnimation, Extrapolation } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { catch_log } from '@common/utils/error_util';
 
 const SWIPE_THRESHOLD = 100;
@@ -127,16 +127,16 @@ export default function ExtraKeepDeleteScreen() {
 
 	const advance_ref = useRef<(action: 'keep' | 'delete') => Promise<void>>(null);
 
-	const swipe_gesture = Gesture.Pan()
-		.activeOffsetX([-10, 10])
-		.failOffsetY([-15, 15])
-		.runOnJS(true)
-		.onUpdate((e) => {
+	const swipe_gesture = usePanGesture({
+		activeOffsetX: [-10, 10],
+		failOffsetY: [-15, 15],
+		runOnJS: true,
+		onUpdate: (e) => {
 			if (is_advancing.current) return;
 			translate_x.value = e.translationX;
 			translate_y.value = e.translationY;
-		})
-		.onEnd((e) => {
+		},
+		onDeactivate: (e) => {
 			if (is_advancing.current) return;
 			if (e.translationX < -SWIPE_THRESHOLD) advance_ref.current?.('delete').catch(catch_log);
 			else if (e.translationX > SWIPE_THRESHOLD) advance_ref.current?.('keep').catch(catch_log);
@@ -144,7 +144,8 @@ export default function ExtraKeepDeleteScreen() {
 				translate_x.value = withSpring(0, { damping: 20, stiffness: 200 });
 				translate_y.value = withSpring(0, { damping: 20, stiffness: 200 });
 			}
-		});
+		}
+	});
 
 	useEffect(() => {
 		if (tracks.length === 0) return;

@@ -11,7 +11,7 @@ import Animated, {
 	withSpring,
 	withTiming
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { is_empty } from '@common/utils/util';
 import { IoniconsTouchableOpacity } from './TouchableIconOpacity';
 import { alert_info } from '@illusive/illusi/src/alert';
@@ -74,19 +74,20 @@ export default function BottomAlert(props: { type: BottomAlertType; text: string
 		hide();
 	}
 
-	const pan_gesture = Gesture.Pan()
-		.onUpdate((event) => {
+	const pan_gesture = usePanGesture({
+		onUpdate: (event) => {
 			if (event.translationY > 0) {
 				position_animated.value = (event.translationY * 0.2) + alert_show_height;
 			}
-		})
-		.onEnd((event) => {
+		},
+		onDeactivate: (event) => {
 			if (event.translationY > 50 || event.velocityY > 800) {
 				position_animated.value = withTiming(alert_hide_height, {}, () => { return; });
 			} else {
 				position_animated.value = withSpring(alert_show_height);
 			}
-		});
+		}
+	});
 	const animated_style = useAnimatedStyle(() => ({
 		top: `${position_animated.value}%`
 	}));

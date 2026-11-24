@@ -15,7 +15,7 @@ import type * as Types from '@illusive/types';
 import { BlurView } from 'expo-blur';
 import FourTrackArtwork from '@components/FourTrackArtwork';
 import ShufflePlayButton from '@components/ShufflePlayButton';
-import { default_playlists } from '@illusive/default_playlists';
+import { default_playlists, upcoming_plays_sync } from '@illusive/default_playlists';
 import { Illusive } from '@illusive/illusive';
 import { create_uri, music_service_uri_to_music_service, split_uri, track_query_filter, tracks_duration_string } from '@illusive/illusive_utils';
 import { empty_join_dot, is_empty, json_catch } from '@common/utils/util';
@@ -342,7 +342,9 @@ export default function PlaylistBase(props: PlaylistProps) {
 	tracks_state_ref.current = tracks;
 	const track_callback = useCallback(() => [...tracks_state_ref.current], []);
 	const width_fn = useCallback(() => BASE_WIDTH_FN(write_playlist_uuid), [write_playlist_uuid]);
-	const display_plays = props.type === 'DEFAULT_PLAYLIST' && props.default_playlist_title === 'Most Played';
+	const default_playlist_title = props.type === 'DEFAULT_PLAYLIST' ? props.default_playlist_title : undefined;
+	const display_plays = default_playlist_title === 'Most Played' || default_playlist_title === 'Upcoming';
+	const plays_of = default_playlist_title === 'Upcoming' ? upcoming_plays_sync : undefined;
 	const render_track = useCallback(
 		(item: { item: Track }) => (
 			<TrackComponent
@@ -351,13 +353,14 @@ export default function PlaylistBase(props: PlaylistProps) {
 				track_data={item.item}
 				from={playlist_data?.title}
 				display_plays={display_plays}
+				plays_of={plays_of}
 				edit_mode={edit_mode_state}
 				width_fn={width_fn}
 				write_playlist_uuid={write_playlist_uuid}
 				play_order={props.type === 'URI'}
 			/>
 		),
-		[playlist_data?.uuid, playlist_data?.title, track_callback, width_fn, display_plays, edit_mode_state, write_playlist_uuid]
+		[playlist_data?.uuid, playlist_data?.title, track_callback, width_fn, display_plays, plays_of, edit_mode_state, write_playlist_uuid]
 	);
 	const header_component = () => (
 		<View style={styles.playlist_list_header}>

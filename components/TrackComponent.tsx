@@ -26,6 +26,7 @@ function TrackComponent(props: {
 	playlist_uuid?: string;
 	edit_mode?: EditMode;
 	display_plays?: boolean;
+	plays_of?: (track: Track) => number;
 	track_callback?: () => Track[];
 	width_fn?: () => DimensionValue | undefined;
 	replace_album_with?: keyof Track;
@@ -188,7 +189,7 @@ function TrackComponent(props: {
 					<IoniconsTouchableOpacity on_press={async () => delete_track(props.track_data, props.write_playlist_uuid)} style={styles.centered} icon_name="trash" icon_size={30} icon_color={colors.red} icon_style={styles.else_icon} />
 				)
 					: null}
-				{props.edit_mode === 'NONE' && (props.display_plays ?? false) ? <Text style={{ color: colors.text, left: 30, fontWeight: '800', fontSize: 25, alignSelf: 'center' }}>{props.track_data.meta?.plays ?? 0}</Text> : null}
+				{props.edit_mode === 'NONE' && (props.display_plays ?? false) ? <Text style={{ color: colors.text, left: 30, fontWeight: '800', fontSize: 25, alignSelf: 'center' }}>{props.plays_of?.(props.track_data) ?? props.track_data.meta?.plays ?? 0}</Text> : null}
 			</TrackComponentBase>
 		</ContextMenuView>
 	);

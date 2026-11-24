@@ -9,6 +9,7 @@
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "moduleResolution": "bundler",
+    "customConditions": ["react-native-legacy-deep-imports", "react-native"],
     "module": "ESNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

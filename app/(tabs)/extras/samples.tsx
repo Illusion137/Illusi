@@ -27,7 +27,7 @@ import Animated, {
 	cancelAnimation,
 	Extrapolation
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { catch_log } from '@common/utils/error_util';
 
 const SWIPE_THRESHOLD = 100;
@@ -109,16 +109,16 @@ export default function ExtraSamplesScreen() {
 
 	const swipe = useRef<(direction: 'add' | 'skip') => Promise<void>>(null!);
 
-	const swipe_gesture = Gesture.Pan()
-		.activeOffsetX([-10, 10])
-		.failOffsetY([-15, 15])
-		.runOnJS(true)
-		.onUpdate((e) => {
+	const swipe_gesture = usePanGesture({
+		activeOffsetX: [-10, 10],
+		failOffsetY: [-15, 15],
+		runOnJS: true,
+		onUpdate: (e) => {
 			if (is_swiping.current) return;
 			translate_x.value = e.translationX;
 			translate_y.value = e.translationY;
-		})
-		.onEnd((e) => {
+		},
+		onDeactivate: (e) => {
 			if (is_swiping.current) return;
 			if (e.translationX > SWIPE_THRESHOLD) swipe.current?.('add').catch(catch_log);
 			else if (e.translationX < -SWIPE_THRESHOLD) swipe.current?.('skip').catch(catch_log);
@@ -126,7 +126,8 @@ export default function ExtraSamplesScreen() {
 				translate_x.value = withSpring(0, { damping: 20, stiffness: 200 });
 				translate_y.value = withSpring(0, { damping: 20, stiffness: 200 });
 			}
-		});
+		}
+	});
 
 	useEffect(() => {
 		load_recommendations().catch(catch_log);

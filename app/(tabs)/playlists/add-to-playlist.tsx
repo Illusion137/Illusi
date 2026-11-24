@@ -34,7 +34,7 @@ export default function AddToPlaylistBase() {
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<View style={styles.header}>
 				<View style={{ left: 5 }}>
-					<Button title="Back" color={colors.primary} onPress={router.back} />
+					<Button title="Back" color={colors.primary} onPress={() => router.back()} />
 				</View>
 			</View>
 			<View style={styles.list_break}>
