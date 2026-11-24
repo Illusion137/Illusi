@@ -217,6 +217,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 	const [repeat_mode, set_repeat_mode] = useState<RepeatMode>(RepeatMode.Off);
 	const [lyrics_loading_state, set_lyrics_loading_state] = useState<LyricsLoadingState>('NONE');
 	const [lyrics_overlay_visible, set_lyrics_overlay_visible] = useState(false);
+	const [lyrics_area_height, set_lyrics_area_height] = useState(screen_w + 30);
 	const open_lyrics_token = useRef(0);
 	const stop_duration_watch = useRef<() => void>(() => {});
 	useEffect(() => () => stop_duration_watch.current(), []);
@@ -586,7 +587,12 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							<View style={{ width: '100%', height: Dimensions.get('screen').width }} />
 						</ContextMenuView>
 					</View>
-					<View style={[styles.textcontainer, { flexDirection: 'row', alignItems: 'flex-start' }]}>
+					<View
+						style={[styles.textcontainer, { flexDirection: 'row', alignItems: 'flex-start' }]}
+						onLayout={(e) => {
+							if (e.nativeEvent.layout.y > 0) set_lyrics_area_height(e.nativeEvent.layout.y);
+						}}
+					>
 						<TextTicker style={[styles.title, { width: screen_w - 70 }]} scroll={false} duration={12000} bounce={false} easing={Easing.linear}>
 							{player_state_metadata.title}
 						</TextTicker>
@@ -738,7 +744,7 @@ export default function AudioPlayer(props: { tracks: IllusiveType.Track[]; playi
 							</TouchableOpacity>
 						</View>
 					</View>
-					<LyricsPlayer visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} scroll_gesture={lyrics_scroll_gesture} />
+					<LyricsPlayer visible={lyrics_overlay_visible} playing_track={playing_track} lyrics_uri={playing_track.lyrics_uri ?? null} scroll_gesture={lyrics_scroll_gesture} height={lyrics_area_height} />
 				</Animated.View>
 				{/* Single queue dim — covers everything (background, top padding, header, content) */}
 				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, panel_content_style]}>
