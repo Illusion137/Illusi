@@ -29,6 +29,39 @@ index 09be306..114175f 100644
 +    return nil;
    };
  };
+diff --git a/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm b/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm
+index 0e53f84..ef07e21 100644
+--- a/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm
++++ b/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm
+@@ -35,6 +35,12 @@ using namespace RNIUtilities;
+ 
+ static BOOL SHOULD_LOG = NO;
+ 
++// RN 0.88 removed RCTCxxBridge; under bridgeless the bridge is an
++// RCTBridgeProxy, which still implements -runtime without declaring it.
++@protocol RNIRuntimeProvider
++- (void *)runtime;
++@end
++
+ @implementation RNIUtilitiesModule {
+   BOOL _didInstallHostObject;
+ }
+@@ -77,12 +83,12 @@ static RNIUtilitiesModule *RNIUtilitiesModuleShared = nil;
+   
+   RCTBridge *bridge = [RCTBridge currentBridge];
+   
+-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)bridge;
+-  if (cxxBridge == nil) {
++  id<RNIRuntimeProvider> runtimeBridge = (id<RNIRuntimeProvider>)bridge;
++  if (runtimeBridge == nil) {
+     return;
+   };
+   
+-  auto jsiRuntime = (jsi::Runtime *)cxxBridge.runtime;
++  auto jsiRuntime = (jsi::Runtime *)[runtimeBridge runtime];
+   if (jsiRuntime == nil) {
+     return;
+   };
 diff --git a/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx b/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx
 index b6f450b..3f3fd84 100644
 --- a/node_modules/react-native-ios-utilities/src/example_components/CardRowLabelDisplay.tsx

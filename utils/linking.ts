@@ -8,6 +8,7 @@ import * as Linking from 'expo-linking';
 import { SharedRouter } from './shared_routes';
 import { SharedUrls } from '@illusive/shared_urls';
 import { catch_log } from '@common/utils/error_util';
+import { is_app_link, shared_url } from './app_links';
 
 async function link_incoming_illusi_track(illusi_id: string) {
 	if (!IllusiAccount.is_logged_in()) {
@@ -40,18 +41,6 @@ function handle_illusi_url(parsed: Linking.ParsedURL) {
 	}
 }
 
-/** The link a share sheet passed as `url=`, whole: the share extension leaves the link's own `&`s unescaped */
-function shared_url(url: string): string | null {
-	const match = /[?&]url=/.exec(url);
-	if (match === null) return null;
-	const raw = url.slice(match.index + match[0].length);
-	try {
-		return decodeURIComponent(raw);
-	} catch {
-		return raw;
-	}
-}
-
 async function open_shared_url(url: string) {
 	if (url.startsWith('illusi:')) return handle_illusi_url(Linking.parse(url));
 	const target = await SharedUrls.resolve(url);
@@ -73,6 +62,7 @@ async function open_shared_url(url: string) {
 }
 
 function handle_link(url: string) {
+	if (!is_app_link(url)) return;
 	const parsed = Linking.parse(url);
 	const shared = shared_url(url);
 	if (shared !== null) open_shared_url(shared).catch(catch_log);

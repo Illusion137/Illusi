@@ -77,25 +77,16 @@ class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         self.window = window
 
+        // Passing connectionOptions (not nil launchOptions) is what lets
+        // Linking.getInitialURL() see a URL that cold-started the app, e.g. a
+        // share-extension handoff. Forwarding it to RCTLinkingManager here
+        // instead would fire the `url` event before JS is listening.
         factory.startReactNative(
             withModuleName: "main",
             in: window,
-            launchOptions: nil
+            connectionOptions: connectionOptions
         )
 
         window.makeKeyAndVisible()
-
-        if let urlContext = connectionOptions.urlContexts.first {
-            let options: [UIApplication.OpenURLOptionsKey: Any] = [
-                .sourceApplication: urlContext.options.sourceApplication as Any,
-                .annotation: urlContext.options.annotation as Any,
-            ]
-
-            RCTLinkingManager.application(
-                UIApplication.shared,
-                open: urlContext.url,
-                options: options
-            )
-        }
     }
 }

@@ -9339,8 +9339,8 @@ react-native-elevation@^1.0.0:
   integrity sha512-BWIKcEYtzjRV6GpkX0Km5/w2E7fgIcywiQOT7JZTc5NSbv/YI9kpFinB9lRFsOoRVGmiqq/O3VfP/oH2clIiBA==
 
 "react-native-everything-player@https://github.com/Illusion137/everything-player":
-  version "0.1.2"
-  resolved "https://github.com/Illusion137/everything-player#e4f566de45b541d33d57c7e79180ed6de05bd7fd"
+  version "0.2.2"
+  resolved "https://github.com/Illusion137/everything-player#5b19b0adf33e614ab26701ae6ca2975adf92c1ec"
   dependencies:
     "@bufbuild/protobuf" "^2.16.0"
     shaka-player "^5.3.1"
@@ -9481,15 +9481,10 @@ react-native-progress@^5.0.1:
   version "0.1.0"
   resolved "https://github.com/Illusion137/react-native-ptp#7e9ee78ddd8cc59a4c147e775d786ecf4ec63309"
 
-react-native-quick-base64@^2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/react-native-quick-base64/-/react-native-quick-base64-2.2.2.tgz#52005a0b455b04acc1c6ff3eb8fa220401656aae"
-  integrity sha512-WLHSifHLoamr2kF00Gov0W9ud6CfPshe1rmqWTquVIi9c62qxOaJCFVDrXFZhEBU8B8PvGLVuOlVKH78yhY0Fg==
-
-react-native-quick-base64@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/react-native-quick-base64/-/react-native-quick-base64-3.0.0.tgz#7fb60a2e2e579cfc08e2880fc98868b78c32bc3c"
-  integrity sha512-gnJhA4a/QIGrptZQJv0hLLne8yyJPkdXtn33LHEzq3nhzsv+jRhrxr07wYwYX+CKCRXmuNkZ3Wo7LapSrFVmQg==
+react-native-quick-base64@^2.2.2, react-native-quick-base64@^3.0.0, react-native-quick-base64@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/react-native-quick-base64/-/react-native-quick-base64-3.0.2.tgz#929c8737d9c309a2411715c02f4625f6e8787e60"
+  integrity sha512-+PbqCbM7mxKc/5Sd6AhcWOymTv3bsyjkyZmD0lBowz4q2Zs/Vb1NYUsV0K0b6dgPcF2f0wjQOgDPgb2zOF8OtA==
 
 react-native-quick-crypto@^1.1.5:
   version "1.1.5"

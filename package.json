@@ -171,7 +171,7 @@
     "react-native-permissions": "^5.4.4",
     "react-native-progress": "^5.0.1",
     "react-native-ptp": "https://github.com/Illusion137/react-native-ptp",
-    "react-native-quick-base64": "^2.2.2",
+    "react-native-quick-base64": "^3.0.2",
     "react-native-quick-crypto": "^1.1.5",
     "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.11.1",
@@ -251,5 +251,8 @@
     "libsql": false,
     "iosSqlite": false,
     "performanceMode": false
+  },
+  "resolutions": {
+    "react-native-quick-base64": "^3.0.2"
   }
 }
