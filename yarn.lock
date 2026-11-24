@@ -9281,8 +9281,8 @@ react-native-elevation@^1.0.0:
   integrity sha512-BWIKcEYtzjRV6GpkX0Km5/w2E7fgIcywiQOT7JZTc5NSbv/YI9kpFinB9lRFsOoRVGmiqq/O3VfP/oH2clIiBA==
 
 "react-native-everything-player@https://github.com/Illusion137/everything-player":
-  version "0.1.1"
-  resolved "https://github.com/Illusion137/everything-player#9eeb94db99809d415bd4de1f93c2da35ca78b430"
+  version "0.1.2"
+  resolved "https://github.com/Illusion137/everything-player#e4f566de45b541d33d57c7e79180ed6de05bd7fd"
   dependencies:
     "@bufbuild/protobuf" "^2.16.0"
     shaka-player "^5.3.1"
