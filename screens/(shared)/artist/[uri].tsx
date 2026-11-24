@@ -1,5 +1,6 @@
 import type { IllusiveURI, MusicServiceArtist, Track } from '@illusive/types';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import AlbumList from '@components/AlbumList';
 import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
 import LatestRelease from '@components/LatestRelease';
@@ -28,6 +29,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { catch_log } from '@common/utils/error_util';
 import { load_artist_first_pages, load_service_artist } from '@illusive/get_artist';
 import { SharedRouter } from '@utils/shared_routes';
+
+const HEADER_H = 320;
 
 export default function Artist() {
 	const { uri } = useLocalSearchParams<{ uri: IllusiveURI }>();
@@ -169,6 +172,17 @@ export default function Artist() {
 		return background_image_url_possibilities.find(url => !is_empty(url));
 	}, [artist_data]);
 
+	const scroll_y = useSharedValue(0);
+	const on_scroll = useAnimatedScrollHandler((event) => {
+		scroll_y.value = event.contentOffset.y;
+	});
+	const header_artwork_style = useAnimatedStyle(() => ({
+		transform: [
+			{ translateY: interpolate(scroll_y.value, [-HEADER_H, 0], [-HEADER_H / 2, 0], { extrapolateLeft: Extrapolation.EXTEND, extrapolateRight: Extrapolation.CLAMP }) },
+			{ scale: interpolate(scroll_y.value, [-HEADER_H, 0], [2, 1], { extrapolateLeft: Extrapolation.EXTEND, extrapolateRight: Extrapolation.CLAMP }) }
+		]
+	}));
+
 	const query_normalized = search_query.trim().toLowerCase();
 	const has_query = query_normalized.length > 0;
 
@@ -191,10 +205,12 @@ export default function Artist() {
 			<View style={{ position: 'absolute', top: 60, marginHorizontal: 20, zIndex: 2, flexDirection: 'row', justifyContent: 'space-between' }} pointerEvents="box-none">
 				<IoniconsTouchableOpacity on_press={close} style={{}} icon_name="chevron-back" icon_size={30} icon_color={colors.primary} icon_style={{}} />
 			</View>
-			<ScrollView bounces={false} keyboardShouldPersistTaps="handled">
-				<View style={{ width: '100%', height: 320 }}>
-					<IImage source={background_image_url} height={320} style={{ height: 320, resizeMode: 'cover', width: '100%' }} />
-					<LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)', colors.background]} locations={[0, 0.55, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+			<Animated.ScrollView keyboardShouldPersistTaps="handled" onScroll={on_scroll} scrollEventThrottle={16}>
+				<View style={{ width: '100%', height: HEADER_H }}>
+					<Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, header_artwork_style]}>
+						<IImage source={background_image_url} height={HEADER_H} style={{ height: HEADER_H, resizeMode: 'cover', width: '100%' }} />
+						<LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)', colors.background]} locations={[0, 0.55, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+					</Animated.View>
 					<View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
 						<View style={{ flex: 1, marginRight: 12 }}>
 							<Text numberOfLines={2} style={{ fontSize: 36, lineHeight: 40, fontWeight: 'bold', color: colors.text }}>
@@ -339,7 +355,7 @@ export default function Artist() {
 									<View style={{ paddingVertical: 30 }} />
 								</>
 							)}
-			</ScrollView>
+			</Animated.ScrollView>
 		</>
 	);
 }
