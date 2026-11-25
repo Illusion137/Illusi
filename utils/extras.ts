@@ -88,7 +88,8 @@ export const extras_layout: () => ExtraLayout[] = () => [
 			{
 				title: 'Lyrics Finder',
 				href: '/extras/lyrics-finder',
-				icon: 'text-outline'
+				icon: 'text-outline',
+				indev: true
 			}
 		],
 		description: 'Hard Link playlist and other data from other Music Services. Automatically fetched on app startup.'
