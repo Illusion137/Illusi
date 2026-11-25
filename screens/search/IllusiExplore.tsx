@@ -23,6 +23,7 @@ import { load_illusi_artist_artwork } from '@illusive/get_artist';
 const top_tracks_slice = 50;
 const artwork_prefetch_count = 50;
 const your_artists_refresh_ms = 250;
+const overscroll_fill_height = 3000;
 
 function your_artists(): CompactArtist[] {
 	return SQLArtists.sort_compact_artists_by_most_played(get_unique_artists(GLOBALS.global_var.sql_tracks), GLOBALS.global_var.sql_tracks);
@@ -83,7 +84,8 @@ export default function IllusiExplore() {
 	}, []);
 
 	return (
-		<ScrollView bounces={false}>
+		<ScrollView>
+			<View style={{ position: 'absolute', top: -overscroll_fill_height, height: overscroll_fill_height, width: '100%', backgroundColor: colors.primary, pointerEvents: 'none' }} />
 			<LinearGradient
 				colors={[colors.primary, colors.background]}
 				locations={[0, 0.2]}
