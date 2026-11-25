@@ -49,6 +49,7 @@ import { play_playlist_discord_send } from '@illusive/discord';
 import { catch_log } from '@common/utils/error_util';
 import { continue_all, continue_once, track_key } from '@illusive/continuation';
 import { reinterpret_cast } from '@common/cast';
+import { load_illusi_artist_artwork } from '@illusive/get_artist';
 
 let search_query = '';
 let tracks_ref: Track[] = [];
@@ -101,6 +102,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 	const library_ref = useRef<typeof LibraryTrackList>(null);
 
 	const [playlist_data, set_playlist_data] = useState<Types.Playlist & { creator?: NamedUUID[] }>();
+	const [creator_artwork, set_creator_artwork] = useState<Types.Artwork>();
 	const [initial_tracks, set_initial_tracks] = useState<Track[]>([]);
 	const [tracks, set_tracks] = useState<Track[]>([]);
 	const [edit_mode_state, set_edit_mode_state] = useState<EditMode>('NONE');
@@ -146,6 +148,20 @@ export default function PlaylistBase(props: PlaylistProps) {
 		return () => exit_handler();
 	}, []);
 	useGlobalTracksRefresh(refresh_data);
+	const creator = playlist_data?.creator?.[0];
+	useEffect(() => {
+		if (!creator?.uri) {
+			set_creator_artwork(undefined);
+			return;
+		}
+		const refresh = () => set_creator_artwork(SQLArtists.artwork_for(creator));
+		refresh();
+		const unsubscribe = SQLArtists.subscribe_artwork(refresh);
+		load_illusi_artist_artwork([creator]).catch(catch_log);
+		return () => {
+			unsubscribe();
+		};
+	}, [creator?.uri, creator?.name]);
 	useFocusEffect(
 		useCallback(() => {
 			search_query = '';
@@ -374,12 +390,12 @@ export default function PlaylistBase(props: PlaylistProps) {
 					<SearchBarV1 placeholder="Search Playlist" background_color={colors.primary_dark} query_flags={TRACK_QUERY_FLAGS} onChangeText={on_edit_text} />
 				</View>
 				<View style={{ flexDirection: 'row' }}>
-					{playlist_data?.creator?.[0]?.uri && SQLArtists.artists_artwork_memo[playlist_data?.creator?.[0]?.uri ?? ''] ? (
-						<IImage source={SQLArtists.artists_artwork_memo[playlist_data?.creator?.[0]?.uri ?? '']} width={25} height={25} style={{ borderRadius: 100, resizeMode: 'contain', height: 25, width: 25, top: 5, right: 10 }} />
+					{creator_artwork !== undefined ? (
+						<IImage source={creator_artwork} width={25} height={25} style={{ borderRadius: 100, resizeMode: 'contain', height: 25, width: 25, top: 5, right: 10 }} />
 					)
 						: null}
 					<NavLink
-						text={empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? 'Sudo', new Date(playlist_data?.date ?? 0)?.getFullYear()])}
+						text={empty_join_dot([playlist_data?.creator?.map(item => item.name).join(', ') ?? 'Sudo', playlist_data?.date ?? 0 ? new Date(playlist_data?.date ?? 0)?.getFullYear() : undefined])}
 						uri={playlist_data?.creator?.[0]?.uri ?? ''}
 						type="artist"
 						text_style={{ color: colors.text, fontSize: 14, marginBottom: 20, top: 10 }}
