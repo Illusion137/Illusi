@@ -2,7 +2,8 @@ import { ScrollView, View } from 'react-native';
 import type { CompactArtist, CompactPlaylist, FullPlaylist, Track } from '@illusive/types';
 import AlbumList from '@components/AlbumList';
 import { GLOBALS } from '@illusive/globals';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import TrackHorizontalScrolls from '@components/TrackHorizontalScrolls';
 import HorizontalRowArtists from '@components/HorizontalRowArtists';
 import { get_unique_artists } from '@illusive/illusive_utils';
@@ -47,12 +48,13 @@ export default function IllusiExplore() {
 	const [for_you_artists, set_for_you_artists] = useState<CompactArtist[]>([]);
 	const [illusi_public_playlists, set_illusi_public_playlists] = useState<CompactPlaylist[]>([]);
 
-	useEffect(() => {
+	// Every visit, not only the first: a release dropped on the hour shows up the next time Explore is opened.
+	useFocusEffect(useCallback(() => {
 		if (!Explore.new_releases_stale()) return;
 		Explore.refresh_new_releases()
 			.then(set_new_releases)
 			.catch(catch_log);
-	}, []);
+	}, []));
 
 	useEffect(() => {
 		let timeout: ReturnType<typeof setTimeout> | undefined;
