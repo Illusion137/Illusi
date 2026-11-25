@@ -84,6 +84,8 @@ export interface PlaylistTracksListProps {
 }
 export type PlaylistProps = PlaylistDefaultPlaylistProps | PlaylistURIProps | PlaylistUUIDProps | PlaylistWritePlaylistProps | PlaylistTracksListProps;
 
+const description_max_lines = 4;
+
 export default function PlaylistBase(props: PlaylistProps) {
 	const force_order = props.type === 'DEFAULT_PLAYLIST' && (props.force_order ?? false);
 	const force_hide_audioplayer = props.type === 'WRITE_PLAYLIST' && props.write_playlist_uuid !== Constants.library_write_playlist;
@@ -103,6 +105,8 @@ export default function PlaylistBase(props: PlaylistProps) {
 
 	const [playlist_data, set_playlist_data] = useState<Types.Playlist & { creator?: NamedUUID[] }>();
 	const [creator_artwork, set_creator_artwork] = useState<Types.Artwork>();
+	const [description_extra_height, set_description_extra_height] = useState(0);
+	const header_height = (props.type === 'WRITE_PLAYLIST' ? 360 : 455) + description_extra_height;
 	const [initial_tracks, set_initial_tracks] = useState<Track[]>([]);
 	const [tracks, set_tracks] = useState<Track[]>([]);
 	const [edit_mode_state, set_edit_mode_state] = useState<EditMode>('NONE');
@@ -407,7 +411,14 @@ export default function PlaylistBase(props: PlaylistProps) {
 				<Text numberOfLines={1} style={{ color: colors.text, fontSize: 20, fontWeight: 'bold' }}>
 					{playlist_data?.title}
 				</Text>
-				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 10 }}>
+				<Text
+					numberOfLines={description_max_lines}
+					style={{ color: colors.subtext, fontSize: 10, textAlign: 'center', maxWidth: '85%' }}
+					onTextLayout={(event) => {
+						const extra = event.nativeEvent.lines.slice(1, description_max_lines).reduce((height, line) => height + line.height, 0);
+						set_description_extra_height(Math.ceil(extra));
+					}}
+				>
 					{playlist_data?.description}
 				</Text>
 				<Text numberOfLines={1} style={{ color: colors.subtext, fontSize: 7 }}></Text>
@@ -557,14 +568,14 @@ export default function PlaylistBase(props: PlaylistProps) {
 						edit_mode="NONE"
 						ref={library_ref}
 						write_playlist_uuid={props.write_playlist_uuid}
-						header_height={props.type === 'WRITE_PLAYLIST' ? 360 : 455}
+						header_height={header_height}
 						header_item={header_component}
 						adjusted_alphabet_scroll={-35}
 					/>
 				) : (
 					<BigList
 						style={{ backgroundColor: colors.background }}
-						headerHeight={props.type === 'WRITE_PLAYLIST' ? 360 : 455}
+						headerHeight={header_height}
 						itemHeight={61}
 						footerHeight={50}
 						renderHeader={header_component}
