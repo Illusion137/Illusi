@@ -29,6 +29,59 @@ index 09be306..114175f 100644
 +    return nil;
    };
  };
+diff --git a/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIApplication+RNIHelpers.mm b/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIApplication+RNIHelpers.mm
+index a3cb952..538212d 100644
+--- a/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIApplication+RNIHelpers.mm
++++ b/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIApplication+RNIHelpers.mm
+@@ -113,7 +113,10 @@
+ 
+ - (RCTSurfacePresenterBridgeAdapter *)reactBridgeAdapter
+ {
+-  #ifdef USE_RCT_APP_DELEGATE
++  #ifdef RCT_REMOVE_LEGACY_ARCH
++  // The bridge adapter only exists in legacy-arch builds; bridgeless never has one.
++  return nil;
++  #elif defined(USE_RCT_APP_DELEGATE)
+   RCTAppDelegate *reactAppDelegate = [self reactAppDelegate];
+   
+   if(reactAppDelegate == nil){
+@@ -134,6 +137,9 @@
+ 
+ - (RCTSurfacePresenter *) reactSurfacePresenter
+ {
++  #ifdef RCT_REMOVE_LEGACY_ARCH
++  return nil;
++  #else
+   RCTSurfacePresenterBridgeAdapter *reactBridgeAdapter = [self reactBridgeAdapter];
+   
+   if(reactBridgeAdapter == nil){
+@@ -141,6 +147,7 @@
+   };
+   
+   return [reactBridgeAdapter surfacePresenter];
++  #endif
+ }
+ 
+ - (RCTMountingManager *)reactMountingManager
+diff --git a/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIView+RNIPaperHelpers.mm b/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIView+RNIPaperHelpers.mm
+index 4083b04..51a8e73 100644
+--- a/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIView+RNIPaperHelpers.mm
++++ b/node_modules/react-native-ios-utilities/ios/Sources/ObjcHelpers/UIView+RNIPaperHelpers.mm
+@@ -27,12 +27,14 @@
+ - (RCTBridge *)reactGetPaperBridge
+ {
+   #if RCT_NEW_ARCH_ENABLED
++  #ifndef RCT_REMOVE_LEGACY_ARCH
+   RCTSurfacePresenterBridgeAdapter *reactBridgeAdapter =
+     [[UIApplication sharedApplication] reactBridgeAdapter];
+     
+   if(reactBridgeAdapter != nil){
+     return reactBridgeAdapter.bridge;
+   };
++  #endif
+   #else
+   RCTRootView *reactPaperRootView = [self reactGetPaperRootView];
+   if(reactPaperRootView != nil){
 diff --git a/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm b/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm
 index 0e53f84..ef07e21 100644
 --- a/node_modules/react-native-ios-utilities/ios/Sources/RNIUtilitiesModule/RNIUtilitiesModule.mm

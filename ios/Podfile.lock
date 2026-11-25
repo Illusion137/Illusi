@@ -6,7 +6,7 @@ PODS:
     - DGSwiftUtilities (~> 0.29)
   - DGSwiftUtilities (0.47.0)
   - DoubleConversion (1.1.6)
-  - EverythingPlayer (0.1.2):
+  - EverythingPlayer (0.2.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -5014,7 +5014,7 @@ SPEC CHECKSUMS:
   ContextMenuAuxiliaryPreview: 20be0be795b783b68f8792732eed4bed9f202c1c
   DGSwiftUtilities: 567f8d5ee618f0b7afb185b17aa45ff356315a0f
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
-  EverythingPlayer: 720bf17c7c1cae99ad9bcaaa89a1c6043303bf65
+  EverythingPlayer: 04c3bf546c2343fcf46159ec0a45209acde939f7
   EXConstants: aeda76f4be923fc719522ae162dd0b8c6483f9cc
   EXJSONUtils: d59bf6b18639752631a81818559b2675a46f99e2
   EXManifests: b0b83ad894166f7e080b18814c5e73aed46e366e
