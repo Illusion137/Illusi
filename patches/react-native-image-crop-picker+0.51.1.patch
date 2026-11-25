@@ -1,5 +1,21 @@
+diff --git a/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.h b/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.h
+index b6a925a..962e728 100644
+--- a/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.h
++++ b/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.h
+@@ -13,8 +13,11 @@
+ #if __has_include(<React/RCTBridgeModule.h>)
+ #import <React/RCTBridgeModule.h>
+ #import <React/RCTImageURLLoader.h>
++// Legacy-arch headers, absent once RN removes the legacy architecture (0.88+); nothing here uses them.
++#if __has_include(<React/RCTImageShadowView.h>)
+ #import <React/RCTImageShadowView.h>
+ #import <React/RCTImageView.h>
++#endif
+ #import <React/RCTImageLoaderProtocol.h>
+ #else
+ #import "RCTBridgeModule.h"
 diff --git a/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.mm b/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.mm
-index 354ad09..cca7bd1 100644
+index 354ad09..de6d2ac 100644
 --- a/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.mm
 +++ b/node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.mm
 @@ -42,12 +42,46 @@
@@ -55,7 +71,7 @@ index 354ad09..cca7bd1 100644
          self.compression = [[Compression alloc] init];
 +        self.hasFinished = NO;
      }
- 
+     
      return self;
 @@ -115,19 +150,20 @@ RCT_EXPORT_MODULE(RNCImageCropPicker);
      }
@@ -67,7 +83,7 @@ index 354ad09..cca7bd1 100644
 +- (void)setConfiguration:(NSDictionary *)options
 +                resolver:(RCTPromiseResolveBlock)resolve
 +                rejecter:(RCTPromiseRejectBlock)reject {
- 
+     
      self.resolve = resolve;
      self.reject = reject;
 +    self.hasFinished = NO;
@@ -84,7 +100,7 @@ index 354ad09..cca7bd1 100644
          root = root.presentedViewController;
 @@ -144,12 +180,16 @@ RCT_EXPORT_METHOD(openCamera:(NSDictionary *)options
      self.currentSelectionMode = CAMERA;
- 
+     
  #if TARGET_IPHONE_SIMULATOR
 -    self.reject(ERROR_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR_KEY, ERROR_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR_MSG, nil);
 +    [self safeReject:ERROR_PICKER_CANNOT_RUN_CAMERA_ON_SIMULATOR_KEY
@@ -100,7 +116,7 @@ index 354ad09..cca7bd1 100644
 +                       error:nil];
              return;
          }
- 
+         
 @@ -181,14 +221,10 @@ RCT_EXPORT_METHOD(openCamera:(NSDictionary *)options
  #endif
  }
@@ -111,7 +127,7 @@ index 354ad09..cca7bd1 100644
 -
  - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info {
      NSString* mediaType = [info objectForKey:UIImagePickerControllerMediaType];
- 
+     
 -    if (CFStringCompare ((__bridge CFStringRef) mediaType, kUTTypeMovie, 0) == kCFCompareEqualTo) {
 +    if (CFStringCompare((__bridge CFStringRef) mediaType, kUTTypeMovie, 0) == kCFCompareEqualTo) {
          NSURL *url = [info objectForKey:UIImagePickerControllerMediaURL];
@@ -128,7 +144,7 @@ index 354ad09..cca7bd1 100644
                      }]];
                      return;
                  }
- 
+                 
                  [picker dismissViewControllerAnimated:YES completion:[self waitAnimationEnd:^{
 -                    self.resolve(video);
 +                    [self safeResolve:video];
@@ -138,7 +154,7 @@ index 354ad09..cca7bd1 100644
 @@ -219,17 +257,26 @@ RCT_EXPORT_METHOD(openCamera:(NSDictionary *)options
              exif = [info objectForKey:UIImagePickerControllerMediaMetadata];
          }
- 
+         
 -        [self processSingleImagePick:chosenImage withExif:exif withViewController:picker withSourceURL:self.croppingFile[@"sourceURL"] withLocalIdentifier:self.croppingFile[@"localIdentifier"] withFilename:self.croppingFile[@"filename"] withCreationDate:self.croppingFile[@"creationDate"] withModificationDate:self.croppingFile[@"modificationDate"]];
 +        [self processSingleImagePick:chosenImage
 +                            withExif:exif
@@ -164,10 +180,10 @@ index 354ad09..cca7bd1 100644
 +- (NSString*)getTmpDirectory {
      NSString *TMP_DIRECTORY = @"react-native-image-crop-picker/";
      NSString *tmpFullPath = [NSTemporaryDirectory() stringByAppendingString:TMP_DIRECTORY];
- 
+     
 @@ -288,15 +335,16 @@ RCT_EXPORT_METHOD(openPicker:(NSDictionary *)options
      self.currentSelectionMode = PICKER;
- 
+     
      [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
 -        if (status != PHAuthorizationStatusAuthorized) {
 -            self.reject(ERROR_NO_LIBRARY_PERMISSION_KEY, ERROR_NO_LIBRARY_PERMISSION_MSG, nil);
@@ -178,7 +194,7 @@ index 354ad09..cca7bd1 100644
 +                       error:nil];
              return;
          }
- 
+         
          dispatch_async(dispatch_get_main_queue(), ^{
 -            // init picker
 -            QBImagePickerController *imagePickerController =
@@ -197,17 +213,17 @@ index 354ad09..cca7bd1 100644
                      @"SyncedFaces" : @(PHAssetCollectionSubtypeAlbumSyncedFaces),
                      @"SyncedAlbum" : @(PHAssetCollectionSubtypeAlbumSyncedAlbum),
                      @"Imported" : @(PHAssetCollectionSubtypeAlbumImported),
- 
+                     
 -                    //cloud albums
                      @"PhotoStream" : @(PHAssetCollectionSubtypeAlbumMyPhotoStream),
                      @"CloudShared" : @(PHAssetCollectionSubtypeAlbumCloudShared),
- 
+                     
 -                    //smart albums
                      @"Generic" : @(PHAssetCollectionSubtypeSmartAlbumGeneric),
                      @"Panoramas" : @(PHAssetCollectionSubtypeSmartAlbumPanoramas),
                      @"Videos" : @(PHAssetCollectionSubtypeSmartAlbumVideos),
 @@ -377,7 +422,9 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
- 
+     
      [[self.bridge moduleForName:@"ImageLoader" lazilyLoadIfNecessary:YES] loadImageWithURLRequest:[RCTConvert NSURLRequest:path] callback:^(NSError *error, UIImage *image) {
          if (error) {
 -            self.reject(ERROR_CROPPER_IMAGE_NOT_FOUND_KEY, ERROR_CROPPER_IMAGE_NOT_FOUND_MSG, nil);
@@ -220,18 +236,18 @@ index 354ad09..cca7bd1 100644
 @@ -388,18 +435,15 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
      dispatch_async(dispatch_get_main_queue(), ^{
          UIView *mainView = [[self getRootVC] view];
- 
+         
 -        // create overlay
          UIView *loadingView = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
          loadingView.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.5];
          loadingView.clipsToBounds = YES;
- 
+         
 -        // create loading spinner
          UIActivityIndicatorView *activityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
          activityView.frame = CGRectMake(65, 40, activityView.bounds.size.width, activityView.bounds.size.height);
          activityView.center = loadingView.center;
          [loadingView addSubview:activityView];
- 
+         
 -        // create message
          UILabel *loadingLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 115, 130, 22)];
          loadingLabel.backgroundColor = [UIColor clearColor];
@@ -239,11 +255,11 @@ index 354ad09..cca7bd1 100644
 @@ -412,7 +456,6 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
          [loadingLabel setFont:[UIFont boldSystemFontOfSize:18]];
          [loadingView addSubview:loadingLabel];
- 
+         
 -        // show all
          [mainView addSubview:loadingView];
          [activityView startAnimating];
- 
+         
 @@ -420,10 +463,9 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
      });
  }
@@ -251,7 +267,7 @@ index 354ad09..cca7bd1 100644
 -- (void) handleVideo:(AVAsset*)asset withFileName:(NSString*)fileName withLocalIdentifier:(NSString*)localIdentifier completion:(void (^)(NSDictionary* image))completion {
 +- (void)handleVideo:(AVAsset*)asset withFileName:(NSString*)fileName withLocalIdentifier:(NSString*)localIdentifier completion:(void (^)(NSDictionary* image))completion {
      NSURL *sourceURL = [(AVURLAsset *)asset URL];
- 
+     
 -    // create temp file
      NSString *tmpDirFullPath = [self getTmpDirectory];
      NSString *filePath = [tmpDirFullPath stringByAppendingString:[[NSUUID UUID] UUIDString]];
@@ -285,7 +301,7 @@ index 354ad09..cca7bd1 100644
 @@ -551,24 +592,33 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
                          dispatch_async(dispatch_get_main_queue(), ^{
                              [lock lock];
- 
+                             
 +                            if (self.hasFinished) {
 +                                [lock unlock];
 +                                return;
@@ -303,12 +319,12 @@ index 354ad09..cca7bd1 100644
                                  }]];
                                  return;
                              }
- 
+                             
                              [selections replaceObjectAtIndex:index withObject:video];
                              processed++;
 +                            BOOL done = (processed == [assets count]);
                              [lock unlock];
- 
+                             
 -                            if (processed == [assets count]) {
 +                            if (done) {
                                  [indicatorView stopAnimating];
@@ -320,7 +336,7 @@ index 354ad09..cca7bd1 100644
                                  return;
                              }
 @@ -585,6 +635,12 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
- 
+                             
                              dispatch_async(dispatch_get_main_queue(), ^{
                                  [lock lock];
 +
@@ -331,9 +347,9 @@ index 354ad09..cca7bd1 100644
 +
                                  @autoreleasepool {
                                      UIImage *imgT = [UIImage imageWithData:imageData];
- 
+                                     
 @@ -604,7 +660,6 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
- 
+                                     
                                      ImageResult *imageResult = [[ImageResult alloc] init];
                                      if (isLossless && useOriginalWidth && useOriginalHeight && isKnownMimeType && !forceJpg) {
 -                                        // Use original, unmodified image
@@ -342,7 +358,7 @@ index 354ad09..cca7bd1 100644
                                          imageResult.height = @(imgT.size.height);
 @@ -620,10 +675,13 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
                                          filePath = [self persistFile:imageResult.data];
- 
+                                         
                                          if (filePath == nil) {
 +                                            [lock unlock];
                                              [indicatorView stopAnimating];
@@ -361,7 +377,7 @@ index 354ad09..cca7bd1 100644
                                  processed++;
 +                                BOOL done = (processed == [assets count]);
                                  [lock unlock];
- 
+                                 
 -                                if (processed == [assets count]) {
 -                                    
 +                                if (done) {
@@ -403,7 +419,7 @@ index 354ad09..cca7bd1 100644
 -// or to user directly
 -- (void) processSingleImagePick:(UIImage*)image withExif:(NSDictionary*) exif withViewController:(UIViewController*)viewController withSourceURL:(NSString*)sourceURL withLocalIdentifier:(NSString*)localIdentifier withFilename:(NSString*)filename withCreationDate:(NSDate*)creationDate withModificationDate:(NSDate*)modificationDate {
 +- (void)processSingleImagePick:(UIImage*)image withExif:(NSDictionary*) exif withViewController:(UIViewController*)viewController withSourceURL:(NSString*)sourceURL withLocalIdentifier:(NSString*)localIdentifier withFilename:(NSString*)filename withCreationDate:(NSDate*)creationDate withModificationDate:(NSDate*)modificationDate {
- 
+     
      if (image == nil) {
          [viewController dismissViewControllerAnimated:YES completion:[self waitAnimationEnd:^{
 -            self.reject(ERROR_PICKER_NO_DATA_KEY, ERROR_PICKER_NO_DATA_MSG, nil);
@@ -424,7 +440,7 @@ index 354ad09..cca7bd1 100644
              }]];
              return;
          }
- 
+         
 -        // Wait for viewController to dismiss before resolving, or we lose the ability to display
 -        // Alert.alert in the .then() handler.
          [viewController dismissViewControllerAnimated:YES completion:[self waitAnimationEnd:^{
@@ -478,12 +494,12 @@ index 354ad09..cca7bd1 100644
  - (void)imageCropViewController:(UIViewController *)controller
                     didCropImage:(UIImage *)croppedImage
                    usingCropRect:(CGRect)cropRect {
- 
+     
 -    // we have correct rect, but not correct dimensions
 -    // so resize image
      CGSize desiredImageSize = CGSizeMake([[[self options] objectForKey:@"width"] intValue],
                                           [[[self options] objectForKey:@"height"] intValue]);
- 
+     
 @@ -818,7 +874,9 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
      NSString *filePath = [self persistFile:imageResult.data];
      if (filePath == nil) {
@@ -497,7 +513,7 @@ index 354ad09..cca7bd1 100644
      }
 @@ -829,33 +887,29 @@ RCT_EXPORT_METHOD(openCropper:(NSDictionary *)options
      }
- 
+     
      [self dismissCropper:controller selectionDone:YES completion:[self waitAnimationEnd:^{
 -        self.resolve([self createAttachmentResponse:filePath
 -                                           withExif: exif
@@ -540,7 +556,7 @@ index 354ad09..cca7bd1 100644
      NSString *tmpDirFullPath = [self getTmpDirectory];
      NSString *filePath = [tmpDirFullPath stringByAppendingString:[[NSUUID UUID] UUIDString]];
      filePath = [filePath stringByAppendingString:@".jpg"];
- 
+     
 -    // save cropped file
      BOOL status = [data writeToFile:filePath atomically:YES];
      if (!status) {
