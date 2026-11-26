@@ -70,6 +70,9 @@ export default function IImage(props: Omit<ImageProps, 'source'> & IImageProps) 
 			set_source(props.source);
 		} else if (typeof props.source === 'string' && (props.source.includes('https:') || props.source.includes('http:'))) {
 			set_source(props.source);
+		} else if (typeof props.source === 'string' && props.source.startsWith('//')) {
+			// Protocol-relative (YouTube channel avatars); not a local file
+			set_source(`https:${props.source}`);
 		} else if (typeof props.source === 'string') {
 			run_throttled_fs_check(async () => {
 				if (typeof props.source !== 'string') return;
