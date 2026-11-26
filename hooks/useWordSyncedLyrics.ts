@@ -10,15 +10,16 @@ interface VocalSynced {
 }
 
 export default function useWordSyncedLyrics(track: Track | undefined, lyrics: Lyrics.TranslatedLyrics | null | undefined): Lyrics.TranslatedLyrics | null | undefined {
-	const word_sync = Prefs.get_pref('experimental_word_sync') && lyrics?.sync_type === 'LINE';
+	const estimate = Prefs.get_pref('experimental_word_sync');
+	const word_sync = (estimate || Prefs.get_pref('alignment_word_sync')) && lyrics?.sync_type === 'LINE';
 	const line_sync = lyrics?.sync_type === 'NONE';
-	const estimated = useMemo(() => (word_sync && lyrics ? Lyrics.syllable_word_sync(lyrics) : null), [word_sync, lyrics]);
+	const estimated = useMemo(() => (estimate && word_sync && lyrics ? Lyrics.syllable_word_sync(lyrics) : null), [estimate, word_sync, lyrics]);
 	const [vocal_synced, set_vocal_synced] = useState<VocalSynced | null>(null);
 
 	useEffect(() => {
 		if ((!word_sync && !line_sync) || !lyrics || track === undefined) return;
 		let cancelled = false;
-		(line_sync ? Lyrics.vocal_line_sync(track, lyrics) : Lyrics.vocal_word_sync(track, lyrics))
+		(line_sync ? Lyrics.vocal_line_sync(track, lyrics) : Lyrics.vocal_word_sync(track, lyrics, estimate))
 			.then((synced) => {
 				if (!cancelled && synced !== null) set_vocal_synced({ from: lyrics, lyrics: synced });
 			})
@@ -26,7 +27,7 @@ export default function useWordSyncedLyrics(track: Track | undefined, lyrics: Ly
 		return () => {
 			cancelled = true;
 		};
-	}, [word_sync, line_sync, lyrics, track?.uid]);
+	}, [estimate, word_sync, line_sync, lyrics, track?.uid]);
 
 	if (vocal_synced !== null && vocal_synced.from === lyrics) return vocal_synced.lyrics;
 	return estimated ?? lyrics;

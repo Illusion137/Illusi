@@ -6,7 +6,7 @@ export default (config: ConfigContext["config"]): ExpoConfig => ({
 	...config,
 	name: IS_DEV ? "Illusi (Dev)" : "Illusi",
 	slug: "Illusi",
-	version: "26.0.5",
+	version: "26.0.6",
 	// "orientation": "portrait",
 	// "icon": "./assets/icon.png",
 	// "userInterfaceStyle": "dark",
