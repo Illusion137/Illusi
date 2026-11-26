@@ -59,6 +59,7 @@ Sentry.init({
 	// enabled: true
 	enabled: !__DEV__,
 
+	ignoreErrors: ['The network connection was lost'],
 	maxBreadcrumbs: 50,
 	normalizeDepth: 3,
 	beforeBreadcrumb(breadcrumb: Sentry.Breadcrumb): Sentry.Breadcrumb | null {
@@ -150,18 +151,19 @@ export default Sentry.wrap(function App() {
 		// start_thermal_monitor();
 		// start_heap_monitor();
 
-		const linking_handler = get_linking_handler();
+		const app_load_t0 = Date.now();
+		const app_loaded = Promise.all([
+			Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font }).then(() => {
+				log_breadcrumb('startup', 'fonts loaded', { elapsed_ms: Date.now() - app_load_t0 });
+			}),
+			on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
+		]);
+		const linking_handler = get_linking_handler(app_loaded);
 
 		const subscription = get_shortcut_subscription(play_tracks);
 		load_illusi_icons().catch(catch_log);
 		(async () => {
-			const app_load_t0 = Date.now();
-			await Promise.all([
-				Font.loadAsync({ ...Ionicons.font, ...MaterialIcons.font, ...Entypo.font, ...FontAwesome5.font, ...MaterialCommunityIcons.font }).then(() => {
-					log_breadcrumb('startup', 'fonts loaded', { elapsed_ms: Date.now() - app_load_t0 });
-				}),
-				on_app_load(appConfig(reinterpret_cast<ConfigContext['config']>({})).version!, play_tracks, set_theme, update_bottom_alert, set_is_loading)
-			]);
+			await app_loaded;
 			log_breadcrumb('startup', 'app load complete', { total_ms: Date.now() - app_load_t0 });
 			if (OTA_ENABLED) {
 				ota_check_timer = setTimeout(() => {

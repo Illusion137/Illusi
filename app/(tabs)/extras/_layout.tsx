@@ -1,8 +1,16 @@
 import { Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import usePTheme from '@hooks/usePTheme';
 
 export default function ExtrasLayout() {
+	const { colors } = usePTheme();
 	return (
-		<Stack screenOptions={{ headerShown: true }}>
+		<Stack
+			screenOptions={{ headerShown: true }}
+			screenLayout={({ route, children }) => route.name === 'index' || route.name.startsWith('(shared)')
+				? children
+				: <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>{children}</SafeAreaView>}
+		>
 			<Stack.Screen name="index" options={{ title: 'Extras', headerShown: false }} />
 			<Stack.Screen name="backpack" options={{ title: 'Backpack', headerShown: true }} />
 			<Stack.Screen name="batch-downloader" options={{ title: 'Batch Downloader', headerShown: true }} />

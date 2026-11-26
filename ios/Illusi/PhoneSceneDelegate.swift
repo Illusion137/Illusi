@@ -35,30 +35,17 @@ class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         endOTABackgroundTask()
     }
 
+    /// RCTLinkingManager's AppDelegate entry points are no-ops in scene-based apps,
+    /// so links opened while the app is running must go through its scene variants.
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        guard let context = URLContexts.first else { return }
-
-        let options: [UIApplication.OpenURLOptionsKey: Any] = [
-            .sourceApplication: context.options.sourceApplication as Any,
-            .annotation: context.options.annotation as Any,
-        ]
-
-        RCTLinkingManager.application(
-            UIApplication.shared,
-            open: context.url,
-            options: options
-        )
+        RCTLinkingManager.scene(scene, openURLContexts: URLContexts)
     }
 
     /// Scene-based apps never receive `application(_:continue:restorationHandler:)`
     /// on the AppDelegate, so Siri shortcuts and universal links arrive here instead.
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         if RNSSSiriShortcuts.scene(scene, continue: userActivity) { return }
-        RCTLinkingManager.application(
-            UIApplication.shared,
-            continue: userActivity,
-            restorationHandler: { _ in }
-        )
+        RCTLinkingManager.scene(scene, continue: userActivity)
     }
 
     func scene(

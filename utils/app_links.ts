@@ -17,3 +17,8 @@ export function shared_url(url: string): string | null {
 export function is_app_link(url: string): boolean {
 	return APP_SCHEME.test(url) && !DEV_CLIENT.test(url);
 }
+
+/** The `track/...` or `playlist/...` part of an app scheme link; Linking.parse can't read paths of non-http urls */
+export function app_link_path(url: string): string {
+	return url.replace(APP_SCHEME, '').replace(/^\/+/, '').replace(/[?#].*$/, '');
+}

@@ -262,14 +262,13 @@ export default function PlaylistBase(props: PlaylistProps) {
 				alert_error(playlist_continuation as ResponseError);
 				return false;
 			}
-			const o_playlist_data = playlist_data!;
 			const n_tracks = initial_tracks.concat(SQLTracks.add_playback_saved_data_to_tracks(playlist_continuation.tracks));
 			const n_continuation = playlist_continuation.continuation;
 			tracks_ref = n_tracks;
 			set_initial_tracks(n_tracks);
 			set_tracks(n_tracks);
 			set_continuation(n_continuation);
-			GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: n_tracks, playlist_data: o_playlist_data, continuation: n_continuation });
+			if (playlist_data) GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: n_tracks, playlist_data, continuation: n_continuation });
 			return n_continuation !== null;
 		}
 		if (typeof continuation === 'function' && props.type === 'TRACKS_LIST') {
@@ -294,7 +293,7 @@ export default function PlaylistBase(props: PlaylistProps) {
 			set_initial_tracks(tracks_ref);
 			set_tracks(tracks_ref);
 			set_continuation(null);
-			GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: tracks_ref, playlist_data: playlist_data!, continuation: null });
+			if (playlist_data) GLOBALS.global_var.playlist_cache.update(props.uri, { tracks: tracks_ref, playlist_data, continuation: null });
 		}
 		if (typeof continuation === 'function' && props.type === 'TRACKS_LIST') {
 			set_tracks_list(await continue_all(tracks_list_ref.current, reinterpret_cast<Types.Continuation<Track>>(continuation), track_key));
@@ -338,15 +337,17 @@ export default function PlaylistBase(props: PlaylistProps) {
 		Prefs.prefs.always_shuffle.current_value = false;
 		const start_index = from_index ?? GLOBALS.global_var.past_track_index;
 		const cloned_tracks = [...play_tracks].slice(start_index);
+		if (cloned_tracks.length === 0) return;
 		try {
-			GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title, true);
+			GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data?.title ?? '', true);
 		} finally {
 			Prefs.prefs.always_shuffle.current_value = prev_always_shuffle;
 		}
 	}
 	function play_shuffle(play_tracks: Track[]) {
+		if (play_tracks.length === 0) return;
 		const cloned_tracks = Illusive.shuffle_tracks('SHUFFLE', [...play_tracks]);
-		GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data!.title);
+		GLOBALS.global_var.play_tracks(cloned_tracks[0], cloned_tracks, playlist_data?.title ?? '');
 	}
 
 	async function on_edit_text(q: string) {
